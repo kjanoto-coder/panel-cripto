@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Central de Inteligencia - Doble Lectura IA Pro</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #0b0e11; color: #eaecef; margin: 0; padding: 12px; }
+        .container { max-width: 680px; margin: auto; background: #181a20; border-radius: 12px; padding: 16px; border: 1px solid #2b313a; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2b313a; padding-bottom: 12px; margin-bottom: 12px; }
+        .title { font-size: 1.15rem; font-weight: bold; color: #f0b90b; }
+        .badge { background: #2b313a; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; color: #f0b90b; border: 1px solid #f0b90b33; }
+        .section { background: #1e2329; border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; border-left: 4px solid #f0b90b; }
+        .section.green { border-left-color: #0ecb81; }
+        .section.red { border-left-color: #f6465d; }
+        .section.blue { border-left-color: #3861fb; }
+        .section.purple { border-left-color: #9333ea; }
+        .section.orange { border-left-color: #f59e0b; }
+        .section-title { font-size: 0.8rem; text-transform: uppercase; color: #848e9c; font-weight: bold; margin-bottom: 6px; }
+        .section-content { font-size: 0.9rem; line-height: 1.5; color: #eaecef; }
+        .btn { display: block; width: 100%; background: #f0b90b; color: #181a20; text-align: center; padding: 12px; border-radius: 6px; font-weight: bold; text-decoration: none; margin-top: 15px; font-size: 0.95rem; }
+        .btn:hover { background: #d9a70a; }
+        .metric-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+        .metric-box { background: #1e2329; padding: 8px; border-radius: 6px; text-align: center; }
+        .metric-title { font-size: 0.65rem; color: #848e9c; font-weight: bold; }
+        .metric-value { font-size: 0.82rem; font-weight: bold; margin-top: 4px; }
+        .tag-row { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+        .tag { background: #2b313a; color: #d1d5db; padding: 3px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; text-decoration: none; }
+        .tag:hover { background: #3a414b; color: #fff; }
+        .x-card { background: #111418; border: 1px solid #2b313a; padding: 10px; border-radius: 6px; margin-top: 8px; font-size: 0.85rem; }
+        .x-author { color: #f0b90b; font-weight: bold; text-decoration: none; display: inline-block; margin-bottom: 4px; }
+        .x-author:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <div class="title" id="coin-title">📊 Ficha: Analizando...</div>
+        <div class="badge">Doble Lectura IA Pro</div>
+    </div>
+
+    <div class="tag-row" id="tag-container">
+        <span class="tag" id="tag-type">📂 Analizando Activo</span>
+        <span class="tag" id="tag-ecosystem">🌐 Binance Spot</span>
+        <a href="#" id="official-web" class="tag" target="_blank" style="background: #3861fb; color: white;">🔗 Web Oficial ↗</a>
+    </div>
+
+    <div class="metric-grid">
+        <div class="metric-box">
+            <div class="metric-title">PRECIO ACTUAL</div>
+            <div class="metric-value" id="val-price" style="color: #f0b90b;">-</div>
+        </div>
+        <div class="metric-box">
+            <div class="metric-title">MÁX / MÍN AÑO</div>
+            <div class="metric-value" id="val-range" style="font-size: 0.7rem; color: #0ecb81; line-height: 1.3;">-</div>
+        </div>
