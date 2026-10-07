@@ -37,7 +37,6 @@ def obtener_datos_binance():
                     change = float(t.get('priceChangePercent', 0))
                     volume = float(t.get('quoteVolume', 0))
                     
-                    # Filtro de altcoins menores a $1 USD
                     if 0 < price < 1.0:
                         altcoins.append({
                             'symbol': symbol.replace('USDT', ''),
@@ -52,17 +51,14 @@ def obtener_datos_binance():
         if not altcoins:
             return None
             
-        # Top 5 Ganadoras
         ganadoras = sorted(altcoins, key=lambda x: x['change'], reverse=True)[:5]
         for g in ganadoras:
             g['barra'] = '🟩🟩🟩🟩🟩'
             
-        # Top 5 Perdedoras
         perdedoras = sorted(altcoins, key=lambda x: x['change'])[:5]
         for p in perdedoras:
             p['barra'] = '🟥🟥🟥🟥🟥'
             
-        # Top 5 Acumulación (mayor volumen con precio bajo)
         acumulacion = sorted(altcoins, key=lambda x: x['volume'], reverse=True)[:5]
         for a in acumulacion:
             a['vol_fmt'] = f"{a['volume']:,.0f}"
@@ -133,12 +129,9 @@ def generar_mensaje_cripto(coin_data):
         )
     mensaje += "\n"
 
-    # 4. ESTADO DE FAVORITAS (Simulado o integrado con datos de mercado)
+    # 4. ESTADO DE FAVORITAS
     mensaje += "⭐ <b>ESTADO DE TUS FAVORITAS</b>\n"
-    # Puedes agregar aquí tus monedas favoritas o dejarlas configuradas
     favoritas_ejemplo = ["LUNC", "TUT", "PEPE", "SHIB", "FLOKI"]
-    
-    # Buscamos datos reales si alguna de tus favoritas está en el mercado analizado
     all_market_coins = {c['symbol']: c for c in (ganadoras + acumulacion + perdedoras)}
     
     for sym in favoritas_ejemplo[:5]:
@@ -184,17 +177,8 @@ def enviar_a_telegram(mensaje):
     else:
         print(f"❌ Error al enviar a Telegram: {response.text}")
 
-# ==========================================
-# EJECUCIÓN PRINCIPAL (GARANTIZADA)
-# ==========================================
 if __name__ == "__main__":
     print("🤖 Iniciando proceso del bot de criptomonedas...")
-    
-    # 1. Obtenemos datos del mercado
     datos_mercado = obtener_datos_binance()
-    
-    # 2. Generamos el texto con el formato correcto
     texto_final = generar_mensaje_cripto(datos_mercado)
-    
-    # 3. Disparamos el envío a Telegram de forma incondicional
     enviar_a_telegram(texto_final)
