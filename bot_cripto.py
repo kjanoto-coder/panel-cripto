@@ -1,4 +1,5 @@
 import os
+import time
 import requests
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -49,7 +50,7 @@ def preparar_datos(tickers):
     # 3. Top 10 Perdedoras (Mayor caída para buscar rebote)
     perdedoras = sorted(usdt_pairs, key=lambda x: float(x['priceChangePercent']))[:10]
     
-    # 4. Tus Favoritas dinámicas (Busca LUNC y BANK directamente en los datos de Binance)
+    # 4. Tus Favoritas dinámicas (LUNC y BANK)
     favoritas_simbolos = ['LUNC', 'BANK']
     favoritas = []
     for sim in favoritas_simbolos:
@@ -61,6 +62,7 @@ def preparar_datos(tickers):
 
 def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
     base_url_netlify = "https://gregarious-frangollo-0346c5.netlify.app"
+    timestamp = int(time.time())  # Genera un código único anti-caché para los enlaces
     
     # Parte 1: Encabezado + Ganadoras + Acumulación
     mensaje_1 = (
@@ -75,7 +77,7 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
         precio = float(item['lastPrice'])
         cambio = float(item['priceChangePercent'])
         barra = generar_barra_progreso(cambio)
-        url_ia = f"{base_url_netlify}/?coin={sim}&price={precio}&change={cambio}"
+        url_ia = f"{base_url_netlify}/?coin={sim}&price={precio}&change={cambio}&t={timestamp}"
         url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
         
         mensaje_1 += (
@@ -90,7 +92,7 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
         precio = float(item['lastPrice'])
         cambio = float(item['priceChangePercent'])
         barra = generar_barra_progreso(cambio, es_acumulacion=True)
-        url_ia = f"{base_url_netlify}/?coin={sim}&price={precio}&change={cambio}"
+        url_ia = f"{base_url_netlify}/?coin={sim}&price={precio}&change={cambio}&t={timestamp}"
         url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
         
         mensaje_1 += (
@@ -110,7 +112,7 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
         precio = float(item['lastPrice'])
         cambio = float(item['priceChangePercent'])
         barra = generar_barra_progreso(cambio)
-        url_ia = f"{base_url_netlify}/?coin={sim}&price={precio}&change={cambio}"
+        url_ia = f"{base_url_netlify}/?coin={sim}&price={precio}&change={cambio}&t={timestamp}"
         url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
         
         mensaje_2 += (
@@ -120,14 +122,14 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
             f"  └ [📊 Resumen IA]({url_ia}) | [🔶 Tradear]({url_trade})\n"
         )
 
-    # Favoritas dinámicas con datos reales de la API
+    # Favoritas dinámicas
     mensaje_2 += "\n⭐ **4. TUS FAVORITAS (Wallet & Seguimiento)**\n"
     for item in favoritas:
         sim = item['symbol'].replace('USDT', '')
         precio = float(item['lastPrice'])
         cambio = float(item['priceChangePercent'])
         barra = generar_barra_progreso(cambio)
-        url_ia = f"{base_url_netlify}/?coin={sim}&price={precio}&change={cambio}"
+        url_ia = f"{base_url_netlify}/?coin={sim}&price={precio}&change={cambio}&t={timestamp}"
         url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
         
         mensaje_2 += (
