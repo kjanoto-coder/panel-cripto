@@ -138,10 +138,19 @@
         }
     }
 
-    // Ejecutar al cargar la página
+    // Ejecutar al cargar
     cargarDatosMoneda();
 
-    // Forzar actualización y recarga absoluta si el navegador móvil recupera la página desde caché
+    // Detector en tiempo real: revisa la URL constantemente; si Telegram reutiliza la ventana, 
+    // detecta el cambio de moneda al instante y refresca los datos de la nueva ficha.
+    let lastUrl = window.location.href;
+    setInterval(() => {
+        if (window.location.href !== lastUrl) {
+            lastUrl = window.location.href;
+            cargarDatosMoneda();
+        }
+    }, 200);
+
     window.addEventListener('pageshow', function(event) {
         cargarDatosMoneda();
         if (event.persisted) {
@@ -149,6 +158,9 @@
         }
     });
 </script>
+
+</body>
+</html>
 
 </body>
 </html>
