@@ -54,11 +54,12 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
     base_url_netlify = "https://gregarious-frangollo-0346c5.netlify.app"
     timestamp = int(time.time())
     
+    # Parte 1: Ganadoras y Acumulación
     mensaje_1 = (
         "🧠 **CENTRAL DE INTELIGENCIA & GEMINI AI** (1/2)\n"
         "📊 Monitoreo Global: 500+ altcoins del Top de Binance\n"
         "⚡ **Estado:** Automatización Activa (GitHub Actions - Cada 15m)\n\n"
-        "🚀 **1. TOP 10 GANADORAS (Análisis Multiciclo)**\n"
+        "🚀 **1. TOP 10 GANADORAS**\n"
     )
     
     for item in ganadoras:
@@ -71,11 +72,10 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
         
         mensaje_1 += (
             f"• **{sim}** | ${precio:.8f} | {barra} | +{cambio:.1f}%\n"
-            f"  └ ⏱️ *15m: Alcista | 1h: Impulso | 1d: Rotura*\n"
             f"  └ [📊 Resumen IA]({url_ia}) | [🔶 Tradear]({url_trade})\n"
         )
 
-    mensaje_1 += "\n💎 **2. TOP 10 ACUMULACIÓN (< $1 USD - Gemini AI)**\n"
+    mensaje_1 += "\n💎 **2. TOP 10 ACUMULACIÓN (< $1 USD)**\n"
     for item in acumulacion:
         sim = item['symbol'].replace('USDT', '')
         precio = float(item['lastPrice'])
@@ -86,14 +86,13 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
         
         mensaje_1 += (
             f"• **{sim}** | ${precio:.8f} | {barra} | {cambio:+.1f}%\n"
-            f"  └ (Soporte clave)\n"
-            f"  └ ⏱️ *15m/1h/1d: Estructura de acumulación geométrica*\n"
             f"  └ [📊 Resumen IA]({url_ia}) | [🔶 Tradear]({url_trade})\n"
         )
 
+    # Parte 2: Perdedoras y Favoritas
     mensaje_2 = (
         "🧠 **CENTRAL DE INTELIGENCIA & GEMINI AI** (2/2)\n\n"
-        "📉 **3. TOP 10 PERDEDORAS (Potencial Rebote / Recuperación)**\n"
+        "📉 **3. TOP 10 PERDEDORAS**\n"
     )
     for item in perdedoras:
         sim = item['symbol'].replace('USDT', '')
@@ -105,12 +104,10 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
         
         mensaje_2 += (
             f"• **{sim}** | ${precio:.8f} | {barra} | {cambio:.1f}%\n"
-            f"  └ (Sobreventa en 1h/1d)\n"
-            f"  └ ⏱️ *Señal IA: Posible suelo de recuperación a corto plazo*\n"
             f"  └ [📊 Resumen IA]({url_ia}) | [🔶 Tradear]({url_trade})\n"
         )
 
-    mensaje_2 += "\n⭐ **4. TUS FAVORITAS (Wallet & Seguimiento)**\n"
+    mensaje_2 += "\n⭐ **4. TUS FAVORITAS**\n"
     for item in favoritas:
         sim = item['symbol'].replace('USDT', '')
         precio = float(item['lastPrice'])
@@ -121,8 +118,6 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
         
         mensaje_2 += (
             f"• **{sim}** | ${precio:.8f} | {barra} | {cambio:+.1f}%\n"
-            f"  └ (Destacada en tu wallet)\n"
-            f"  └ ⏱️ *15m: Rango | 1h: Estable | 1d: Seguimiento activo*\n"
             f"  └ [📊 Resumen IA]({url_ia}) | [🔶 Tradear]({url_trade})\n"
         )
 
