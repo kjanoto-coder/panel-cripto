@@ -35,23 +35,31 @@ def generar_barra_progreso(cambio, es_acumulacion=False):
 
 def preparar_datos(tickers):
     """
-    Filtra y selecciona exactamente el Top 10 para cada categoría.
+    Filtra y selecciona el Top 10 y busca las favoritas en tiempo real.
     """
     usdt_pairs = [t for t in tickers if t['symbol'].endswith('USDT') and not any(x in t['symbol'] for x in ['UP', 'DOWN', 'BULL', 'BEAR'])]
     
     # 1. Top 10 Ganadoras
     ganadoras = sorted(usdt_pairs, key=lambda x: float(x['priceChangePercent']), reverse=True)[:10]
     
-    # 2. Top 10 Acumulación (< $1 USD con buen volumen) - CORREGIDO AQUÍ (usaba t en vez de x)
+    # 2. Top 10 Acumulación (< $1 USD con buen volumen)
     acumulacion_pool = [t for t in usdt_pairs if float(t['lastPrice']) < 1.0]
     acumulacion = sorted(acumulacion_pool, key=lambda x: float(x['quoteVolume']), reverse=True)[:10]
     
     # 3. Top 10 Perdedoras (Mayor caída para buscar rebote)
     perdedoras = sorted(usdt_pairs, key=lambda x: float(x['priceChangePercent']))[:10]
     
-    return ganadoras, acumulacion, perdedoras
+    # 4. Tus Favoritas dinámicas (Busca LUNC y BANK directamente en los datos de Binance)
+    favoritas_simbolos = ['LUNC', 'BANK']
+    favoritas = []
+    for sim in favoritas_simbolos:
+        match = next((t for t in usdt_pairs if t['symbol'] == f"{sim}USDT"), None)
+        if match:
+            favoritas.append(match)
+            
+    return ganadoras, acumulacion, perdedoras, favoritas
 
-def construir_mensajes(ganadoras, acumulacion, perdedoras):
+def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
     base_url_netlify = "https://gregarious-frangollo-0346c5.netlify.app"
     
     # Parte 1: Encabezado + Ganadoras + Acumulación
@@ -71,7 +79,7 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras):
         url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
         
         mensaje_1 += (
-            f"• **{sim}** | ${precio:.4f} | {barra} | +{cambio:.1f}%\n"
+            f"• **{sim}** | ${precio:.8f} | {barra} | +{cambio:.1f}%\n"
             f"  └ ⏱️ *15m: Alcista | 1h: Impulso | 1d: Rotura*\n"
             f"  └ [📊 Resumen IA]({url_ia}) | [🔶 Tradear]({url_trade})\n"
         )
@@ -86,7 +94,7 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras):
         url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
         
         mensaje_1 += (
-            f"• **{sim}** | ${precio:.4f} | {barra} | {cambio:+.1f}%\n"
+            f"• **{sim}** | ${precio:.8f} | {barra} | {cambio:+.1f}%\n"
             f"  └ (Soporte clave)\n"
             f"  └ ⏱️ *15m/1h/1d: Estructura de acumulación geométrica*\n"
             f"  └ [📊 Resumen IA]({url_ia}) | [🔶 Tradear]({url_trade})\n"
@@ -106,27 +114,30 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras):
         url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
         
         mensaje_2 += (
-            f"• **{sim}** | ${precio:.4f} | {barra} | {cambio:.1f}%\n"
+            f"• **{sim}** | ${precio:.8f} | {barra} | {cambio:.1f}%\n"
             f"  └ (Sobreventa en 1h/1d)\n"
             f"  └ ⏱️ *Señal IA: Posible suelo de recuperación a corto plazo*\n"
             f"  └ [📊 Resumen IA]({url_ia}) | [🔶 Tradear]({url_trade})\n"
         )
 
-    # Favoritas fijas
-    url_lunc_ia = f"{base_url_netlify}/?coin=LUNC&price=0.00005254&change=-0.2"
-    url_bank_ia = f"{base_url_netlify}/?coin=BANK&price=0.01240&change=6.8"
+    # Favoritas dinámicas con datos reales de la API
+    mensaje_2 += "\n⭐ **4. TUS FAVORITAS (Wallet & Seguimiento)**\n"
+    for item in favoritas:
+        sim = item['symbol'].replace('USDT', '')
+        precio = float(item['lastPrice'])
+        cambio = float(item['priceChangePercent'])
+        barra = generar_barra_progreso(cambio)
+        url_ia = f"{base_url_netlify}/?coin={sim}&price={precio}&change={cambio}"
+        url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
+        
+        mensaje_2 += (
+            f"• **{sim}** | ${precio:.8f} | {barra} | {cambio:+.1f}%\n"
+            f"  └ (Destacada en tu wallet)\n"
+            f"  └ ⏱️ *15m: Rango | 1h: Estable | 1d: Seguimiento activo*\n"
+            f"  └ [📊 Resumen IA]({url_ia}) | [🔶 Tradear]({url_trade})\n"
+        )
 
-    mensaje_2 += (
-        "\n⭐ **4. TUS FAVORITAS (Wallet & Seguimiento)**\n"
-        "• **LUNC** | $0.00005254 | 🟥🟥⬜⬜⬜ | -0.2%\n"
-        "  └ ⏱️ *15m: Rango | 1h: Estable | 1d: Acumulando base*\n"
-        f"  └ [📊 Resumen IA]({url_lunc_ia}) | [🔶 Tradear](https://www.binance.com/es/trade/LUNC_USDT)\n"
-        "• **BANK** | $0.01240 | 🟢🟢🟢🟢🟢 | +6.8%\n"
-        "  └ (Destacada en tu wallet)\n"
-        "  └ ⏱️ *15m: Alcista | 1h: Ruptura | 1d: Impulso fuerte*\n"
-        f"  └ [📊 Resumen IA]({url_bank_ia}) | [🔶 Tradear](https://www.binance.com/es/trade/BANK_USDT)\n\n"
-        "✅ Alerta enviada correctamente mediante sistema de alta disponibilidad."
-    )
+    mensaje_2 += "\n✅ Alerta enviada correctamente mediante sistema de alta disponibilidad."
     
     return mensaje_1, mensaje_2
 
@@ -156,6 +167,6 @@ if __name__ == "__main__":
     print("Iniciando análisis de mercado...")
     datos = obtener_datos_binance()
     if datos:
-        ganadoras, acumulacion, perdedoras = preparar_datos(datos)
-        msg_1, msg_2 = construir_mensajes(ganadoras, acumulacion, perdedoras)
+        ganadoras, acumulacion, perdedoras, favoritas = preparar_datos(datos)
+        msg_1, msg_2 = construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas)
         enviar_a_telegram(msg_1, msg_2)
