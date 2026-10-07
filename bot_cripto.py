@@ -42,9 +42,9 @@ def preparar_datos(tickers):
     # 1. Top 10 Ganadoras
     ganadoras = sorted(usdt_pairs, key=lambda x: float(x['priceChangePercent']), reverse=True)[:10]
     
-    # 2. Top 10 Acumulación (< $1 USD con buen volumen)
+    # 2. Top 10 Acumulación (< $1 USD con buen volumen) - CORREGIDO AQUÍ (usaba t en vez de x)
     acumulacion_pool = [t for t in usdt_pairs if float(t['lastPrice']) < 1.0]
-    acumulacion = sorted(acumulacion_pool, key=lambda x: float(t['quoteVolume']), reverse=True)[:10]
+    acumulacion = sorted(acumulacion_pool, key=lambda x: float(x['quoteVolume']), reverse=True)[:10]
     
     # 3. Top 10 Perdedoras (Mayor caída para buscar rebote)
     perdedoras = sorted(usdt_pairs, key=lambda x: float(x['priceChangePercent']))[:10]
