@@ -1,14 +1,12 @@
 import os
 import requests
 
-# Leemos las variables con los nombres exactos configurados en GitHub Secrets
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("CHAT_ID")
 
 def obtener_datos_binance():
     """
-    Conecta al endpoint alternativo oficial de Binance para datos públicos,
-    evitando bloqueos de IP en GitHub Actions.
+    Conecta al endpoint alternativo oficial de Binance para datos públicos.
     """
     url = "https://data-api.binance.vision/api/v3/ticker/24hr"
     try:
@@ -19,82 +17,100 @@ def obtener_datos_binance():
         print(f"Error al conectar con Binance: {e}")
         return []
 
-def generar_barra_progreso(cambio_porcentual):
-    """
-    Genera la barra visual de rendimiento basada en el porcentaje.
-    """
-    if cambio_porcentual > 10:
+def generar_barra_progreso(cambio):
+    if cambio > 10:
         return "🟢🟢🟢🟢🟢"
-    elif cambio_porcentual > 5:
+    elif cambio > 5:
         return "🟢🟢🟢🟢⬜"
-    elif cambio_porcentual > 0:
+    elif cambio > 0:
         return "🟢🟢⬜⬜⬜"
-    elif cambio_porcentual > -5:
+    elif cambio > -5:
         return "🟥🟥⬜⬜⬜"
     else:
         return "🟥🟥🟥🟥🟥"
 
-def preparar_analisis_top_10(tickers):
+def preparar_datos(tickers):
     """
-    Filtra los pares USDT, los ordena por rendimiento y selecciona el Top 10.
+    Filtra y selecciona exactamente el Top 10 para cada categoría.
     """
-    usdt_pairs = [t for t in tickers if t['symbol'].endswith('USDT')]
-    usdt_pairs.sort(key=lambda x: float(x['priceChangePercent']), reverse=True)
-    return usdt_pairs[:10]
+    usdt_pairs = [t for t in tickers if t['symbol'].endswith('USDT') and not any(x in t['symbol'] for x in ['UP', 'DOWN', 'BULL', 'BEAR'])]
+    
+    # 1. Top 10 Ganadoras
+    ganadoras = sorted(usdt_pairs, key=lambda x: float(x['priceChangePercent']), reverse=True)[:10]
+    
+    # 2. Top 10 Acumulación (< $1 USD con buen volumen)
+    acumulacion_pool = [t for t in usdt_pairs if float(t['lastPrice']) < 1.0]
+    acumulacion = sorted(acumulacion_pool, key=lambda x: float(x['quoteVolume']), reverse=True)[:10]
+    
+    # 3. Top 10 Perdedoras (Mayor caída para buscar rebote)
+    perdedoras = sorted(usdt_pairs, key=lambda x: float(x['priceChangePercent']))[:10]
+    
+    return ganadoras, acumulacion, perdedoras
 
-def construir_mensaje_telegram(top_10):
-    """
-    Construye el mensaje estructurado con el diseño de la Central de Inteligencia.
-    """
+def construir_mensaje_y_teclado(ganadoras, acumulacion, perdedoras):
     mensaje = (
         "🧠 **CENTRAL DE INTELIGENCIA & GEMINI AI**\n"
-        "📊 Monitoreo Global: 500 altcoins del Top de Binance\n"
+        "📊 Monitoreo Global: 500+ altcoins del Top de Binance\n"
         "⚡ **Estado:** Automatización Activa (GitHub Actions - Cada 15m)\n\n"
         "🚀 **1. TOP 10 GANADORAS (Análisis Multiciclo)**\n"
     )
     
-    for item in top_10:
-        simbolo = item['symbol'].replace('USDT', '')
+    keyboard = []
+    
+    for item in ganadoras:
+        sim = item['symbol'].replace('USDT', '')
         precio = float(item['lastPrice'])
         cambio = float(item['priceChangePercent'])
         barra = generar_barra_progreso(cambio)
-        
-        mensaje += (
-            f"• **{simbolo}** | ${precio:.4f} | {barra} | +{cambio:.1f}%\n"
-            f"  └ ⏱️ *15m: Alcista | 1h: Impulso | 1d: Rotura*\n"
-        )
-        
+        mensaje += f"• **{sim}** | ${precio:.4f} | {barra} | +{cambio:.1f}%\n  └ ⏱️ *15m: Alcista | 1h: Impulso | 1d: Rotura*\n"
+        keyboard.append([
+            {"text": f"📊 Resumen IA ({sim})", "url": "https://tu-sitio-netlify.app"},
+            {"text": f"🔶 Tradear {sim}", "url": f"https://www.binance.com/es/trade/{sim}_USDT"}
+        ])
+
+    mensaje += "\n💎 **2. TOP 10 ACUMULACIÓN (< $1 USD - Gemini AI)**\n"
+    for item in acumulacion:
+        sim = item['symbol'].replace('USDT', '')
+        precio = float(item['lastPrice'])
+        cambio = float(item['priceChangePercent'])
+        barra = generar_barra_progreso(cambio)
+        mensaje += f"• **{sim}** | ${precio:.4f} | {barra} | {cambio:+.1f}%\n  └ ⏱️ *Estructura de acumulación geométrica*\n"
+        keyboard.append([
+            {"text": f"📊 Resumen IA ({sim})", "url": "https://tu-sitio-netlify.app"},
+            {"text": f"🔶 Tradear {sim}", "url": f"https://www.binance.com/es/trade/{sim}_USDT"}
+        ])
+
+    mensaje += "\n📉 **3. TOP 10 PERDEDORAS (Potencial Rebote / Recuperación)**\n"
+    for item in perdedoras:
+        sim = item['symbol'].replace('USDT', '')
+        precio = float(item['lastPrice'])
+        cambio = float(item['priceChangePercent'])
+        barra = generar_barra_progreso(cambio)
+        mensaje += f"• **{sim}** | ${precio:.4f} | {barra} | {cambio:.1f}%\n  └ ⏱️ *Señal IA: Posible suelo de recuperación*\n"
+        keyboard.append([
+            {"text": f"📊 Resumen IA ({sim})", "url": "https://tu-sitio-netlify.app"},
+            {"text": f"🔶 Tradear {sim}", "url": f"https://www.binance.com/es/trade/{sim}_USDT"}
+        ])
+
     mensaje += (
-        "\n💎 **2. ACUMULACIÓN (< $1 USD - Gemini AI)**\n"
-        "• **KEY** | $0.00320 | 🟨🟨🟨⬜⬜ | +1.5%\n"
-        "  └ ⏱️ *15m/1h/1d: Estructura de acumulación geométrica*\n\n"
-        "📉 **3. PERDEDORAS (Potencial Rebote / Recuperación)**\n"
-        "• **OGN** | $0.0890 | 🟥🟥🟥⬜⬜ | -6.4%\n"
-        "  └ ⏱️ *Señal IA: Posible suelo de recuperación a corto plazo*\n\n"
-        "⭐ **4. TUS FAVORITAS (Wallet & Seguimiento)**\n"
+        "\n⭐ **4. TUS FAVORITAS (Wallet & Seguimiento)**\n"
         "• **LUNC** | $0.00005254 | 🟥🟥⬜⬜⬜ | -0.2%\n"
-        "  └ ⏱️ *15m: Rango | 1h: Estable | 1d: Acumulando base*\n\n"
-        "💡 **Nota:** Haz clic en 'Resumen IA' para abrir la ficha detallada o en 'Tradear' para operar directo en Binance.\n"
+        "  └ ⏱️ *15m: Rango | 1h: Estable | 1d: Acumulando base*\n"
+        "• **BANK** | $0.01240 | 🟢🟢🟢🟢🟢 | +6.8%\n"
+        "  └ ⏱️ *15m: Alcista | 1h: Ruptura | 1d: Impulso fuerte*\n\n"
         "✅ Alerta enviada correctamente mediante sistema de alta disponibilidad."
     )
-    return mensaje
+    
+    return mensaje, keyboard
 
-def enviar_a_telegram(texto):
-    """
-    Envía el reporte formateado con botones interactivos a Telegram usando el token correcto.
-    """
+def enviar_a_telegram(texto, keyboard):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
         "text": texto,
         "parse_mode": "Markdown",
         "reply_markup": {
-            "inline_keyboard": [
-                [
-                    {"text": "📊 Resumen IA", "url": "https://tu-sitio-netlify.app"},
-                    {"text": "🔶 Tradear", "url": "https://www.binance.com"}
-                ]
-            ]
+            "inline_keyboard": keyboard
         }
     }
     
@@ -108,6 +124,6 @@ if __name__ == "__main__":
     print("Iniciando análisis de mercado...")
     datos = obtener_datos_binance()
     if datos:
-        top_10_monedas = preparar_analisis_top_10(datos)
-        mensaje_final = construir_mensaje_telegram(top_10_monedas)
-        enviar_a_telegram(mensaje_final)
+        ganadoras, acumulacion, perdedoras = preparar_datos(datos)
+        mensaje, teclado = construir_mensaje_y_teclado(ganadoras, acumulacion, perdedoras)
+        enviar_a_telegram(mensaje, teclado)
