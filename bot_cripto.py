@@ -1,94 +1,105 @@
 import os
 import sys
-import requests
-import pandas as pd
+import json
+import urllib.request
 
-# Forzar salida inmediata en consola para ver los logs en GitHub Actions
+# Forzar salida inmediata en consola
 sys.stdout.reconfigure(line_buffering=True) if hasattr(sys.stdout, 'reconfigure') else None
 
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 CHAT_ID = os.environ.get("CHAT_ID")
 
-# URL base de tu panel web en Netlify
 NETLIFY_URL = "https://gregarious-frangollo-0346c5.netlify.app"
 
-# Lista fija de tus monedas favoritas
 FAVORITAS_SYMBOLS = [
     "SYNUSDT", "SNXXBUSDT", "MOVRUSDT", "JSTUSDT", "QIUSDT", 
     "BEAMXUSDT", "HEMIUSDT", "BANKUSDT", "LUNCUSDT"
 ]
 
-def obtener_datos_binance():
-    """Consulta en tiempo real la API pública de Binance con depuración"""
-    url = "https://api.binance.com/api/v3/ticker/24hr"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-    }
+def obtener_datos_mercado():
+    url = "https://api.coincap.io/v2/assets?limit=2000"
+    req = urllib.request.Request(
+        url, 
+        headers={"User-Agent": "Mozilla/5.0"}
+    )
     try:
-        print("[+] Conectando con la API de Binance...")
-        response = requests.get(url, headers=headers, timeout=15)
-        print(f"[DEBUG] Binance Status Code: {response.status_code}")
-        
-        if response.status_code != 200:
-            print(f"[-] Error HTTP de Binance: {response.text}")
-            return None
-            
-        data = response.json()
-        if isinstance(data, list):
-            df = pd.DataFrame(data)
-            df['lastPrice'] = df['lastPrice'].astype(float)
-            df['priceChangePercent'] = df['priceChangePercent'].astype(float)
-            df['volume'] = df['volume'].astype(float)
-            print(f"[+] Datos de Binance obtenidos correctamente ({len(df)} pares encontrados).")
-            return df
-        else:
-            print(f"[-] Binance devolvió un formato no esperado: {data}")
+        print("[+] Conectando con la API pública de CoinCap...")
+        with urllib.request.urlopen(req, timeout=15) as response:
+            if response.status == 200:
+                data = json.loads(response.read().decode('utf-8'))
+                items = data.get("data", [])
+                print(f"[+] Datos obtenidos correctamente ({len(items)} activos).")
+                return items
+            else:
+                print(f"[-] Error HTTP: {response.status}")
     except Exception as e:
-        print(f"[-] Excepción al conectar con Binance API: {e}")
+        print(f"[-] Excepción al conectar con la API: {e}")
     return None
 
 def enviar_alerta():
     print("[+] Iniciando ejecución del bot...")
     if not TELEGRAM_TOKEN or not CHAT_ID:
-        print("[-] Faltan credenciales configuradas (TELEGRAM_TOKEN o CHAT_ID en GitHub Secrets).")
+        print("[-] Faltan credenciales configuradas (TELEGRAM_TOKEN o CHAT_ID).")
         return
 
-    df = obtener_datos_binance()
-    if df is None or df.empty:
+    raw_data = obtener_datos_mercado()
+    if not raw_data:
         print("[-] No se pudieron obtener datos del mercado.")
         return
 
-    # Filtrar únicamente pares en USDT
-    df_usdt = df[df['symbol'].str.endswith('USDT')].copy()
-    df_usdt['coin'] = df_usdt['symbol'].str.replace('USDT', '')
+    # Procesar datos adaptados al formato del bot
+    df_usdt = []
+    for item in raw_data:
+        try:
+            coin = item.get("symbol", "").upper()
+            symbol = f"{coin}USDT"
+            lastPrice = float(item.get("priceUsd", 0))
+            priceChangePercent = float(item.get("changePercent24Hr", 0))
+            volume = float(item.get("volumeUsd24Hr", 0))
+            
+            df_usdt.append({
+                "symbol": symbol,
+                "coin": coin,
+                "lastPrice": lastPrice,
+                "priceChangePercent": priceChangePercent,
+                "volume": volume
+            })
+        except (ValueError, TypeError):
+            continue
+
+    if not df_usdt:
+        print("[-] No hay datos procesados.")
+        return
 
     # 1. Top 10 Ganadoras
-    top_ganadoras = df_usdt.sort_values(by='priceChangePercent', ascending=False).head(10)
+    top_ganadoras = sorted(df_usdt, key=lambda x: x['priceChangePercent'], reverse=True)[:10]
 
     # 2. Top 10 Perdedoras
-    top_perdedoras = df_usdt.sort_values(by='priceChangePercent', ascending=True).head(10)
+    top_perdedoras = sorted(df_usdt, key=lambda x: x['priceChangePercent'])[:10]
 
     # 3. Top 10 Acumulación Silenciosa (< $1)
-    acumulacion = df_usdt[
-        (df_usdt['lastPrice'] < 1.0) & 
-        (df_usdt['priceChangePercent'] >= -1.5) & 
-        (df_usdt['priceChangePercent'] <= 3.5)
-    ].sort_values(by='volume', ascending=False).head(10)
+    acumulacion_raw = [
+        x for x in df_usdt 
+        if x['lastPrice'] < 1.0 and -1.5 <= x['priceChangePercent'] <= 3.5
+    ]
+    acumulacion = sorted(acumulacion_raw, key=lambda x: x['volume'], reverse=True)[:10]
 
-    # 4. Favoritas ordenadas
-    df_favs = df_usdt[df_usdt['symbol'].isin(FAVORITAS_SYMBOLS)].sort_values(by='priceChangePercent', ascending=False)
+    # 4. Favoritas ordenadas (extranciendo la moneda base sin USDT)
+    favs_coins = [s.replace('USDT', '') for s in FAVORITAS_SYMBOLS]
+    favs_raw = [x for x in df_usdt if x['coin'] in favs_coins]
+    df_favs = sorted(favs_raw, key=lambda x: x['priceChangePercent'], reverse=True)
 
-    mayor_ganadora = top_ganadoras.iloc[0] if not top_ganadoras.empty else None
-    mayor_perdedora = top_perdedoras.iloc[0] if not top_perdedoras.empty else None
+    mayor_ganadora = top_ganadoras[0] if top_ganadoras else None
+    mayor_perdedora = top_perdedoras[0] if top_perdedoras else None
 
     # Construcción del mensaje
     mensaje = (
         "🧠 *CENTRAL DE INTELIGENCIA (GEMINI AI AUTÓNOMA)*\n"
-        "📊 *Monitoreo Dinámico:* Análisis en vivo conectado a Binance\n"
+        "📊 *Monitoreo Dinámico:* Análisis en vivo\n"
         "⚡ *Estado:* Automatización Activa (GitHub Actions)\n\n"
     )
 
-    if mayor_ganadora is not None and mayor_perdedora is not None:
+    if mayor_ganadora and mayor_perdedora:
         mensaje += (
             "📈 *RESUMEN EJECUTIVO DE MERCADO*\n"
             f"• 🏆 *Mayor Ganadora:* {mayor_ganadora['coin']} (+{mayor_ganadora['priceChangePercent']:.2f}%)\n"
@@ -98,40 +109,40 @@ def enviar_alerta():
 
     # Ganadoras
     mensaje += "🚀 *1. TOP 10 GANADORAS (Dinámico - Mercado Real)*\n"
-    for i, row in enumerate(top_ganadoras.itertuples(), 1):
-        precio_str = f"{row.lastPrice:.8f}" if row.lastPrice < 0.01 else f"{row.lastPrice:.4f}"
+    for i, row in enumerate(top_ganadoras, 1):
+        precio_str = f"{row['lastPrice']:.8f}" if row['lastPrice'] < 0.01 else f"{row['lastPrice']:.4f}"
         mensaje += (
-            f"{i}. *{row.coin}* | ${precio_str} | +{row.priceChangePercent:.2f}%\n"
-            f"   └ 📊 [Resumen IA]({NETLIFY_URL}/?coin={row.coin}&price={row.lastPrice}&change={row.priceChangePercent}) | 🔸 [Tradear](https://www.binance.com/es/trade/{row.coin}_USDT)\n"
+            f"{i}. *{row['coin']}* | ${precio_str} | +{row['priceChangePercent']:.2f}%\n"
+            f"   └ 📊 [Resumen IA]({NETLIFY_URL}/?coin={row['coin']}&price={row['lastPrice']}&change={row['priceChangePercent']}) | 🔸 [Tradear](https://www.binance.com/es/trade/{row['coin']}_USDT)\n"
         )
 
     # Acumulación
     mensaje += "\n💎 *2. TOP 10 ACUMULACIÓN SILENCIOSA (Escaneo IA < $1)*\n"
-    for i, row in enumerate(acumulacion.itertuples(), 1):
-        precio_str = f"{row.lastPrice:.8f}" if row.lastPrice < 0.01 else f"{row.lastPrice:.4f}"
-        signo = "+" if row.priceChangePercent > 0 else ""
+    for i, row in enumerate(acumulacion, 1):
+        precio_str = f"{row['lastPrice']:.8f}" if row['lastPrice'] < 0.01 else f"{row['lastPrice']:.4f}"
+        signo = "+" if row['priceChangePercent'] > 0 else ""
         mensaje += (
-            f"{i}. *{row.coin}* | ${precio_str} | {signo}{row.priceChangePercent:.2f}% (Compresión sorda)\n"
-            f"   └ 📊 [Resumen IA]({NETLIFY_URL}/?coin={row.coin}&price={row.lastPrice}&change={row.priceChangePercent}) | 🔸 [Tradear](https://www.binance.com/es/trade/{row.coin}_USDT)\n"
+            f"{i}. *{row['coin']}* | ${precio_str} | {signo}{row['priceChangePercent']:.2f}% (Compresión sorda)\n"
+            f"   └ 📊 [Resumen IA]({NETLIFY_URL}/?coin={row['coin']}&price={row['lastPrice']}&change={row['priceChangePercent']}) | 🔸 [Tradear](https://www.binance.com/es/trade/{row['coin']}_USDT)\n"
         )
 
     # Perdedoras
     mensaje += "\n📉 *3. TOP 10 PERDEDORAS (Oportunidades de Rebote Táctico)*\n"
-    for i, row in enumerate(top_perdedoras.itertuples(), 1):
-        precio_str = f"{row.lastPrice:.8f}" if row.lastPrice < 0.01 else f"{row.lastPrice:.4f}"
+    for i, row in enumerate(top_perdedoras, 1):
+        precio_str = f"{row['lastPrice']:.8f}" if row['lastPrice'] < 0.01 else f"{row['lastPrice']:.4f}"
         mensaje += (
-            f"{i}. *{row.coin}* | ${precio_str} | {row.priceChangePercent:.2f}%\n"
-            f"   └ 📊 [Resumen IA]({NETLIFY_URL}/?coin={row.coin}&price={row.lastPrice}&change={row.priceChangePercent}) | 🔸 [Tradear](https://www.binance.com/es/trade/{row.coin}_USDT)\n"
+            f"{i}. *{row['coin']}* | ${precio_str} | {row['priceChangePercent']:.2f}%\n"
+            f"   └ 📊 [Resumen IA]({NETLIFY_URL}/?coin={row['coin']}&price={row['lastPrice']}&change={row['priceChangePercent']}) | 🔸 [Tradear](https://www.binance.com/es/trade/{row['coin']}_USDT)\n"
         )
 
     # Favoritas
     mensaje += "\n⭐ *4. TUS FAVORITAS (Ordenadas de Mayor a Menor Rendimiento)*\n"
-    for i, row in enumerate(df_favs.itertuples(), 1):
-        precio_str = f"{row.lastPrice:.8f}" if row.lastPrice < 0.01 else f"{row.lastPrice:.4f}"
-        signo = "+" if row.priceChangePercent > 0 else ""
+    for i, row in enumerate(df_favs, 1):
+        precio_str = f"{row['lastPrice']:.8f}" if row['lastPrice'] < 0.01 else f"{row['lastPrice']:.4f}"
+        signo = "+" if row['priceChangePercent'] > 0 else ""
         mensaje += (
-            f"{i}. *{row.coin}* | ${precio_str} | {signo}{row.priceChangePercent:.2f}%\n"
-            f"   └ 📊 [Resumen IA]({NETLIFY_URL}/?coin={row.coin}&price={row.lastPrice}&change={row.priceChangePercent}) | 🔸 [Tradear](https://www.binance.com/es/trade/{row.coin}_USDT)\n"
+            f"{i}. *{row['coin']}* | ${precio_str} | {signo}{row['priceChangePercent']:.2f}%\n"
+            f"   └ 📊 [Resumen IA]({NETLIFY_URL}/?coin={row['coin']}&price={row['lastPrice']}&change={row['priceChangePercent']}) | 🔸 [Tradear](https://www.binance.com/es/trade/{row['coin']}_USDT)\n"
         )
 
     mensaje += "\n💡 *Nota:* Datos analizados y procesados autónomamente en tiempo real."
@@ -146,21 +157,24 @@ def enviar_alerta():
     }
 
     print("[+] Enviando mensaje a Telegram...")
-    response = requests.post(url_tg, json=payload)
-    print(f"[DEBUG] Telegram Response Status: {response.status_code}")
+    req_tg = urllib.request.Request(
+        url_tg,
+        data=json.dumps(payload).encode('utf-8'),
+        headers={"Content-Type": "application/json"},
+        method="POST"
+    )
     
     try:
-        res_json = response.json()
-        print(f"[DEBUG] Telegram Response Body: {res_json}")
-        if res_json.get("ok"):
-            print("[+] ¡Alerta enviada con éxito a Telegram!")
-        else:
-            print(f"[-] Telegram rechazó el mensaje: {res_json}")
+        with urllib.request.urlopen(req_tg, timeout=15) as response_tg:
+            res_body = response_tg.read().decode('utf-8')
+            res_json = json.loads(res_body)
+            print(f"[DEBUG] Telegram Response: {res_json}")
+            if res_json.get("ok"):
+                print("[+] ¡Alerta enviada con éxito a Telegram!")
+            else:
+                print(f"[-] Telegram rechazó el mensaje: {res_json}")
     except Exception as e:
-        print(f"[-] Error al leer respuesta de Telegram: {e}, Texto: {response.text}")
-
-if __name__ == "__main__":
-    enviar_alerta()
+        print(f"[-] Error al enviar mensaje a Telegram: {e}")
 
 if __name__ == "__main__":
     enviar_alerta()
