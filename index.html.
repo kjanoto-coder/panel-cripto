@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Central de Inteligencia - Doble Lectura IA Pro</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #0b0e11; color: #eaecef; margin: 0; padding: 12px; }
@@ -105,41 +108,46 @@
 </div>
 
 <script>
-    // Forzar recarga automática cuando el navegador móvil restaura la página desde el caché (Soluciona el problema de Telegram)
+    function cargarDatosMoneda() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const coin = urlParams.get('coin');
+        const price = urlParams.get('price');
+        const change = urlParams.get('change');
+
+        if (coin) {
+            document.getElementById('coin-title').innerText = `🧠 Ficha: ${coin}/USDT`;
+            document.getElementById('tag-type').innerText = `📁 Activo Digital Spot (${coin})`;
+            document.getElementById('tag-ecosystem').innerText = `🌐 Ecosistema ${coin}`;
+            document.getElementById('official-web').href = `https://www.binance.com/es/trade/${coin}_USDT`;
+            
+            if (price) {
+                const numPrice = parseFloat(price);
+                let formattedPrice = numPrice < 0.001 ? numPrice.toFixed(8) : numPrice.toFixed(4);
+                document.getElementById('val-price').innerText = `$${formattedPrice}`;
+                document.getElementById('val-range').innerText = `Actual: $${formattedPrice}`;
+            }
+
+            if (change) {
+                const numChange = parseFloat(change);
+                const changeElement = document.getElementById('val-change');
+                changeElement.innerText = `${numChange >= 0 ? '+' : ''}${numChange.toFixed(1)}%`;
+                changeElement.style.color = numChange >= 0 ? '#0ecb81' : '#f6465d';
+            }
+
+            document.getElementById('trade-btn').href = `https://www.binance.com/es/trade/${coin}_USDT`;
+        }
+    }
+
+    // Ejecutar al cargar la página
+    cargarDatosMoneda();
+
+    // Forzar actualización y recarga absoluta si el navegador móvil recupera la página desde caché
     window.addEventListener('pageshow', function(event) {
-        if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
-            window.location.reload();
+        cargarDatosMoneda();
+        if (event.persisted) {
+            window.location.reload(true);
         }
     });
-
-    // Leer parámetros de la URL enviados desde Telegram (?coin=...&price=...&change=...)
-    const urlParams = new URLSearchParams(window.location.search);
-    const coin = urlParams.get('coin');
-    const price = urlParams.get('price');
-    const change = urlParams.get('change');
-
-    if (coin) {
-        document.getElementById('coin-title').innerText = `🧠 Ficha: ${coin}/USDT`;
-        document.getElementById('tag-type').innerText = `📁 Activo Digital Spot (${coin})`;
-        document.getElementById('tag-ecosystem').innerText = `🌐 Ecosistema ${coin}`;
-        document.getElementById('official-web').href = `https://www.binance.com/es/trade/${coin}_USDT`;
-        
-        if (price) {
-            const numPrice = parseFloat(price);
-            let formattedPrice = numPrice < 0.001 ? numPrice.toFixed(8) : numPrice.toFixed(4);
-            document.getElementById('val-price').innerText = `$${formattedPrice}`;
-            document.getElementById('val-range').innerText = `Actual: $${formattedPrice}`;
-        }
-
-        if (change) {
-            const numChange = parseFloat(change);
-            const changeElement = document.getElementById('val-change');
-            changeElement.innerText = `${numChange >= 0 ? '+' : ''}${numChange.toFixed(1)}%`;
-            changeElement.style.color = numChange >= 0 ? '#0ecb81' : '#f6465d';
-        }
-
-        document.getElementById('trade-btn').href = `https://www.binance.com/es/trade/${coin}_USDT`;
-    }
 </script>
 
 </body>
