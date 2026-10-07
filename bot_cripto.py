@@ -51,9 +51,10 @@ def preparar_datos(tickers):
     
     return ganadoras, acumulacion, perdedoras
 
-def construir_mensaje(ganadoras, acumulacion, perdedoras):
-    mensaje = (
-        "🧠 **CENTRAL DE INTELIGENCIA & GEMINI AI**\n"
+def construir_mensajes(ganadoras, acumulacion, perdedoras):
+    # Parte 1: Encabezado + Ganadoras + Acumulación
+    mensaje_1 = (
+        "🧠 **CENTRAL DE INTELIGENCIA & GEMINI AI** (1/2)\n"
         "📊 Monitoreo Global: 500+ altcoins del Top de Binance\n"
         "⚡ **Estado:** Automatización Activa (GitHub Actions - Cada 15m)\n\n"
         "🚀 **1. TOP 10 GANADORAS (Análisis Multiciclo)**\n"
@@ -64,39 +65,43 @@ def construir_mensaje(ganadoras, acumulacion, perdedoras):
         precio = float(item['lastPrice'])
         cambio = float(item['priceChangePercent'])
         barra = generar_barra_progreso(cambio)
-        mensaje += (
+        mensaje_1 += (
             f"• **{sim}** | ${precio:.4f} | {barra} | +{cambio:.1f}%\n"
             f"  └ ⏱️ *15m: Alcista | 1h: Impulso | 1d: Rotura*\n"
             f"  └ [📊 Resumen IA](https://tu-sitio-netlify.app) | [🔶 Tradear](https://www.binance.com/es/trade/{sim}_USDT)\n"
         )
 
-    mensaje += "\n💎 **2. TOP 10 ACUMULACIÓN (< $1 USD - Gemini AI)**\n"
+    mensaje_1 += "\n💎 **2. TOP 10 ACUMULACIÓN (< $1 USD - Gemini AI)**\n"
     for item in acumulacion:
         sim = item['symbol'].replace('USDT', '')
         precio = float(item['lastPrice'])
         cambio = float(item['priceChangePercent'])
         barra = generar_barra_progreso(cambio, es_acumulacion=True)
-        mensaje += (
+        mensaje_1 += (
             f"• **{sim}** | ${precio:.4f} | {barra} | {cambio:+.1f}%\n"
             f"  └ (Soporte clave)\n"
             f"  └ ⏱️ *15m/1h/1d: Estructura de acumulación geométrica*\n"
             f"  └ [📊 Resumen IA](https://tu-sitio-netlify.app) | [🔶 Tradear](https://www.binance.com/es/trade/{sim}_USDT)\n"
         )
 
-    mensaje += "\n📉 **3. TOP 10 PERDEDORAS (Potencial Rebote / Recuperación)**\n"
+    # Parte 2: Perdedoras + Favoritas
+    mensaje_2 = (
+        "🧠 **CENTRAL DE INTELIGENCIA & GEMINI AI** (2/2)\n\n"
+        "📉 **3. TOP 10 PERDEDORAS (Potencial Rebote / Recuperación)**\n"
+    )
     for item in perdedoras:
         sim = item['symbol'].replace('USDT', '')
         precio = float(item['lastPrice'])
         cambio = float(item['priceChangePercent'])
         barra = generar_barra_progreso(cambio)
-        mensaje += (
+        mensaje_2 += (
             f"• **{sim}** | ${precio:.4f} | {barra} | {cambio:.1f}%\n"
             f"  └ (Sobreventa en 1h/1d)\n"
             f"  └ ⏱️ *Señal IA: Posible suelo de recuperación a corto plazo*\n"
             f"  └ [📊 Resumen IA](https://tu-sitio-netlify.app) | [🔶 Tradear](https://www.binance.com/es/trade/{sim}_USDT)\n"
         )
 
-    mensaje += (
+    mensaje_2 += (
         "\n⭐ **4. TUS FAVORITAS (Wallet & Seguimiento)**\n"
         "• **LUNC** | $0.00005254 | 🟥🟥⬜⬜⬜ | -0.2%\n"
         "  └ ⏱️ *15m: Rango | 1h: Estable | 1d: Acumulando base*\n"
@@ -107,27 +112,37 @@ def construir_mensaje(ganadoras, acumulacion, perdedoras):
         "  └ [📊 Resumen IA](https://tu-sitio-netlify.app) | [🔶 Tradear](https://www.binance.com/es/trade/BANK_USDT)\n\n"
         "✅ Alerta enviada correctamente mediante sistema de alta disponibilidad."
     )
-    return mensaje
+    
+    return mensaje_1, mensaje_2
 
-def enviar_a_telegram(texto):
+def enviar_a_telegram(mensaje_1, mensaje_2):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {
+    
+    # Enviar Parte 1
+    p1 = requests.post(url, json={
         "chat_id": TELEGRAM_CHAT_ID,
-        "text": texto,
+        "text": mensaje_1,
         "parse_mode": "Markdown",
         "disable_web_page_preview": True
-    }
+    })
     
-    response = requests.post(url, json=payload)
-    if response.status_code == 200:
-        print("¡Alerta enviada con éxito a Telegram!")
+    # Enviar Parte 2
+    p2 = requests.post(url, json={
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": mensaje_2,
+        "parse_mode": "Markdown",
+        "disable_web_page_preview": True
+    })
+    
+    if p1.status_code == 200 and p2.status_code == 200:
+        print("¡Ambas partes de la alerta fueron enviadas con éxito a Telegram!")
     else:
-        print(f"Error al enviar alerta: {response.text}")
+        print(f"Error al enviar alerta: {p1.text} | {p2.text}")
 
 if __name__ == "__main__":
     print("Iniciando análisis de mercado...")
     datos = obtener_datos_binance()
     if datos:
         ganadoras, acumulacion, perdedoras = preparar_datos(datos)
-        mensaje = construir_mensaje(ganadoras, acumulacion, perdedoras)
-        enviar_a_telegram(mensaje)
+        msg_1, msg_2 = construir_mensajes(ganadoras, acumulacion, perdedoras)
+        enviar_a_telegram(msg_1, msg_2)
