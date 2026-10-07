@@ -1,5 +1,6 @@
 import os
 import time
+import random
 import requests
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -52,9 +53,7 @@ def preparar_datos(tickers):
 
 def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
     base_url_netlify = "https://gregarious-frangollo-0346c5.netlify.app"
-    timestamp = int(time.time())
     
-    # Parte 1: Ganadoras y Acumulación
     mensaje_1 = (
         "🧠 **CENTRAL DE INTELIGENCIA & GEMINI AI** (1/2)\n"
         "📊 Monitoreo Global: 500+ altcoins del Top de Binance\n"
@@ -67,7 +66,8 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
         precio = float(item['lastPrice'])
         cambio = float(item['priceChangePercent'])
         barra = generar_barra_progreso(cambio)
-        url_ia = f"{base_url_netlify}/?coin={sim}&price={precio}&change={cambio}&v={sim}_{timestamp}"
+        unique_id = int(time.time() * 1000) + random.randint(1, 99999)
+        url_ia = f"{base_url_netlify}/?coin={sim}&price={precio}&change={cambio}&v={sim}_{unique_id}"
         url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
         
         mensaje_1 += (
@@ -81,7 +81,8 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
         precio = float(item['lastPrice'])
         cambio = float(item['priceChangePercent'])
         barra = generar_barra_progreso(cambio, es_acumulacion=True)
-        url_ia = f"{base_url_netlify}/?coin={sim}&price={precio}&change={cambio}&v={sim}_{timestamp}"
+        unique_id = int(time.time() * 1000) + random.randint(1, 99999)
+        url_ia = f"{base_url_netlify}/?coin={sim}&price={precio}&change={cambio}&v={sim}_{unique_id}"
         url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
         
         mensaje_1 += (
@@ -89,7 +90,6 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
             f"  └ [📊 Resumen IA]({url_ia}) | [🔶 Tradear]({url_trade})\n"
         )
 
-    # Parte 2: Perdedoras y Favoritas
     mensaje_2 = (
         "🧠 **CENTRAL DE INTELIGENCIA & GEMINI AI** (2/2)\n\n"
         "📉 **3. TOP 10 PERDEDORAS**\n"
@@ -99,7 +99,8 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
         precio = float(item['lastPrice'])
         cambio = float(item['priceChangePercent'])
         barra = generar_barra_progreso(cambio)
-        url_ia = f"{base_url_netlify}/?coin={sim}&price={precio}&change={cambio}&v={sim}_{timestamp}"
+        unique_id = int(time.time() * 1000) + random.randint(1, 99999)
+        url_ia = f"{base_url_netlify}/?coin={sim}&price={precio}&change={cambio}&v={sim}_{unique_id}"
         url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
         
         mensaje_2 += (
@@ -113,7 +114,8 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
         precio = float(item['lastPrice'])
         cambio = float(item['priceChangePercent'])
         barra = generar_barra_progreso(cambio)
-        url_ia = f"{base_url_netlify}/?coin={sim}&price={precio}&change={cambio}&v={sim}_{timestamp}"
+        unique_id = int(time.time() * 1000) + random.randint(1, 99999)
+        url_ia = f"{base_url_netlify}/?coin={sim}&price={precio}&change={cambio}&v={sim}_{unique_id}"
         url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
         
         mensaje_2 += (
