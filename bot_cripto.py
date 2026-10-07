@@ -161,3 +161,6 @@ def enviar_alerta():
 
 if __name__ == "__main__":
     enviar_alerta()
+
+if __name__ == "__main__":
+    enviar_alerta()
