@@ -1,15 +1,12 @@
 import os
 import requests
 
-# Configuración de credenciales (puedes usar variables de entorno de GitHub Secrets)
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "TU_BOT_TOKEN")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "TU_CHAT_ID")
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 def obtener_datos_binance():
-    """
-    Función para conectar con la API pública de Binance y obtener tickers de 24h.
-    """
-    url = "https://api.binance.com/api/v3/ticker/24hr"
+    # Usamos el endpoint alternativo oficial para evitar restricciones de IP en la nube
+    url = "https://data-api.binance.vision/api/v3/ticker/24hr"
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
@@ -19,9 +16,6 @@ def obtener_datos_binance():
         return []
 
 def generar_barra_progreso(cambio_porcentual):
-    """
-    Genera una barra visual estilo emoji basada en el rendimiento.
-    """
     if cambio_porcentual > 10:
         return "🟢🟢🟢🟢🟢"
     elif cambio_porcentual > 5:
@@ -34,21 +28,12 @@ def generar_barra_progreso(cambio_porcentual):
         return "🟥🟥🟥🟥🟥"
 
 def preparar_analisis_top_10(tickers):
-    """
-    Filtra y ordena los datos para obtener el TOP 10 de ganadoras y estructura el mensaje.
-    """
-    # Filtrar solo pares en USDT y ordenar por cambio porcentual descendente
     usdt_pairs = [t for t in tickers if t['symbol'].endswith('USDT')]
     usdt_pairs.sort(key=lambda x: float(x['priceChangePercent']), reverse=True)
-    
-    # MODIFICACIÓN APLICADA: Seleccionamos el Top 10 (antes era 5)
-    top_10 = usdt_pairs[:10]
-    return top_10
+    # Selecciona las 10 principales monedas
+    return usdt_pairs[:10]
 
 def construir_mensaje_telegram(top_10):
-    """
-    Construye el texto enriquecido imitando el diseño de la Central de Inteligencia.
-    """
     mensaje = (
         "🧠 **CENTRAL DE INTELIGENCIA & GEMINI AI**\n"
         "📊 Monitoreo Global: 500 altcoins del Top de Binance\n"
@@ -62,7 +47,6 @@ def construir_mensaje_telegram(top_10):
         cambio = float(item['priceChangePercent'])
         barra = generar_barra_progreso(cambio)
         
-        # Formato de visualización por moneda con marcos temporales simulados
         mensaje += (
             f"• **{simbolo}** | ${precio:.4f} | {barra} | +{cambio:.1f}%\n"
             f"  └ ⏱️ *15m: Alcista | 1h: Impulso | 1d: Rotura*\n"
@@ -84,12 +68,7 @@ def construir_mensaje_telegram(top_10):
     return mensaje
 
 def enviar_a_telegram(texto):
-    """
-    Envía el mensaje estructurado con botones interactivos (Inline Keyboards) a Telegram.
-    """
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    
-    # Botones interactivos que acompañan la alerta
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
         "text": texto,
