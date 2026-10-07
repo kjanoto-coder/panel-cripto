@@ -15,10 +15,13 @@ FAVORITAS_SYMBOLS = [
 ]
 
 def obtener_datos_binance():
-    """Consulta en tiempo real la API pública de Binance para obtener precios y cambios de 24h"""
+    """Consulta en tiempo real la API pública de Binance para obtener precios y cambios de 24h con cabecera de navegador"""
     url = "https://api.binance.com/api/v3/ticker/24hr"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+    }
     try:
-        response = requests.get(url, timeout=15)
+        response = requests.get(url, headers=headers, timeout=15)
         data = response.json()
         if isinstance(data, list):
             df = pd.DataFrame(data)
@@ -112,27 +115,3 @@ def enviar_alerta():
     for i, row in enumerate(df_favs.itertuples(), 1):
         precio_str = f"{row.lastPrice:.8f}" if row.lastPrice < 0.01 else f"{row.lastPrice:.4f}"
         signo = "+" if row.priceChangePercent > 0 else ""
-        mensaje += (
-            f"{i}. *{row.coin}* | ${precio_str} | {signo}{row.priceChangePercent:.2f}%\n"
-            f"   └ 📊 [Resumen IA]({NETLIFY_URL}/?coin={row.coin}&price={row.lastPrice}&change={row.priceChangePercent}) | 🔸 [Tradear](https://www.binance.com/es/trade/{row.coin}_USDT)\n"
-        )
-
-    mensaje += "\n💡 *Nota:* Datos analizados y procesados autónomamente en tiempo real."
-
-    # Envío a Telegram
-    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": CHAT_ID,
-        "text": mensaje,
-        "parse_mode": "Markdown",
-        "disable_web_page_preview": True
-    }
-
-    response = requests.post(url, json=payload)
-    if response.json().get("ok"):
-        print("[+] Alerta dinámica enviada con éxito a Telegram.")
-    else:
-        print(f"[-] Error: {response.json()}")
-
-if __name__ == "__main__":
-    enviar_alerta()
