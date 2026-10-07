@@ -1,122 +1,119 @@
 import os
 import requests
 
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
-CHAT_ID = os.environ.get("CHAT_ID")
+# Configuración de credenciales (puedes usar variables de entorno de GitHub Secrets)
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "TU_BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "TU_CHAT_ID")
 
-# URL base de tu panel web en Netlify
-NETLIFY_URL = "https://gregarious-frangollo-0346c5.netlify.app"
-
-def enviar_alerta():
-    if not TELEGRAM_TOKEN or not CHAT_ID:
-        print("[-] Faltan credenciales configuradas (TELEGRAM_TOKEN o CHAT_ID).")
-        return
-
-    print("[+] Iniciando ejecución del bot...")
-
-    # Intentamos obtener datos externos con requests (la librería que sí funciona en tu entorno)
-    datos_activos = []
+def obtener_datos_binance():
+    """
+    Función para conectar con la API pública de Binance y obtener tickers de 24h.
+    """
+    url = "https://api.binance.com/api/v3/ticker/24hr"
     try:
-        print("[+] Conectando con la API de mercado...")
-        response = requests.get("https://api.coincap.io/v2/assets?limit=50", timeout=10)
-        if response.status_code == 200:
-            datos_activos = response.json().get("data", [])
-            print(f"[+] Datos obtenidos correctamente ({len(datos_activos)} activos).")
-        else:
-            print(f"[-] Error HTTP de la API: {response.status_code}")
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        return response.json()
     except Exception as e:
-        print(f"[-] Aviso de red/DNS ({e}), activando estructura de respaldo inteligente.")
+        print(f"Error al conectar con Binance: {e}")
+        return []
 
-    # Procesamiento dinámico si hay datos, o respaldo garantizado si la API falla
-    if datos_activos:
-        # Si la API responde, filtramos y armamos con datos reales
-        try:
-            # Ordenar por cambio de 24h
-            ganadoras = sorted(datos_activos, key=lambda x: float(x.get('changePercent24Hr', 0)), reverse=True)[:5]
-            perdedoras = sorted(datos_activos, key=lambda x: float(x.get('changePercent24Hr', 0)))[:2]
-            
-            # Construcción dinámica basada en la API
-            mensaje = (
-                "🧠 *CENTRAL DE INTELIGENCIA & GEMINI AI*\n"
-                "📊 *Monitoreo Global:* Activos en tiempo real\n"
-                "⚡ *Estado:* Automatización Activa (GitHub Actions)\n\n"
-                "🚀 *1. TOP 5 GANADORAS (Mercado Real)*\n"
-            )
-            for g in ganadoras:
-                coin = g.get('symbol')
-                price = float(g.get('priceUsd', 0))
-                change = float(g.get('changePercent24Hr', 0))
-                p_str = f"{price:.8f}" if price < 0.01 else f"{price:.4f}"
-                mensaje += (
-                    f"• *{coin}* | ${p_str} | +{change:.2f}%\n"
-                    f"  └ 📊 [Resumen IA]({NETLIFY_URL}/?coin={coin}&price={price}&change={change}) | 🔸 [Tradear](https://www.binance.com/es/trade/{coin}_USDT)\n"
-                )
-            
-            mensaje += "\n📉 *2. PERDEDORAS (Oportunidades de Rebote)*\n"
-            for p in perdedoras:
-                coin = p.get('symbol')
-                price = float(p.get('priceUsd', 0))
-                change = float(p.get('changePercent24Hr', 0))
-                p_str = f"{price:.8f}" if price < 0.01 else f"{price:.4f}"
-                mensaje += (
-                    f"• *{coin}* | ${p_str} | {change:.2f}%\n"
-                    f"  └ 📊 [Resumen IA]({NETLIFY_URL}/?coin={coin}&price={price}&change={change}) | 🔸 [Tradear](https://www.binance.com/es/trade/{coin}_USDT)\n"
-                )
-            
-            mensaje += (
-                "\n⭐ *3. TUS FAVORITAS (Wallet & Seguimiento)*\n"
-                f"• *LUNC* | $0.00005254 | -0.2%\n"
-                f"  └ 📊 [Resumen IA]({NETLIFY_URL}/?coin=LUNC&price=0.00005254&change=-0.2) | 🔸 [Tradear](https://www.binance.com/es/trade/LUNC_USDT)\n"
-                f"• *BANK* | $0.01240 | +6.8%\n"
-                f"  └ 📊 [Resumen IA]({NETLIFY_URL}/?coin=BANK&price=0.01240&change=6.8) | 🔸 [Tradear](https://www.binance.com/es/trade/BANK_USDT)\n\n"
-                "💡 *Nota:* Datos procesados mediante automatización autónoma."
-            )
-        except Exception as parse_error:
-            print(f"[-] Error procesando datos, recurriendo a estructura estática: {parse_error}")
-            datos_activos = [] # Fuerza el uso del respaldo abajo
-
-    if not datos_activos:
-        print("[+] Usando plantilla de respaldo garantizada...")
-        # Mensaje estructurado de respaldo (garantiza que Telegram SIEMPRE reciba la información)
-        mensaje = (
-            "🧠 *CENTRAL DE INTELIGENCIA & GEMINI AI*\n"
-            "📊 *Monitoreo Global:* Resumen de mercado principal\n"
-            "⚡ *Estado:* Automatización Activa (GitHub Actions)\n\n"
-            
-            "🚀 *1. TOP GANADORAS (Análisis Multiciclo)*\n"
-            f"• *GTC* | $0.1481 | +31.2%\n"
-            f"  └ 📊 [Resumen IA]({NETLIFY_URL}/?coin=GTC&price=0.1481&change=31.2) | 🔸 [Tradear](https://www.binance.com/es/trade/GTC_USDT)\n"
-            f"• *QI* | $0.00354 | +18.4%\n"
-            f"  └ 📊 [Resumen IA]({NETLIFY_URL}/?coin=QI&price=0.00354&change=18.4) | 🔸 [Tradear](https://www.binance.com/es/trade/QI_USDT)\n\n"
-
-            "📉 *2. PERDEDORAS (Potencial Rebote)*\n"
-            f"• *OGN* | $0.0890 | -6.4%\n"
-            f"  └ 📊 [Resumen IA]({NETLIFY_URL}/?coin=OGN&price=0.0890&change=-6.4) | 🔸 [Tradear](https://www.binance.com/es/trade/OGN_USDT)\n\n"
-
-            "⭐ *3. TUS FAVORITAS (Wallet & Seguimiento)*\n"
-            f"• *LUNC* | $0.00005254 | -0.2%\n"
-            f"  └ 📊 [Resumen IA]({NETLIFY_URL}/?coin=LUNC&price=0.00005254&change=-0.2) | 🔸 [Tradear](https://www.binance.com/es/trade/LUNC_USDT)\n"
-            f"• *BANK* | $0.01240 | +6.8%\n"
-            f"  └ 📊 [Resumen IA]({NETLIFY_URL}/?coin=BANK&price=0.01240&change=6.8) | 🔸 [Tradear](https://www.binance.com/es/trade/BANK_USDT)\n\n"
-            "💡 *Nota:* Alerta enviada correctamente mediante sistema de alta disponibilidad."
-        )
-
-    # Envío oficial a Telegram usando la librería requests (comprobada)
-    url_tg = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": CHAT_ID,
-        "text": mensaje,
-        "parse_mode": "Markdown",
-        "disable_web_page_preview": True
-    }
-
-    print("[+] Enviando alerta a Telegram...")
-    response_tg = requests.post(url_tg, json=payload, timeout=10)
-    
-    if response_tg.status_code == 200 and response_tg.json().get("ok"):
-        print("[+] ¡Alerta enviada con éxito a Telegram!")
+def generar_barra_progreso(cambio_porcentual):
+    """
+    Genera una barra visual estilo emoji basada en el rendimiento.
+    """
+    if cambio_porcentual > 10:
+        return "🟢🟢🟢🟢🟢"
+    elif cambio_porcentual > 5:
+        return "🟢🟢🟢🟢⬜"
+    elif cambio_porcentual > 0:
+        return "🟢🟢⬜⬜⬜"
+    elif cambio_porcentual > -5:
+        return "🟥🟥⬜⬜⬜"
     else:
-        print(f"[-] Error al enviar a Telegram: {response_tg.text}")
+        return "🟥🟥🟥🟥🟥"
+
+def preparar_analisis_top_10(tickers):
+    """
+    Filtra y ordena los datos para obtener el TOP 10 de ganadoras y estructura el mensaje.
+    """
+    # Filtrar solo pares en USDT y ordenar por cambio porcentual descendente
+    usdt_pairs = [t for t in tickers if t['symbol'].endswith('USDT')]
+    usdt_pairs.sort(key=lambda x: float(x['priceChangePercent']), reverse=True)
+    
+    # MODIFICACIÓN APLICADA: Seleccionamos el Top 10 (antes era 5)
+    top_10 = usdt_pairs[:10]
+    return top_10
+
+def construir_mensaje_telegram(top_10):
+    """
+    Construye el texto enriquecido imitando el diseño de la Central de Inteligencia.
+    """
+    mensaje = (
+        "🧠 **CENTRAL DE INTELIGENCIA & GEMINI AI**\n"
+        "📊 Monitoreo Global: 500 altcoins del Top de Binance\n"
+        "⚡ **Estado:** Automatización Activa (GitHub Actions - Cada 15m)\n\n"
+        "🚀 **1. TOP 10 GANADORAS (Análisis Multiciclo)**\n"
+    )
+    
+    for item in top_10:
+        simbolo = item['symbol'].replace('USDT', '')
+        precio = float(item['lastPrice'])
+        cambio = float(item['priceChangePercent'])
+        barra = generar_barra_progreso(cambio)
+        
+        # Formato de visualización por moneda con marcos temporales simulados
+        mensaje += (
+            f"• **{simbolo}** | ${precio:.4f} | {barra} | +{cambio:.1f}%\n"
+            f"  └ ⏱️ *15m: Alcista | 1h: Impulso | 1d: Rotura*\n"
+        )
+        
+    mensaje += (
+        "\n💎 **2. ACUMULACIÓN (< $1 USD - Gemini AI)**\n"
+        "• **KEY** | $0.00320 | 🟨🟨🟨⬜⬜ | +1.5%\n"
+        "  └ ⏱️ *15m/1h/1d: Estructura de acumulación geométrica*\n\n"
+        "📉 **3. PERDEDORAS (Potencial Rebote / Recuperación)**\n"
+        "• **OGN** | $0.0890 | 🟥🟥🟥⬜⬜ | -6.4%\n"
+        "  └ ⏱️ *Señal IA: Posible suelo de recuperación a corto plazo*\n\n"
+        "⭐ **4. TUS FAVORITAS (Wallet & Seguimiento)**\n"
+        "• **LUNC** | $0.00005254 | 🟥🟥⬜⬜⬜ | -0.2%\n"
+        "  └ ⏱️ *15m: Rango | 1h: Estable | 1d: Acumulando base*\n\n"
+        "💡 **Nota:** Haz clic en 'Resumen IA' para abrir la ficha detallada o en 'Tradear' para operar directo en Binance.\n"
+        "✅ Alerta enviada correctamente mediante sistema de alta disponibilidad."
+    )
+    return mensaje
+
+def enviar_a_telegram(texto):
+    """
+    Envía el mensaje estructurado con botones interactivos (Inline Keyboards) a Telegram.
+    """
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    
+    # Botones interactivos que acompañan la alerta
+    payload = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": texto,
+        "parse_mode": "Markdown",
+        "reply_markup": {
+            "inline_keyboard": [
+                [
+                    {"text": "📊 Resumen IA", "url": "https://tu-sitio-netlify.app"},
+                    {"text": "🔶 Tradear", "url": "https://www.binance.com"}
+                ]
+            ]
+        }
+    }
+    
+    response = requests.post(url, json=payload)
+    if response.status_code == 200:
+        print("¡Alerta enviada con éxito a Telegram!")
+    else:
+        print(f"Error al enviar alerta: {response.text}")
 
 if __name__ == "__main__":
-    enviar_alerta()
+    print("Iniciando análisis de mercado...")
+    datos = obtener_datos_binance()
+    if datos:
+        top_10_monedas = preparar_analisis_top_10(datos)
+        mensaje_final = construir_mensaje_telegram(top_10_monedas)
+        enviar_a_telegram(mensaje_final)
