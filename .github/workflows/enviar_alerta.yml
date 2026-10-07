@@ -2,8 +2,8 @@ name: Enviar Alerta Telegram
 
 on:
   schedule:
-    - cron: '*/15 * * * *' # Se ejecuta automáticamente cada 15 minutos en la nube
-  workflow_dispatch: # Permite dispararlo manualmente cuando quieras
+    - cron: '*/15 * * * *' # Se ejecuta cada 15 minutos automáticamente
+  workflow_dispatch:
 
 jobs:
   run-bot:
@@ -18,7 +18,7 @@ jobs:
           python-version: '3.10'
 
       - name: Instalar dependencias
-        run: pip install requests
+        run: pip install -r requirements.txt
 
       - name: Ejecutar Bot
         env:
