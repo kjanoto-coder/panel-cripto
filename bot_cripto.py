@@ -1,14 +1,14 @@
 import os
 import requests
 
-# Credenciales seguras desde los Secrets de GitHub
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+# Leemos las variables con los nombres exactos configurados en GitHub Secrets
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("CHAT_ID")
 
 def obtener_datos_binance():
     """
     Conecta al endpoint alternativo oficial de Binance para datos públicos,
-    evitando bloqueos de IP (Error 451) en servidores de la nube.
+    evitando bloqueos de IP en GitHub Actions.
     """
     url = "https://data-api.binance.vision/api/v3/ticker/24hr"
     try:
@@ -40,7 +40,6 @@ def preparar_analisis_top_10(tickers):
     """
     usdt_pairs = [t for t in tickers if t['symbol'].endswith('USDT')]
     usdt_pairs.sort(key=lambda x: float(x['priceChangePercent']), reverse=True)
-    # Selecciona exactamente las 10 monedas principales
     return usdt_pairs[:10]
 
 def construir_mensaje_telegram(top_10):
@@ -82,7 +81,7 @@ def construir_mensaje_telegram(top_10):
 
 def enviar_a_telegram(texto):
     """
-    Envía el reporte formateado con botones interactivos a Telegram.
+    Envía el reporte formateado con botones interactivos a Telegram usando el token correcto.
     """
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
