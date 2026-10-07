@@ -1,11 +1,11 @@
 import os
 import requests
 
-# Dominio fijo de Netlify que funciona correctamente
+# Dominio fijo de Netlify
 BASE_URL = "https://gregarious-frangollo-0346c5.netlify.app"
 
 def fmt_price(p):
-    """Función para limpiar símbolos y evitar notación científica en precios muy bajos"""
+    """Limpia símbolos y evita notación científica en precios muy bajos"""
     if p is None:
         return "0.00"
     try:
@@ -17,96 +17,157 @@ def fmt_price(p):
     except Exception:
         return str(p)
 
-def generar_mensaje_cripto(coin_data, favoritas_data):
+def obtener_datos_binance():
+    """Se conecta a Binance para obtener los datos reales del mercado en tiempo real"""
     try:
-        mensaje = "🧠 <b>CENTRAL DE INTELIGENCIA (GEMINI AI)</b>\n"
-        total_analizadas = coin_data.get('total_analizadas', 399) if coin_data else 399
-        mensaje += f"📊 Analizadas: {total_analizadas} altcoins de Binance (< $1 USD)\n\n"
+        url = "https://api.binance.com/api/v3/ticker/24hr"
+        response = requests.get(url, timeout=10)
+        if response.status_code != 200:
+            print(f"Error al conectar con Binance: {response.status_code}")
+            return None
         
-        # 1. TOP 5 GANADORAS
-        mensaje += "🚀 <b>TOP 5 GANADORAS</b>\n"
-        ganadoras = coin_data.get('top_ganadoras', []) if coin_data else []
-        for coin in ganadoras[:5]:
-            sym = coin.get('symbol', 'N/A')
-            prc = coin.get('price', 0)
-            chg = coin.get('change', 0)
-            prc_str = fmt_price(prc)
-            url_ia = f"{BASE_URL}/?coin={sym}&price={prc_str}&change={chg}"
+        tickers = response.json()
+        altcoins = []
+        
+        for t in tickers:
+            symbol = t.get('symbol', '')
+            if symbol.endswith('USDT'):
+                try:
+                    price = float(t.get('lastPrice', 0))
+                    change = float(t.get('priceChangePercent', 0))
+                    volume = float(t.get('quoteVolume', 0))
+                    
+                    # Filtro de altcoins menores a $1 USD
+                    if 0 < price < 1.0:
+                        altcoins.append({
+                            'symbol': symbol.replace('USDT', ''),
+                            'price': price,
+                            'change': change,
+                            'volume': volume,
+                            'url_trade': f"https://www.binance.com/en/trade/{symbol}?type=spot"
+                        })
+                except:
+                    continue
+        
+        if not altcoins:
+            return None
             
-            mensaje += (
-                f"• <b>{sym}</b> | ${prc_str} | {coin.get('barra', '🟩🟩🟩🟩🟩')} | +{chg}%\n"
-                f"  └ 📊 <a href='{url_ia}'>Resumen IA</a> | 🔶 <a href='{coin.get('url_trade', '#')}'>Tradear</a>\n"
-            )
-        mensaje += "\n"
+        # Top 5 Ganadoras
+        ganadoras = sorted(altcoins, key=lambda x: x['change'], reverse=True)[:5]
+        for g in ganadoras:
+            g['barra'] = '🟩🟩🟩🟩🟩'
+            
+        # Top 5 Perdedoras
+        perdedoras = sorted(altcoins, key=lambda x: x['change'])[:5]
+        for p in perdedoras:
+            p['barra'] = '🟥🟥🟥🟥🟥'
+            
+        # Top 5 Acumulación (mayor volumen con precio bajo)
+        acumulacion = sorted(altcoins, key=lambda x: x['volume'], reverse=True)[:5]
+        for a in acumulacion:
+            a['vol_fmt'] = f"{a['volume']:,.0f}"
 
-        # 2. TOP 5 GEMAS EN ACUMULACIÓN
-        mensaje += "💎 <b>TOP 5 GEMAS EN ACUMULACIÓN (< $1.00 USD)</b>\n"
-        acumulacion = coin_data.get('top_acumulacion', []) if coin_data else []
-        for coin in acumulacion[:5]:
-            sym = coin.get('symbol', 'N/A')
-            prc = coin.get('price', 0)
-            chg = coin.get('change', 0)
-            prc_str = fmt_price(prc)
-            url_ia = f"{BASE_URL}/?coin={sym}&price={prc_str}&change={chg}"
-            
-            mensaje += (
-                f"• 🟢 <b>{sym}</b> | ${prc_str} | Cambio: {chg}% | Vol: ${coin.get('vol_fmt', '0')}\n"
-                f"  └ 📊 <a href='{url_ia}'>Resumen IA</a> | 🔶 <a href='{coin.get('url_trade', '#')}'>Tradear</a>\n"
-            )
-        mensaje += "\n"
+        return {
+            'total_analizadas': len(altcoins),
+            'top_ganadoras': ganadoras,
+            'top_acumulacion': acumulacion,
+            'top_perdedoras': perdedoras
+        }
+    except Exception as e:
+        print(f"Error procesando datos de Binance: {e}")
+        return None
 
-        # 3. TOP 5 PERDEDORAS
-        mensaje += "📉 <b>TOP 5 PERDEDORAS (Zonas de Rebote)</b>\n"
-        perdedoras = coin_data.get('top_perdedoras', []) if coin_data else []
-        for coin in perdedoras[:5]:
-            sym = coin.get('symbol', 'N/A')
-            prc = coin.get('price', 0)
-            chg = coin.get('change', 0)
-            prc_str = fmt_price(prc)
-            url_ia = f"{BASE_URL}/?coin={sym}&price={prc_str}&change={chg}"
-            
-            mensaje += (
-                f"• <b>{sym}</b> | ${prc_str} | {coin.get('barra', '🟥🟥🟥🟥🟥')} | {chg}%\n"
-                f"  └ 📊 <a href='{url_ia}'>Resumen IA</a> | 🔶 <a href='{coin.get('url_trade', '#')}'>Tradear</a>\n"
-            )
-        mensaje += "\n"
+def generar_mensaje_cripto(coin_data):
+    if not coin_data:
+        return "⚠️ Error: No se pudieron obtener datos de Binance para generar el reporte."
+        
+    mensaje = "🧠 <b>CENTRAL DE INTELIGENCIA (GEMINI AI)</b>\n"
+    total_analizadas = coin_data.get('total_analizadas', 399)
+    mensaje += f"📊 Analizadas: {total_analizadas} altcoins de Binance (< $1 USD)\n\n"
+    
+    # 1. TOP 5 GANADORAS
+    mensaje += "🚀 <b>TOP 5 GANADORAS</b>\n"
+    ganadoras = coin_data.get('top_ganadoras', [])
+    for coin in ganadoras[:5]:
+        sym = coin.get('symbol', 'N/A')
+        prc = coin.get('price', 0)
+        chg = coin.get('change', 0)
+        prc_str = fmt_price(prc)
+        url_ia = f"{BASE_URL}/?coin={sym}&price={prc_str}&change={chg}"
+        
+        mensaje += (
+            f"• <b>{sym}</b> | ${prc_str} | {coin.get('barra', '🟩🟩🟩🟩🟩')} | +{chg:.2f}%\n"
+            f"  └ 📊 <a href='{url_ia}'>Resumen IA</a> | 🔶 <a href='{coin.get('url_trade', '#')}'>Tradear</a>\n"
+        )
+    mensaje += "\n"
 
-        # 4. ESTADO DE TUS FAVORITAS
-        mensaje += "⭐ <b>ESTADO DE TUS FAVORITAS</b>\n"
-        favoritas = favoritas_data if favoritas_data else []
-        for fav in favoritas[:5]:
-            sym = fav.get('symbol', 'N/A')
-            prc = fav.get('price', 0)
-            chg = fav.get('change', 0)
-            prc_str = fmt_price(prc)
+    # 2. TOP 5 GEMAS EN ACUMULACIÓN
+    mensaje += "💎 <b>TOP 5 GEMAS EN ACUMULACIÓN (< $1.00 USD)</b>\n"
+    acumulacion = coin_data.get('top_acumulacion', [])
+    for coin in acumulacion[:5]:
+        sym = coin.get('symbol', 'N/A')
+        prc = coin.get('price', 0)
+        chg = coin.get('change', 0)
+        prc_str = fmt_price(prc)
+        url_ia = f"{BASE_URL}/?coin={sym}&price={prc_str}&change={chg}"
+        
+        mensaje += (
+            f"• 🟢 <b>{sym}</b> | ${prc_str} | Cambio: {chg:.2f}% | Vol: ${coin.get('vol_fmt', '0')}\n"
+            f"  └ 📊 <a href='{url_ia}'>Resumen IA</a> | 🔶 <a href='{coin.get('url_trade', '#')}'>Tradear</a>\n"
+        )
+    mensaje += "\n"
+
+    # 3. TOP 5 PERDEDORAS
+    mensaje += "📉 <b>TOP 5 PERDEDORAS (Zonas de Rebote)</b>\n"
+    perdedoras = coin_data.get('top_perdedoras', [])
+    for coin in perdedoras[:5]:
+        sym = coin.get('symbol', 'N/A')
+        prc = coin.get('price', 0)
+        chg = coin.get('change', 0)
+        prc_str = fmt_price(prc)
+        url_ia = f"{BASE_URL}/?coin={sym}&price={prc_str}&change={chg}"
+        
+        mensaje += (
+            f"• <b>{sym}</b> | ${prc_str} | {coin.get('barra', '🟥🟥🟥🟥🟥')} | {chg:.2f}%\n"
+            f"  └ 📊 <a href='{url_ia}'>Resumen IA</a> | 🔶 <a href='{coin.get('url_trade', '#')}'>Tradear</a>\n"
+        )
+    mensaje += "\n"
+
+    # 4. ESTADO DE FAVORITAS (Simulado o integrado con datos de mercado)
+    mensaje += "⭐ <b>ESTADO DE TUS FAVORITAS</b>\n"
+    # Puedes agregar aquí tus monedas favoritas o dejarlas configuradas
+    favoritas_ejemplo = ["LUNC", "TUT", "PEPE", "SHIB", "FLOKI"]
+    
+    # Buscamos datos reales si alguna de tus favoritas está en el mercado analizado
+    all_market_coins = {c['symbol']: c for c in (ganadoras + acumulacion + perdedoras)}
+    
+    for sym in favoritas_ejemplo[:5]:
+        if sym in all_market_coins:
+            fav = all_market_coins[sym]
+            prc_str = fmt_price(fav['price'])
+            chg = fav['change']
             url_ia = f"{BASE_URL}/?coin={sym}&price={prc_str}&change={chg}"
-            
-            try:
-                chg_float = float(str(chg).replace('%', '').strip())
-            except:
-                chg_float = 0.0
-                
-            icono = "🟢" if chg_float >= 0 else "🔴"
-            
+            icono = "🟢" if chg >= 0 else "🔴"
             mensaje += (
-                f"• {icono} <b>{sym}</b> | ${prc_str} ({chg}%)\n"
+                f"• {icono} <b>{sym}</b> | ${prc_str} ({chg:.2f}%)\n"
                 f"  └ 📊 <a href='{url_ia}'>Resumen IA</a> | 🔶 <a href='{fav.get('url_trade', '#')}'>Tradear</a>\n"
             )
+        else:
+            url_ia = f"{BASE_URL}/?coin={sym}&price=0.00&change=0"
+            mensaje += (
+                f"• ⚪ <b>{sym}</b> | Sin datos recientes\n"
+                f"  └ 📊 <a href='{url_ia}'>Resumen IA</a> | 🔶 <a href='#'>Tradear</a>\n"
+            )
 
-        return mensaje
-
-    except Exception as e:
-        print(f"Error generando mensaje del bot: {e}")
-        return "⚠️ Error al generar el reporte técnico en este momento."
+    return mensaje
 
 def enviar_a_telegram(mensaje):
-    """Función obligatoria para disparar el mensaje hacia la API de Telegram"""
+    """Envía obligatoriamente el reporte final a tu chat de Telegram"""
     token = os.environ.get("TELEGRAM_TOKEN")
-    # Toma CHAT_ID que es el nombre configurado en tus secretos de GitHub
     chat_id = os.environ.get("CHAT_ID") or os.environ.get("TELEGRAM_CHAT_ID")
     
     if not token or not chat_id:
-        print("❌ Error crítico: Faltan las variables de entorno TELEGRAM_TOKEN o CHAT_ID.")
+        print("❌ Error crítico: Faltan las variables de entorno TELEGRAM_TOKEN o CHAT_ID en GitHub Secrets.")
         return
 
     url = f"https://api.telegram.org/bot{token}/sendMessage"
@@ -124,17 +185,16 @@ def enviar_a_telegram(mensaje):
         print(f"❌ Error al enviar a Telegram: {response.text}")
 
 # ==========================================
-# BLOQUE DE EJECUCIÓN PRINCIPAL
+# EJECUCIÓN PRINCIPAL (GARANTIZADA)
 # ==========================================
 if __name__ == "__main__":
     print("🤖 Iniciando proceso del bot de criptomonedas...")
     
-    # 1. Aquí se obtienen tus datos reales (Asegurate de mantener tus funciones de Binance/favoritas aquí arriba o abajo según tu estructura)
-    # coin_data = obtener_datos_desde_binance() 
-    # favoritas_data = obtener_estado_favoritas()
+    # 1. Obtenemos datos del mercado
+    datos_mercado = obtener_datos_binance()
     
-    # 2. Se genera el texto consolidado
-    texto_final = generar_mensaje_cripto(coin_data, favoritas_data)
+    # 2. Generamos el texto con el formato correcto
+    texto_final = generar_mensaje_cripto(datos_mercado)
     
-    # 3. 🚀 SE ENVÍA AUTOMÁTICAMENTE A TELEGRAM
+    # 3. Disparamos el envío a Telegram de forma incondicional
     enviar_a_telegram(texto_final)
