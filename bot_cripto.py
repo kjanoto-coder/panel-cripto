@@ -18,10 +18,15 @@ def fmt_price(p):
         return str(p)
 
 def obtener_datos_binance():
-    """Se conecta a Binance para obtener los datos reales del mercado en tiempo real"""
+    """Se conecta a Binance con cabeceras de navegador para evitar bloqueos"""
     try:
         url = "https://api.binance.com/api/v3/ticker/24hr"
-        response = requests.get(url, timeout=10)
+        # Cabecera para simular un navegador y evitar el bloqueo de Binance
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+        
+        response = requests.get(url, headers=headers, timeout=15)
         if response.status_code != 200:
             print(f"Error al conectar con Binance: {response.status_code}")
             return None
@@ -155,12 +160,11 @@ def generar_mensaje_cripto(coin_data):
     return mensaje
 
 def enviar_a_telegram(mensaje):
-    """Envía obligatoriamente el reporte final a tu chat de Telegram"""
     token = os.environ.get("TELEGRAM_TOKEN")
     chat_id = os.environ.get("CHAT_ID") or os.environ.get("TELEGRAM_CHAT_ID")
     
     if not token or not chat_id:
-        print("❌ Error crítico: Faltan las variables de entorno TELEGRAM_TOKEN o CHAT_ID en GitHub Secrets.")
+        print("❌ Error crítico: Faltan las variables de entorno TELEGRAM_TOKEN o CHAT_ID.")
         return
 
     url = f"https://api.telegram.org/bot{token}/sendMessage"
