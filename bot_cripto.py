@@ -44,7 +44,7 @@ def preparar_datos(tickers):
     
     # 2. Top 10 Acumulación (< $1 USD con buen volumen)
     acumulacion_pool = [t for t in usdt_pairs if float(t['lastPrice']) < 1.0]
-    acumulacion = sorted(acumulacion_pool, key=lambda x: float(x['quoteVolume']), reverse=True)[:10]
+    acumulacion = sorted(acumulacion_pool, key=lambda x: float(t['quoteVolume']), reverse=True)[:10]
     
     # 3. Top 10 Perdedoras (Mayor caída para buscar rebote)
     perdedoras = sorted(usdt_pairs, key=lambda x: float(x['priceChangePercent']))[:10]
@@ -52,6 +52,8 @@ def preparar_datos(tickers):
     return ganadoras, acumulacion, perdedoras
 
 def construir_mensajes(ganadoras, acumulacion, perdedoras):
+    base_url_netlify = "https://gregarious-frangollo-0346c5.netlify.app"
+    
     # Parte 1: Encabezado + Ganadoras + Acumulación
     mensaje_1 = (
         "🧠 **CENTRAL DE INTELIGENCIA & GEMINI AI** (1/2)\n"
@@ -65,10 +67,13 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras):
         precio = float(item['lastPrice'])
         cambio = float(item['priceChangePercent'])
         barra = generar_barra_progreso(cambio)
+        url_ia = f"{base_url_netlify}/?coin={sim}&price={precio}&change={cambio}"
+        url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
+        
         mensaje_1 += (
             f"• **{sim}** | ${precio:.4f} | {barra} | +{cambio:.1f}%\n"
             f"  └ ⏱️ *15m: Alcista | 1h: Impulso | 1d: Rotura*\n"
-            f"  └ [📊 Resumen IA](https://tu-sitio-netlify.app) | [🔶 Tradear](https://www.binance.com/es/trade/{sim}_USDT)\n"
+            f"  └ [📊 Resumen IA]({url_ia}) | [🔶 Tradear]({url_trade})\n"
         )
 
     mensaje_1 += "\n💎 **2. TOP 10 ACUMULACIÓN (< $1 USD - Gemini AI)**\n"
@@ -77,11 +82,14 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras):
         precio = float(item['lastPrice'])
         cambio = float(item['priceChangePercent'])
         barra = generar_barra_progreso(cambio, es_acumulacion=True)
+        url_ia = f"{base_url_netlify}/?coin={sim}&price={precio}&change={cambio}"
+        url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
+        
         mensaje_1 += (
             f"• **{sim}** | ${precio:.4f} | {barra} | {cambio:+.1f}%\n"
             f"  └ (Soporte clave)\n"
             f"  └ ⏱️ *15m/1h/1d: Estructura de acumulación geométrica*\n"
-            f"  └ [📊 Resumen IA](https://tu-sitio-netlify.app) | [🔶 Tradear](https://www.binance.com/es/trade/{sim}_USDT)\n"
+            f"  └ [📊 Resumen IA]({url_ia}) | [🔶 Tradear]({url_trade})\n"
         )
 
     # Parte 2: Perdedoras + Favoritas
@@ -94,22 +102,29 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras):
         precio = float(item['lastPrice'])
         cambio = float(item['priceChangePercent'])
         barra = generar_barra_progreso(cambio)
+        url_ia = f"{base_url_netlify}/?coin={sim}&price={precio}&change={cambio}"
+        url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
+        
         mensaje_2 += (
             f"• **{sim}** | ${precio:.4f} | {barra} | {cambio:.1f}%\n"
             f"  └ (Sobreventa en 1h/1d)\n"
             f"  └ ⏱️ *Señal IA: Posible suelo de recuperación a corto plazo*\n"
-            f"  └ [📊 Resumen IA](https://tu-sitio-netlify.app) | [🔶 Tradear](https://www.binance.com/es/trade/{sim}_USDT)\n"
+            f"  └ [📊 Resumen IA]({url_ia}) | [🔶 Tradear]({url_trade})\n"
         )
+
+    # Favoritas fijas
+    url_lunc_ia = f"{base_url_netlify}/?coin=LUNC&price=0.00005254&change=-0.2"
+    url_bank_ia = f"{base_url_netlify}/?coin=BANK&price=0.01240&change=6.8"
 
     mensaje_2 += (
         "\n⭐ **4. TUS FAVORITAS (Wallet & Seguimiento)**\n"
         "• **LUNC** | $0.00005254 | 🟥🟥⬜⬜⬜ | -0.2%\n"
         "  └ ⏱️ *15m: Rango | 1h: Estable | 1d: Acumulando base*\n"
-        "  └ [📊 Resumen IA](https://tu-sitio-netlify.app) | [🔶 Tradear](https://www.binance.com/es/trade/LUNC_USDT)\n"
+        f"  └ [📊 Resumen IA]({url_lunc_ia}) | [🔶 Tradear](https://www.binance.com/es/trade/LUNC_USDT)\n"
         "• **BANK** | $0.01240 | 🟢🟢🟢🟢🟢 | +6.8%\n"
         "  └ (Destacada en tu wallet)\n"
         "  └ ⏱️ *15m: Alcista | 1h: Ruptura | 1d: Impulso fuerte*\n"
-        "  └ [📊 Resumen IA](https://tu-sitio-netlify.app) | [🔶 Tradear](https://www.binance.com/es/trade/BANK_USDT)\n\n"
+        f"  └ [📊 Resumen IA]({url_bank_ia}) | [🔶 Tradear](https://www.binance.com/es/trade/BANK_USDT)\n\n"
         "✅ Alerta enviada correctamente mediante sistema de alta disponibilidad."
     )
     
@@ -118,7 +133,6 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras):
 def enviar_a_telegram(mensaje_1, mensaje_2):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     
-    # Enviar Parte 1
     p1 = requests.post(url, json={
         "chat_id": TELEGRAM_CHAT_ID,
         "text": mensaje_1,
@@ -126,7 +140,6 @@ def enviar_a_telegram(mensaje_1, mensaje_2):
         "disable_web_page_preview": True
     })
     
-    # Enviar Parte 2
     p2 = requests.post(url, json={
         "chat_id": TELEGRAM_CHAT_ID,
         "text": mensaje_2,
