@@ -2,7 +2,7 @@ name: Enviar Alerta Telegram
 
 on:
   schedule:
-    - cron: '0 */4 * * *' # Se ejecuta automáticamente cada 4 horas en la nube
+    - cron: '*/15 * * * *' # Se ejecuta automáticamente cada 15 minutos en la nube
   workflow_dispatch: # Permite dispararlo manualmente cuando quieras
 
 jobs:
