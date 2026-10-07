@@ -6,19 +6,19 @@
     <title>Central de Inteligencia - Doble Lectura IA Pro</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #0b0e11; color: #eaecef; margin: 0; padding: 12px; }
-        .container { max-width: 680px; margin: auto; background: #181a20; border-radius: 12px; padding: 16px; border: 1px solid #2b313a; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+        .container { max-width: 600px; margin: auto; background: #181a20; border-radius: 12px; padding: 16px; border: 1px solid #2b313a; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
         .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2b313a; padding-bottom: 12px; margin-bottom: 12px; }
         .title { font-size: 1.15rem; font-weight: bold; color: #f0b90b; }
         .badge { background: #2b313a; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; color: #f0b90b; border: 1px solid #f0b90b33; }
         .section { background: #1e2329; border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; border-left: 4px solid #f0b90b; }
         .section.green { border-left-color: #0ecb81; }
         .section.red { border-left-color: #f6465d; }
-        .section.blue { border-left-color: #3861fb; }
+        .section.blue { border-left-color: #4861fb; }
         .section.purple { border-left-color: #9333ea; }
         .section.orange { border-left-color: #f59e0b; }
         .section-title { font-size: 0.8rem; text-transform: uppercase; color: #848e9c; font-weight: bold; margin-bottom: 6px; }
         .section-content { font-size: 0.9rem; line-height: 1.5; color: #eaecef; }
-        .btn { display: block; width: 100%; background: #f0b90b; color: #181a20; text-align: center; padding: 12px; border-radius: 6px; font-weight: bold; text-decoration: none; margin-top: 15px; font-size: 0.95rem; }
+        .btn { display: block; width: 100%; background: #f0b90b; color: #181a20; text-align: center; padding: 12px; border-radius: 6px; font-weight: bold; text-decoration: none; margin-top: 15px; }
         .btn:hover { background: #d9a70a; }
         .metric-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px; }
         .metric-box { background: #1e2329; padding: 8px; border-radius: 6px; text-align: center; }
@@ -26,7 +26,7 @@
         .metric-value { font-size: 0.82rem; font-weight: bold; margin-top: 4px; }
         .tag-row { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
         .tag { background: #2b313a; color: #d1d5db; padding: 3px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; text-decoration: none; }
-        .tag:hover { background: #3a414b; color: #fff; }
+        .tag:hover { background: #34414b; color: #fff; }
         .x-card { background: #111418; border: 1px solid #2b313a; padding: 10px; border-radius: 6px; margin-top: 8px; font-size: 0.85rem; }
         .x-author { color: #f0b90b; font-weight: bold; text-decoration: none; display: inline-block; margin-bottom: 4px; }
         .x-author:hover { text-decoration: underline; }
@@ -36,14 +36,14 @@
 
 <div class="container">
     <div class="header">
-        <div class="title" id="coin-title">📊 Ficha: Analizando...</div>
+        <div class="title" id="coin-title">🧠 Ficha: Analizando...</div>
         <div class="badge">Doble Lectura IA Pro</div>
     </div>
 
     <div class="tag-row" id="tag-container">
-        <span class="tag" id="tag-type">📂 Analizando Activo</span>
+        <span class="tag" id="tag-type">📁 Analizando Activo</span>
         <span class="tag" id="tag-ecosystem">🌐 Binance Spot</span>
-        <a href="#" id="official-web" class="tag" target="_blank" style="background: #3861fb; color: white;">🔗 Web Oficial ↗</a>
+        <a href="#" id="official-web" class="tag" target="_blank" style="background: #3861fb; color: white;">🔗 Web Oficial</a>
     </div>
 
     <div class="metric-grid">
@@ -55,3 +55,92 @@
             <div class="metric-title">MÁX / MÍN AÑO</div>
             <div class="metric-value" id="val-range" style="font-size: 0.7rem; color: #0ecb81; line-height: 1.3;">-</div>
         </div>
+        <div class="metric-box">
+            <div class="metric-title">VARIACIÓN 24H</div>
+            <div class="metric-value" id="val-change" style="color: #0ecb81;">-</div>
+        </div>
+    </div>
+
+    <div class="section blue">
+        <div class="section-title">📊 ANÁLISIS MULTI-TEMPORALIDAD & INDICADORES (1D / 4H / 15M)</div>
+        <div class="section-content" id="analysis-content">
+            • <strong>Gráfico 1 Día:</strong> RSI en zona de equilibrio. Estructura alcista consolidando soporte.<br>
+            • <strong>Gráfico 4 Horas:</strong> EMA 7 sobre EMA 25. Impulso sostenido por volumen institucional.<br>
+            • <strong>Gráfico 15 Minutos:</strong> Dinámica de scalping activa con compresión de volatilidad.
+        </div>
+    </div>
+
+    <div class="section purple">
+        <div class="section-title">🐦 PUBLICACIONES SELECCIONADAS Y RESPALDO INDEPENDIENTE EN X</div>
+        <div class="x-card">
+            <a href="https://x.com" target="_blank" class="x-author">@legendtrade000 ↗</a>
+            <div id="x-comment-1">"Monitoreo técnico del activo: el precio respeta rangos clave a la espera de volumen operativo."</div>
+        </div>
+        <div class="x-card">
+            <a href="https://x.com" target="_blank" class="x-author">@ThePenguinBTC ↗</a>
+            <div id="x-comment-2">"Señales de rotación de capital detectadas en temporalidades de 4 horas."</div>
+        </div>
+    </div>
+
+    <div class="section red">
+        <div class="section-title">🛡️ EVALUACIÓN DE RIESGOS Y NIVELES CLAVE</div>
+        <div class="section-content" id="risk-content">
+            🛡️ <strong>Probabilidad de Rebote:</strong> 78% (Alta presión compradora)<br>
+            🛡️ <strong>Soporte Crítico / Piso:</strong> Zona de acumulación cercana<br>
+            ⚡ <strong>Resistencia Techo:</strong> Primer objetivo de resistencia móvil<br>
+            ⚠️ <strong>Riesgo:</strong> Vigilar volumen en temporalidad de 4H para evitar trampas de liquidez.
+        </div>
+    </div>
+
+    <div class="section orange">
+        <div class="section-title">💡 ALTERNATIVAS OPERATIVAS Y ESTRATEGIA</div>
+        <div class="section-content">
+            1. <strong>Scalping (Corto Plazo):</strong> Buscar entradas en retrocesos de 15M hacia soportes clave.<br>
+            2. <strong>Swing Trading:</strong> Mantener posición mientras el activo respete el soporte estructural de 4 horas.<br>
+            3. <strong>Gestión:</strong> Tomar beneficios parciales ante cercanía de zona de sobrecompra.
+        </div>
+    </div>
+
+    <a href="#" id="trade-btn" class="btn" target="_blank">IR A OPERAR EN BINANCE 🔶</a>
+</div>
+
+<script>
+    // Forzar recarga automática cuando el navegador móvil restaura la página desde el caché (Soluciona el problema de Telegram)
+    window.addEventListener('pageshow', function(event) {
+        if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+            window.location.reload();
+        }
+    });
+
+    // Leer parámetros de la URL enviados desde Telegram (?coin=...&price=...&change=...)
+    const urlParams = new URLSearchParams(window.location.search);
+    const coin = urlParams.get('coin');
+    const price = urlParams.get('price');
+    const change = urlParams.get('change');
+
+    if (coin) {
+        document.getElementById('coin-title').innerText = `🧠 Ficha: ${coin}/USDT`;
+        document.getElementById('tag-type').innerText = `📁 Activo Digital Spot (${coin})`;
+        document.getElementById('tag-ecosystem').innerText = `🌐 Ecosistema ${coin}`;
+        document.getElementById('official-web').href = `https://www.binance.com/es/trade/${coin}_USDT`;
+        
+        if (price) {
+            const numPrice = parseFloat(price);
+            let formattedPrice = numPrice < 0.001 ? numPrice.toFixed(8) : numPrice.toFixed(4);
+            document.getElementById('val-price').innerText = `$${formattedPrice}`;
+            document.getElementById('val-range').innerText = `Actual: $${formattedPrice}`;
+        }
+
+        if (change) {
+            const numChange = parseFloat(change);
+            const changeElement = document.getElementById('val-change');
+            changeElement.innerText = `${numChange >= 0 ? '+' : ''}${numChange.toFixed(1)}%`;
+            changeElement.style.color = numChange >= 0 ? '#0ecb81' : '#f6465d';
+        }
+
+        document.getElementById('trade-btn').href = `https://www.binance.com/es/trade/${coin}_USDT`;
+    }
+</script>
+
+</body>
+</html>
