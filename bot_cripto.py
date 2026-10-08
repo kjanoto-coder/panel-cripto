@@ -35,14 +35,18 @@ def generar_barra_progreso(cambio, es_acumulacion=False):
 def preparar_datos(tickers):
     usdt_pairs = [t for t in tickers if t['symbol'].endswith('USDT') and not any(x in t['symbol'] for x in ['UP', 'DOWN', 'BULL', 'BEAR'])]
     
-    ganadoras = sorted(usdt_pairs, key=lambda x: float(x['priceChangePercent']), reverse=True)[:10]
+    # Top 7 Ganadoras
+    ganadoras = sorted(usdt_pairs, key=lambda x: float(x['priceChangePercent']), reverse=True)[:7]
     
+    # Top 7 Acumulación (< $1 USD)
     acumulacion_pool = [t for t in usdt_pairs if float(t['lastPrice']) < 1.0]
-    acumulacion = sorted(acumulacion_pool, key=lambda x: float(x['quoteVolume']), reverse=True)[:10]
+    acumulacion = sorted(acumulacion_pool, key=lambda x: float(x['quoteVolume']), reverse=True)[:7]
     
-    perdedoras = sorted(usdt_pairs, key=lambda x: float(x['priceChangePercent']))[:10]
+    # Top 7 Perdedoras
+    perdedoras = sorted(usdt_pairs, key=lambda x: float(x['priceChangePercent']))[:7]
     
-    favoritas_simbolos = ['LUNC', 'BANK']
+    # Tus 5 favoritas (puedes modificar los símbolos aquí cuando quieras)
+    favoritas_simbolos = ['LUNC', 'BANK', 'BTC', 'ETH', 'SOL']
     favoritas = []
     for sim in favoritas_simbolos:
         match = next((t for t in usdt_pairs if t['symbol'] == f"{sim}USDT"), None)
@@ -54,11 +58,12 @@ def preparar_datos(tickers):
 def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
     base_url_netlify = "https://gregarious-frangollo-0346c5.netlify.app"
     
+    # Parte 1: Ganadoras (7) y Acumulación (7)
     mensaje_1 = (
-        "🧠 **CENTRAL DE INTELIGENCIA & GEMINI AI** (1/2)\n"
-        "📊 Monitoreo Global: 500+ altcoins del Top de Binance\n"
-        "⚡ **Estado:** Automatización Activa (GitHub Actions - Cada 15m)\n\n"
-        "🚀 **1. TOP 10 GANADORAS**\n"
+        "🧠 **CENTRAL DE INTELIGENCIA DE MERCADO** (1/2)\n"
+        "📊 Monitoreo Global: Top de Binance\n"
+        "⚡ **Estado:** Automatización Activa (Cada 15m)\n\n"
+        "🚀 **1. TOP 7 GANADORAS**\n"
     )
     
     for item in ganadoras:
@@ -75,7 +80,7 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
             f"  └ [📊 Resumen IA]({url_ia}) | [🔶 Tradear]({url_trade})\n"
         )
 
-    mensaje_1 += "\n💎 **2. TOP 10 ACUMULACIÓN (< $1 USD)**\n"
+    mensaje_1 += "\n💎 **2. TOP 7 ACUMULACIÓN (< $1 USD)**\n"
     for item in acumulacion:
         sim = item['symbol'].replace('USDT', '')
         precio = float(item['lastPrice'])
@@ -90,9 +95,10 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
             f"  └ [📊 Resumen IA]({url_ia}) | [🔶 Tradear]({url_trade})\n"
         )
 
+    # Parte 2: Perdedoras (7) y Favoritas (5)
     mensaje_2 = (
-        "🧠 **CENTRAL DE INTELIGENCIA & GEMINI AI** (2/2)\n\n"
-        "📉 **3. TOP 10 PERDEDORAS**\n"
+        "🧠 **CENTRAL DE INTELIGENCIA DE MERCADO** (2/2)\n\n"
+        "📉 **3. TOP 7 PERDEDORAS**\n"
     )
     for item in perdedoras:
         sim = item['symbol'].replace('USDT', '')
@@ -108,7 +114,7 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
             f"  └ [📊 Resumen IA]({url_ia}) | [🔶 Tradear]({url_trade})\n"
         )
 
-    mensaje_2 += "\n⭐ **4. TUS FAVORITAS**\n"
+    mensaje_2 += "\n⭐ **4. TUS 5 FAVORITAS**\n"
     for item in favoritas:
         sim = item['symbol'].replace('USDT', '')
         precio = float(item['lastPrice'])
@@ -123,7 +129,7 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
             f"  └ [📊 Resumen IA]({url_ia}) | [🔶 Tradear]({url_trade})\n"
         )
 
-    mensaje_2 += "\n✅ Alerta enviada correctamente mediante sistema de alta disponibilidad."
+    mensaje_2 += "\n✅ Alerta enviada correctamente."
     
     return mensaje_1, mensaje_2
 
@@ -145,7 +151,7 @@ def enviar_a_telegram(mensaje_1, mensaje_2):
     })
     
     if p1.status_code == 200 and p2.status_code == 200:
-        print("¡Ambas partes de la alerta fueron enviadas con éxito a Telegram!")
+        print("¡Mensajes enviados con éxito a Telegram!")
     else:
         print(f"Error al enviar alerta: {p1.text} | {p2.text}")
 
