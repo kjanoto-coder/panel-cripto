@@ -87,7 +87,7 @@ def analizar_top5_con_ia(client, monedas):
         "Actúa como un Trader Cuantitativo Senior.\n"
         "Analiza estas 5 altcoins:\n"
         f"{chr(10).join(lista_texto)}\n\n"
-        "Devuelve la respuesta estrictamente en este formato de texto plano (sin HTML ni markdown):\n"
+        "Devuelve la respuesta estrictamente en este formato de texto plano:\n"
         "RESUMEN: [Una sola frase corta sobre el comportamiento global del mercado]\n"
         f"1. {monedas[0]['simbolo']}: [Frase corta de análisis técnico]\n"
         f"2. {monedas[1]['simbolo']}: [Frase corta de análisis técnico]\n"
@@ -205,13 +205,11 @@ def generar_imagen_infografia(items_ordenados):
     return path_output
 
 def procesar_respuesta_ia(texto_ia, monedas):
-    # Extraer resumen global
     resumen_global = "Fuerte impulso alcista generalizado en altcoins de baja capitalización."
     match_resumen = re.search(r'RESUMEN:\s*(.*)', texto_ia)
     if match_resumen:
         resumen_global = match_resumen.group(1).strip()
     
-    # Extraer análisis por moneda de forma segura
     analisis_dict = {}
     for m in monedas:
         sim = m['simbolo']
@@ -221,18 +219,25 @@ def procesar_respuesta_ia(texto_ia, monedas):
         else:
             analisis_dict[sim] = "Ruptura limpia con expansión de volumen y acumulación en intradiario."
 
-    # Python construye el mensaje final con los enlaces garantizados
     bloques_monedas = []
+    inline_keyboard = []
+
     for m in monedas:
         sim = m['simbolo']
         frase = analisis_dict.get(sim, "Impulso alcista sostenido con volumen favorable.")
         
+        # Texto limpio sin etiquetas HTML de enlaces que Telegram ignora en captions
         bloque = (
             f"• <b>{sim}</b> ({m['cambio']:+.1f}%) — {formatear_precio(m['precio'])} | 🟢🟢🟢🟢🟢\n"
-            f"🧠 <i>{frase}</i>\n"
-            f"└ 📊 <a href=\"{m['netlify_url']}\">Resumen IA</a> | 🔶 <a href=\"{m['binance_url']}\">Tradear</a>"
+            f"🧠 <i>{frase}</i>"
         )
         bloques_monedas.append(bloque)
+
+        # Botones interactivos nativos de Telegram (1 fila por moneda con ambos botones)
+        inline_keyboard.append([
+            {"text": f"📊 Resumen IA {sim}", "url": m['netlify_url']},
+            {"text": f"🔶 Tradear {sim}", "url": m['binance_url']}
+        ])
 
     caption_completo = (
         "🎯 <b>CAZADOR TÁCTICO</b>\n"
@@ -244,7 +249,7 @@ def procesar_respuesta_ia(texto_ia, monedas):
     if len(caption_completo) > 1000:
         caption_completo = caption_completo[:995] + "..."
 
-    return caption_completo
+    return caption_completo, inline_keyboard
 
 def enviar_a_telegram(path_imagen, texto_ia, monedas, total_analizadas):
     token_limpio = re.sub(r'[^a-zA-Z0-9:\-_]', '', TELEGRAM_BOT_TOKEN)
@@ -255,12 +260,13 @@ def enviar_a_telegram(path_imagen, texto_ia, monedas, total_analizadas):
     dominio = "api.telegram.org"
     url_foto = f"{protocolo}://{dominio}/bot{token_limpio}/sendPhoto"
     
-    caption_completo = procesar_respuesta_ia(texto_ia, monedas)
+    caption_completo, inline_keyboard = procesar_respuesta_ia(texto_ia, monedas)
 
     data_foto = {
         "chat_id": chat_id_limpio,
         "caption": caption_completo,
-        "parse_mode": "HTML"
+        "parse_mode": "HTML",
+        "reply_markup": json.dumps({"inline_keyboard": inline_keyboard})
     }
     if topic_id_limpio:
         try:
@@ -271,16 +277,14 @@ def enviar_a_telegram(path_imagen, texto_ia, monedas, total_analizadas):
     with open(path_imagen, 'rb') as photo_file:
         res = requests.post(url_foto, data=data_foto, files={'photo': photo_file})
         if res.status_code != 200:
-            print(f"Error en envío con HTML: {res.text}")
-            data_foto.pop("parse_mode", None)
-            data_foto["caption"] = re.sub(r'<[^>]+>', '', caption_completo)
-            with open(path_imagen, 'rb') as photo_file2:
-                requests.post(url_foto, data=data_foto, files={'photo': photo_file2})
+            print(f"Error en envío con botones: {res.text}")
+            data_foto.pop("reply_markup", None)
+            requests.post(url_foto, data=data_foto, files={'photo': photo_file})
 
-    print("¡Publicación enviada exitosamente a Telegram con enlaces funcionales!")
+    print("¡Publicación enviada con botones interactivos funcionales a Telegram!")
 
 if __name__ == "__main__":
-    print("Iniciando Cazador Táctico (Top 5 con enlaces Python nativos)...")
+    print("Iniciando Cazador Táctico (Top 5 con botones interactivos)...")
     client = configurar_ia()
     
     tickers = obtener_mercado_binance()
