@@ -204,7 +204,31 @@ def generar_imagen_infografia(items_ordenados):
     img.save(path_output)
     return path_output
 
-def procesar_respuesta_ia(texto_ia, monedas):
+def enviar_a_telegram(path_imagen, texto_ia, monedas, total_analizadas):
+    token_limpio = re.sub(r'[^a-zA-Z0-9:\-_]', '', TELEGRAM_BOT_TOKEN)
+    chat_id_limpio = re.sub(r'[^0-9\-]', '', TELEGRAM_CHAT_ID)
+    topic_id_limpio = re.sub(r'[^0-9]', '', TELEGRAM_TOPIC_ID)
+    
+    protocolo = "https"
+    dominio = "api.telegram.org"
+    
+    # 1. Enviar la imagen sola con título limpio
+    url_foto = f"{protocolo}://{dominio}/bot{token_limpio}/sendPhoto"
+    data_foto = {
+        "chat_id": chat_id_limpio,
+        "caption": "🎯 <b>CAZADOR TÁCTICO</b>\n📊 <i>Ranking de Momentum 24h en Binance Spot</i>",
+        "parse_mode": "HTML"
+    }
+    if topic_id_limpio:
+        try:
+            data_foto["message_thread_id"] = int(topic_id_limpio)
+        except ValueError:
+            data_foto["message_thread_id"] = topic_id_limpio
+
+    with open(path_imagen, 'rb') as photo_file:
+        requests.post(url_foto, data=data_foto, files={'photo': photo_file})
+
+    # 2. Procesar el análisis de la IA
     resumen_global = "Fuerte impulso alcista generalizado en altcoins de baja capitalización."
     match_resumen = re.search(r'RESUMEN:\s*(.*)', texto_ia)
     if match_resumen:
@@ -220,71 +244,43 @@ def procesar_respuesta_ia(texto_ia, monedas):
             analisis_dict[sim] = "Ruptura limpia con expansión de volumen y acumulación en intradiario."
 
     bloques_monedas = []
-    inline_keyboard = []
-
     for m in monedas:
         sim = m['simbolo']
         frase = analisis_dict.get(sim, "Impulso alcista sostenido con volumen favorable.")
         
-        # Texto limpio sin etiquetas HTML de enlaces que Telegram ignora en captions
+        # Formato exacto con enlaces interactivos en HTML reales
         bloque = (
             f"• <b>{sim}</b> ({m['cambio']:+.1f}%) — {formatear_precio(m['precio'])} | 🟢🟢🟢🟢🟢\n"
-            f"🧠 <i>{frase}</i>"
+            f"🧠 <i>{frase}</i>\n"
+            f"└ 📊 <a href=\"{m['netlify_url']}\">Resumen IA</a> | 🔶 <a href=\"{m['binance_url']}\">Tradear</a>"
         )
         bloques_monedas.append(bloque)
 
-        # Botones interactivos nativos de Telegram (1 fila por moneda con ambos botones)
-        inline_keyboard.append([
-            {"text": f"📊 Resumen IA {sim}", "url": m['netlify_url']},
-            {"text": f"🔶 Tradear {sim}", "url": m['binance_url']}
-        ])
-
-    caption_completo = (
-        "🎯 <b>CAZADOR TÁCTICO</b>\n"
-        f"<b>MONEDAS ANALIZADAS:</b> {len(monedas)}\n\n"
+    texto_detallado = (
+        f"<b>MONEDAS ANALIZADAS:</b> {total_analizadas}\n\n"
         f"<b>RESUMEN:</b> {resumen_global}\n\n" +
         "\n\n".join(bloques_monedas)
     )
 
-    if len(caption_completo) > 1000:
-        caption_completo = caption_completo[:995] + "..."
-
-    return caption_completo, inline_keyboard
-
-def enviar_a_telegram(path_imagen, texto_ia, monedas, total_analizadas):
-    token_limpio = re.sub(r'[^a-zA-Z0-9:\-_]', '', TELEGRAM_BOT_TOKEN)
-    chat_id_limpio = re.sub(r'[^0-9\-]', '', TELEGRAM_CHAT_ID)
-    topic_id_limpio = re.sub(r'[^0-9]', '', TELEGRAM_TOPIC_ID)
-    
-    protocolo = "https"
-    dominio = "api.telegram.org"
-    url_foto = f"{protocolo}://{dominio}/bot{token_limpio}/sendPhoto"
-    
-    caption_completo, inline_keyboard = procesar_respuesta_ia(texto_ia, monedas)
-
-    data_foto = {
+    # 3. Enviar el desglose como mensaje de texto para garantizar que los enlaces funcionen
+    url_msg = f"{protocolo}://{dominio}/bot{token_limpio}/sendMessage"
+    data_msg = {
         "chat_id": chat_id_limpio,
-        "caption": caption_completo,
+        "text": texto_detallado,
         "parse_mode": "HTML",
-        "reply_markup": json.dumps({"inline_keyboard": inline_keyboard})
+        "disable_web_page_preview": True
     }
     if topic_id_limpio:
         try:
-            data_foto["message_thread_id"] = int(topic_id_limpio)
+            data_msg["message_thread_id"] = int(topic_id_limpio)
         except ValueError:
-            data_foto["message_thread_id"] = topic_id_limpio
+            data_msg["message_thread_id"] = topic_id_limpio
 
-    with open(path_imagen, 'rb') as photo_file:
-        res = requests.post(url_foto, data=data_foto, files={'photo': photo_file})
-        if res.status_code != 200:
-            print(f"Error en envío con botones: {res.text}")
-            data_foto.pop("reply_markup", None)
-            requests.post(url_foto, data=data_foto, files={'photo': photo_file})
-
-    print("¡Publicación enviada con botones interactivos funcionales a Telegram!")
+    requests.post(url_msg, json=data_msg)
+    print("¡Publicación enviada con éxito y enlaces interactivos funcionales!")
 
 if __name__ == "__main__":
-    print("Iniciando Cazador Táctico (Top 5 con botones interactivos)...")
+    print("Iniciando Cazador Táctico (Top 5 con enlaces interactivos funcionales)...")
     client = configurar_ia()
     
     tickers = obtener_mercado_binance()
