@@ -4,10 +4,11 @@ import requests
 from google import genai
 from google.genai import errors
 
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
-TELEGRAM_CHAT_ID = os.getenv("CHAT_ID")
-TELEGRAM_TOPIC_ID = os.getenv("TOPIC_ID_TACTICO")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+# Limpieza estricta de las variables de entorno para evitar espacios o caracteres invisibles
+TELEGRAM_BOT_TOKEN = (os.getenv("TELEGRAM_TOKEN") or "").strip()
+TELEGRAM_CHAT_ID = (os.getenv("CHAT_ID") or "").strip()
+TELEGRAM_TOPIC_ID = (os.getenv("TOPIC_ID_TACTICO") or "").strip()
+GEMINI_API_KEY = (os.getenv("GEMINI_API_KEY") or "").strip()
 
 def configurar_ia():
     if not GEMINI_API_KEY:
@@ -97,9 +98,10 @@ def analizar_oportunidades_con_ia(client, mercado_resumen):
     raise Exception("Servidores de Google ocupados tras 5 reintentos. Se ejecutará en el siguiente ciclo.")
 
 def enviar_a_telegram(mensaje, total_analizadas):
+    # URL en texto plano puro sin caracteres de formato
     url = f"[https://api.telegram.org/bot](https://api.telegram.org/bot){TELEGRAM_BOT_TOKEN}/sendMessage"
     
-    # Limpieza estricta para eliminar etiquetas/caracteres incompatibles con Telegram
+    # Limpieza de bloques de código Markdown
     mensaje_limpio = (
         mensaje.replace("```html", "")
         .replace("```", "")
@@ -123,7 +125,7 @@ def enviar_a_telegram(mensaje, total_analizadas):
         "disable_web_page_preview": True
     }
     
-    # Enviar al tema/subcanal correspondiente
+    # Asignación del ID del tema (subcanal)
     if TELEGRAM_TOPIC_ID:
         try:
             payload["message_thread_id"] = int(TELEGRAM_TOPIC_ID)
@@ -132,11 +134,10 @@ def enviar_a_telegram(mensaje, total_analizadas):
             
     response = requests.post(url, json=payload)
     
-    # RED DE SEGURIDAD (FALLBACK): Si Telegram rechaza el formato HTML, reintenta sin parse_mode
+    # Red de seguridad si Telegram rechaza etiquetas HTML
     if response.status_code != 200:
-        print(f"Aviso de formato en Telegram ({response.text}). Reintentando envío en texto plano...")
+        print(f"Aviso de formato en Telegram ({response.text}). Reintentando envío sin HTML...")
         payload.pop("parse_mode", None)
-        # Limpiamos etiquetas HTML básicas para el envío plano
         payload["text"] = texto_final.replace("<b>", "").replace("</b>", "").replace("<i>", "").replace("</i>", "")
         response = requests.post(url, json=payload)
         if response.status_code != 200:
