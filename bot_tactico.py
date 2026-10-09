@@ -95,7 +95,7 @@ def analizar_top5_con_ia(client, monedas):
             f"└ 📊 <a href=\"{m['url']}\">Resumen IA</a> | 🔶 <a href=\"{m['url']}\">Tradear</a>\n\n"
         )
 
-    prompt += "REGLA: No modifiques las URLs y mantén el formato exacto."
+    prompt += "REGLA IMPORTANTE: Cierra siempre todas las etiquetas HTML abiertas como <i> con su respectivo </i>."
 
     candidatos_dinamicos = []
     try:
@@ -205,15 +205,21 @@ def generar_imagen_infografia(items_ordenados):
     img.save(path_output)
     return path_output
 
-def limpiar_texto_telegram(texto):
+def limpiar_y_reparar_html(texto):
     texto = re.sub(r'```[a-zA-Z]*', '', texto)
     texto = texto.replace('```', '').replace('**', '').replace('\\"', '"').replace('\\', '')
     
-    partes = re.split(r'(</?(?:b|i|a href="[^"]*")>)', texto)
-    for i in range(len(partes)):
-        if not re.match(r'^</?(?:b|i|a href="[^"]*");?>$', partes[i]):
-            partes[i] = partes[i].replace('<', '&lt;').replace('>', '&gt;')
-    return "".join(partes).strip()
+    # Asegurar que si hay un <i> abierto sin cerrar al final de la línea, se le agregue </i>
+    lineas = texto.split('\n')
+    lineas_reparadas = []
+    for l in lineas:
+        if l.count('<i>') > l.count('</i>'):
+            l += '</i>'
+        if l.count('<b>') > l.count('</b>'):
+            l += '</b>'
+        lineas_reparadas.append(l)
+    
+    return "\n".join(lineas_reparadas).strip()
 
 def enviar_a_telegram(path_imagen, analisis_ia, total_analizadas):
     token_limpio = re.sub(r'[^a-zA-Z0-9:\-_]', '', TELEGRAM_BOT_TOKEN)
@@ -224,7 +230,7 @@ def enviar_a_telegram(path_imagen, analisis_ia, total_analizadas):
     dominio = "api.telegram.org"
     url_foto = f"{protocolo}://{dominio}/bot{token_limpio}/sendPhoto"
     
-    analisis_limpio = limpiar_texto_telegram(analisis_ia)
+    analisis_limpio = limpiar_y_reparar_html(analisis_ia)
     
     caption_completo = (
         "🎯 <b>CAZADOR TÁCTICO</b>\n"
@@ -249,12 +255,17 @@ def enviar_a_telegram(path_imagen, analisis_ia, total_analizadas):
     with open(path_imagen, 'rb') as photo_file:
         res = requests.post(url_foto, data=data_foto, files={'photo': photo_file})
         if res.status_code != 200:
-            print(f"Aviso en envío: {res.text}")
+            print(f"Error en envío con HTML: {res.text}")
+            # Intento de emergencia sin HTML si volviera a fallar
+            data_foto.pop("parse_mode", None)
+            data_foto["caption"] = re.sub(r'<[^>]+>', '', caption_completo)
+            with open(path_imagen, 'rb') as photo_file2:
+                requests.post(url_foto, data=data_foto, files={'photo': photo_file2})
 
-    print("¡Publicación enviada exitosamente a Telegram!")
+    print("¡Publicación enviada exitosamente a Telegram con HTML reparado!")
 
 if __name__ == "__main__":
-    print("Iniciando Cazador Táctico (Top 5 corregido)...")
+    print("Iniciando Cazador Táctico (Top 5 con HTML reparado)...")
     client = configurar_ia()
     
     tickers = obtener_mercado_binance()
