@@ -71,32 +71,27 @@ def analizar_oportunidades_con_ia(client, mercado_resumen):
     Si ninguna muestra una configuración seria en este ciclo, indícalo de forma objetiva para proteger el capital.
     """
     
-    # Lista priorizada de modelos para garantizar que siempre haya un servidor disponible
-    modelos_disponibles = [
-        'gemini-2.5-flash',
-        'gemini-1.5-flash',
-        'gemini-2.0-flash',
-        'gemini-flash-latest'
-    ]
+    # Modelo oficial activo
+    modelo = 'gemini-flash-latest'
     
-    for modelo in modelos_disponibles:
-        for intento in range(1, 3):
-            try:
-                print(f"Probando análisis con modelo {modelo} (Intento {intento})...")
-                response = client.models.generate_content(
-                    model=modelo,
-                    contents=prompt,
-                )
-                print(f"¡Análisis generado con éxito usando {modelo}!")
-                return response.text
-            except errors.APIError as e:
-                print(f"Aviso en {modelo} ({e.code}): {e.message}. Probando alternativo...")
-                time.sleep(3)
-            except Exception as e:
-                print(f"Error inesperado en {modelo}: {e}. Probando alternativo...")
-                time.sleep(3)
+    # Reintentos focales de hasta 5 veces con pausas de 10s para superar saturación 503
+    for intento in range(1, 6):
+        try:
+            print(f"Consultando IA con {modelo} (Intento {intento}/5)...")
+            response = client.models.generate_content(
+                model=modelo,
+                contents=prompt,
+            )
+            print("¡Análisis de mercado generado con éxito!")
+            return response.text
+        except errors.APIError as e:
+            print(f"Servidor saturado ({e.code}). Esperando 10 segundos para reintentar...")
+            time.sleep(10)
+        except Exception as e:
+            print(f"Error inesperado: {e}. Reintentando en 10 segundos...")
+            time.sleep(10)
             
-    raise Exception("Todos los modelos de Google están saturados en este momento. Se reintentará en el próximo ciclo.")
+    raise Exception("Servidores de Google ocupados tras 5 reintentos. Se ejecutará automáticamente en el siguiente ciclo.")
 
 def enviar_a_telegram(mensaje):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
