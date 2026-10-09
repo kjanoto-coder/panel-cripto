@@ -77,30 +77,25 @@ def analizar_top5_con_ia(client, monedas):
     lista_texto = []
     for m in monedas:
         lista_texto.append(
-            f"• {m['simbolo']}: Precio {formatear_precio(m['precio'])}, Cambio {m['cambio']:+.2f}%, Vol USDT ${m['volumen']:,.0f}"
+            f"• Símbolo: {m['simbolo']} | Precio: {formatear_precio(m['precio'])} | Cambio: {m['cambio']:+.2f}% | Vol USDT: ${m['volumen']:,.0f} | URL: {m['url']}"
         )
     
-    prompt = f"""
-    Actúa como un Trader Cuantitativo Senior.
-    Analiza estas 5 altcoins sub-$1 USD en Binance Spot:
+    prompt = (
+        "Actúa como un Trader Cuantitativo Senior.\n"
+        "A continuación tienes los datos exactos de las 5 altcoins seleccionadas:\n\n"
+        f"{chr(10).join(lista_texto)}\n\n"
+        "Genera una respuesta utilizando ESTRICTAMENTE este formato HTML (sin markdown como ``` o **):\n\n"
+        "<b>RESUMEN:</b> [1 sola frase corta sobre el comportamiento global del mercado]\n\n"
+    )
+    
+    for m in monedas:
+        prompt += (
+            f"• <b>{m['simbolo']}</b> ({m['cambio']:+.1f}%) — {formatear_precio(m['precio'])} | 🟢🟢🟢🟢🟢\n"
+            f"🧠 <i>[1 frase corta de análisis técnico fundamentando el movimiento de {m['simbolo']}]</i>\n"
+            f"└ 📊 <a href=\"{m['url']}\">Resumen IA</a> | 🔶 <a href=\"{m['url']}\">Tradear</a>\n\n"
+        )
 
-    {chr(10).join(lista_texto)}
-
-    Genera una respuesta en dos partes estrictas:
-    1. Un RESUMEN general del mercado (1 frase corta).
-    2. El desglose exacto para cada una de las 5 monedas siguiendo este formato HTML idéntico (sin markdown tipo ``` o **):
-
-    <b>RESUMEN:</b> [1 sola frase sobre el comportamiento del mercado]
-
-    MONEDAS ANALIZADAS: [TOTAL]
-
-    • <b>[SÍMBOLO]</b> (+[Cambio]%) — ${[Precio]} | 🟢🟢🟢🟢🟢
-    🧠 <i>[1 frase corta explicando el motivo técnico del movimiento: acumulación, rebote o volumen]</i>
-    └ 📊 <a href="[URL_BINANCE]">Resumen IA</a> | 🔶 <a href="[URL_BINANCE]">Tradear</a>
-
-    ---
-    REGLA: Mantén estrictamente este diseño para las 5 monedas ordenadas de menor a mayor %. Reemplaza [URL_BINANCE] con el enlace de cada activo.
-    """
+    prompt += "REGLA: No modifiques las URLs y mantén el formato exacto."
 
     candidatos_dinamicos = []
     try:
@@ -214,7 +209,6 @@ def limpiar_texto_telegram(texto):
     texto = re.sub(r'```[a-zA-Z]*', '', texto)
     texto = texto.replace('```', '').replace('**', '').replace('\\"', '"').replace('\\', '')
     
-    # Permitir etiquetas b, i, a href
     partes = re.split(r'(</?(?:b|i|a href="[^"]*")>)', texto)
     for i in range(len(partes)):
         if not re.match(r'^</?(?:b|i|a href="[^"]*");?>$', partes[i]):
@@ -230,11 +224,14 @@ def enviar_a_telegram(path_imagen, analisis_ia, total_analizadas):
     dominio = "api.telegram.org"
     url_foto = f"{protocolo}://{dominio}/bot{token_limpio}/sendPhoto"
     
-    # Inyectar el número real de monedas analizadas en el texto de la IA
-    analisis_formateado = analisis_ia.replace("[TOTAL]", str(total_analizadas))
-    analisis_limpio = limpiar_texto_telegram(analisis_formateado)
+    analisis_limpio = limpiar_texto_telegram(analisis_ia)
     
-    caption_completo = f"🎯 <b>CAZADOR TÁCTICO</b>\n\n{analisis_limpio}"
+    caption_completo = (
+        "🎯 <b>CAZADOR TÁCTICO</b>\n"
+        f"<b>MONEDAS ANALIZADAS:</b> {total_analizadas}\n\n"
+        f"{analisis_limpio}"
+    )
+    
     if len(caption_completo) > 1000:
         caption_completo = caption_completo[:995] + "..."
 
@@ -254,10 +251,10 @@ def enviar_a_telegram(path_imagen, analisis_ia, total_analizadas):
         if res.status_code != 200:
             print(f"Aviso en envío: {res.text}")
 
-    print("¡Publicación con formato exacto enviada a Telegram!")
+    print("¡Publicación enviada exitosamente a Telegram!")
 
 if __name__ == "__main__":
-    print("Iniciando Cazador Táctico (Top 5 con formato exacto)...")
+    print("Iniciando Cazador Táctico (Top 5 corregido)...")
     client = configurar_ia()
     
     tickers = obtener_mercado_binance()
