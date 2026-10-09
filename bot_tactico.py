@@ -101,14 +101,14 @@ def analizar_tesoros_con_ia(client, universo):
         "- MACD & RSI: Monitorea RSI en zona de acumulación (45-62, sin sobrecompra extrema) e histograma de MACD con cruce alcista inminente o activo.\n"
         "- Parabolic SAR & Supertrend: Confirmación de cambio de tendencia a verde (compradores al mando).\n"
         "- Libro de Órdenes & Profundidad: Presencia de volumen institucional de compra absorbiendo la oferta.\n\n"
-        "Genera un informe tipo DOSSIER TÉCNICO usando estrictamente esta estructura HTML (para 4 monedas distintas del listado anterior):\n\n"
+        "Genera un informe tipo DOSSIER TÉCNICO usando strictly esta estructura HTML (para 4 monedas distintas del listado anterior):\n\n"
         "🗺️ <b>BÚSQUEDA DE TESOROS: OPORTUNIDADES DE COMPRA</b>\n\n"
         "🪙 <b>[SÍMBOLO]/USDT</b> — $[Precio] ([Cambio]%)\n"
         "📊 <b>Estructura & EMAs (7/25/99):</b> [Análisis respecto a EMAs]\n"
         "📈 <b>Indicadores (RSI/MACD/Supertrend):</b> [Estado de RSI, MACD y SAR]\n"
         "📖 <b>Libro de Órdenes:</b> [Nivel de absorción y volumen]\n"
         "🎯 <b>Tesis de Compra:</b> [Justificación cuantitativa de oportunidad de entrada]\n"
-        "📍 <b>Zona de Entrada & Soporte:</b> $[Valor] | <b>Resistencia Techo:</b> $[Valor]\n\n"
+        "📍 <b>Zona de Entrada & Soporte:</b> $[Valor] \vert{} <b>Resistencia Techo:</b>$[Valor]\n\n"
         "REGLAS ESTRICTAS:\n"
         "1. No incluyas markdown como ```html o **. Utiliza ÚNICAMENTE las etiquetas <b> y <i> compatibles con Telegram.\n"
         "2. Analiza las 4 monedas seleccionadas repetidamente con el formato indicado arriba.\n"
@@ -260,6 +260,67 @@ def enviar_a_telegram(path_imagen, analisis_ia, monedas, total_analizadas):
     
     # 1. Enviar infografía con botones de Binance
     url_foto = f"{protocolo}://{dominio}/bot{token_limpio}/sendPhoto"
-    caption_foto = (
-        "🎯 <b>CAZADOR TÁCTICO - BÚSQUEDA DE TESOROS</b>\n"
-        f"🔍 <b>Universo anal
+    
+    linea1 = "🎯 <b>CAZADOR TÁCTICO - BÚSQUEDA DE TESOROS</b>\n"
+    linea2 = f"🔍 <b>Universo analizado:</b> {total_analizadas} altcoins (< $1.00 USD)\n"
+    linea3 = "🛠️ <b>Filtro Técnico:</b> EMAs (7/25/99), MACD, RSI, Parabolic SAR & Libro de Órdenes"
+    caption_foto = f"{linea1}{linea2}{linea3}"
+
+    inline_keyboard = []
+    fila_actual = []
+    for item in monedas:
+        sim = item['simbolo']
+        link_binance = item['url']
+        fila_actual.append({"text": f"🚀 Trade {sim}", "url": link_binance})
+        if len(fila_actual) == 2:
+            inline_keyboard.append(fila_actual)
+            fila_actual = []
+    if fila_actual:
+        inline_keyboard.append(fila_actual)
+
+    data_foto = {
+        "chat_id": chat_id_limpio,
+        "caption": caption_foto,
+        "parse_mode": "HTML",
+        "reply_markup": json.dumps({"inline_keyboard": inline_keyboard})
+    }
+    if topic_id_limpio:
+        try:
+            data_foto["message_thread_id"] = int(topic_id_limpio)
+        except ValueError:
+            data_foto["message_thread_id"] = topic_id_limpio
+
+    with open(path_imagen, 'rb') as photo_file:
+        requests.post(url_foto, data=data_foto, files={'photo': photo_file})
+
+    # 2. Enviar el Dossier Técnico Completo de Inteligencia
+    url_msg = f"{protocolo}://{dominio}/bot{token_limpio}/sendMessage"
+    analisis_limpio = limpiar_texto_telegram(analisis_ia)
+
+    data_msg = {
+        "chat_id": chat_id_limpio,
+        "text": analisis_limpio,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": True
+    }
+    if topic_id_limpio:
+        try:
+            data_msg["message_thread_id"] = int(topic_id_limpio)
+        except ValueError:
+            data_msg["message_thread_id"] = topic_id_limpio
+
+    requests.post(url_msg, json=data_msg)
+    print("¡Dossier técnico publicado exitosamente!")
+
+if __name__ == "__main__":
+    print("Iniciando Cazador Táctico (Análisis Técnico de Oportunidades)...")
+    client = configurar_ia()
+    
+    tickers = obtener_mercado_binance()
+    if tickers:
+        universo, total_analizadas = escanear_universo_tesoros(tickers)
+        analisis_ia, monedas_seleccionadas = analizar_tesoros_con_ia(client, universo)
+        path_imagen = generar_imagen_infografia(monedas_seleccionadas)
+        enviar_a_telegram(path_imagen, analisis_ia, monedas_seleccionadas, total_analizadas)
+    else:
+        print("No se pudieron obtener datos del mercado.")
