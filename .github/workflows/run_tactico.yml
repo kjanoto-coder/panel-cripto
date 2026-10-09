@@ -2,9 +2,8 @@ name: Cazador Táctico IA (Bajo Valor)
 
 on:
   schedule:
-    # Se ejecuta automáticamente cada 15 minutos
-    - cron: '*/15 * * * *'
-  workflow_dispatch: # Permite probarlo manualmente haciendo clic en GitHub cuando quieras
+    - cron: '*/15 * * * *' # Se ejecuta automáticamente cada 15 minutos
+  workflow_dispatch: # Permite ejecución manual desde la pestaña Actions
 
 jobs:
   run-tactical-hunter:
@@ -20,7 +19,8 @@ jobs:
 
       - name: Instalar dependencias
         run: |
-          pip install requests google-generativeai
+          python -m pip install --upgrade pip
+          pip install -r requirements_tactico.txt
 
       - name: Ejecutar Cazador Táctico
         env:
