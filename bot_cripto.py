@@ -19,6 +19,19 @@ def obtener_datos_binance():
         print(f"Error crítico al conectar con Binance: {e}")
         raise e
 
+def formatear_precio(precio):
+    """Ajusta la cantidad de decimales dinámicamente según el valor del token, igual que la interfaz de Binance."""
+    if precio is None:
+        return "$0.00"
+    elif precio >= 1.0:
+        return f"${precio:.2f}"      # Para monedas de más de $1 (ej. BTC, ETH)
+    elif precio >= 0.01:
+        return f"${precio:.4f}"      # Para tokens como BANK, TUT o PYR (ej. $0.0283)
+    elif precio >= 0.0001:
+        return f"${precio:.6f}"      # Para precios intermedios
+    else:
+        return f"${precio:.8f}"      # Para memecoins con muchos ceros (ej. NEIRO, LUNC)
+
 def generar_barra_progreso(cambio, es_acumulacion=False):
     if es_acumulacion:
         return "🟨🟨🟨⬜⬜"
@@ -49,7 +62,7 @@ def preparar_datos(tickers):
     # Top 7 Perdedoras
     perdedoras = sorted(usdt_pairs, key=lambda x: float(x['priceChangePercent']))[:7]
     
-    # Tus 5 favoritas actualizadas (QI, TUT, NEIRO, LUNC, BANK)
+    # Tus 5 favoritas (QI, TUT, NEIRO, LUNC, BANK)
     favoritas_simbolos = ['QI', 'TUT', 'NEIRO', 'LUNC', 'BANK']
     favoritas = []
     for sim in favoritas_simbolos:
@@ -75,6 +88,7 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
     for item in ganadoras:
         sim = item['symbol'].replace('USDT', '')
         precio = float(item['lastPrice'])
+        precio_str = formatear_precio(precio)
         cambio = float(item['priceChangePercent'])
         barra = generar_barra_progreso(cambio)
         unique_id = int(time.time() * 1000) + random.randint(1, 99999)
@@ -82,7 +96,7 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
         url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
         
         mensaje_1 += (
-            f"• **{sim}** | ${precio:.8f} | {barra} | +{cambio:.1f}%\n"
+            f"• **{sim}** | {precio_str} | {barra} | +{cambio:.1f}%\n"
             f"  └ [📊 Resumen IA]({url_ia}) | [🔶 Tradear]({url_trade})\n"
         )
 
@@ -90,6 +104,7 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
     for item in acumulacion:
         sim = item['symbol'].replace('USDT', '')
         precio = float(item['lastPrice'])
+        precio_str = formatear_precio(precio)
         cambio = float(item['priceChangePercent'])
         barra = generar_barra_progreso(cambio, es_acumulacion=True)
         unique_id = int(time.time() * 1000) + random.randint(1, 99999)
@@ -97,7 +112,7 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
         url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
         
         mensaje_1 += (
-            f"• **{sim}** | ${precio:.8f} | {barra} | {cambio:+.1f}%\n"
+            f"• **{sim}** | {precio_str} | {barra} | {cambio:+.1f}%\n"
             f"  └ [📊 Resumen IA]({url_ia}) | [🔶 Tradear]({url_trade})\n"
         )
 
@@ -109,6 +124,7 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
     for item in perdedoras:
         sim = item['symbol'].replace('USDT', '')
         precio = float(item['lastPrice'])
+        precio_str = formatear_precio(precio)
         cambio = float(item['priceChangePercent'])
         barra = generar_barra_progreso(cambio)
         unique_id = int(time.time() * 1000) + random.randint(1, 99999)
@@ -116,7 +132,7 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
         url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
         
         mensaje_2 += (
-            f"• **{sim}** | ${precio:.8f} | {barra} | {cambio:.1f}%\n"
+            f"• **{sim}** | {precio_str} | {barra} | {cambio:.1f}%\n"
             f"  └ [📊 Resumen IA]({url_ia}) | [🔶 Tradear]({url_trade})\n"
         )
 
@@ -124,6 +140,7 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
     for item in favoritas:
         sim = item['symbol'].replace('USDT', '')
         precio = float(item['lastPrice'])
+        precio_str = formatear_precio(precio)
         cambio = float(item['priceChangePercent'])
         barra = generar_barra_progreso(cambio)
         unique_id = int(time.time() * 1000) + random.randint(1, 99999)
@@ -131,7 +148,7 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
         url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
         
         mensaje_2 += (
-            f"• **{sim}** | ${precio:.8f} | {barra} | {cambio:+.1f}%\n"
+            f"• **{sim}** | {precio_str} | {barra} | {cambio:+.1f}%\n"
             f"  └ [📊 Resumen IA]({url_ia}) | [🔶 Tradear]({url_trade})\n"
         )
 
