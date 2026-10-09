@@ -76,19 +76,20 @@ def seleccionar_top5_oportunidades(tickers):
     resultado_grafico = sorted(resultado, key=lambda x: x['cambio'])
     return resultado_grafico, total_analizadas
 
-def analizar_top5_con_ia(client, monedas):
+def analizar_top5_con_ia(client, monedas, total_analizadas):
     lista_texto = []
     for m in monedas:
         lista_texto.append(
-            f"- {m['simbolo']} (Precio: {formatear_precio(m['precio'])}, Cambio: {m['cambio']:+.2f}%)"
+            f"- {m['simbolo']} (Precio: {formatear_precio(m['precio'])}, Cambio: {m['cambio']:+.2f}%, Vol USDT: ${m['volumen']:,.0f})"
         )
     
     prompt = (
-        "Actúa como un Trader Cuantitativo Senior.\n"
-        "Analiza estas 5 altcoins:\n"
+        f"Actúa como un Trader Cuantitativo Senior.\n"
+        f"Se escanearon un total de {total_analizadas} altcoins sub-$1 USD en Binance Spot.\n"
+        f"Tras filtrar por liquidez y rendimiento en 24h, estas son las 5 ganadoras seleccionadas:\n"
         f"{chr(10).join(lista_texto)}\n\n"
         "Devuelve la respuesta estrictamente en este formato de texto plano:\n"
-        "RESUMEN: [Una sola frase corta sobre el comportamiento global del mercado]\n"
+        f"RESUMEN: [Explica claramente por qué se seleccionaron estas 5 de entre las {total_analizadas} monedas analizadas, detallando la narrativa de mercado o el criterio cuantitativo que las destaca y por qué no son al azar]\n"
         f"1. {monedas[0]['simbolo']}: [Frase corta de análisis técnico]\n"
         f"2. {monedas[1]['simbolo']}: [Frase corta de análisis técnico]\n"
         f"3. {monedas[2]['simbolo']}: [Frase corta de análisis técnico]\n"
@@ -228,8 +229,8 @@ def enviar_a_telegram(path_imagen, texto_ia, monedas, total_analizadas):
     with open(path_imagen, 'rb') as photo_file:
         requests.post(url_foto, data=data_foto, files={'photo': photo_file})
 
-    # 2. Procesar el análisis de la IA
-    resumen_global = "Fuerte impulso alcista generalizado en altcoins de baja capitalización."
+    # 2. Extraer resumen cuantitativo y análisis por moneda
+    resumen_global = f"Selección optimizada de las mejores oportunidades tras filtrar {total_analizadas} activos por volumen y aceleración de momentum."
     match_resumen = re.search(r'RESUMEN:\s*(.*)', texto_ia)
     if match_resumen:
         resumen_global = match_resumen.group(1).strip()
@@ -248,7 +249,6 @@ def enviar_a_telegram(path_imagen, texto_ia, monedas, total_analizadas):
         sim = m['simbolo']
         frase = analisis_dict.get(sim, "Impulso alcista sostenido con volumen favorable.")
         
-        # Formato exacto con enlaces interactivos en HTML reales
         bloque = (
             f"• <b>{sim}</b> ({m['cambio']:+.1f}%) — {formatear_precio(m['precio'])} | 🟢🟢🟢🟢🟢\n"
             f"🧠 <i>{frase}</i>\n"
@@ -262,7 +262,7 @@ def enviar_a_telegram(path_imagen, texto_ia, monedas, total_analizadas):
         "\n\n".join(bloques_monedas)
     )
 
-    # 3. Enviar el desglose como mensaje de texto para garantizar que los enlaces funcionen
+    # 3. Enviar mensaje detallado con enlaces interactivos funcionales
     url_msg = f"{protocolo}://{dominio}/bot{token_limpio}/sendMessage"
     data_msg = {
         "chat_id": chat_id_limpio,
@@ -277,16 +277,16 @@ def enviar_a_telegram(path_imagen, texto_ia, monedas, total_analizadas):
             data_msg["message_thread_id"] = topic_id_limpio
 
     requests.post(url_msg, json=data_msg)
-    print("¡Publicación enviada con éxito y enlaces interactivos funcionales!")
+    print("¡Publicación enviada con éxito!")
 
 if __name__ == "__main__":
-    print("Iniciando Cazador Táctico (Top 5 con enlaces interactivos funcionales)...")
+    print("Iniciando Cazador Táctico...")
     client = configurar_ia()
     
     tickers = obtener_mercado_binance()
     if tickers:
         monedas_grafico, total_analizadas = seleccionar_top5_oportunidades(tickers)
-        texto_ia = analizar_top5_con_ia(client, monedas_grafico)
+        texto_ia = analizar_top5_con_ia(client, monedas_grafico, total_analizadas)
         path_imagen = generar_imagen_infografia(monedas_grafico)
         enviar_a_telegram(path_imagen, texto_ia, monedas_grafico, total_analizadas)
     else:
