@@ -1,6 +1,7 @@
 import os
 import re
 import time
+import json
 import requests
 from datetime import datetime
 from google import genai
@@ -18,9 +19,9 @@ def configurar_ia():
     return genai.Client(api_key=GEMINI_API_KEY)
 
 def obtener_mercado_binance():
-    protocolo = "https"
-    dominio = "data-api.binance.vision"
-    url = f"{protocolo}://{dominio}/api/v3/ticker/24hr"
+    p = "https"
+    h = "data-api.binance.vision"
+    url = f"{p}://{h}/api/v3/ticker/24hr"
     try:
         response = requests.get(url, timeout=15)
         response.raise_for_status()
@@ -59,12 +60,11 @@ def analizar_oportunidades_con_ia(client, mercado_resumen):
     
     Selecciona las **3 o 4 mejores opciones** con mayor impulso técnico y ordénalas según su proyección.
     
-    Genera un informe sintético para Telegram usando únicamente etiquetas HTML de Telegram (<b>texto</b>):
+    Genera un informe muy breve y directo (máximo 120 palabras) usando únicamente etiquetas <b>texto</b> para negritas:
     
-    - Resumen general del movimiento de hoy en 2 oraciones.
-    - Para cada moneda seleccionada, incluye:
-      • 🪙 <b>Símbolo:</b> [TICKER]
-      • 💲 <b>Precio:</b> [Precio]
+    - Resumen general del mercado en 2 líneas.
+    - Para cada moneda seleccionada:
+      • 🪙 <b>Símbolo:</b> [TICKER] | 💲 <b>Precio:</b> [Precio]
       • 🧠 <b>Veredicto IA:</b> [Breve justificación cuantitativa]
     """
     
@@ -95,25 +95,18 @@ def analizar_oportunidades_con_ia(client, mercado_resumen):
     raise Exception("No se pudo obtener respuesta de la IA.")
 
 def generar_imagen_infografia(seleccionados):
-    """
-    Genera una infografía estilo tarjeta gráfica (800x800) con las monedas
-    ordenadas de menor a mayor porcentaje de cambio 24h.
-    """
-    # Ordenar estrictamente de menor a mayor porcentaje para la gráfica
     items_ordenados = sorted(seleccionados, key=lambda x: x['cambio'])
     
     width, height = 800, 800
     img = Image.new('RGB', (width, height), color='#0B131E')
     draw = ImageDraw.Draw(img)
 
-    # Rejilla sutil de fondo
     grid_color = '#132235'
     for x in range(0, width, 40):
         draw.line([(x, 0), (x, height)], fill=grid_color, width=1)
     for y in range(0, height, 40):
         draw.line([(0, y), (width, y)], fill=grid_color, width=1)
 
-    # Fuentes integradas por defecto
     try:
         font_title = ImageFont.truetype("DejaVuSans-Bold.ttf", 38)
         font_sub = ImageFont.truetype("DejaVuSans.ttf", 20)
@@ -127,24 +120,19 @@ def generar_imagen_infografia(seleccionados):
         font_symbol = ImageFont.load_default()
         font_footer = ImageFont.load_default()
 
-    # Título principal y fecha
     draw.text((50, 45), "Narrativa de Caza", fill="#FFC82C", font=font_title)
     draw.text((50, 95), "ALTCOINS SUB-$1 USD", fill="#38BDF8", font=font_title)
     fecha_str = f"📅 {datetime.now().strftime('%Y-%m-%d')}"
     draw.text((50, 150), fecha_str, fill="#94A3B8", font=font_sub)
 
-    # Parámetros para dibujar las barras
     num_items = len(items_ordenados)
     chart_bottom = 680
     max_bar_height = 320
     
-    # Calcular ancho dinámico según cantidad de elementos
     available_width = width - 100
     bar_width = min(110, int(available_width / (num_items * 1.6)))
     spacing = int((available_width - (num_items * bar_width)) / (num_items + 1))
 
-    # Obtener valores máximos y mínimos para escalar barras
-    min_val = max(0.1, min([x['cambio'] for x in items_ordenados]))
     max_val = max([x['cambio'] for x in items_ordenados])
 
     x_start = 50 + spacing
@@ -152,7 +140,6 @@ def generar_imagen_infografia(seleccionados):
         pct = item['cambio']
         simbolo = item['simbolo']
 
-        # Normalizar altura de barra de menor a mayor
         rel_height = (pct / max_val) if max_val > 0 else 0.5
         bar_h = int(max_bar_height * max(0.2, rel_height))
         
@@ -160,31 +147,38 @@ def generar_imagen_infografia(seleccionados):
         x_left = x_start
         x_right = x_start + bar_width
 
-        # Dibujar barra con tono cian/verde
         draw.rounded_rectangle([x_left, y_top, x_right, chart_bottom], radius=10, fill="#10B981")
 
-        # Texto del Símbolo dentro de la barra
         draw.text((x_left + (bar_width // 2) - 18, chart_bottom - 45), simbolo[:4], fill="#0F172A", font=font_symbol)
 
-        # Badge circular superior para el porcentaje
         badge_y = y_top - 55
         badge_center = x_left + (bar_width // 2)
         draw.ellipse([badge_center - 32, badge_y - 32, badge_center + 32, badge_y + 32], fill="#0B131E", outline="#34D399", width=3)
         draw.text((badge_center - 18, badge_y - 10), simbolo[:2], fill="#FFFFFF", font=font_symbol)
 
-        # Porcentaje sobre el badge
         val_str = f"+{pct:.1f}%" if pct >= 0 else f"{pct:.1f}%"
         draw.text((badge_center - 30, badge_y - 65), val_str, fill="#34D399", font=font_val)
 
         x_start += bar_width + spacing
 
-    # Pie de foto informativo
     footer_text = "Cazador Táctico • Filtro por Volumen 24h & Momentum Spot"
     draw.text((50, 735), footer_text, fill="#64748B", font=font_footer)
 
     path_output = "infografia_tactica.png"
     img.save(path_output)
     return path_output
+
+def limpiar_texto_telegram(texto):
+    """Limpia el texto generado por la IA para evitar errores de parseo HTML en Telegram."""
+    texto = re.sub(r'```[a-zA-Z]*', '', texto)
+    texto = texto.replace('```', '').replace('**', '').replace('\\"', '"').replace('\\', '')
+    
+    # Mantener únicamente etiquetas <b> y </b> válidas
+    partes = re.split(r'(</?b>)', texto)
+    for i in range(len(partes)):
+        if partes[i] not in ['<b>', '</b>']:
+            partes[i] = partes[i].replace('<', '&lt;').replace('>', '&gt;')
+    return "".join(partes).strip()
 
 def enviar_a_telegram_con_foto_y_botones(path_imagen, analisis_ia, seleccionados):
     token_limpio = re.sub(r'[^a-zA-Z0-9:\-_]', '', TELEGRAM_BOT_TOKEN)
@@ -195,10 +189,16 @@ def enviar_a_telegram_con_foto_y_botones(path_imagen, analisis_ia, seleccionados
     dominio = "api.telegram.org"
     url = f"{protocolo}://{dominio}/bot{token_limpio}/sendPhoto"
 
-    # Construir botones interactivos (Inline Keyboard) debajo de la imagen
-    inline_keyboard = []
+    # Limpieza estricta del pie de foto
+    analisis_limpio = limpiar_texto_telegram(analisis_ia)
+    caption_texto = f"🎯 <b>CAZADOR TÁCTICO - RADAR DE OPORTUNIDADES</b>\n\n{analisis_limpio}"
     
-    # Botones individuales de acceso rápido a Binance para cada moneda destacada
+    # Control de longitud máxima para imágenes en Telegram (1024 caracteres)
+    if len(caption_texto) > 1000:
+        caption_texto = caption_texto[:995] + "..."
+
+    # Construcción de botones interactivos
+    inline_keyboard = []
     for item in seleccionados[:4]:
         sim = item['simbolo']
         link_binance = item['url']
@@ -206,47 +206,36 @@ def enviar_a_telegram_con_foto_y_botones(path_imagen, analisis_ia, seleccionados
             {"text": f"🚀 Trade {sim} en Binance", "url": link_binance}
         ])
 
-    payload_data = {
-        "chat_id": chat_id_limpio,
-        "caption": f"🎯 <b>CAZADOR TÁCTICO - ANÁLISIS DE MERCADO</b>\n\n{analisis_ia}",
-        "parse_mode": "HTML",
-        "reply_markup": re.sub(r'\s+', '', str(inline_keyboard).replace("'", '"'))
-    }
-
-    # Estructura del Inline Keyboard compatible con la API de Telegram
     keyboard_structure = {
         "inline_keyboard": inline_keyboard
     }
 
     data = {
         "chat_id": chat_id_limpio,
-        "caption": f"🎯 <b>CAZADOR TÁCTICO - RADAR DE OPORTUNIDADES</b>\n\n{analisis_ia}",
+        "caption": caption_texto,
         "parse_mode": "HTML",
-        "reply_markup": requests.compat.json.dumps(keyboard_structure)
+        "reply_markup": json.dumps(keyboard_structure)
     }
 
     if topic_id_limpio:
-        data["message_thread_id"] = int(topic_id_limpio)
+        try:
+            data["message_thread_id"] = int(topic_id_limpio)
+        except ValueError:
+            data["message_thread_id"] = topic_id_limpio
 
     with open(path_imagen, 'rb') as photo_file:
         files = {'photo': photo_file}
         response = requests.post(url, data=data, files=files)
 
     if response.status_code != 200:
-        print(f"Error al enviar imagen a Telegram ({response.text}). Reintentando en texto plano...")
-        # Fallback de seguridad en caso de error
-        url_text = f"{protocolo}://{dominio}/bot{token_limpio}/sendMessage"
-        data_text = {
-            "chat_id": chat_id_limpio,
-            "text": f"🎯 <b>CAZADOR TÁCTICO</b>\n\n{analisis_ia}",
-            "parse_mode": "HTML",
-            "disable_web_page_preview": True
-        }
-        if topic_id_limpio:
-            data_text["message_thread_id"] = int(topic_id_limpio)
-        requests.post(url_text, json=data_text)
-    else:
-        print("¡Infografía y botones interactivos publicados con éxito en Telegram!")
+        print(f"Aviso en envío de foto ({response.text}). Reintentando con formato plano...")
+        data.pop("parse_mode", None)
+        data["caption"] = caption_texto.replace("<b>", "").replace("</b>", "").replace("&lt;", "<").replace("&gt;", ">")
+        with open(path_imagen, 'rb') as photo_file:
+            files = {'photo': photo_file}
+            requests.post(url, data=data, files=files)
+            
+    print("¡Infografía y botones interactivos publicados con éxito en Telegram!")
 
 if __name__ == "__main__":
     print("Iniciando Cazador Táctico con Infografía Dinámica...")
@@ -256,7 +245,6 @@ if __name__ == "__main__":
     if tickers:
         candidatos = filtrar_candidatos_bajo_valor(tickers)
         
-        # Tomar el top para el análisis y la imagen
         datos_formateados = []
         resumen_texto_ia = []
         
@@ -279,16 +267,10 @@ if __name__ == "__main__":
                 f"Moneda: {sim} | Precio: {formatear_precio(precio)} | Cambio 24h: {cambio:+.2f}% | Vol USDT: {volumen:,.0f}"
             )
         
-        # 1. Obtener análisis resumido con la IA
         analisis_ia = analizar_oportunidades_con_ia(client, "\n".join(resumen_texto_ia[:15]))
-        
-        # 2. Seleccionar de 3 a 5 monedas destacadas
         monedas_destacadas = sorted(datos_formateados, key=lambda x: x['volumen'], reverse=True)[:4]
         
-        # 3. Generar la imagen infográfica (barras ordenadas de menor a mayor)
         path_imagen = generar_imagen_infografia(monedas_destacadas)
-        
-        # 4. Enviar a Telegram con la foto y los botones interactivos
         enviar_a_telegram_con_foto_y_botones(path_imagen, analisis_ia, monedas_destacadas)
     else:
         print("No se pudieron obtener datos del mercado.")
