@@ -9,7 +9,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 def configurar_ia():
     if not GEMINI_API_KEY:
         raise ValueError("Falta la clave GEMINI_API_KEY en los secretos de GitHub.")
-    genai.configure(api_key=GEMINI_API_KEY)
+   return genai.GenerativeModel('gemini-1.5-flash')
     return genai.GenerativeModel('gemini-2.5-flash')
 
 def obtener_mercado_binance():
