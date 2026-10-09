@@ -5,14 +5,14 @@ import requests
 from google import genai
 from google.genai import errors
 
-# Captura y sanitización de variables de entorno
+# Captura de variables de entorno
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("CHAT_ID", "")
 TELEGRAM_TOPIC_ID = os.getenv("TOPIC_ID_TACTICO", "")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 def configurar_ia():
-    api_key_limpia = re.sub(r'[\[\]\(\)\s]', '', GEMINI_API_KEY)
+    api_key_limpia = re.sub(r'[^a-zA-Z0-9_\-]', '', GEMINI_API_KEY)
     if not api_key_limpia:
         raise ValueError("Falta la clave GEMINI_API_KEY en los secretos de GitHub.")
     return genai.Client(api_key=api_key_limpia)
@@ -63,7 +63,7 @@ def analizar_oportunidades_con_ia(client, mercado_resumen):
     
     {mercado_resumen}
     
-    Tu objetivo es seleccionar estrictamente las **2 o 3 mejores opciones** que muestren un patrón claro de acumulación o rebote inminente en el corto plazo.
+    Tu objetivo es seleccionar strictly las **2 o 3 mejores opciones** que muestren un patrón claro de acumulación o rebote inminente en el corto plazo.
     
     Estructura la alerta para Telegram usando ÚNICAMENTE formato HTML de Telegram (utiliza <b>texto</b> para negritas y <a href="URL">Texto</a> para enlaces):
     
@@ -100,14 +100,15 @@ def analizar_oportunidades_con_ia(client, mercado_resumen):
     raise Exception("Servidores de Google ocupados tras 5 reintentos. Se ejecutará en el siguiente ciclo.")
 
 def enviar_a_telegram(mensaje, total_analizadas):
-    # Sanitización estricta del token de Telegram para eliminar cualquier corchete o formato
-    token_limpio = re.sub(r'[\[\]\(\)\s]', '', TELEGRAM_BOT_TOKEN)
-    chat_id_limpio = re.sub(r'[\[\]\(\)\s]', '', TELEGRAM_CHAT_ID)
-    topic_id_limpio = re.sub(r'[\[\]\(\)\s]', '', TELEGRAM_TOPIC_ID)
+    # Sanitización de variables de entorno
+    token_limpio = re.sub(r'[^a-zA-Z0-9:\-_]', '', TELEGRAM_BOT_TOKEN)
+    chat_id_limpio = re.sub(r'[^0-9\-]', '', TELEGRAM_CHAT_ID)
+    topic_id_limpio = re.sub(r'[^0-9]', '', TELEGRAM_TOPIC_ID)
     
-    url = f"[https://api.telegram.org/bot](https://api.telegram.org/bot){token_limpio}/sendMessage"
+    # Construcción de la URL limpia sin corchetes ni Markdown
+    base_url = "[https://api.telegram.org/bot](https://api.telegram.org/bot)"
+    url = f"{base_url}{token_limpio}/sendMessage"
     
-    # Limpieza de marcado
     mensaje_limpio = (
         mensaje.replace("```html", "")
         .replace("```", "")
@@ -132,10 +133,7 @@ def enviar_a_telegram(mensaje, total_analizadas):
     }
     
     if topic_id_limpio:
-        try:
-            payload["message_thread_id"] = int(topic_id_limpio)
-        except ValueError:
-            payload["message_thread_id"] = topic_id_limpio
+        payload["message_thread_id"] = int(topic_id_limpio)
             
     response = requests.post(url, json=payload)
     
