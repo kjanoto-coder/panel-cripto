@@ -6,6 +6,7 @@ from google.genai import errors
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("CHAT_ID")
+TELEGRAM_TOPIC_ID = os.getenv("TOPIC_ID_TACTICO")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 def configurar_ia():
@@ -67,7 +68,7 @@ def analizar_oportunidades_con_ia(client, mercado_resumen):
     - 💲 <b>Precio:</b> [Precio actual]
     - 📈 <b>Cambio 24h y Volumen:</b> [Variación % y Volumen USDT]
     - 🧠 <b>Veredicto de la IA:</b> [Explicación técnica del porqué destaca hoy]
-    - 🚀 <b>Trade Directo:</b> <a href="[URL_BINANCE]">Abrir {simbolo}/USDT en Binance</a>
+    - 🚀 <b>Trade Directo:</b> <a href="[URL_BINANCE]">Abrir en Binance</a>
     
     REGLAS ESTRICTAS:
     1. Incluye siempre la línea de "Trade Directo" con el enlace exacto a Binance proporcionado en la lista para cada moneda elegida.
@@ -111,10 +112,18 @@ def enviar_a_telegram(mensaje, total_analizadas):
         "parse_mode": "HTML",
         "disable_web_page_preview": True
     }
+    
+    # Enviar al tema/subcanal correspondiente de Telegram si está configurado
+    if TELEGRAM_TOPIC_ID:
+        try:
+            payload["message_thread_id"] = int(TELEGRAM_TOPIC_ID)
+        except ValueError:
+            payload["message_thread_id"] = TELEGRAM_TOPIC_ID
+            
     response = requests.post(url, json=payload)
     if response.status_code != 200:
         raise Exception(f"Error al enviar a Telegram: {response.text}")
-    print("¡Alerta de caza enviada con éxito a Telegram!")
+    print("¡Alerta de caza enviada con éxito al tema de Telegram!")
 
 if __name__ == "__main__":
     print("Iniciando Cazador Táctico de Bajo Valor...")
