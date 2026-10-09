@@ -61,7 +61,7 @@ def analizar_oportunidades_con_ia(client, mercado_resumen):
     
     {mercado_resumen}
     
-    Tu objetivo es seleccionar estrictamente las **2 o 3 mejores opciones** que muestren un patrón claro de acumulación o rebote inminente en el corto plazo.
+    Tu objetivo es seleccionar strictly las **2 o 3 mejores opciones** que muestren un patrón claro de acumulación o rebote inminente en el corto plazo.
     
     Estructura la alerta para Telegram usando ÚNICAMENTE formato HTML de Telegram (utiliza <b>texto</b> para negritas y <a href="URL">Texto</a> para enlaces):
     
@@ -77,11 +77,32 @@ def analizar_oportunidades_con_ia(client, mercado_resumen):
     3. No utilices asteriscos (**) para negritas. Usa únicamente etiquetas HTML <b>...</b>.
     """
     
-    # Modelo oficial indicado por la API de Google
-    modelos = ['gemini-2.8-flash', 'gemini-2.5-flash']
-    
-    for modelo in modelos:
-        print(f"Probando modelo IA: {modelo}...")
+    # 1. Detección automática de modelos activos en tu cuenta de Google
+    candidatos_dinamicos = []
+    try:
+        print("Buscando modelos Gemini disponibles en tiempo real...")
+        for m in client.models.list():
+            nombre = getattr(m, 'name', str(m)).replace('models/', '')
+            if 'gemini' in nombre and not any(x in nombre for x in ['embed', 'audio', 'tts', 'image', 'realtime']):
+                candidatos_dinamicos.append(nombre)
+        print(f"Modelos detectados automáticamente: {candidatos_dinamicos}")
+    except Exception as e:
+        print(f"No se pudo consultar la lista dinámica ({e}). Usando lista de respaldo.")
+
+    # 2. Lista de respaldo estática con múltiples alternativas
+    fallback_static = [
+        'gemini-2.0-flash',
+        'gemini-1.5-flash',
+        'gemini-flash-latest',
+        'gemini-2.5-flash',
+        'gemini-1.5-pro'
+    ]
+
+    # Combinar modelos detectados y estáticos evitando duplicados
+    modelos_a_probar = candidatos_dinamicos + [m for m in fallback_static if m not in candidatos_dinamicos]
+
+    for modelo in modelos_a_probar:
+        print(f"Intentando generar análisis con modelo: '{modelo}'...")
         for intento in range(1, 3):
             try:
                 response = client.models.generate_content(
@@ -89,13 +110,13 @@ def analizar_oportunidades_con_ia(client, mercado_resumen):
                     contents=prompt,
                 )
                 if response and response.text:
-                    print(f"¡Análisis de mercado generado con éxito usando {modelo}!")
+                    print(f"¡ÉXITO! Análisis generado correctamente con el modelo '{modelo}'.")
                     return response.text
             except Exception as e:
-                print(f"Aviso con modelo {modelo} (Intento {intento}/2): {e}")
-                time.sleep(5)
-            
-    raise Exception("No se pudo obtener respuesta de la IA. Verifica que tu GEMINI_API_KEY en GitHub Secrets sea válida y esté activa.")
+                print(f"  -> Aviso con '{modelo}' (Intento {intento}/2): {e}")
+                time.sleep(3)
+
+    raise Exception("Ningún modelo de Gemini respondió con éxito. Revisa tu GEMINI_API_KEY en GitHub Secrets.")
 
 def enviar_a_telegram(mensaje, total_analizadas):
     token_limpio = re.sub(r'[^a-zA-Z0-9:\-_]', '', TELEGRAM_BOT_TOKEN)
