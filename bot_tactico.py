@@ -60,7 +60,6 @@ def seleccionar_top5_oportunidades(tickers):
         cambio = float(item['priceChangePercent'])
         volumen = float(item['quoteVolume'])
         
-        # Enlaces específicos y limpios
         binance_url = f"https://www.binance.com/es/trade/{sim}_USDT?type=spot"
         netlify_url = f"https://gregarious-frangollo-0346c5.netlify.app/?coin={sim}&price={precio}&change={cambio}"
         
@@ -88,7 +87,7 @@ def analizar_top5_con_ia(client, monedas):
         "Actúa como un Trader Cuantitativo Senior.\n"
         "A continuación tienes los datos exactos de las 5 altcoins seleccionadas:\n\n"
         f"{chr(10).join(lista_texto)}\n\n"
-        "Genera una respuesta utilizando ESTRICTAMENTE este formato HTML (sin markdown como ``` o **):\n\n"
+        "Genera una respuesta utilizando ESTRICTAMENTE este formato HTML (sin usar etiquetas <a> escritas, solo texto plano en la última línea):\n\n"
         "<b>RESUMEN:</b> [1 sola frase corta sobre el comportamiento global del mercado]\n\n"
     )
     
@@ -96,10 +95,10 @@ def analizar_top5_con_ia(client, monedas):
         prompt += (
             f"• <b>{m['simbolo']}</b> ({m['cambio']:+.1f}%) — {formatear_precio(m['precio'])} | 🟢🟢🟢🟢🟢\n"
             f"🧠 <i>[1 frase corta de análisis técnico fundamentando el movimiento de {m['simbolo']}]</i>\n"
-            f"└ 📊 <a href=\"{m['netlify_url']}\">Resumen IA</a> | 🔶 <a href=\"{m['binance_url']}\">Tradear</a>\n\n"
+            f"└ 📊 [RESUMEN_IA_{m['simbolo']}] | 🔶 [TRADEAR_{m['simbolo']}]\n\n"
         )
 
-    prompt += "REGLA IMPORTANTE: Respeta exactamente las etiquetas HTML proporcionadas y cierra siempre los bloques <i>."
+    prompt += "REGLA: Mantén exactamente las marcas [RESUMEN_IA_...] y [TRADEAR_...]."
 
     candidatos_dinamicos = []
     try:
@@ -121,11 +120,7 @@ def analizar_top5_con_ia(client, monedas):
                     contents=prompt,
                 )
                 if response and response.text:
-                    texto_ia = response.text
-                    # Asegurar que las URLs se inyecten de forma robusta por si la IA altera los enlaces
-                    for m in monedas:
-                        texto_ia = texto_ia.replace(f"Resumen IA para {m['simbolo']}", "Resumen IA")
-                    return texto_ia
+                    return response.text
             except Exception:
                 time.sleep(2)
 
@@ -213,14 +208,19 @@ def generar_imagen_infografia(items_ordenados):
     img.save(path_output)
     return path_output
 
-def limpiar_y_reparar_html(texto, monedas):
-    texto = re.sub(r'```[a-zA-Z]*', '', texto)
+def ensamblar_texto_final(texto_ia, monedas):
+    texto = re.sub(r'```[a-zA-Z]*', '', texto_ia)
     texto = texto.replace('```', '').replace('**', '').replace('\\"', '"').replace('\\', '')
     
-    # Asegurar URLs exactas de Resumen IA y Tradear en cada moneda
+    # Reemplazar de forma limpia y segura las marcas por etiquetas HTML de enlaces reales
     for m in monedas:
-        texto = texto.replace("Resumen IA", f'<a href="{m["netlify_url"]}">Resumen IA</a>')
-        texto = texto.replace("Tradear", f'<a href="{m["binance_url"]}">Tradear</a>')
+        tag_ia = f"[RESUMEN_IA_{m['simbolo']}]"
+        enlace_ia = f'<a href="{m["netlify_url"]}">Resumen IA</a>'
+        texto = texto.replace(tag_ia, enlace_ia)
+        
+        tag_trade = f"[TRADEAR_{m['simbolo']}]"
+        enlace_trade = f'<a href="{m["binance_url"]}">Tradear</a>'
+        texto = texto.replace(tag_trade, enlace_trade)
 
     lineas = texto.split('\n')
     lineas_reparadas = []
@@ -240,7 +240,7 @@ def enviar_a_telegram(path_imagen, analisis_ia, monedas, total_analizadas):
     dominio = "api.telegram.org"
     url_foto = f"{protocolo}://{dominio}/bot{token_limpio}/sendPhoto"
     
-    analisis_limpio = limpiar_y_reparar_html(analisis_ia, monedas)
+    analisis_limpio = ensamblar_texto_final(analisis_ia, monedas)
     
     caption_completo = (
         "🎯 <b>CAZADOR TÁCTICO</b>\n"
@@ -271,10 +271,10 @@ def enviar_a_telegram(path_imagen, analisis_ia, monedas, total_analizadas):
             with open(path_imagen, 'rb') as photo_file2:
                 requests.post(url_foto, data=data_foto, files={'photo': photo_file2})
 
-    print("¡Publicación enviada exitosamente a Telegram con enlaces funcionales!")
+    print("¡Publicación enviada perfectamente a Telegram!")
 
 if __name__ == "__main__":
-    print("Iniciando Cazador Táctico (Top 5 Definitivo)...")
+    print("Iniciando Cazador Táctico (Top 5 con enlaces seguros)...")
     client = configurar_ia()
     
     tickers = obtener_mercado_binance()
