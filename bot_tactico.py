@@ -60,7 +60,7 @@ def seleccionar_top5_oportunidades(tickers):
         cambio = float(item['priceChangePercent'])
         volumen = float(item['quoteVolume'])
         
-        binance_url = f"https://www.binance.com/es/trade/{sim}_USDT?type=spot"
+      binance_url = f"https://www.binance.com/es/trade/{sim}_USDT?type=spot"
         netlify_url = f"https://gregarious-frangollo-0346c5.netlify.app/?coin={sim}&price={precio}&change={cambio}"
         
         resultado.append({
