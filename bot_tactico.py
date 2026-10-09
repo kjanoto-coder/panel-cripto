@@ -16,7 +16,9 @@ def configurar_ia():
     return genai.Client(api_key=GEMINI_API_KEY)
 
 def obtener_mercado_binance():
-    url = "https://data-api.binance.vision/api/v3/ticker/24hr"
+    p = "https"
+    h = "data-api.binance.vision"
+    url = f"{p}://{h}/api/v3/ticker/24hr"
     try:
         response = requests.get(url, timeout=15)
         response.raise_for_status()
@@ -61,7 +63,7 @@ def analizar_oportunidades_con_ia(client, mercado_resumen):
     
     {mercado_resumen}
     
-    Tu objetivo es seleccionar strictly las **2 o 3 mejores opciones** que muestren un patrón claro de acumulación o rebote inminente en el corto plazo.
+    Tu objetivo es seleccionar estrictamente las **2 o 3 mejores opciones** que muestren un patrón claro de acumulación o rebote inminente en el corto plazo.
     
     Estructura la alerta para Telegram usando ÚNICAMENTE formato HTML de Telegram (utiliza <b>texto</b> para negritas y <a href="URL">Texto</a> para enlaces):
     
@@ -77,7 +79,6 @@ def analizar_oportunidades_con_ia(client, mercado_resumen):
     3. No utilices asteriscos (**) para negritas. Usa únicamente etiquetas HTML <b>...</b>.
     """
     
-    # 1. Detección automática de modelos activos en tu cuenta de Google
     candidatos_dinamicos = []
     try:
         print("Buscando modelos Gemini disponibles en tiempo real...")
@@ -89,16 +90,13 @@ def analizar_oportunidades_con_ia(client, mercado_resumen):
     except Exception as e:
         print(f"No se pudo consultar la lista dinámica ({e}). Usando lista de respaldo.")
 
-    # 2. Lista de respaldo estática con múltiples alternativas
     fallback_static = [
+        'gemini-flash-lite-latest',
         'gemini-2.0-flash',
         'gemini-1.5-flash',
-        'gemini-flash-latest',
-        'gemini-2.5-flash',
-        'gemini-1.5-pro'
+        'gemini-flash-latest'
     ]
 
-    # Combinar modelos detectados y estáticos evitando duplicados
     modelos_a_probar = candidatos_dinamicos + [m for m in fallback_static if m not in candidatos_dinamicos]
 
     for modelo in modelos_a_probar:
@@ -123,7 +121,10 @@ def enviar_a_telegram(mensaje, total_analizadas):
     chat_id_limpio = re.sub(r'[^0-9\-]', '', TELEGRAM_CHAT_ID)
     topic_id_limpio = re.sub(r'[^0-9]', '', TELEGRAM_TOPIC_ID)
     
-    url = f"[https://api.telegram.org/bot](https://api.telegram.org/bot){token_limpio}/sendMessage"
+    # Construcción anti-Markdown para evitar auto-enlaces del editor de GitHub
+    protocolo = "https"
+    dominio = "api.telegram.org"
+    url = f"{protocolo}://{dominio}/bot{token_limpio}/sendMessage"
     
     mensaje_limpio = (
         mensaje.replace("```html", "")
