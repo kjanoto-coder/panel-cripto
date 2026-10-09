@@ -59,7 +59,7 @@ def analizar_oportunidades_con_ia(client, mercado_resumen):
     
     {mercado_resumen}
     
-    Tu objetivo es actuar como un **cazador de oportunidades ocultas**. Analiza estos datos, descarta el ruido y selecciona strictly las **2 o 3 mejores opciones** que muestren un patrón claro de acumulación, presión compradora o rebote inminente en el corto plazo.
+    Tu objetivo es actuar como un **cazador de oportunidades ocultas**. Analiza estos datos, descarta el ruido y selecciona estrictamente las **2 o 3 mejores opciones** que muestren un patrón claro de acumulación, presión compradora o rebote inminente en el corto plazo.
     
     Estructura la alerta para Telegram de manera limpia y profesional usando formato HTML de Telegram (usa <b>texto</b> para negritas):
     - 🪙 <b>Símbolo:</b>
@@ -71,22 +71,32 @@ def analizar_oportunidades_con_ia(client, mercado_resumen):
     Si ninguna muestra una configuración seria en este ciclo, indícalo de forma objetiva para proteger el capital.
     """
     
-    # Sistema de reintentos automáticos para evitar errores 503 por alta demanda
-    for intento in range(1, 4):
-        try:
-            response = client.models.generate_content(
-                model='gemini-flash-latest',
-                contents=prompt,
-            )
-            return response.text
-        except errors.APIError as e:
-            print(f"Aviso de servidor Google ({e.code}). Reintentando en 5 segundos (Intento {intento}/3)...")
-            time.sleep(5)
-        except Exception as e:
-            print(f"Error inesperado al consultar la IA: {e}")
-            time.sleep(5)
+    # Lista priorizada de modelos para garantizar que siempre haya un servidor disponible
+    modelos_disponibles = [
+        'gemini-2.5-flash',
+        'gemini-1.5-flash',
+        'gemini-2.0-flash',
+        'gemini-flash-latest'
+    ]
+    
+    for modelo in modelos_disponibles:
+        for intento in range(1, 3):
+            try:
+                print(f"Probando análisis con modelo {modelo} (Intento {intento})...")
+                response = client.models.generate_content(
+                    model=modelo,
+                    contents=prompt,
+                )
+                print(f"¡Análisis generado con éxito usando {modelo}!")
+                return response.text
+            except errors.APIError as e:
+                print(f"Aviso en {modelo} ({e.code}): {e.message}. Probando alternativo...")
+                time.sleep(3)
+            except Exception as e:
+                print(f"Error inesperado en {modelo}: {e}. Probando alternativo...")
+                time.sleep(3)
             
-    raise Exception("Servidores de Google saturados tras varios intentos. Se reintentará en el próximo ciclo.")
+    raise Exception("Todos los modelos de Google están saturados en este momento. Se reintentará en el próximo ciclo.")
 
 def enviar_a_telegram(mensaje):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
