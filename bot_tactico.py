@@ -59,14 +59,18 @@ def seleccionar_top5_oportunidades(tickers):
         precio = float(item['lastPrice'])
         cambio = float(item['priceChangePercent'])
         volumen = float(item['quoteVolume'])
+        
+        # Enlaces específicos y limpios
         binance_url = f"https://www.binance.com/es/trade/{sim}_USDT?type=spot"
+        netlify_url = f"https://gregarious-frangollo-0346c5.netlify.app/?coin={sim}&price={precio}&change={cambio}"
         
         resultado.append({
             'simbolo': sim,
             'precio': precio,
             'cambio': cambio,
             'volumen': volumen,
-            'url': binance_url
+            'binance_url': binance_url,
+            'netlify_url': netlify_url
         })
     
     # Ordenar de menor a mayor % para el gráfico infográfico de barras
@@ -77,7 +81,7 @@ def analizar_top5_con_ia(client, monedas):
     lista_texto = []
     for m in monedas:
         lista_texto.append(
-            f"• Símbolo: {m['simbolo']} | Precio: {formatear_precio(m['precio'])} | Cambio: {m['cambio']:+.2f}% | Vol USDT: ${m['volumen']:,.0f} | URL: {m['url']}"
+            f"• Símbolo: {m['simbolo']} | Precio: {formatear_precio(m['precio'])} | Cambio: {m['cambio']:+.2f}%"
         )
     
     prompt = (
@@ -92,10 +96,10 @@ def analizar_top5_con_ia(client, monedas):
         prompt += (
             f"• <b>{m['simbolo']}</b> ({m['cambio']:+.1f}%) — {formatear_precio(m['precio'])} | 🟢🟢🟢🟢🟢\n"
             f"🧠 <i>[1 frase corta de análisis técnico fundamentando el movimiento de {m['simbolo']}]</i>\n"
-            f"└ 📊 <a href=\"{m['url']}\">Resumen IA</a> | 🔶 <a href=\"{m['url']}\">Tradear</a>\n\n"
+            f"└ 📊 <a href=\"{m['netlify_url']}\">Resumen IA</a> | 🔶 <a href=\"{m['binance_url']}\">Tradear</a>\n\n"
         )
 
-    prompt += "REGLA IMPORTANTE: Cierra siempre todas las etiquetas HTML abiertas como <i> con su respectivo </i>."
+    prompt += "REGLA IMPORTANTE: Respeta exactamente las etiquetas HTML proporcionadas y cierra siempre los bloques <i>."
 
     candidatos_dinamicos = []
     try:
@@ -117,7 +121,11 @@ def analizar_top5_con_ia(client, monedas):
                     contents=prompt,
                 )
                 if response and response.text:
-                    return response.text
+                    texto_ia = response.text
+                    # Asegurar que las URLs se inyecten de forma robusta por si la IA altera los enlaces
+                    for m in monedas:
+                        texto_ia = texto_ia.replace(f"Resumen IA para {m['simbolo']}", "Resumen IA")
+                    return texto_ia
             except Exception:
                 time.sleep(2)
 
@@ -205,23 +213,25 @@ def generar_imagen_infografia(items_ordenados):
     img.save(path_output)
     return path_output
 
-def limpiar_y_reparar_html(texto):
+def limpiar_y_reparar_html(texto, monedas):
     texto = re.sub(r'```[a-zA-Z]*', '', texto)
     texto = texto.replace('```', '').replace('**', '').replace('\\"', '"').replace('\\', '')
     
-    # Asegurar que si hay un <i> abierto sin cerrar al final de la línea, se le agregue </i>
+    # Asegurar URLs exactas de Resumen IA y Tradear en cada moneda
+    for m in monedas:
+        texto = texto.replace("Resumen IA", f'<a href="{m["netlify_url"]}">Resumen IA</a>')
+        texto = texto.replace("Tradear", f'<a href="{m["binance_url"]}">Tradear</a>')
+
     lineas = texto.split('\n')
     lineas_reparadas = []
     for l in lineas:
         if l.count('<i>') > l.count('</i>'):
             l += '</i>'
-        if l.count('<b>') > l.count('</b>'):
-            l += '</b>'
         lineas_reparadas.append(l)
     
     return "\n".join(lineas_reparadas).strip()
 
-def enviar_a_telegram(path_imagen, analisis_ia, total_analizadas):
+def enviar_a_telegram(path_imagen, analisis_ia, monedas, total_analizadas):
     token_limpio = re.sub(r'[^a-zA-Z0-9:\-_]', '', TELEGRAM_BOT_TOKEN)
     chat_id_limpio = re.sub(r'[^0-9\-]', '', TELEGRAM_CHAT_ID)
     topic_id_limpio = re.sub(r'[^0-9]', '', TELEGRAM_TOPIC_ID)
@@ -230,7 +240,7 @@ def enviar_a_telegram(path_imagen, analisis_ia, total_analizadas):
     dominio = "api.telegram.org"
     url_foto = f"{protocolo}://{dominio}/bot{token_limpio}/sendPhoto"
     
-    analisis_limpio = limpiar_y_reparar_html(analisis_ia)
+    analisis_limpio = limpiar_y_reparar_html(analisis_ia, monedas)
     
     caption_completo = (
         "🎯 <b>CAZADOR TÁCTICO</b>\n"
@@ -256,16 +266,15 @@ def enviar_a_telegram(path_imagen, analisis_ia, total_analizadas):
         res = requests.post(url_foto, data=data_foto, files={'photo': photo_file})
         if res.status_code != 200:
             print(f"Error en envío con HTML: {res.text}")
-            # Intento de emergencia sin HTML si volviera a fallar
             data_foto.pop("parse_mode", None)
             data_foto["caption"] = re.sub(r'<[^>]+>', '', caption_completo)
             with open(path_imagen, 'rb') as photo_file2:
                 requests.post(url_foto, data=data_foto, files={'photo': photo_file2})
 
-    print("¡Publicación enviada exitosamente a Telegram con HTML reparado!")
+    print("¡Publicación enviada exitosamente a Telegram con enlaces funcionales!")
 
 if __name__ == "__main__":
-    print("Iniciando Cazador Táctico (Top 5 con HTML reparado)...")
+    print("Iniciando Cazador Táctico (Top 5 Definitivo)...")
     client = configurar_ia()
     
     tickers = obtener_mercado_binance()
@@ -273,6 +282,6 @@ if __name__ == "__main__":
         monedas_grafico, total_analizadas = seleccionar_top5_oportunidades(tickers)
         analisis_ia = analizar_top5_con_ia(client, monedas_grafico)
         path_imagen = generar_imagen_infografia(monedas_grafico)
-        enviar_a_telegram(path_imagen, analisis_ia, total_analizadas)
+        enviar_a_telegram(path_imagen, analisis_ia, monedas_grafico, total_analizadas)
     else:
         print("No se pudieron obtener datos del mercado.")
