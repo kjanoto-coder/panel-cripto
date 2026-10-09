@@ -10,8 +10,8 @@ def configurar_ia():
     if not GEMINI_API_KEY:
         raise ValueError("Falta la clave GEMINI_API_KEY en los secretos de GitHub.")
     genai.configure(api_key=GEMINI_API_KEY)
-    # Usamos Gemini 1.5 Flash para un análisis rápido, inteligente y económico
-    return genai.GenerativeModel('gemini-1.5-flash')
+    # Actualizado al modelo estándar actual para evitar errores 404
+    return genai.GenerativeModel('gemini-2.0-flash')
 
 def obtener_mercado_binance():
     url = "https://data-api.binance.vision/api/v3/ticker/24hr"
@@ -43,12 +43,12 @@ def filtrar_candidatos_bajo_valor(tickers):
         if t['symbol'].endswith('USDT') and not any(x in t['symbol'] for x in ['UP', 'DOWN', 'BULL', 'BEAR'])
     ]
     
-    # 2. FILTRO ESTRICTO: Únicamente monedas con precio menor a $1.00 USD (Fuera BTC, ETH, SOL, etc.)
+    # 2. FILTRO ESTRICTO: Únicamente monedas con precio menor a $1.00 USD
     tokens_bajo_valor = [
         t for t in usdt_pairs if float(t['lastPrice']) < 1.0
     ]
     
-    # 3. Ordenar por volumen de negociación (las que más capital mueven en el mercado) y tomar el Top 25 dinámico
+    # 3. Ordenar por volumen y tomar el Top 25 dinámico
     top_volumen = sorted(tokens_bajo_valor, key=lambda x: float(x['quoteVolume']), reverse=True)[:25]
     return top_volumen
 
@@ -62,8 +62,8 @@ def analizar_oportunidades_con_ia(model, mercado_resumen):
     Tu objetivo es actuar como un **cazador de oportunidades ocultas**. Analiza estos datos, descarta el ruido y selecciona estrictamente las **2 o 3 mejores opciones** que muestren un patrón claro de acumulación, presión compradora o rebote inminente en el corto plazo.
     
     Estructura la alerta para Telegram de manera limpia y profesional en español:
-    - 🪙 **Símbolo:** (ej. QI, TUT, etc.)
-    - 💲 **Precio:** (formateado correctamente)
+    - 🪙 **Símbolo:**
+    - 💲 **Precio:**
     - 📈 **Cambio 24h y Volumen:** 
     - 🧠 **Veredicto de la IA:** Por qué esta moneda destaca hoy por acumulación o flujo de dinero para cazar una subida rápida en spot.
     
