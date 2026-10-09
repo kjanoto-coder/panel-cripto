@@ -1,6 +1,6 @@
 import os
 import requests
-import google.generativeai as genai
+from google import genai
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("CHAT_ID")
@@ -9,9 +9,8 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 def configurar_ia():
     if not GEMINI_API_KEY:
         raise ValueError("Falta la clave GEMINI_API_KEY en los secretos de GitHub.")
-    genai.configure(api_key=GEMINI_API_KEY)
-    # Usamos la variante con sufijo -latest para garantizar compatibilidad con la librería v1beta
-    return genai.GenerativeModel('gemini-1.5-flash-latest')
+    # Inicializamos el cliente oficial con la nueva librería google-genai
+    return genai.Client(api_key=GEMINI_API_KEY)
 
 def obtener_mercado_binance():
     url = "https://data-api.binance.vision/api/v3/ticker/24hr"
@@ -52,7 +51,7 @@ def filtrar_candidatos_bajo_valor(tickers):
     top_volumen = sorted(tokens_bajo_valor, key=lambda x: float(x['quoteVolume']), reverse=True)[:25]
     return top_volumen
 
-def analizar_oportunidades_con_ia(model, mercado_resumen):
+def analizar_oportunidades_con_ia(client, mercado_resumen):
     prompt = f"""
     Actúa como un trader cuantitativo implacable especializado en altcoins de baja capitalización y memecoins de alto rendimiento.
     Aquí tienes el escaneo en tiempo real de las 25 criptomonedas de **bajo valor (menores a $1 USD)** con mayor volumen en Binance:
@@ -69,8 +68,12 @@ def analizar_oportunidades_con_ia(model, mercado_resumen):
     
     Si ninguna muestra una configuración seria en este ciclo, indícalo de forma objetiva para proteger el capital.
     """
-    respuesta = model.generate_content(prompt)
-    return respuesta.text
+    # Llamada moderna y estable con el modelo de Gemini
+    response = client.models.generate_content(
+        model='gemini-2.0-flash',
+        contents=prompt,
+    )
+    return response.text
 
 def enviar_a_telegram(mensaje):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
@@ -87,7 +90,7 @@ def enviar_a_telegram(mensaje):
 
 if __name__ == "__main__":
     print("Iniciando Cazador Táctico de Bajo Valor...")
-    model = configurar_ia()
+    client = configurar_ia()
     
     tickers = obtener_mercado_binance()
     if tickers:
@@ -103,7 +106,7 @@ if __name__ == "__main__":
                 f"Moneda: {sim} | Precio: {formatear_precio(precio)} | Cambio 24h: {cambio:+.2f}% | Vol USDT: {volumen:,.0f}"
             )
         
-        analisis_ia = analizar_oportunidades_con_ia(model, "\n".join(resumen_datos))
+        analisis_ia = analizar_oportunidades_con_ia(client, "\n".join(resumen_datos))
         enviar_a_telegram(analisis_ia)
     else:
         print("No se pudieron obtener datos del mercado.")
