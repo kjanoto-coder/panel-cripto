@@ -1,6 +1,7 @@
 import os
 import requests
 import json
+import time
 from datetime import datetime
 
 # Configuración de variables de entorno y Telegram
@@ -14,14 +15,22 @@ def obtener_datos_binance():
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept": "application/json"
     }
-    try:
-        response = requests.get(url, headers=headers, timeout=10)
-        if response.status_code == 200:
-            return response.json()
-        else:
-            print(f"Error HTTP de Binance: {response.status_code}")
-    except Exception as e:
-        print(f"Excepción al conectar con Binance: {e}")
+    
+    # Sistema de reintentos automáticos (3 intentos con pausa)
+    intentos = 3
+    for intento in range(intentos):
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                return response.json()
+            else:
+                print(f"Intento {intento + 1}: Error HTTP de Binance: {response.status_code}")
+        except Exception as e:
+            print(f"Intento {intento + 1}: Excepción al conectar con Binance: {e}")
+        
+        if intento < intentos - 1:
+            time.sleep(3)  # Pausa de 3 segundos antes de reintentar
+            
     return []
 
 def seleccionar_top5_oportunidades(data):
@@ -85,7 +94,7 @@ def enviar_telegram(mensaje):
 def main():
     datos = obtener_datos_binance()
     if not datos:
-        print("Error al obtener datos de Binance.")
+        print("Error crítico: No se pudieron obtener datos de Binance tras varios intentos.")
         return
 
     oportunidades = seleccionar_top5_oportunidades(datos)
