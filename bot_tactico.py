@@ -71,8 +71,9 @@ def analizar_oportunidades_con_ia(client, mercado_resumen):
     - 🚀 <b>Trade Directo:</b> <a href="[URL_BINANCE]">Abrir en Binance</a>
     
     REGLAS ESTRICTAS:
-    1. Incluye siempre la línea de "Trade Directo" con el enlace exacto a Binance proporcionado en la lista para cada moneda elegida.
-    2. No utilices asteriscos (**) para negritas. Usa únicamente etiquetas HTML <b>...</b>.
+    1. NO uses bloques de código tipo markdown (```html). Devuelve únicamente texto plano formateado con HTML directo.
+    2. Incluye siempre la línea de "Trade Directo" con el enlace exacto a Binance proporcionado en la lista.
+    3. No utilices asteriscos (**) para negritas. Usa únicamente etiquetas HTML <b>...</b>.
     """
     
     modelo = 'gemini-flash-latest'
@@ -96,8 +97,15 @@ def analizar_oportunidades_con_ia(client, mercado_resumen):
     raise Exception("Servidores de Google ocupados tras 5 reintentos. Se ejecutará en el siguiente ciclo.")
 
 def enviar_a_telegram(mensaje, total_analizadas):
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    mensaje_limpio = mensaje.replace("**", "")
+    url = f"[https://api.telegram.org/bot](https://api.telegram.org/bot){TELEGRAM_BOT_TOKEN}/sendMessage"
+    
+    # Limpieza estricta para eliminar etiquetas/caracteres incompatibles con Telegram
+    mensaje_limpio = (
+        mensaje.replace("```html", "")
+        .replace("```", "")
+        .replace("**", "")
+        .strip()
+    )
     
     encabezado = (
         "🎯 <b>CAZADOR TÁCTICO (ALTCOINS SUB-$1)</b>\n"
@@ -106,14 +114,16 @@ def enviar_a_telegram(mensaje, total_analizadas):
         "-----------------------------------------\n\n"
     )
     
+    texto_final = f"{encabezado}{mensaje_limpio}"
+    
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
-        "text": f"{encabezado}{mensaje_limpio}",
+        "text": texto_final,
         "parse_mode": "HTML",
         "disable_web_page_preview": True
     }
     
-    # Enviar al tema/subcanal correspondiente de Telegram si está configurado
+    # Enviar al tema/subcanal correspondiente
     if TELEGRAM_TOPIC_ID:
         try:
             payload["message_thread_id"] = int(TELEGRAM_TOPIC_ID)
@@ -121,8 +131,17 @@ def enviar_a_telegram(mensaje, total_analizadas):
             payload["message_thread_id"] = TELEGRAM_TOPIC_ID
             
     response = requests.post(url, json=payload)
+    
+    # RED DE SEGURIDAD (FALLBACK): Si Telegram rechaza el formato HTML, reintenta sin parse_mode
     if response.status_code != 200:
-        raise Exception(f"Error al enviar a Telegram: {response.text}")
+        print(f"Aviso de formato en Telegram ({response.text}). Reintentando envío en texto plano...")
+        payload.pop("parse_mode", None)
+        # Limpiamos etiquetas HTML básicas para el envío plano
+        payload["text"] = texto_final.replace("<b>", "").replace("</b>", "").replace("<i>", "").replace("</i>", "")
+        response = requests.post(url, json=payload)
+        if response.status_code != 200:
+            raise Exception(f"Error al enviar a Telegram: {response.text}")
+            
     print("¡Alerta de caza enviada con éxito al tema de Telegram!")
 
 if __name__ == "__main__":
@@ -139,7 +158,7 @@ if __name__ == "__main__":
             precio = float(item['lastPrice'])
             cambio = float(item['priceChangePercent'])
             volumen = float(item['quoteVolume'])
-            binance_url = f"https://www.binance.com/es/trade/{sim}_USDT?type=spot"
+            binance_url = f"[https://www.binance.com/es/trade/](https://www.binance.com/es/trade/){sim}_USDT?type=spot"
             
             resumen_datos.append(
                 f"Moneda: {sim} | Precio: {formatear_precio(precio)} | Cambio 24h: {cambio:+.2f}% | Vol USDT: {volumen:,.0f} | URL Binance: {binance_url}"
