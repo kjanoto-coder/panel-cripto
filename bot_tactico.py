@@ -1,6 +1,8 @@
 import os
+import time
 import requests
 from google import genai
+from google.genai import errors
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("CHAT_ID")
@@ -57,7 +59,7 @@ def analizar_oportunidades_con_ia(client, mercado_resumen):
     
     {mercado_resumen}
     
-    Tu objetivo es actuar como un **cazador de oportunidades ocultas**. Analiza estos datos, descarta el ruido y selecciona estrictamente las **2 o 3 mejores opciones** que muestren un patrón claro de acumulación, presión compradora o rebote inminente en el corto plazo.
+    Tu objetivo es actuar como un **cazador de oportunidades ocultas**. Analiza estos datos, descarta el ruido y selecciona strictly las **2 o 3 mejores opciones** que muestren un patrón claro de acumulación, presión compradora o rebote inminente en el corto plazo.
     
     Estructura la alerta para Telegram de manera limpia y profesional usando formato HTML de Telegram (usa <b>texto</b> para negritas):
     - 🪙 <b>Símbolo:</b>
@@ -68,15 +70,26 @@ def analizar_oportunidades_con_ia(client, mercado_resumen):
     IMPORTANTE: No uses asteriscos para negrita (**), usa únicamente etiquetas HTML <b>...</b> para resaltar el texto.
     Si ninguna muestra una configuración seria en este ciclo, indícalo de forma objetiva para proteger el capital.
     """
-    response = client.models.generate_content(
-        model='gemini-flash-latest',
-        contents=prompt,
-    )
-    return response.text
+    
+    # Sistema de reintentos automáticos para evitar errores 503 por alta demanda
+    for intento in range(1, 4):
+        try:
+            response = client.models.generate_content(
+                model='gemini-flash-latest',
+                contents=prompt,
+            )
+            return response.text
+        except errors.APIError as e:
+            print(f"Aviso de servidor Google ({e.code}). Reintentando en 5 segundos (Intento {intento}/3)...")
+            time.sleep(5)
+        except Exception as e:
+            print(f"Error inesperado al consultar la IA: {e}")
+            time.sleep(5)
+            
+    raise Exception("Servidores de Google saturados tras varios intentos. Se reintentará en el próximo ciclo.")
 
 def enviar_a_telegram(mensaje):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    # Reemplazamos cualquier posible residuo de asteriscos dobles por negrita HTML por seguridad
     mensaje_limpio = mensaje.replace("**", "")
     
     payload = {
