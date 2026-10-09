@@ -1,19 +1,21 @@
 import os
+import re
 import time
 import requests
 from google import genai
 from google.genai import errors
 
-# Limpieza estricta de las variables de entorno para evitar espacios o caracteres invisibles
-TELEGRAM_BOT_TOKEN = (os.getenv("TELEGRAM_TOKEN") or "").strip()
-TELEGRAM_CHAT_ID = (os.getenv("CHAT_ID") or "").strip()
-TELEGRAM_TOPIC_ID = (os.getenv("TOPIC_ID_TACTICO") or "").strip()
-GEMINI_API_KEY = (os.getenv("GEMINI_API_KEY") or "").strip()
+# Captura y sanitización de variables de entorno
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN", "")
+TELEGRAM_CHAT_ID = os.getenv("CHAT_ID", "")
+TELEGRAM_TOPIC_ID = os.getenv("TOPIC_ID_TACTICO", "")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 def configurar_ia():
-    if not GEMINI_API_KEY:
+    api_key_limpia = re.sub(r'[\[\]\(\)\s]', '', GEMINI_API_KEY)
+    if not api_key_limpia:
         raise ValueError("Falta la clave GEMINI_API_KEY en los secretos de GitHub.")
-    return genai.Client(api_key=GEMINI_API_KEY)
+    return genai.Client(api_key=api_key_limpia)
 
 def obtener_mercado_binance():
     url = "https://data-api.binance.vision/api/v3/ticker/24hr"
@@ -26,7 +28,7 @@ def obtener_mercado_binance():
         return None
 
 def formatear_precio(precio):
-    """Ajusta los decimales dinámicamente para coincidir exactamente con la interfaz de Binance."""
+    """Ajusta los decimales dinámicamente para coincidir con la interfaz de Binance."""
     if precio is None:
         return "$0.00"
     elif precio >= 1.0:
@@ -98,10 +100,14 @@ def analizar_oportunidades_con_ia(client, mercado_resumen):
     raise Exception("Servidores de Google ocupados tras 5 reintentos. Se ejecutará en el siguiente ciclo.")
 
 def enviar_a_telegram(mensaje, total_analizadas):
-    # URL en texto plano puro sin caracteres de formato
-    url = f"[https://api.telegram.org/bot](https://api.telegram.org/bot){TELEGRAM_BOT_TOKEN}/sendMessage"
+    # Sanitización estricta del token de Telegram para eliminar cualquier corchete o formato
+    token_limpio = re.sub(r'[\[\]\(\)\s]', '', TELEGRAM_BOT_TOKEN)
+    chat_id_limpio = re.sub(r'[\[\]\(\)\s]', '', TELEGRAM_CHAT_ID)
+    topic_id_limpio = re.sub(r'[\[\]\(\)\s]', '', TELEGRAM_TOPIC_ID)
     
-    # Limpieza de bloques de código Markdown
+    url = f"[https://api.telegram.org/bot](https://api.telegram.org/bot){token_limpio}/sendMessage"
+    
+    # Limpieza de marcado
     mensaje_limpio = (
         mensaje.replace("```html", "")
         .replace("```", "")
@@ -119,24 +125,23 @@ def enviar_a_telegram(mensaje, total_analizadas):
     texto_final = f"{encabezado}{mensaje_limpio}"
     
     payload = {
-        "chat_id": TELEGRAM_CHAT_ID,
+        "chat_id": chat_id_limpio,
         "text": texto_final,
         "parse_mode": "HTML",
         "disable_web_page_preview": True
     }
     
-    # Asignación del ID del tema (subcanal)
-    if TELEGRAM_TOPIC_ID:
+    if topic_id_limpio:
         try:
-            payload["message_thread_id"] = int(TELEGRAM_TOPIC_ID)
+            payload["message_thread_id"] = int(topic_id_limpio)
         except ValueError:
-            payload["message_thread_id"] = TELEGRAM_TOPIC_ID
+            payload["message_thread_id"] = topic_id_limpio
             
     response = requests.post(url, json=payload)
     
-    # Red de seguridad si Telegram rechaza etiquetas HTML
+    # Fallback si Telegram rechaza etiquetas HTML
     if response.status_code != 200:
-        print(f"Aviso de formato en Telegram ({response.text}). Reintentando envío sin HTML...")
+        print(f"Aviso de formato en Telegram ({response.text}). Reintentando envío en texto plano...")
         payload.pop("parse_mode", None)
         payload["text"] = texto_final.replace("<b>", "").replace("</b>", "").replace("<i>", "").replace("</i>", "")
         response = requests.post(url, json=payload)
