@@ -10,9 +10,18 @@ TOPIC_ID_TACTICO = os.getenv("TOPIC_ID_TACTICO")
 
 def obtener_datos_binance():
     url = "https://api.binance.com/api/v3/ticker/24hr"
-    response = requests.get(url)
-    if response.status_code == 200:
-        return response.json()
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json"
+    }
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            print(f"Error HTTP de Binance: {response.status_code}")
+    except Exception as e:
+        print(f"Excepción al conectar con Binance: {e}")
     return []
 
 def seleccionar_top5_oportunidades(data):
@@ -37,7 +46,7 @@ def seleccionar_top5_oportunidades(data):
             except ValueError:
                 continue
 
-    # Ordenar por mayor variación positiva o volumen según estrategia táctica
+    # Ordenar por mayor variación positiva
     top_datos = sorted(filtrados, key=lambda x: x['change'], reverse=True)[:7]
 
     resultado = []
@@ -80,6 +89,9 @@ def main():
         return
 
     oportunidades = seleccionar_top5_oportunidades(datos)
+    if not oportunidades:
+        print("No se encontraron oportunidades con los filtros establecidos.")
+        return
     
     # Construcción del mensaje estructurado para Telegram
     mensaje = "🧠 <b>CENTRAL DE INTELIGENCIA DE MERCADO (Cazador Táctico)</b>\n"
