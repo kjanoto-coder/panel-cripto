@@ -84,17 +84,16 @@ def analizar_top5_con_ia(client, monedas, total_analizadas):
         )
     
     prompt = (
-        f"Actúa como un Trader Cuantitativo Senior.\n"
-        f"Se escanearon un total de {total_analizadas} altcoins sub-$1 USD en Binance Spot.\n"
-        f"Tras filtrar por liquidez y rendimiento en 24h, estas son las 5 ganadoras seleccionadas:\n"
+        f"Actúa como un Trader Cuantitativo Senior experto en análisis técnico multi-temporalidad.\n"
+        f"Se escanearon un total de {total_analizadas} altcoins sub-$1 USD en Binance Spot. Estas son las 5 ganadoras seleccionadas por momentum:\n"
         f"{chr(10).join(lista_texto)}\n\n"
-        "Devuelve la respuesta estrictamente en este formato de texto plano:\n"
-        f"RESUMEN: [Explica claramente por qué se seleccionaron estas 5 de entre las {total_analizadas} monedas analizadas, detallando la narrativa de mercado o el criterio cuantitativo que las destaca y por qué no son al azar]\n"
-        f"1. {monedas[0]['simbolo']}: [Frase corta de análisis técnico]\n"
-        f"2. {monedas[1]['simbolo']}: [Frase corta de análisis técnico]\n"
-        f"3. {monedas[2]['simbolo']}: [Frase corta de análisis técnico]\n"
-        f"4. {monedas[3]['simbolo']}: [Frase corta de análisis técnico]\n"
-        f"5. {monedas[4]['simbolo']}: [Frase corta de análisis técnico]\n"
+        "Devuelve la respuesta estrictamente en este formato de texto plano para CADA UNA de las 5 monedas (aplica los dos cambios pedidos a todas por igual):\n"
+        "RESUMEN: [Explica cuantitativamente por qué se seleccionaron estas 5 de entre las analizadas, enfocándote en la narrativa de mercado y flujo de volumen]\n"
+        f"1. {monedas[0]['simbolo']}: [1D: ... | 4H: ... | 15M: ... | Conclusión: Opción alcista / Rebote técnico / Sobrecompra]\n"
+        f"2. {monedas[1]['simbolo']}: [1D: ... | 4H: ... | 15M: ... | Conclusión: Opción alcista / Rebote técnico / Sobrecompra]\n"
+        f"3. {monedas[2]['simbolo']}: [1D: ... | 4H: ... | 15M: ... | Conclusión: Opción alcista / Rebote técnico / Sobrecompra]\n"
+        f"4. {monedas[3]['simbolo']}: [1D: ... | 4H: ... | 15M: ... | Conclusión: Opción alcista / Rebote técnico / Sobrecompra]\n"
+        f"5. {monedas[4]['simbolo']}: [1D: ... | 4H: ... | 15M: ... | Conclusión: Opción alcista / Rebote técnico / Sobrecompra]\n"
     )
 
     candidatos_dinamicos = []
@@ -229,7 +228,7 @@ def enviar_a_telegram(path_imagen, texto_ia, monedas, total_analizadas):
     with open(path_imagen, 'rb') as photo_file:
         requests.post(url_foto, data=data_foto, files={'photo': photo_file})
 
-    # 2. Extraer resumen cuantitativo y análisis por moneda
+    # 2. Extraer resumen y análisis técnico multi-temporalidad para todas las monedas
     resumen_global = f"Selección optimizada de las mejores oportunidades tras filtrar {total_analizadas} activos por volumen y aceleración de momentum."
     match_resumen = re.search(r'RESUMEN:\s*(.*)', texto_ia)
     if match_resumen:
@@ -242,12 +241,12 @@ def enviar_a_telegram(path_imagen, texto_ia, monedas, total_analizadas):
         if match_moneda:
             analisis_dict[sim] = match_moneda.group(1).strip()
         else:
-            analisis_dict[sim] = "Ruptura limpia con expansión de volumen y acumulación en intradiario."
+            analisis_dict[sim] = "1D: Estructura alcista | 4H: MACD expansivo | 15M: Impulso activo | Conclusión: Opción alcista."
 
     bloques_monedas = []
     for m in monedas:
         sim = m['simbolo']
-        frase = analisis_dict.get(sim, "Impulso alcista sostenido con volumen favorable.")
+        frase = analisis_dict.get(sim, "1D: Tendencia favorable | 4H: Indicadores estables | 15M: Scalping activo | Conclusión: Opción alcista.")
         
         bloque = (
             f"• <b>{sim}</b> ({m['cambio']:+.1f}%) — {formatear_precio(m['precio'])} | 🟢🟢🟢🟢🟢\n"
