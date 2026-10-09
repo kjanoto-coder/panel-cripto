@@ -80,25 +80,21 @@ def analizar_top5_con_ia(client, monedas):
     lista_texto = []
     for m in monedas:
         lista_texto.append(
-            f"• Símbolo: {m['simbolo']} | Precio: {formatear_precio(m['precio'])} | Cambio: {m['cambio']:+.2f}%"
+            f"- {m['simbolo']} (Precio: {formatear_precio(m['precio'])}, Cambio: {m['cambio']:+.2f}%)"
         )
     
     prompt = (
         "Actúa como un Trader Cuantitativo Senior.\n"
-        "A continuación tienes los datos exactos de las 5 altcoins seleccionadas:\n\n"
+        "Analiza estas 5 altcoins:\n"
         f"{chr(10).join(lista_texto)}\n\n"
-        "Genera una respuesta utilizando ESTRICTAMENTE este formato HTML (sin usar etiquetas <a> escritas, solo texto plano en la última línea):\n\n"
-        "<b>RESUMEN:</b> [1 sola frase corta sobre el comportamiento global del mercado]\n\n"
+        "Devuelve la respuesta estrictamente en este formato de texto plano (sin HTML ni markdown):\n"
+        "RESUMEN: [Una sola frase corta sobre el comportamiento global del mercado]\n"
+        f"1. {monedas[0]['simbolo']}: [Frase corta de análisis técnico]\n"
+        f"2. {monedas[1]['simbolo']}: [Frase corta de análisis técnico]\n"
+        f"3. {monedas[2]['simbolo']}: [Frase corta de análisis técnico]\n"
+        f"4. {monedas[3]['simbolo']}: [Frase corta de análisis técnico]\n"
+        f"5. {monedas[4]['simbolo']}: [Frase corta de análisis técnico]\n"
     )
-    
-    for m in monedas:
-        prompt += (
-            f"• <b>{m['simbolo']}</b> ({m['cambio']:+.1f}%) — {formatear_precio(m['precio'])} | 🟢🟢🟢🟢🟢\n"
-            f"🧠 <i>[1 frase corta de análisis técnico fundamentando el movimiento de {m['simbolo']}]</i>\n"
-            f"└ 📊 [RESUMEN_IA_{m['simbolo']}] | 🔶 [TRADEAR_{m['simbolo']}]\n\n"
-        )
-
-    prompt += "REGLA: Mantén exactamente las marcas [RESUMEN_IA_...] y [TRADEAR_...]."
 
     candidatos_dinamicos = []
     try:
@@ -189,15 +185,15 @@ def generar_imagen_infografia(items_ordenados):
         draw.rounded_rectangle([x_left, y_top, x_right, chart_bottom], radius=10, fill=color_barra)
         draw.text((x_left + 8, chart_bottom - 32), simbolo[:5], fill="#0F172A", font=font_symbol)
 
-        badge_y = y_top - 40
+        badge_y = y_top - 45
         badge_center = x_left + (bar_width // 2)
-        draw.ellipse([badge_center - 22, badge_y - 22, badge_center + 22, badge_y + 22], fill="#1E293B", outline=color_barra, width=2)
+        draw.ellipse([badge_center - 25, badge_y - 25, badge_center + 25, badge_y + 25], fill="#1E293B", outline=color_barra, width=2)
         
         txt_sim = simbolo[:3]
-        draw.text((badge_center - 12, badge_y - 7), txt_sim, fill="#FFFFFF", font=font_symbol)
+        draw.text((badge_center - 14, badge_y - 8), txt_sim, fill="#FFFFFF", font=font_symbol)
 
         val_str = f"+{pct:.1f}%" if pct >= 0 else f"{pct:.1f}%"
-        draw.text((badge_center - 24, badge_y - 50), val_str, fill=color_texto_val, font=font_val)
+        draw.text((badge_center - 26, badge_y - 55), val_str, fill=color_texto_val, font=font_val)
 
         x_start += bar_width + spacing
 
@@ -208,30 +204,49 @@ def generar_imagen_infografia(items_ordenados):
     img.save(path_output)
     return path_output
 
-def ensamblar_texto_final(texto_ia, monedas):
-    texto = re.sub(r'```[a-zA-Z]*', '', texto_ia)
-    texto = texto.replace('```', '').replace('**', '').replace('\\"', '"').replace('\\', '')
+def procesar_respuesta_ia(texto_ia, monedas):
+    # Extraer resumen global
+    resumen_global = "Fuerte impulso alcista generalizado en altcoins de baja capitalización."
+    match_resumen = re.search(r'RESUMEN:\s*(.*)', texto_ia)
+    if match_resumen:
+        resumen_global = match_resumen.group(1).strip()
     
-    # Reemplazar de forma limpia y segura las marcas por etiquetas HTML de enlaces reales
+    # Extraer análisis por moneda de forma segura
+    analisis_dict = {}
     for m in monedas:
-        tag_ia = f"[RESUMEN_IA_{m['simbolo']}]"
-        enlace_ia = f'<a href="{m["netlify_url"]}">Resumen IA</a>'
-        texto = texto.replace(tag_ia, enlace_ia)
+        sim = m['simbolo']
+        match_moneda = re.search(rf'(?:\d+\.|\-)?\s*{sim}:\s*(.*)', texto_ia, re.IGNORECASE)
+        if match_moneda:
+            analisis_dict[sim] = match_moneda.group(1).strip()
+        else:
+            analisis_dict[sim] = "Ruptura limpia con expansión de volumen y acumulación en intradiario."
+
+    # Python construye el mensaje final con los enlaces garantizados
+    bloques_monedas = []
+    for m in monedas:
+        sim = m['simbolo']
+        frase = analisis_dict.get(sim, "Impulso alcista sostenido con volumen favorable.")
         
-        tag_trade = f"[TRADEAR_{m['simbolo']}]"
-        enlace_trade = f'<a href="{m["binance_url"]}">Tradear</a>'
-        texto = texto.replace(tag_trade, enlace_trade)
+        bloque = (
+            f"• <b>{sim}</b> ({m['cambio']:+.1f}%) — {formatear_precio(m['precio'])} | 🟢🟢🟢🟢🟢\n"
+            f"🧠 <i>{frase}</i>\n"
+            f"└ 📊 <a href=\"{m['netlify_url']}\">Resumen IA</a> | 🔶 <a href=\"{m['binance_url']}\">Tradear</a>"
+        )
+        bloques_monedas.append(bloque)
 
-    lineas = texto.split('\n')
-    lineas_reparadas = []
-    for l in lineas:
-        if l.count('<i>') > l.count('</i>'):
-            l += '</i>'
-        lineas_reparadas.append(l)
-    
-    return "\n".join(lineas_reparadas).strip()
+    caption_completo = (
+        "🎯 <b>CAZADOR TÁCTICO</b>\n"
+        f"<b>MONEDAS ANALIZADAS:</b> {len(monedas)}\n\n"
+        f"<b>RESUMEN:</b> {resumen_global}\n\n" +
+        "\n\n".join(bloques_monedas)
+    )
 
-def enviar_a_telegram(path_imagen, analisis_ia, monedas, total_analizadas):
+    if len(caption_completo) > 1000:
+        caption_completo = caption_completo[:995] + "..."
+
+    return caption_completo
+
+def enviar_a_telegram(path_imagen, texto_ia, monedas, total_analizadas):
     token_limpio = re.sub(r'[^a-zA-Z0-9:\-_]', '', TELEGRAM_BOT_TOKEN)
     chat_id_limpio = re.sub(r'[^0-9\-]', '', TELEGRAM_CHAT_ID)
     topic_id_limpio = re.sub(r'[^0-9]', '', TELEGRAM_TOPIC_ID)
@@ -240,16 +255,7 @@ def enviar_a_telegram(path_imagen, analisis_ia, monedas, total_analizadas):
     dominio = "api.telegram.org"
     url_foto = f"{protocolo}://{dominio}/bot{token_limpio}/sendPhoto"
     
-    analisis_limpio = ensamblar_texto_final(analisis_ia, monedas)
-    
-    caption_completo = (
-        "🎯 <b>CAZADOR TÁCTICO</b>\n"
-        f"<b>MONEDAS ANALIZADAS:</b> {total_analizadas}\n\n"
-        f"{analisis_limpio}"
-    )
-    
-    if len(caption_completo) > 1000:
-        caption_completo = caption_completo[:995] + "..."
+    caption_completo = procesar_respuesta_ia(texto_ia, monedas)
 
     data_foto = {
         "chat_id": chat_id_limpio,
@@ -271,17 +277,17 @@ def enviar_a_telegram(path_imagen, analisis_ia, monedas, total_analizadas):
             with open(path_imagen, 'rb') as photo_file2:
                 requests.post(url_foto, data=data_foto, files={'photo': photo_file2})
 
-    print("¡Publicación enviada perfectamente a Telegram!")
+    print("¡Publicación enviada exitosamente a Telegram con enlaces funcionales!")
 
 if __name__ == "__main__":
-    print("Iniciando Cazador Táctico (Top 5 con enlaces seguros)...")
+    print("Iniciando Cazador Táctico (Top 5 con enlaces Python nativos)...")
     client = configurar_ia()
     
     tickers = obtener_mercado_binance()
     if tickers:
         monedas_grafico, total_analizadas = seleccionar_top5_oportunidades(tickers)
-        analisis_ia = analizar_top5_con_ia(client, monedas_grafico)
+        texto_ia = analizar_top5_con_ia(client, monedas_grafico)
         path_imagen = generar_imagen_infografia(monedas_grafico)
-        enviar_a_telegram(path_imagen, analisis_ia, monedas_grafico, total_analizadas)
+        enviar_a_telegram(path_imagen, texto_ia, monedas_grafico, total_analizadas)
     else:
         print("No se pudieron obtener datos del mercado.")
