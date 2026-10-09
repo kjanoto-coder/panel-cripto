@@ -100,18 +100,17 @@ def analizar_tesoros_con_ia(client, universo):
         "- MACD & RSI (acumulación sin sobrecompra)\n"
         "- Supertrend & Parabolic SAR\n"
         "- Libro de órdenes (absorción institucional)\n\n"
-        "Para CADA UNA de las 4 monedas seleccionadas, genera exactamente este bloque desplegable usando la etiqueta HTML <blockquote expandable>:\n\n"
+        "Genera exactamente 4 bloques desplegables envolviendo CADA MONEDA con la etiqueta <blockquote expandable>:\n\n"
         "<blockquote expandable><b>🧠 FICHA TÉCNICA: [SÍMBOLO]/USDT</b>\n"
         "💰 <b>Precio:</b> $[Precio] ([Cambio]%)\n"
-        "📊 <b>Estructura & EMAs (7/25/99):</b> [Análisis de posición respecto a medias dinámicas]\n"
-        "📈 <b>Indicadores (RSI/MACD/Supertrend):</b> [Estado de RSI, cruce de MACD e impulso SAR]\n"
-        "📖 <b>Orderbook:</b> [Clústeres de liquidez y volumen de compra]\n"
-        "🎯 <b>Tesis Cuantitativa:</b> [Razón técnica de la entrada]\n"
+        "📊 <b>Estructura & EMAs (7/25/99):</b> [Análisis de medias]\n"
+        "📈 <b>Indicadores (RSI/MACD/Supertrend):</b> [RSI, MACD y SAR]\n"
+        "📖 <b>Orderbook:</b> [Absorción de oferta]\n"
+        "🎯 <b>Tesis Cuantitativa:</b> [Razón de la oportunidad]\n"
         "📍 <b>Entrada:</b> $[Zona] | 🛑 <b>Stop:</b> $[Valor] \vert{} 🎯 <b>Techo:</b> $[Resistencia]</blockquote>\n\n"
         "REGLAS ESTRICTAS:\n"
-        "1. Utiliza exactamente la etiqueta <blockquote expandable>...</blockquote> para envolver cada moneda individualmente.\n"
-        "2. No uses marcas markdown (```html ni **).\n"
-        "3. Entrega únicamente los 4 bloques desplegables uno debajo de otro.\n"
+        "1. Usa <blockquote expandable>...</blockquote> para envolver cada una de las 4 fichas.\n"
+        "2. No uses marcas markdown como ```html ni **. Utiliza únicamente etiquetas <b>, <i> y <blockquote expandable>.\n"
     )
 
     candidatos_dinamicos = []
@@ -259,21 +258,17 @@ def enviar_a_telegram(path_imagen, analisis_ia, monedas, total_analizadas):
     
     protocolo = "https"
     dominio = "api.telegram.org"
+    
+    # 1. ENVIAR FOTO CON CAPTION CORTO Y BOTONES (Límite < 1024 caracteres en sendPhoto)
     url_foto = f"{protocolo}://{dominio}/bot{token_limpio}/sendPhoto"
     
-    analisis_limpio = limpiar_texto_telegram(analisis_ia)
-    
-    header = (
+    caption_foto = (
         "🎯 <b>CAZADOR TÁCTICO - BÚSQUEDA DE TESOROS</b>\n"
         f"🔍 <b>Universo analizado:</b> {total_analizadas} altcoins (< $1.00 USD)\n"
         "🛠️ <b>Filtro:</b> EMAs (7/25/99) + MACD + RSI + Orderbook\n"
-        "💡 <i>Toca sobre cada moneda para desplegar su Ficha IA</i>\n"
-        "-----------------------------------------\n\n"
+        "👇 <i>Revisa el análisis desplegable y opera abajo en Binance:</i>"
     )
-    
-    caption_completo = f"{header}{analisis_limpio}"
 
-    # Botones directos a Binance en cuadrícula 2x2
     inline_keyboard = []
     fila_actual = []
     for item in monedas:
@@ -288,7 +283,7 @@ def enviar_a_telegram(path_imagen, analisis_ia, monedas, total_analizadas):
 
     data_foto = {
         "chat_id": chat_id_limpio,
-        "caption": caption_completo,
+        "caption": caption_foto,
         "parse_mode": "HTML",
         "reply_markup": json.dumps({"inline_keyboard": inline_keyboard})
     }
@@ -299,15 +294,34 @@ def enviar_a_telegram(path_imagen, analisis_ia, monedas, total_analizadas):
             data_foto["message_thread_id"] = topic_id_limpio
 
     with open(path_imagen, 'rb') as photo_file:
-        res = requests.post(url_foto, data=data_foto, files={'photo': photo_file})
-        if res.status_code != 200:
-            print(f"Error enviando foto ({res.text}). Reintentando envío simplificado...")
-            data_foto.pop("parse_mode", None)
-            data_foto["caption"] = caption_completo.replace("<b>", "").replace("</b>", "").replace("<i>", "").replace("</i>", "").replace("<blockquote expandable>", "").replace("</blockquote>", "")
-            with open(path_imagen, 'rb') as photo_file2:
-                requests.post(url_foto, data=data_foto, files={'photo': photo_file2})
+        res_foto = requests.post(url_foto, data=data_foto, files={'photo': photo_file})
+        if res_foto.status_code != 200:
+            print(f"Error enviando foto ({res_foto.text})...")
 
-    print("¡Publicación enviada con éxito a Telegram!")
+    # 2. ENVIAR DOSSIER DESPLEGABLE CON sendMessage (Soporta hasta 4096 caracteres)
+    url_msg = f"{protocolo}://{dominio}/bot{token_limpio}/sendMessage"
+    analisis_limpio = limpiar_texto_telegram(analisis_ia)
+
+    data_msg = {
+        "chat_id": chat_id_limpio,
+        "text": analisis_limpio,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": True
+    }
+    if topic_id_limpio:
+        try:
+            data_msg["message_thread_id"] = int(topic_id_limpio)
+        except ValueError:
+            data_msg["message_thread_id"] = topic_id_limpio
+
+    res_msg = requests.post(url_msg, json=data_msg)
+    if res_msg.status_code != 200:
+        print(f"Error enviando mensaje desglosado ({res_msg.text}). Reintentando sin parse_mode...")
+        data_msg.pop("parse_mode", None)
+        data_msg["text"] = re.sub(r'<[^>]+>', '', analisis_limpio)
+        requests.post(url_msg, json=data_msg)
+
+    print("¡Publicación enviada exitosamente a Telegram!")
 
 if __name__ == "__main__":
     print("Iniciando Cazador Táctico...")
