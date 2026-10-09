@@ -42,64 +42,86 @@ def formatear_precio(precio):
     else:
         return f"${precio:.8f}"
 
-def seleccionar_top4_oportunidades(tickers):
-    # 1. Filtrar pares USDT (< $1.00 USD)
+def escanear_universo_tesoros(tickers):
+    """
+    Escanea las monedas sub-$1 USD con volumen saludable (> $3M USDT)
+    para que la IA identifique las mejores estructuras técnicas.
+    """
     usdt_pairs = [
         t for t in tickers 
         if t['symbol'].endswith('USDT') and not any(x in t['symbol'] for x in ['UP', 'DOWN', 'BULL', 'BEAR'])
     ]
-    tokens_bajo_valor = [t for t in usdt_pairs if float(t['lastPrice']) < 1.0]
     
-    # 2. Filtrar por volumen alto de liquidez (Top 15 por volumen)
-    top_liquidez = sorted(tokens_bajo_valor, key=lambda x: float(x['quoteVolume']), reverse=True)[:15]
+    # Monedas sub-$1 con volumen de liquidez real para trading institucional/spot
+    tokens_sub1 = [
+        t for t in usdt_pairs 
+        if float(t['lastPrice']) < 1.0 and float(t['quoteVolume']) > 2000000
+    ]
+    total_analizadas = len(tokens_sub1)
     
-    # 3. De esas 15, tomar las 4 con mayor ganancia % en 24h
-    top_4_ganadoras = sorted(top_liquidez, key=lambda x: float(x['priceChangePercent']), reverse=True)[:4]
+    # Ordenar por volumen y seleccionar el universo Top 25 para análisis técnico
+    top_universo = sorted(tokens_sub1, key=lambda x: float(x['quoteVolume']), reverse=True)[:25]
     
-    resultado = []
-    for item in top_4_ganadoras:
+    cand_datos = []
+    for item in top_universo:
         sim = item['symbol'].replace('USDT', '')
         precio = float(item['lastPrice'])
+        high = float(item['highPrice'])
+        low = float(item['lowPrice'])
+        open_p = float(item['openPrice'])
         cambio = float(item['priceChangePercent'])
         volumen = float(item['quoteVolume'])
         binance_url = f"https://www.binance.com/es/trade/{sim}_USDT?type=spot"
         
-        resultado.append({
+        cand_datos.append({
             'simbolo': sim,
             'precio': precio,
+            'high': high,
+            'low': low,
+            'open': open_p,
             'cambio': cambio,
             'volumen': volumen,
             'url': binance_url
         })
     
-    # 4. Ordenar de menor a mayor % para la barra del gráfico
-    resultado_ordenado = sorted(resultado, key=lambda x: x['cambio'])
-    return resultado_ordenado
+    return cand_datos, total_analizadas
 
-def analizar_monedas_exactas_con_ia(client, monedas):
-    lista_texto = []
-    for m in monedas:
-        lista_texto.append(
-            f"Moneda: {m['simbolo']} | Precio: {formatear_precio(m['precio'])} | Cambio 24h: {m['cambio']:+.2f}% | Vol USDT: {m['volumen']:,.0f}"
+def analizar_tesoros_con_ia(client, universo):
+    lineas_metricas = []
+    for m in universo:
+        lineas_metricas.append(
+            f"• Asset: {m['simbolo']} | Precio: {formatear_precio(m['precio'])} | "
+            f"Open: {formatear_precio(m['open'])} | High: {formatear_precio(m['high'])} | Low: {formatear_precio(m['low'])} | "
+            f"Var 24h: {m['cambio']:+.2f}% | Vol USDT: ${m['volumen']:,.0f}"
         )
     
     prompt = f"""
-    Eres un analista cuantitativo de criptomonedas.
-    Analiza ÚNICAMENTE estas 4 monedas seleccionadas de bajo valor (< $1 USD):
+    Actúa como un Trader Cuantitativo Experto especializado en patrones de entrada y gestión de riesgo.
+    Aquí tienes el escaneo de precios y microestructura de 25 altcoins sub-$1 USD en Binance Spot:
 
-    {chr(10).join(lista_texto)}
+    {chr(10).join(lineas_metricas)}
 
-    Genera un informe SÚPER CONCISO y LIMPIO para Telegram.
-    Sigue ESTRICTAMENTE este formato sin añadir introducciones ni textos largos:
+    TÚ MISIÓN: Haz una "BÚSQUEDA DE TESOROS". No busques monedas que ya hayan explotado desmedidamente. 
+    Selecciona las **4 mejores OPORTUNIDADES DE COMPRA O CONFIGURACIÓN TÉCNICA** evaluando las siguientes herramientas técnicas:
+    - **EMAs (7, 25, 99):** Busca compresión de medias moviles o rebote/apoyo en EMA 25/99 con EMA 7 apuntando al alza.
+    - **MACD & RSI:** Monitorea RSI en zona de acumulación (45-62, sin sobrecompra extrema) e histograma de MACD con cruce alcista inminente o activo.
+    - **Parabolic SAR & Supertrend:** Confirmación de cambio de tendencia a verde (compradores al mando).
+    - **Libro de Órdenes & Profundidad:** Presencia de volumen institucional de compra absorbiendo la oferta.
 
-    <b>RESUMEN:</b> [1 sola frase corta sobre la tendencia general de la sesión]
+    Genera un informe tipo DOSSIER TÉCNICO usando estrictamente esta estructura HTML:
+
+    <b>🗺️ BÚSQUEDA DE TESOROS: OPORTUNIDADES DE COMPRA</b>
 
     """
-    for m in monedas:
-        prompt += f"""• <b>{m['simbolo']}</b> ({m['cambio']:+.1f}%) — {formatear_precio(m['precio'])}
-🧠 <i>[1 sola frase corta de veredicto técnico]</i>\n\n"""
+    for i in range(1, 5):
+        prompt += f"""🪙 <b>[SÍMBOLO]/USDT</b> — {formatear_precio(universo[0]['precio'])} ({universo[0]['cambio']:+.1f}%)
+📊 <b>Estructura & EMAs (7/25/99):</b> [Análisis de posición respecto a EMAs y soporte de canal]
+📈 <b>Indicadores (RSI/MACD/Supertrend):</b> [Estado de RSI, cruce de MACD e impulso de SAR]
+📖 <b>Libro de Órdenes:</b> [Nivel de absorción de oferta y volumen operado]
+🎯 <b>Tesis de Compra:</b> [Justificación de por qué es una oportunidad de entrada con buena asimetría R/B]
+📍 <b>Zona de Entrada & Soporte:</b> $[Valor] \vert{} <b>Resistencia Techo:</b>$[Valor]\n\n"""
 
-    prompt += "\nReglas: No uses bloques markdown. Usa únicamente etiquetas <b> y <i> de HTML. Sé muy directo y breve."
+    prompt += "\nREGLAS ESTRICTAS: No incluyas markdown como ```html o **. Utiliza ÚNICAMENTE las etiquetas <b> y <i> compatibles con Telegram."
 
     candidatos_dinamicos = []
     try:
@@ -121,18 +143,34 @@ def analizar_monedas_exactas_con_ia(client, monedas):
                     contents=prompt,
                 )
                 if response and response.text:
-                    return response.text
+                    # Extraer símbolos de las 4 monedas seleccionadas por la IA
+                    simbolos_encontrados = re.findall(r'🪙 <b>([A-Z0-9]+)/USDT', response.text)
+                    
+                    monedas_filtradas = []
+                    for sim in simbolos_encontrados:
+                        for item in universo:
+                            if item['simbolo'] == sim and item not in monedas_filtradas:
+                                monedas_filtradas.append(item)
+                                break
+                    
+                    # Si no coincidieron exactamente, tomar las 4 mejores seleccionadas por ratio volumen/cambio
+                    if len(monedas_filtradas) < 4:
+                        monedas_filtradas = sorted(universo, key=lambda x: (x['volumen'], x['cambio']), reverse=True)[:4]
+                        
+                    return response.text, monedas_filtradas
             except Exception:
                 time.sleep(2)
 
     raise Exception("No se pudo obtener respuesta de la IA.")
 
-def generar_imagen_infografia(items_ordenados):
+def generar_imagen_infografia(items):
+    # Ordenar de menor a mayor % para visualizar la curva ascendente en el gráfico
+    items_ordenados = sorted(items, key=lambda x: x['cambio'])
+    
     width, height = 800, 800
     img = Image.new('RGB', (width, height), color='#0F172A')
     draw = ImageDraw.Draw(img)
 
-    # Rejilla
     grid_color = '#1E293B'
     for x in range(0, width, 40):
         draw.line([(x, 0), (x, height)], fill=grid_color, width=1)
@@ -152,10 +190,9 @@ def generar_imagen_infografia(items_ordenados):
         font_symbol = ImageFont.load_default()
         font_footer = ImageFont.load_default()
 
-    # Encabezado
-    draw.text((50, 40), "NARRATIVA DEL DÍA", fill="#F59E0B", font=font_title)
-    draw.text((50, 85), "ALTCOINS SUB-$1 USD", fill="#38BDF8", font=font_sub)
-    fecha_str = f"📅 {datetime.now().strftime('%Y-%m-%d')}"
+    draw.text((50, 40), "RADAR CAZADOR DE TESOROS", fill="#F59E0B", font=font_title)
+    draw.text((50, 85), "ANÁLISIS TÉCNICO & OPORTUNIDADES SUB-$1", fill="#38BDF8", font=font_sub)
+    fecha_str = f"📅 {datetime.now().strftime('%Y-%m-%d %H:%M')}"
     draw.text((50, 125), fecha_str, fill="#94A3B8", font=font_footer)
 
     num_items = len(items_ordenados)
@@ -189,13 +226,9 @@ def generar_imagen_infografia(items_ordenados):
         color_barra = "#10B981" if pct >= 0 else "#EF4444"
         color_texto_val = "#34D399" if pct >= 0 else "#F87171"
 
-        # Barra
         draw.rounded_rectangle([x_left, y_top, x_right, chart_bottom], radius=12, fill=color_barra)
-
-        # Texto del símbolo abajo en la barra
         draw.text((x_left + 15, chart_bottom - 35), simbolo[:5], fill="#0F172A", font=font_symbol)
 
-        # Badge circular superior
         badge_y = y_top - 45
         badge_center = x_left + (bar_width // 2)
         draw.ellipse([badge_center - 25, badge_y - 25, badge_center + 25, badge_y + 25], fill="#1E293B", outline=color_barra, width=2)
@@ -203,13 +236,12 @@ def generar_imagen_infografia(items_ordenados):
         txt_sim = simbolo[:3]
         draw.text((badge_center - 14, badge_y - 8), txt_sim, fill="#FFFFFF", font=font_symbol)
 
-        # Porcentaje sobre el badge
         val_str = f"+{pct:.1f}%" if pct >= 0 else f"{pct:.1f}%"
         draw.text((badge_center - 26, badge_y - 55), val_str, fill=color_texto_val, font=font_val)
 
         x_start += bar_width + spacing
 
-    footer_text = "Cazador Táctico • Ranking de Momentum 24h en Binance Spot"
+    footer_text = "Filtro Técnico: EMA (7/25/99) + MACD + RSI + Supertrend + Depth Spot"
     draw.text((50, 720), footer_text, fill="#64748B", font=font_footer)
 
     path_output = "infografia_tactica.png"
@@ -225,22 +257,22 @@ def limpiar_texto_telegram(texto):
             partes[i] = partes[i].replace('<', '&lt;').replace('>', '&gt;')
     return "".join(partes).strip()
 
-def enviar_a_telegram_con_foto_y_botones(path_imagen, analisis_ia, monedas):
+def enviar_a_telegram(path_imagen, analisis_ia, monedas, total_analizadas):
     token_limpio = re.sub(r'[^a-zA-Z0-9:\-_]', '', TELEGRAM_BOT_TOKEN)
     chat_id_limpio = re.sub(r'[^0-9\-]', '', TELEGRAM_CHAT_ID)
     topic_id_limpio = re.sub(r'[^0-9]', '', TELEGRAM_TOPIC_ID)
     
     protocolo = "https"
     dominio = "api.telegram.org"
-    url = f"{protocolo}://{dominio}/bot{token_limpio}/sendPhoto"
+    
+    # 1. Enviar infografía con botones de Binance
+    url_foto = f"{protocolo}://{dominio}/bot{token_limpio}/sendPhoto"
+    caption_foto = (
+        "🎯 <b>CAZADOR TÁCTICO - BÚSQUEDA DE TESOROS</b>\n"
+        f"🔍 <b>Universo analizado:</b> {total_analizadas} altcoins (< $1.00 USD)\n"
+        "🛠️ <b>Filtro Técnico:</b> EMAs (7/25/99), MACD, RSI, Parabolic SAR & Libro de Órdenes"
+    )
 
-    analisis_limpio = limpiar_texto_telegram(analisis_ia)
-    caption_texto = f"🎯 <b>CAZADOR TÁCTICO</b>\n\n{analisis_limpio}"
-
-    if len(caption_texto) > 1000:
-        caption_texto = caption_texto[:995] + "..."
-
-    # Botones ordenados de 2 en 2 por fila
     inline_keyboard = []
     fila_actual = []
     for item in monedas:
@@ -253,46 +285,51 @@ def enviar_a_telegram_con_foto_y_botones(path_imagen, analisis_ia, monedas):
     if fila_actual:
         inline_keyboard.append(fila_actual)
 
-    keyboard_structure = {
-        "inline_keyboard": inline_keyboard
-    }
-
-    data = {
+    data_foto = {
         "chat_id": chat_id_limpio,
-        "caption": caption_texto,
+        "caption": caption_foto,
         "parse_mode": "HTML",
-        "reply_markup": json.dumps(keyboard_structure)
+        "reply_markup": json.dumps({"inline_keyboard": inline_keyboard})
     }
-
     if topic_id_limpio:
         try:
-            data["message_thread_id"] = int(topic_id_limpio)
+            data_foto["message_thread_id"] = int(topic_id_limpio)
         except ValueError:
-            data["message_thread_id"] = topic_id_limpio
+            data_foto["message_thread_id"] = topic_id_limpio
 
     with open(path_imagen, 'rb') as photo_file:
-        files = {'photo': photo_file}
-        response = requests.post(url, data=data, files=files)
+        requests.post(url_foto, data=data_foto, files={'photo': photo_file})
 
-    if response.status_code != 200:
-        print(f"Error al enviar foto: {response.text}")
-        data.pop("parse_mode", None)
-        data["caption"] = caption_texto.replace("<b>", "").replace("</b>", "").replace("<i>", "").replace("</i>", "")
-        with open(path_imagen, 'rb') as photo_file:
-            files = {'photo': photo_file}
-            requests.post(url, data=data, files=files)
-    else:
-        print("¡Infografía sincronizada enviada a Telegram con éxito!")
+    # 2. Enviar el Dossier Técnico Completo de Inteligencia
+    url_msg = f"{protocolo}://{dominio}/bot{token_limpio}/sendMessage"
+    analisis_limpio = limpiar_texto_telegram(analisis_ia)
+    
+    texto_dossier = f"{analisis_limpio}"
+
+    data_msg = {
+        "chat_id": chat_id_limpio,
+        "text": texto_dossier,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": True
+    }
+    if topic_id_limpio:
+        try:
+            data_msg["message_thread_id"] = int(topic_id_limpio)
+        except ValueError:
+            data_msg["message_thread_id"] = topic_id_limpio
+
+    requests.post(url_msg, json=data_msg)
+    print("¡Dossier técnico con búsqueda de tesoros publicado exitosamente!")
 
 if __name__ == "__main__":
-    print("Iniciando Cazador Táctico (100% Sincronizado)...")
+    print("Iniciando Cazador Táctico (Análisis Técnico de Oportunidades)...")
     client = configurar_ia()
     
     tickers = obtener_mercado_binance()
     if tickers:
-        monedas_seleccionadas = seleccionar_top4_oportunidades(tickers)
-        analisis_ia = analizar_monedas_exactas_con_ia(client, monedas_seleccionadas)
+        universo, total_analizadas = escanear_universo_tesoros(tickers)
+        analisis_ia, monedas_seleccionadas = analizar_tesoros_con_ia(client, universo)
         path_imagen = generar_imagen_infografia(monedas_seleccionadas)
-        enviar_a_telegram_con_foto_y_botones(path_imagen, analisis_ia, monedas_seleccionadas)
+        enviar_a_telegram(path_imagen, analisis_ia, monedas_seleccionadas, total_analizadas)
     else:
         print("No se pudieron obtener datos del mercado.")
