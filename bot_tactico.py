@@ -9,7 +9,6 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 def configurar_ia():
     if not GEMINI_API_KEY:
         raise ValueError("Falta la clave GEMINI_API_KEY en los secretos de GitHub.")
-    # Inicialización estándar con la librería google-genai
     return genai.Client(api_key=GEMINI_API_KEY)
 
 def obtener_mercado_binance():
@@ -60,15 +59,15 @@ def analizar_oportunidades_con_ia(client, mercado_resumen):
     
     Tu objetivo es actuar como un **cazador de oportunidades ocultas**. Analiza estos datos, descarta el ruido y selecciona estrictamente las **2 o 3 mejores opciones** que muestren un patrón claro de acumulación, presión compradora o rebote inminente en el corto plazo.
     
-    Estructura la alerta para Telegram de manera limpia y profesional en español:
-    - 🪙 **Símbolo:**
-    - 💲 **Precio:**
-    - 📈 **Cambio 24h y Volumen:** 
-    - 🧠 **Veredicto de la IA:** Por qué esta moneda destaca hoy por acumulación o flujo de dinero para cazar una subida rápida en spot.
+    Estructura la alerta para Telegram de manera limpia y profesional usando formato HTML de Telegram (usa <b>texto</b> para negritas):
+    - 🪙 <b>Símbolo:</b>
+    - 💲 <b>Precio:</b>
+    - 📈 <b>Cambio 24h y Volumen:</b> 
+    - 🧠 <b>Veredicto de la IA:</b> Por qué esta moneda destaca hoy por acumulación o flujo de dinero para cazar una subida rápida en spot.
     
+    IMPORTANTE: No uses asteriscos para negrita (**), usa únicamente etiquetas HTML <b>...</b> para resaltar el texto.
     Si ninguna muestra una configuración seria en este ciclo, indícalo de forma objetiva para proteger el capital.
     """
-    # Se utiliza 'gemini-flash-latest' para vincular siempre con el modelo Flash activo en Google
     response = client.models.generate_content(
         model='gemini-flash-latest',
         contents=prompt,
@@ -77,10 +76,13 @@ def analizar_oportunidades_con_ia(client, mercado_resumen):
 
 def enviar_a_telegram(mensaje):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    # Reemplazamos cualquier posible residuo de asteriscos dobles por negrita HTML por seguridad
+    mensaje_limpio = mensaje.replace("**", "")
+    
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
-        "text": f"🎯 **CAZADOR TÁCTICO DE BAJO VALOR (IA)**\n\n{mensaje}",
-        "parse_mode": "Markdown",
+        "text": f"🎯 <b>CAZADOR TÁCTICO DE BAJO VALOR (IA)</b>\n\n{mensaje_limpio}",
+        "parse_mode": "HTML",
         "disable_web_page_preview": True
     }
     response = requests.post(url, json=payload)
