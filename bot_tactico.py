@@ -4,7 +4,7 @@ import time
 import requests
 from google import genai
 
-# Captura de variables de entorno
+# Captura y limpieza de variables de entorno
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN", "").strip()
 TELEGRAM_CHAT_ID = os.getenv("CHAT_ID", "").strip()
 TELEGRAM_TOPIC_ID = os.getenv("TOPIC_ID_TACTICO", "").strip()
@@ -77,8 +77,8 @@ def analizar_oportunidades_con_ia(client, mercado_resumen):
     3. No utilices asteriscos (**) para negritas. Usa únicamente etiquetas HTML <b>...</b>.
     """
     
-    # Lista de modelos ordenados por prioridad en caso de indisponibilidad
-    modelos = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash']
+    # Modelo oficial indicado por la API de Google
+    modelos = ['gemini-2.8-flash', 'gemini-2.5-flash']
     
     for modelo in modelos:
         print(f"Probando modelo IA: {modelo}...")
