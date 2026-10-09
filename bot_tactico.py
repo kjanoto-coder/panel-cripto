@@ -3,19 +3,17 @@ import re
 import time
 import requests
 from google import genai
-from google.genai import errors
 
 # Captura de variables de entorno
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN", "")
-TELEGRAM_CHAT_ID = os.getenv("CHAT_ID", "")
-TELEGRAM_TOPIC_ID = os.getenv("TOPIC_ID_TACTICO", "")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN", "").strip()
+TELEGRAM_CHAT_ID = os.getenv("CHAT_ID", "").strip()
+TELEGRAM_TOPIC_ID = os.getenv("TOPIC_ID_TACTICO", "").strip()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 
 def configurar_ia():
-    api_key_limpia = re.sub(r'[^a-zA-Z0-9_\-]', '', GEMINI_API_KEY)
-    if not api_key_limpia:
+    if not GEMINI_API_KEY:
         raise ValueError("Falta la clave GEMINI_API_KEY en los secretos de GitHub.")
-    return genai.Client(api_key=api_key_limpia)
+    return genai.Client(api_key=GEMINI_API_KEY)
 
 def obtener_mercado_binance():
     url = "https://data-api.binance.vision/api/v3/ticker/24hr"
@@ -63,7 +61,7 @@ def analizar_oportunidades_con_ia(client, mercado_resumen):
     
     {mercado_resumen}
     
-    Tu objetivo es seleccionar strictly las **2 o 3 mejores opciones** que muestren un patrón claro de acumulación o rebote inminente en el corto plazo.
+    Tu objetivo es seleccionar estrictamente las **2 o 3 mejores opciones** que muestren un patrón claro de acumulación o rebote inminente en el corto plazo.
     
     Estructura la alerta para Telegram usando ÚNICAMENTE formato HTML de Telegram (utiliza <b>texto</b> para negritas y <a href="URL">Texto</a> para enlaces):
     
@@ -79,35 +77,32 @@ def analizar_oportunidades_con_ia(client, mercado_resumen):
     3. No utilices asteriscos (**) para negritas. Usa únicamente etiquetas HTML <b>...</b>.
     """
     
-    modelo = 'gemini-flash-latest'
+    # Lista de modelos ordenados por prioridad en caso de indisponibilidad
+    modelos = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash']
     
-    for intento in range(1, 6):
-        try:
-            print(f"Consultando IA con {modelo} (Intento {intento}/5)...")
-            response = client.models.generate_content(
-                model=modelo,
-                contents=prompt,
-            )
-            print("¡Análisis de mercado generado con éxito!")
-            return response.text
-        except errors.APIError as e:
-            print(f"Servidor saturado ({e.code}). Esperando 10 segundos para reintentar...")
-            time.sleep(10)
-        except Exception as e:
-            print(f"Error inesperado: {e}. Reintentando en 10 segundos...")
-            time.sleep(10)
+    for modelo in modelos:
+        print(f"Probando modelo IA: {modelo}...")
+        for intento in range(1, 3):
+            try:
+                response = client.models.generate_content(
+                    model=modelo,
+                    contents=prompt,
+                )
+                if response and response.text:
+                    print(f"¡Análisis de mercado generado con éxito usando {modelo}!")
+                    return response.text
+            except Exception as e:
+                print(f"Aviso con modelo {modelo} (Intento {intento}/2): {e}")
+                time.sleep(5)
             
-    raise Exception("Servidores de Google ocupados tras 5 reintentos. Se ejecutará en el siguiente ciclo.")
+    raise Exception("No se pudo obtener respuesta de la IA. Verifica que tu GEMINI_API_KEY en GitHub Secrets sea válida y esté activa.")
 
 def enviar_a_telegram(mensaje, total_analizadas):
-    # Sanitización de variables de entorno
     token_limpio = re.sub(r'[^a-zA-Z0-9:\-_]', '', TELEGRAM_BOT_TOKEN)
     chat_id_limpio = re.sub(r'[^0-9\-]', '', TELEGRAM_CHAT_ID)
     topic_id_limpio = re.sub(r'[^0-9]', '', TELEGRAM_TOPIC_ID)
     
-    # Construcción de la URL limpia sin corchetes ni Markdown
-    base_url = "[https://api.telegram.org/bot](https://api.telegram.org/bot)"
-    url = f"{base_url}{token_limpio}/sendMessage"
+    url = f"[https://api.telegram.org/bot](https://api.telegram.org/bot){token_limpio}/sendMessage"
     
     mensaje_limpio = (
         mensaje.replace("```html", "")
@@ -133,11 +128,13 @@ def enviar_a_telegram(mensaje, total_analizadas):
     }
     
     if topic_id_limpio:
-        payload["message_thread_id"] = int(topic_id_limpio)
+        try:
+            payload["message_thread_id"] = int(topic_id_limpio)
+        except ValueError:
+            payload["message_thread_id"] = topic_id_limpio
             
     response = requests.post(url, json=payload)
     
-    # Fallback si Telegram rechaza etiquetas HTML
     if response.status_code != 200:
         print(f"Aviso de formato en Telegram ({response.text}). Reintentando envío en texto plano...")
         payload.pop("parse_mode", None)
@@ -146,7 +143,7 @@ def enviar_a_telegram(mensaje, total_analizadas):
         if response.status_code != 200:
             raise Exception(f"Error al enviar a Telegram: {response.text}")
             
-    print("¡Alerta de caza enviada con éxito al tema de Telegram!")
+    print("¡Alerta enviada con éxito al tema de Telegram!")
 
 if __name__ == "__main__":
     print("Iniciando Cazador Táctico de Bajo Valor...")
