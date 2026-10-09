@@ -55,26 +55,27 @@ def filtrar_candidatos_bajo_valor(tickers):
 def analizar_oportunidades_con_ia(client, mercado_resumen):
     prompt = f"""
     Actúa como un trader cuantitativo implacable especializado en altcoins de baja capitalización y memecoins de alto rendimiento.
-    Aquí tienes el escaneo en tiempo real de las 25 criptomonedas de **bajo valor (menores a $1 USD)** con mayor volumen en Binance:
+    Aquí tienes el escaneo en tiempo real del Top 25 de criptomonedas de **bajo valor (menores a $1 USD)** en Binance Spot con su enlace oficial de trading:
     
     {mercado_resumen}
     
-    Tu objetivo es actuar como un **cazador de oportunidades ocultas**. Analiza estos datos, descarta el ruido y selecciona estrictamente las **2 o 3 mejores opciones** que muestren un patrón claro de acumulación, presión compradora o rebote inminente en el corto plazo.
+    Tu objetivo es seleccionar estrictamente las **2 o 3 mejores opciones** que muestren un patrón claro de acumulación o rebote inminente en el corto plazo.
     
-    Estructura la alerta para Telegram de manera limpia y profesional usando formato HTML de Telegram (usa <b>texto</b> para negritas):
-    - 🪙 <b>Símbolo:</b>
-    - 💲 <b>Precio:</b>
-    - 📈 <b>Cambio 24h y Volumen:</b> 
-    - 🧠 <b>Veredicto de la IA:</b> Por qué esta moneda destaca hoy por acumulación o flujo de dinero para cazar una subida rápida en spot.
+    Estructura la alerta para Telegram usando ÚNICAMENTE formato HTML de Telegram (utiliza <b>texto</b> para negritas y <a href="URL">Texto</a> para enlaces):
     
-    IMPORTANTE: No uses asteriscos para negrita (**), usa únicamente etiquetas HTML <b>...</b> para resaltar el texto.
-    Si ninguna muestra una configuración seria en este ciclo, indícalo de forma objetiva para proteger el capital.
+    - 🪙 <b>Símbolo:</b> [Nombre y Símbolo]
+    - 💲 <b>Precio:</b> [Precio actual]
+    - 📈 <b>Cambio 24h y Volumen:</b> [Variación % y Volumen USDT]
+    - 🧠 <b>Veredicto de la IA:</b> [Explicación técnica del porqué destaca hoy]
+    - 🚀 <b>Trade Directo:</b> <a href="[URL_BINANCE]">Abrir {simbolo}/USDT en Binance</a>
+    
+    REGLAS ESTRICTAS:
+    1. Incluye siempre la línea de "Trade Directo" con el enlace exacto a Binance proporcionado en la lista para cada moneda elegida.
+    2. No utilices asteriscos (**) para negritas. Usa únicamente etiquetas HTML <b>...</b>.
     """
     
-    # Modelo oficial activo
     modelo = 'gemini-flash-latest'
     
-    # Reintentos focales de hasta 5 veces con pausas de 10s para superar saturación 503
     for intento in range(1, 6):
         try:
             print(f"Consultando IA con {modelo} (Intento {intento}/5)...")
@@ -91,15 +92,22 @@ def analizar_oportunidades_con_ia(client, mercado_resumen):
             print(f"Error inesperado: {e}. Reintentando en 10 segundos...")
             time.sleep(10)
             
-    raise Exception("Servidores de Google ocupados tras 5 reintentos. Se ejecutará automáticamente en el siguiente ciclo.")
+    raise Exception("Servidores de Google ocupados tras 5 reintentos. Se ejecutará en el siguiente ciclo.")
 
-def enviar_a_telegram(mensaje):
+def enviar_a_telegram(mensaje, total_analizadas):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     mensaje_limpio = mensaje.replace("**", "")
     
+    encabezado = (
+        "🎯 <b>CAZADOR TÁCTICO (ALTCOINS SUB-$1)</b>\n"
+        "🏢 <b>Mercado:</b> Binance Spot (USDT)\n"
+        f"🔍 <b>Universo analizado:</b> Top {total_analizadas} monedas (< $1.00 USD) por volumen 24h\n"
+        "-----------------------------------------\n\n"
+    )
+    
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
-        "text": f"🎯 <b>CAZADOR TÁCTICO DE BAJO VALOR (IA)</b>\n\n{mensaje_limpio}",
+        "text": f"{encabezado}{mensaje_limpio}",
         "parse_mode": "HTML",
         "disable_web_page_preview": True
     }
@@ -122,11 +130,13 @@ if __name__ == "__main__":
             precio = float(item['lastPrice'])
             cambio = float(item['priceChangePercent'])
             volumen = float(item['quoteVolume'])
+            binance_url = f"https://www.binance.com/es/trade/{sim}_USDT?type=spot"
+            
             resumen_datos.append(
-                f"Moneda: {sim} | Precio: {formatear_precio(precio)} | Cambio 24h: {cambio:+.2f}% | Vol USDT: {volumen:,.0f}"
+                f"Moneda: {sim} | Precio: {formatear_precio(precio)} | Cambio 24h: {cambio:+.2f}% | Vol USDT: {volumen:,.0f} | URL Binance: {binance_url}"
             )
         
         analisis_ia = analizar_oportunidades_con_ia(client, "\n".join(resumen_datos))
-        enviar_a_telegram(analisis_ia)
+        enviar_a_telegram(analisis_ia, len(candidatos))
     else:
         print("No se pudieron obtener datos del mercado.")
