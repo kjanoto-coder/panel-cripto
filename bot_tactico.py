@@ -9,8 +9,9 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 def configurar_ia():
     if not GEMINI_API_KEY:
         raise ValueError("Falta la clave GEMINI_API_KEY en los secretos de GitHub.")
-   return genai.GenerativeModel('gemini-1.5-flash')
-    return genai.GenerativeModel('gemini-2.5-flash')
+    genai.configure(api_key=GEMINI_API_KEY)
+    # Usamos Gemini 1.5 Flash para un análisis rápido, inteligente y económico
+    return genai.GenerativeModel('gemini-1.5-flash')
 
 def obtener_mercado_binance():
     url = "https://data-api.binance.vision/api/v3/ticker/24hr"
