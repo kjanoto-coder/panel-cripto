@@ -9,7 +9,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 def configurar_ia():
     if not GEMINI_API_KEY:
         raise ValueError("Falta la clave GEMINI_API_KEY en los secretos de GitHub.")
-    # Inicializamos el cliente oficial con la nueva librería google-genai
+    # Inicialización estándar con la librería google-genai
     return genai.Client(api_key=GEMINI_API_KEY)
 
 def obtener_mercado_binance():
@@ -23,7 +23,7 @@ def obtener_mercado_binance():
         return None
 
 def formatear_precio(precio):
-    """Ajusta los decimales dinámicamente para que coincida exactamente con la interfaz de Binance."""
+    """Ajusta los decimales dinámicamente para coincidir exactamente con la interfaz de Binance."""
     if precio is None:
         return "$0.00"
     elif precio >= 1.0:
@@ -68,9 +68,9 @@ def analizar_oportunidades_con_ia(client, mercado_resumen):
     
     Si ninguna muestra una configuración seria en este ciclo, indícalo de forma objetiva para proteger el capital.
     """
-    # Llamada moderna y estable con el modelo de Gemini
+    # Se utiliza 'gemini-flash-latest' para vincular siempre con el modelo Flash activo en Google
     response = client.models.generate_content(
-        model='gemini-2.0-flash',
+        model='gemini-flash-latest',
         contents=prompt,
     )
     return response.text
