@@ -9,10 +9,19 @@ CHAT_ID = os.getenv("CHAT_ID")
 TOPIC_ID_TACTICO = os.getenv("TOPIC_ID_TACTICO")
 
 def obtener_datos_binance():
-    url = "https://api.binance.com/api/v3/ticker/24hr"
-    response = requests.get(url)
-    if response.status_code == 200:
-        return response.json()
+    # Usamos el endpoint oficial de datos públicos de Binance que no bloquea IPs de la nube
+    url = "https://data-api.binance.vision/api/v3/ticker/24hr"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            print(f"Error HTTP de Binance: {response.status_code}")
+    except Exception as e:
+        print(f"Excepción al conectar con Binance: {e}")
     return []
 
 def seleccionar_top5_oportunidades(data):
