@@ -69,7 +69,6 @@ def procesar_oportunidades(data):
     return resultado, total_analizadas
 
 def generar_grafico_narrativa(oportunidades):
-    # Ordenamos de menor a mayor para que el gráfico escalone de izquierda a derecha como tu referencia
     ops_ordenadas = sorted(oportunidades, key=lambda x: x['change'])
     
     simbolos = [op['simbolo'] for op in ops_ordenadas]
@@ -78,39 +77,30 @@ def generar_grafico_narrativa(oportunidades):
     fig, ax = plt.subplots(figsize=(8, 6), facecolor='#0b132b')
     ax.set_facecolor('#0b132b')
     
-    # Barras verticales con el estilo de la narrativa
     bars = ax.bar(simbolos, cambios, color='#00c853', width=0.5, zorder=3)
     
-    # Cuadrícula técnica de fondo
     ax.grid(True, color='#1e293b', linestyle='-', linewidth=0.8, zorder=1)
     ax.set_axisbelow(True)
     
-    # Ocultar marcos
     for spine in ['top', 'right', 'left', 'bottom']:
         ax.spines[spine].set_visible(False)
         
     ax.tick_params(left=False, labelleft=False, bottom=False)
-    ax.tick_params(axis='x', colors='white', labelsize=11, labelweight='bold')
+    ax.tick_params(axis='x', colors='white', labelsize=11)
     
-    # Añadir valores y círculos con los símbolos encima de cada barra
     for bar, sim, cambio in zip(bars, simbolos, cambios):
         yval = bar.get_height()
         xval = bar.get_x() + bar.get_width() / 2.0
         
-        # Porcentaje superior
         ax.text(xval, yval + 4.0, f"+{cambio:.1f}%" if cambio >= 0 else f"{cambio:.1f}%", 
                 ha='center', va='bottom', color='#00c853', fontweight='bold', fontsize=11)
         
-        # Círculo del ticker
         ax.plot(xval, yval + 1.5, marker='o', markersize=22, markerfacecolor='#0f172a', markeredgecolor='#00c853', markeredgewidth=1.5, zorder=4)
         ax.text(xval, yval + 1.5, sim, ha='center', va='center', color='white', fontsize=8, fontweight='bold', zorder=5)
 
-    # Cabecera del gráfico
     fecha_str = datetime.now().strftime('%Y-%m-%d')
     plt.title("NARRATIVA DEL DÍA\nTOP 5 ALTCOINS SUB-$1 USD\n", loc='left', color='#ffab00', fontsize=15, fontweight='bold', pad=15)
     ax.text(0.0, 1.02, f"📅 {fecha_str}", transform=ax.transAxes, color='#94a3b8', fontsize=9)
-    
-    # Pie de gráfico
     ax.text(0.0, -0.12, "Cazador Táctico • Ranking de Momentum 24h en Binance Spot", transform=ax.transAxes, color='#64748b', fontsize=8)
     
     plt.tight_layout()
@@ -146,10 +136,8 @@ def main():
         print("No se encontraron oportunidades con los filtros establecidos.")
         return
     
-    # Generar la imagen del gráfico de la narrativa
     imagen_grafico = generar_grafico_narrativa(oportunidades)
     
-    # Construcción del mensaje descriptivo que acompaña a la foto
     mensaje = f"<b>MONEDAS ANALIZADAS:</b> {total_analizadas}\n\n"
     mensaje += f"<b>RESUMEN:</b> Estas altcoins fueron seleccionadas de un universo de {total_analizadas} activos bajo $1 USD en Binance Spot debido a una confluencia de compresión de volatilidad previa y rotación agresiva de capital hacia activos de alta beta.\n\n"
     mensaje += "🚀 <b>TOP OPORTUNIDADES TÁCTICAS</b>\n"
