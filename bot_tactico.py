@@ -52,8 +52,8 @@ def seleccionar_top5_oportunidades(data):
         cambio = kline['change']
         volumen = kline['volume']
         
-        binance_url = "https://www.binance.com/es/trade/" + sim + "_USDT?type=spot"
-        netlify_url = "https://polite-baklava-8ec85f.netlify.app/?coin=" + sim + "&price=" + str(precio) + "&change=" + str(cambio)
+        binance_url = f"https://www.binance.com/es/trade/{sim}_USDT?type=spot"
+        netlify_url = f"https://polite-baklava-8ec85f.netlify.app/?coin={sim}&price={precio}&change={cambio}"
         
         resultado.append({
             'simbolo': sim,
@@ -68,10 +68,10 @@ def seleccionar_top5_oportunidades(data):
 
 def enviar_telegram(mensaje):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    # Omitimos 'parse_mode' para enviar texto plano seguro y evitar errores de entidades HTML
     payload = {
         "chat_id": CHAT_ID,
         "text": mensaje,
-        "parse_mode": "HTML",
         "disable_web_page_preview": True
     }
     if TOPIC_ID_TACTICO:
@@ -92,22 +92,19 @@ def main():
         print("No se encontraron oportunidades con los filtros establecidos.")
         return
     
-    # Construcción limpia del mensaje
-    mensaje = "🧠 <b>CENTRAL DE INTELIGENCIA DE MERCADO (Cazador Táctico)</b>\n"
-    mensaje += "📊 <i>Monitoreo Cuantitativo: Activos Spot < $1 USD</i>\n"
-    mensaje += "⚡ <b>Estado: Automatización Activa (Cada 15m)</b>\n\n"
-    mensaje += "🚀 <b>TOP OPORTUNIDADES TÁCTICAS</b>\n"
+    # Mensaje estructurado en texto plano puro para evitar cualquier error de parseo
+    mensaje = "🧠 CENTRAL DE INTELIGENCIA DE MERCADO (Cazador Táctico)\n"
+    mensaje += "📊 Monitoreo Cuantitativo: Activos Spot < $1 USD\n"
+    mensaje += "⚡ Estado: Automatización Activa (Cada 15m)\n\n"
+    mensaje += "🚀 TOP OPORTUNIDADES TÁCTICAS\n"
     
     for op in oportunidades:
         precio_str = f"${op['precio']:.4f}" if op['precio'] < 1 else f"${op['precio']:.2f}"
         cambio_str = f"+{op['change']:.1f}%" if op['change'] >= 0 else f"{op['change']:.1f}%"
         
-        # Concatenación estricta sin comillas conflictivas
-        link_ia = '<a href="' + op['netlify_url'] + '">Resumen IA</a>'
-        link_trade = '<a href="' + op['binance_url'] + '">Tradear</a>'
-        
-        mensaje += "• <b>" + op['simbolo'] + "</b> | " + precio_str + " | 🟢🟢🟢🟢🟢 |\n"
-        mensaje += "  └ 📊 " + link_ia + " | 🔶 " + link_trade + " (" + cambio_str + ")\n"
+        mensaje += f"\n• {op['simbolo']} | {precio_str} ({cambio_str}) | 🟢🟢🟢🟢🟢\n"
+        mensaje += f"  📊 Resumen IA: {op['netlify_url']}\n"
+        mensaje += f"  🔶 Tradear: {op['binance_url']}\n"
 
     enviar_telegram(mensaje)
 
