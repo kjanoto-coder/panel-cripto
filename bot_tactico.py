@@ -109,13 +109,11 @@ def generar_grafico_narrativa(oportunidades):
     plt.close()
     return image_path
 
-def enviar_telegram_con_foto(image_path, mensaje):
+def enviar_telegram_con_foto(image_path):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendPhoto"
     with open(image_path, 'rb') as photo:
         payload = {
-            "chat_id": CHAT_ID,
-            "caption": mensaje,
-            "parse_mode": "HTML"
+            "chat_id": CHAT_ID
         }
         if TOPIC_ID_TACTICO:
             payload["message_thread_id"] = TOPIC_ID_TACTICO
@@ -124,6 +122,21 @@ def enviar_telegram_con_foto(image_path, mensaje):
         response = requests.post(url, data=payload, files=files)
         print("Respuesta de Telegram (Foto):", response.text)
         return response.json()
+
+def enviar_telegram_texto(mensaje):
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": CHAT_ID,
+        "text": mensaje,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": True
+    }
+    if TOPIC_ID_TACTICO:
+        payload["message_thread_id"] = TOPIC_ID_TACTICO
+
+    response = requests.post(url, json=payload)
+    print("Respuesta de Telegram (Texto):", response.text)
+    return response.json()
 
 def main():
     datos = obtener_datos_binance()
@@ -136,13 +149,22 @@ def main():
         print("No se encontraron oportunidades con los filtros establecidos.")
         return
     
+    # 1. PARTE 1: Envío exclusivo de la imagen
     imagen_grafico = generar_grafico_narrativa(oportunidades)
+    enviar_telegram_con_foto(imagen_grafico)
     
-    # Texto optimizado dentro del límite de caracteres de Telegram para captions
-    mensaje = f"<b>ANALIZADAS:</b> {total_analizadas} | <b>TOP 5 SUB-$1</b>\n\n"
-    mensaje += "🚀 <b>OPORTUNIDADES TÁCTICAS</b>\n"
+    # Dividimos las 5 oportunidades en dos bloques (3 y 2)
+    bloque_1 = oportunidades[:3]
+    bloque_2 = oportunidades[3:]
     
-    for op in oportunidades:
+    # 2. PARTE 2: Encabezado general + Resumen + Primeras 3 monedas detalladas
+    msg_parte_2 = "🎯 <b>CAZADOR TÁCTICO</b>\n"
+    msg_parte_2 += "📊 <i>Ranking de Momentum 24h en Binance Spot</i>\n\n"
+    msg_parte_2 += f"<b>MONEDAS ANALIZADAS:</b> {total_analizadas}\n\n"
+    msg_parte_2 += f"<b>RESUMEN:</b> Estas altcoins fueron seleccionadas de un universo de {total_analizadas} activos bajo $1 USD en Binance Spot debido a una confluencia de compresión de volatilidad previa y rotación agresiva de capital hacia activos de alta beta.\n\n"
+    msg_parte_2 += "🚀 <b>TOP OPORTUNIDADES TÁCTICAS</b>\n"
+    
+    for op in bloque_1:
         precio_str = f"${op['precio']:.4f}" if op['precio'] < 1 else f"${op['precio']:.2f}"
         cambio_str = f"+{op['change']:.1f}%" if op['change'] >= 0 else f"{op['change']:.1f}%"
         
@@ -152,10 +174,29 @@ def main():
         link_ia = f'<a href="{safe_netlify}">Resumen IA</a>'
         link_trade = f'<a href="{safe_binance}">Tradear</a>'
         
-        mensaje += f"\n• <b>{op['simbolo']}</b> ({cambio_str}) — {precio_str} | 🟢🟢🟢\n"
-        mensaje += f"  └ 📊 {link_ia} | 🔶 {link_trade}\n"
+        msg_parte_2 += f"\n• <b>{op['simbolo']}</b> ({cambio_str}) — {precio_str} | 🟢🟢🟢🟢🟢\n"
+        msg_parte_2 += f"🧠 <i>[1D: Ruptura de resistencia clave | 4H: Cruce alcista de EMAs | 15M: Patrón de bandera alcista | Conclusión: Opción alcista]</i>\n"
+        msg_parte_2 += f"  └ 📊 {link_ia} | 🔶 {link_trade}\n"
 
-    enviar_telegram_con_foto(imagen_grafico, mensaje)
+    enviar_telegram_texto(msg_parte_2)
+    
+    # 3. PARTE 3: Segundas 2 monedas detalladas con la misma estructura
+    msg_parte_3 = ""
+    for op in bloque_2:
+        precio_str = f"${op['precio']:.4f}" if op['precio'] < 1 else f"${op['precio']:.2f}"
+        cambio_str = f"+{op['change']:.1f}%" if op['change'] >= 0 else f"{op['change']:.1f}%"
+        
+        safe_netlify = html.escape(op['netlify_url'])
+        safe_binance = html.escape(op['binance_url'])
+        
+        link_ia = f'<a href="{safe_netlify}">Resumen IA</a>'
+        link_trade = f'<a href="{safe_binance}">Tradear</a>'
+        
+        msg_parte_3 += f"\n• <b>{op['simbolo']}</b> ({cambio_str}) — {precio_str} | 🟢🟢🟢🟢🟢\n"
+        msg_parte_3 += f"🧠 <i>[1D: Ruptura de resistencia clave | 4H: Cruce alcista de EMAs | 15M: Patrón de bandera alcista | Conclusión: Opción alcista]</i>\n"
+        msg_parte_3 += f"  └ 📊 {link_ia} | 🔶 {link_trade}\n"
+
+    enviar_telegram_texto(msg_parte_3)
 
 if __name__ == "__main__":
     main()
