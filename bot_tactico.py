@@ -92,7 +92,7 @@ def main():
         print("No se encontraron oportunidades con los filtros establecidos.")
         return
     
-    # Construcción limpia del mensaje sin caracteres conflictivos
+    # Construcción del mensaje con HTML perfectamente escapado para Telegram
     mensaje = "🧠 <b>CENTRAL DE INTELIGENCIA DE MERCADO (Cazador Táctico)</b>\n"
     mensaje += "📊 <i>Monitoreo Cuantitativo: Activos Spot < $1 USD</i>\n"
     mensaje += "⚡ <b>Estado: Automatización Activa (Cada 15m)</b>\n\n"
@@ -102,9 +102,9 @@ def main():
         precio_str = f"${op['precio']:.4f}" if op['precio'] < 1 else f"${op['precio']:.2f}"
         cambio_str = f"+{op['change']:.1f}%" if op['change'] >= 0 else f"{op['change']:.1f}%"
         
-        # Estructura de enlaces segura en HTML
-        link_ia = f"<a href='{op['netlify_url']}'>Resumen IA</a>"
-        link_trade = f"<a href='{op['binance_url']}'>Tradear</a>"
+        # Uso estricto de comillas dobles escapadas para el atributo href de Telegram
+        link_ia = f"<a href=\"{op['netlify_url']}\">Resumen IA</a>"
+        link_trade = f"<a href=\"{op['binance_url']}\">Tradear</a>"
         
         mensaje += f"• <b>{op['simbolo']}</b> | {precio_str} | 🟢🟢🟢🟢🟢 |\n"
         mensaje += f"  └ 📊 {link_ia} | 🔶 {link_trade} ({cambio_str})\n"
