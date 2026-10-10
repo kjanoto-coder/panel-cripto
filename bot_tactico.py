@@ -9,7 +9,7 @@ CHAT_ID = os.getenv("CHAT_ID")
 TOPIC_ID_TACTICO = os.getenv("TOPIC_ID_TACTICO")
 
 def obtener_datos_binance():
-    # Usamos el endpoint oficial de datos públicos de Binance que no bloquea IPs de la nube
+    # Endpoint oficial de datos públicos de Binance (evita bloqueos de IP en GitHub Actions)
     url = "https://data-api.binance.vision/api/v3/ticker/24hr"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -74,12 +74,15 @@ def enviar_telegram(mensaje):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     payload = {
         "chat_id": CHAT_ID,
-        "message_thread_id": TOPIC_ID_TACTICO,
         "text": mensaje,
         "parse_mode": "HTML",
         "disable_web_page_preview": True
     }
+    if TOPIC_ID_TACTICO:
+        payload["message_thread_id"] = TOPIC_ID_TACTICO
+
     response = requests.post(url, json=payload)
+    print("Respuesta de Telegram:", response.text)  # Permite verificar el éxito o error en los logs de GitHub
     return response.json()
 
 def main():
