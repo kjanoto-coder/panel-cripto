@@ -2,8 +2,8 @@ name: Cazador Táctico IA (Bajo Valor)
 
 on:
   schedule:
-    - cron: "*/15 * * * *"  # Se ejecuta automáticamente cada 15 minutos
-  workflow_dispatch:        # Permite ejecución manual desde la pestaña Actions
+    - cron: "*/15 * * * *" # Se ejecuta automáticamente cada 15 minutos
+  workflow_dispatch:      # Permite ejecución manual desde la pestaña Actions
 
 jobs:
   run-tactical-hunter:
@@ -19,7 +19,7 @@ jobs:
 
       - name: Instalar dependencias
         run: |
-          pip install requests google-genai pillow
+          pip install requests google-genai matplotlib
 
       - name: Ejecutar Cazador Táctico
         env:
