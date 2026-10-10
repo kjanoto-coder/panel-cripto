@@ -100,7 +100,7 @@ def generar_grafico_narrativa(oportunidades):
 
     fecha_str = datetime.now().strftime('%Y-%m-%d')
     plt.title("NARRATIVA DEL DÍA\nTOP 5 ALTCOINS SUB-$1 USD\n", loc='left', color='#ffab00', fontsize=15, fontweight='bold', pad=15)
-    ax.text(0.0, 1.02, f"📅 {fecha_str}", transform=ax.transAxes, color='#94a3b8', fontsize=9)
+    ax.text(0.0, 1.02, f"Fecha: {fecha_str}", transform=ax.transAxes, color='#94a3b8', fontsize=9)
     ax.text(0.0, -0.12, "Cazador Táctico • Ranking de Momentum 24h en Binance Spot", transform=ax.transAxes, color='#64748b', fontsize=8)
     
     plt.tight_layout()
@@ -138,9 +138,9 @@ def main():
     
     imagen_grafico = generar_grafico_narrativa(oportunidades)
     
-    mensaje = f"<b>MONEDAS ANALIZADAS:</b> {total_analizadas}\n\n"
-    mensaje += f"<b>RESUMEN:</b> Estas altcoins fueron seleccionadas de un universo de {total_analizadas} activos bajo $1 USD en Binance Spot debido a una confluencia de compresión de volatilidad previa y rotación agresiva de capital hacia activos de alta beta.\n\n"
-    mensaje += "🚀 <b>TOP OPORTUNIDADES TÁCTICAS</b>\n"
+    # Texto optimizado dentro del límite de caracteres de Telegram para captions
+    mensaje = f"<b>ANALIZADAS:</b> {total_analizadas} | <b>TOP 5 SUB-$1</b>\n\n"
+    mensaje += "🚀 <b>OPORTUNIDADES TÁCTICAS</b>\n"
     
     for op in oportunidades:
         precio_str = f"${op['precio']:.4f}" if op['precio'] < 1 else f"${op['precio']:.2f}"
@@ -152,8 +152,7 @@ def main():
         link_ia = f'<a href="{safe_netlify}">Resumen IA</a>'
         link_trade = f'<a href="{safe_binance}">Tradear</a>'
         
-        mensaje += f"\n• <b>{op['simbolo']}</b> ({cambio_str}) — {precio_str} | 🟢🟢🟢🟢🟢\n"
-        mensaje += f"🧠 <i>[1D: Ruptura de resistencia clave | 4H: Cruce alcista de EMAs | 15M: Patrón de bandera alcista | Conclusión: Opción alcista]</i>\n"
+        mensaje += f"\n• <b>{op['simbolo']}</b> ({cambio_str}) — {precio_str} | 🟢🟢🟢\n"
         mensaje += f"  └ 📊 {link_ia} | 🔶 {link_trade}\n"
 
     enviar_telegram_con_foto(imagen_grafico, mensaje)
