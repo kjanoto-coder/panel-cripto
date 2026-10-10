@@ -52,8 +52,8 @@ def seleccionar_top5_oportunidades(data):
         cambio = kline['change']
         volumen = kline['volume']
         
-        binance_url = f"https://www.binance.com/es/trade/{sim}_USDT?type=spot"
-        netlify_url = f"https://polite-baklava-8ec85f.netlify.app/?coin={sim}&price={precio}&change={cambio}"
+        binance_url = "https://www.binance.com/es/trade/" + sim + "_USDT?type=spot"
+        netlify_url = "https://polite-baklava-8ec85f.netlify.app/?coin=" + sim + "&price=" + str(precio) + "&change=" + str(cambio)
         
         resultado.append({
             'simbolo': sim,
@@ -94,20 +94,20 @@ def main():
     
     # Construcción limpia del mensaje
     mensaje = "🧠 <b>CENTRAL DE INTELIGENCIA DE MERCADO (Cazador Táctico)</b>\n"
-    mensaje = mensaje + "📊 <i>Monitoreo Cuantitativo: Activos Spot < $1 USD</i>\n"
-    mensaje = mensaje + "⚡ <b>Estado: Automatización Activa (Cada 15m)</b>\n\n"
-    mensaje = mensaje + "🚀 <b>TOP OPORTUNIDADES TÁCTICAS</b>\n"
+    mensaje += "📊 <i>Monitoreo Cuantitativo: Activos Spot < $1 USD</i>\n"
+    mensaje += "⚡ <b>Estado: Automatización Activa (Cada 15m)</b>\n\n"
+    mensaje += "🚀 <b>TOP OPORTUNIDADES TÁCTICAS</b>\n"
     
     for op in oportunidades:
         precio_str = f"${op['precio']:.4f}" if op['precio'] < 1 else f"${op['precio']:.2f}"
         cambio_str = f"+{op['change']:.1f}%" if op['change'] >= 0 else f"{op['change']:.1f}%"
         
-        # Armado seguro de URLs utilizando concatenación simple de strings para evitar errores de parseo HTML
-        url_ia_str = op['netlify_url']
-        url_tr_str = op['binance_url']
+        # Concatenación estricta sin comillas conflictivas
+        link_ia = '<a href="' + op['netlify_url'] + '">Resumen IA</a>'
+        link_trade = '<a href="' + op['binance_url'] + '">Tradear</a>'
         
-        mensaje = mensaje + f"• <b>{op['simbolo']}</b> | {precio_str} | 🟢🟢🟢🟢🟢 |\n"
-        mensaje = mensaje + f"  └ 📊 <a href=\"{url_ia_str}\">Resumen IA</a> | 🔶 <a href=\"{url_tr_str}\">Tradear</a> ({cambio_str})\n"
+        mensaje += "• <b>" + op['simbolo'] + "</b> | " + precio_str + " | 🟢🟢🟢🟢🟢 |\n"
+        mensaje += "  └ 📊 " + link_ia + " | 🔶 " + link_trade + " (" + cambio_str + ")\n"
 
     enviar_telegram(mensaje)
 
