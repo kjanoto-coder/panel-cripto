@@ -1,5 +1,5 @@
 import os
-requests
+import requests
 import json
 import html
 from datetime import datetime
