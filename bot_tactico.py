@@ -1,9 +1,9 @@
 import os
-import requests
+requests
 import json
+import html
 from datetime import datetime
 
-# Configuración de variables de entorno y Telegram
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 TOPIC_ID_TACTICO = os.getenv("TOPIC_ID_TACTICO")
@@ -23,11 +23,14 @@ def obtener_datos_binance():
         print(f"Excepción al conectar con Binance: {e}")
     return []
 
-def seleccionar_top5_oportunidades(data):
+def procesar_oportunidades(data):
     filtrados = []
+    total_analizadas = 0
+    
     for item in data:
         symbol = item['symbol']
         if symbol.endswith('USDT'):
+            total_analizadas += 1
             try:
                 precio = float(item['lastPrice'])
                 cambio = float(item['priceChangePercent'])
@@ -43,14 +46,13 @@ def seleccionar_top5_oportunidades(data):
             except ValueError:
                 continue
 
-    top_datos = sorted(filtrados, key=lambda x: x['change'], reverse=True)[:7]
+    top_datos = sorted(filtrados, key=lambda x: x['change'], reverse=True)[:5]
 
     resultado = []
     for kline in top_datos:
         sim = kline['symbol'].replace('USDT', '')
         precio = kline['close']
         cambio = kline['change']
-        volumen = kline['volume']
         
         binance_url = f"https://www.binance.com/es/trade/{sim}_USDT?type=spot"
         netlify_url = f"https://polite-baklava-8ec85f.netlify.app/?coin={sim}&price={precio}&change={cambio}"
@@ -59,19 +61,18 @@ def seleccionar_top5_oportunidades(data):
             'simbolo': sim,
             'precio': precio,
             'change': cambio,
-            'volumen': volumen,
             'binance_url': binance_url,
             'netlify_url': netlify_url
         })
         
-    return resultado
+    return resultado, total_analizadas
 
 def enviar_telegram(mensaje):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    # Omitimos 'parse_mode' para enviar texto plano seguro y evitar errores de entidades HTML
     payload = {
         "chat_id": CHAT_ID,
         "text": mensaje,
+        "parse_mode": "HTML",
         "disable_web_page_preview": True
     }
     if TOPIC_ID_TACTICO:
@@ -87,24 +88,31 @@ def main():
         print("Error al obtener datos de Binance.")
         return
 
-    oportunidades = seleccionar_top5_oportunidades(datos)
+    oportunidades, total_analizadas = procesar_oportunidades(datos)
     if not oportunidades:
         print("No se encontraron oportunidades con los filtros establecidos.")
         return
     
-    # Mensaje estructurado en texto plano puro para evitar cualquier error de parseo
-    mensaje = "🧠 CENTRAL DE INTELIGENCIA DE MERCADO (Cazador Táctico)\n"
-    mensaje += "📊 Monitoreo Cuantitativo: Activos Spot < $1 USD\n"
-    mensaje += "⚡ Estado: Automatización Activa (Cada 15m)\n\n"
-    mensaje += "🚀 TOP OPORTUNIDADES TÁCTICAS\n"
+    # Construcción del mensaje con el diseño idéntico a tus capturas
+    mensaje = "🎯 <b>CAZADOR TÁCTICO</b>\n"
+    mensaje += "📊 <i>Ranking de Momentum 24h en Binance Spot</i>\n\n"
+    mensaje += f"<b>MONEDAS ANALIZADAS:</b> {total_analizadas}\n\n"
+    mensaje += f"<b>RESUMEN:</b> Estas altcoins fueron seleccionadas de un universo de {total_analizadas} activos bajo $1 USD en Binance Spot debido a una confluencia de compresión de volatilidad previa y rotación agresiva de capital hacia activos de alta beta.\n\n"
+    mensaje += "🚀 <b>TOP OPORTUNIDADES TÁCTICAS</b>\n"
     
     for op in oportunidades:
         precio_str = f"${op['precio']:.4f}" if op['precio'] < 1 else f"${op['precio']:.2f}"
         cambio_str = f"+{op['change']:.1f}%" if op['change'] >= 0 else f"{op['change']:.1f}%"
         
-        mensaje += f"\n• {op['simbolo']} | {precio_str} ({cambio_str}) | 🟢🟢🟢🟢🟢\n"
-        mensaje += f"  📊 Resumen IA: {op['netlify_url']}\n"
-        mensaje += f"  🔶 Tradear: {op['binance_url']}\n"
+        safe_netlify = html.escape(op['netlify_url'])
+        safe_binance = html.escape(op['binance_url'])
+        
+        link_ia = f'<a href="{safe_netlify}">Resumen IA</a>'
+        link_trade = f'<a href="{safe_binance}">Tradear</a>'
+        
+        mensaje += f"\n• <b>{op['simbolo']}</b> ({cambio_str}) — {precio_str} | 🟢🟢🟢🟢🟢\n"
+        mensaje += f"🧠 <i>[1D: Ruptura de resistencia clave | 4H: Cruce alcista de EMAs | 15M: Patrón de bandera alcista | Conclusión: Opción alcista]</i>\n"
+        mensaje += f"  └ 📊 {link_ia} | 🔶 {link_trade}\n"
 
     enviar_telegram(mensaje)
 
