@@ -64,17 +64,17 @@ def preparar_datos(tickers):
     ]
     print(f"Pares USDT válidos filtrados: {len(usdt_pairs)}")
     
-    # Top 7 Ganadoras
+    # 1. Top 7 Ganadoras
     ganadoras = sorted(usdt_pairs, key=lambda x: float(x['priceChangePercent']), reverse=True)[:7]
     
-    # Top 7 Acumulación (< $1 USD)
+    # 2. Top 7 Acumulación (< $1 USD ordenados por volumen)
     acumulacion_pool = [t for t in usdt_pairs if float(t['lastPrice']) < 1.0]
     acumulacion = sorted(acumulacion_pool, key=lambda x: float(x['quoteVolume']), reverse=True)[:7]
     
-    # Top 7 Perdedoras
+    # 3. Top 7 Perdedoras
     perdedoras = sorted(usdt_pairs, key=lambda x: float(x['priceChangePercent']))[:7]
     
-    # Tus 5 favoritas
+    # 4. Tus 5 favoritas
     favoritas_simbolos = ['QI', 'TUT', 'NEIRO', 'LUNC', 'BANK']
     favoritas = []
     for sim in favoritas_simbolos:
@@ -146,17 +146,21 @@ def enviar_texto_telegram(texto):
     res = requests.post(url, json=payload)
     return res
 
-def procesar_y_enviar_bloque(num_bloque, titulo_bloque, icono, lista_items, color_grafico, es_acumulacion=False):
+def procesar_y_enviar_bloque(num_bloque, titulo_bloque, icono, lista_items, color_grafico, filename_grafico, es_acumulacion=False):
     if not lista_items:
         print(f"Advertencia: No hay items para el bloque {num_bloque}")
         return
     
-    filename = f"grafico_tema_{num_bloque}.png"
-    generar_grafico_tema(lista_items, f"{icono} {titulo_bloque.upper()} • Ranking 24h", color_grafico, filename)
+    print(f"Generando y enviando Bloque {num_bloque}: {titulo_bloque}...")
+    generar_grafico_tema(lista_items, f"{icono} {titulo_bloque.upper()} • Ranking 24h", color_grafico, filename_grafico)
     
+    # 1. Enviar el gráfico primero
     caption = f"🧠 <b>CENTRAL DE INTELIGENCIA DE MERCADO ({num_bloque}/4)</b>\n{icono} <b>{num_bloque}. {titulo_bloque.upper()}</b>"
-    enviar_foto_telegram(filename, caption)
+    res_foto = enviar_foto_telegram(filename_grafico, caption)
+    print(f"Foto Bloque {num_bloque} status: {res_foto.status_code}")
+    time.sleep(2) # Pausa de seguridad para evitar saturar a Telegram
     
+    # 2. Enviar el detalle en texto a continuación
     msg = f"{icono} <b>{num_bloque}. {titulo_bloque.upper()} (Detalle)</b>\n\n"
     for item in lista_items:
         sim = item['symbol'].replace('USDT', '')
@@ -179,8 +183,9 @@ def procesar_y_enviar_bloque(num_bloque, titulo_bloque, icono, lista_items, colo
             f"  └ <a href=\"{html.escape(url_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n"
         )
     
-    enviar_texto_telegram(msg)
-    time.sleep(1.2)
+    res_txt = enviar_texto_telegram(msg)
+    print(f"Texto Bloque {num_bloque} status: {res_txt.status_code}")
+    time.sleep(3) # Pausa más amplia antes de pasar al siguiente tema
 
 if __name__ == "__main__":
     print("Iniciando análisis de mercado...")
@@ -191,16 +196,18 @@ if __name__ == "__main__":
     if datos:
         ganadoras, acumulacion, perdedoras, favoritas = preparar_datos(datos)
         
-        # Bloque 1: Top 7 Ganadoras
-        procesar_y_enviar_bloque(1, "TOP 7 GANADORAS", "🚀", ganadoras, "#00c853")
+        # Tema 1: Ganadoras
+        procesar_y_enviar_bloque(1, "TOP 7 GANADORAS", "🚀", ganadoras, "#00c853", "grafico_ganadoras.png")
         
-        # Bloque 2: Top 7 Acumulación (< $1 USD)
-        procesar_y_enviar_bloque(2, "TOP 7 ACUMULACIÓN (< $1 USD)", "💎", acumulacion, "#ffab00", es_acumulacion=True)
+        # Tema 2: Acumulación
+        procesar_y_enviar_bloque(2, "TOP 7 ACUMULACIÓN (< $1 USD)", "💎", acumulacion, "#ffab00", "grafico_acumulacion.png", es_acumulacion=True)
         
-        # Bloque 3: Top 7 Perdedoras
-        procesar_y_enviar_bloque(3, "TOP 7 PERDEDORAS", "📉", perdedoras, "#f6465d")
+        # Tema 3: Perdedoras
+        procesar_y_enviar_bloque(3, "TOP 7 PERDEDORAS", "📉", perdedoras, "#f6465d", "grafico_perdedoras.png")
         
-        # Bloque 4: Tus 5 Favoritas
-        procesar_y_enviar_bloque(4, "TUS 5 FAVORITAS", "⭐", favoritas, "#3861fb")
+        # Tema 4: Favoritas
+        procesar_y_enviar_bloque(4, "TUS 5 FAVORITAS", "⭐", favoritas, "#3861fb", "grafico_favoritas.png")
         
-        print("¡Los 4 bloques con sus infografías completas han sido enviados exitosamente!")
+        print("¡Los 4 temas con sus gráficos y detalles fueron enviados en orden perfecto!")
+    else:
+        raise Exception("No se pudieron obtener datos de la API de Binance.")
