@@ -11,7 +11,7 @@ TELEGRAM_CHAT_ID = os.getenv("CHAT_ID")
 TELEGRAM_TOPIC_ID = os.getenv("TOPIC_ID_TACTICO")
 BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
 
-# Lista negra para descartar tokens deslistados
+# Lista negra para descartar tokens deslistados o problemáticos
 LISTA_NEGRA = ['PNTUSDT', 'VGXUSDT', 'BNCUSDT']
 
 def obtener_datos_binance():
@@ -60,42 +60,91 @@ def generar_barra_progreso(cambio, tipo_bloque=""):
 
 def preparar_datos(tickers):
     usdt_pairs = []
+    
+    # Exclusión estricta de stablecoins, monedas fiat sintéticas y megacapitalizaciones masivas
+    EXCLUIDOS = [
+        'FDUSD', 'USDT', 'USDC', 'DAI', 'TUSD', 'USDP', 'EUR', 'BUSD',
+        'DOGE', 'TRX', 'SHIB', 'WLD', 'SOL', 'BTC', 'ETH', 'XRP', 'ADA', 
+        'BNB', 'AVAX', 'LINK', 'SUI', 'PEPE', 'NEAR', 'APT', 'ICP'
+    ]
+    
     for t in tickers:
         symbol = t.get('symbol', '')
-        if symbol.endswith('USDT') and not any(x in symbol for x in ['UP', 'DOWN', 'BULL', 'BEAR']) and symbol not in LISTA_NEGRA:
+        base_name = symbol.replace('USDT', '')
+        
+        if (symbol.endswith('USDT') and 
+            base_name not in EXCLUIDOS and 
+            not any(x in symbol for x in ['UP', 'DOWN', 'BULL', 'BEAR']) and 
+            symbol not in LISTA_NEGRA):
             try:
                 t['lastPrice_f'] = float(t.get('lastPrice', 0))
                 t['priceChangePercent_f'] = float(t.get('priceChangePercent', 0))
                 t['quoteVolume_f'] = float(t.get('quoteVolume', 0))
                 t['highPrice_f'] = float(t.get('highPrice', 0))
                 t['lowPrice_f'] = float(t.get('lowPrice', 0))
+                
+                # Cálculo de métricas estructurales avanzadas (Matriz de Inteligencia Táctica)
+                high = t['highPrice_f']
+                low = t['lowPrice_f']
+                last = t['lastPrice_f']
+                
+                # Evitar división por cero
+                if high > low and low > 0:
+                    # Amplitud del rango diario en porcentaje
+                    t['rango_amplitud'] = ((high - low) / low) * 100
+                    # Posición relativa del precio actual dentro del rango diario (0 = en el mínimo, 1 = en el máximo)
+                    t['posicion_en_rango'] = (last - low) / (high - low)
+                else:
+                    t['rango_amplitud'] = 0.0
+                    t['posicion_en_rango'] = 0.5
+
                 usdt_pairs.append(t)
             except (ValueError, TypeError):
                 continue
 
-    print(f"Pares USDT válidos filtrados: {len(usdt_pairs)}")
+    print(f"Pares USDT estructurales válidos filtrados: {len(usdt_pairs)}")
     
     # 1. Top 7 Ganadoras
     ganadoras = sorted(usdt_pairs, key=lambda x: x['priceChangePercent_f'], reverse=True)[:7]
     
-    # 2. Top 7 Acumulación 24h (< $1 USD ordenados por volumen general)
+    # 2. Top 7 Acumulación 24h (Volumen general < $1)
     acumulacion_pool_24h = [t for t in usdt_pairs if t['lastPrice_f'] < 1.0]
     acumulacion_24h = sorted(acumulacion_pool_24h, key=lambda x: x['quoteVolume_f'], reverse=True)[:7]
     
-    # 3. Top 7 Acumulación Silenciosa / Perlas Escondidas (< $1 USD y cambio entre 0% y +2%)
-    silenciosa_pool = [
-        t for t in usdt_pairs 
-        if t['lastPrice_f'] < 1.0 
-        and 0.0 <= t['priceChangePercent_f'] <= 2.0
-    ]
-    if len(silenciosa_pool) < 7:
-        silenciosa_pool = [
+    # 3. Top 7 Acumulación Silenciosa / Inteligente (El Resorte Estructural)
+    # Criterios de IA: 
+    # - Precio nominal menor a $1 USD (alta accesibilidad y margen de subida).
+    # - Variación diaria contenida (-1.0% a +2.5%) para evitar activos en pleno escape alcista.
+    # - Volumen de liquidez institucional/sana ($800,000 a $45,000,000 USD) para descartar tokens sin movimiento y megagigantes.
+    # - Compresión de rango y defensa de posición (el precio se mantiene firme en la mitad superior de su rango diario).
+    silenciosa_pool = []
+    for t in usdt_pairs:
+        if (t['lastPrice_f'] < 1.0 and 
+            -1.0 <= t['priceChangePercent_f'] <= 2.5 and 
+            800_000 <= t['quoteVolume_f'] <= 45_000_000):
+            
+            # Puntuación inteligente de compresión y acumulación (Score de Resorte)
+            # Premia a los tokens que tienen buena liquidez pero cuya amplitud diaria muestra compresión 
+            # y que defienden la parte alta de su micro-rango.
+            score_resorte = t['quoteVolume_f'] * (1.0 - min(t['rango_amplitud'] / 20.0, 1.0)) * t['posicion_en_rango']
+            t['score_resorte'] = score_resorte
+            silenciosa_pool.append(t)
+
+    # Ordenamos el pool utilizando el puntaje inteligente de compresión y volumen estructurado
+    acumulacion_silenciosa = sorted(silenciosa_pool, key=lambda x: x['score_resorte'], reverse=True)[:7]
+    
+    # Si por alta volatilidad del mercado el filtro estricto devuelve menos de 7, respaldamos con un filtro dinámico secundario
+    if len(acumulacion_silenciosa) < 7:
+        fallback_pool = [
             t for t in usdt_pairs 
             if t['lastPrice_f'] < 1.0 
-            and -1.0 <= t['priceChangePercent_f'] <= 3.0
+            and -2.0 <= t['priceChangePercent_f'] <= 3.0
+            and t['quoteVolume_f'] >= 500_000
+            and t not in acumulacion_silenciosa
         ]
-    acumulacion_silenciosa = sorted(silenciosa_pool, key=lambda x: x['quoteVolume_f'], reverse=True)[:7]
-    
+        fallback_ordenado = sorted(fallback_pool, key=lambda x: x['quoteVolume_f'], reverse=True)
+        acumulacion_silenciosa.extend(fallback_ordenado[:7 - len(acumulacion_silenciosa)])
+
     # 4. Top 7 Perdedoras
     perdedoras = sorted(usdt_pairs, key=lambda x: x['priceChangePercent_f'])[:7]
     
@@ -203,7 +252,7 @@ def procesar_y_enviar_bloque_unificado(num_bloque, titulo_bloque, icono, lista_i
     time.sleep(3)
 
 if __name__ == "__main__":
-    print("Iniciando análisis de mercado de 5 bloques...")
+    print("Iniciando análisis de mercado inteligente (5 bloques)...")
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         raise ValueError("Faltan las credenciales de Telegram.")
         
@@ -217,8 +266,8 @@ if __name__ == "__main__":
         # Tema 2: Acumulación 24h
         procesar_y_enviar_bloque_unificado(2, "TOP 7 ACUMULACIÓN 24H (< $1 USD)", "💎", acumulacion_24h, "#ffab00", "grafico_acumulacion_24h.png", tipo_bloque="acumulacion_24h")
         
-        # Tema 3: Acumulación Silenciosa (Perlas Escondidas 0% a 2%)
-        procesar_y_enviar_bloque_unificado(3, "TOP 7 ACUMULACIÓN SILENCIOSA (< $1)", "🕵️‍♂️", acumulacion_silenciosa, "#00bcd4", "grafico_silenciosa.png", tipo_bloque="silenciosa")
+        # Tema 3: Acumulación Silenciosa (El Resorte Estructural)
+        procesar_y_enviar_bloque_unificado(3, "TOP 7 ACUMULACIÓN SILENCIOSA (EL RESORTE)", "🕵️‍♂️", acumulacion_silenciosa, "#00bcd4", "grafico_silenciosa.png", tipo_bloque="silenciosa")
         
         # Tema 4: Perdedoras
         procesar_y_enviar_bloque_unificado(4, "TOP 7 PERDEDORAS", "📉", perdedoras, "#f6465d", "grafico_perdedoras.png")
@@ -226,6 +275,6 @@ if __name__ == "__main__":
         # Tema 5: Favoritas
         procesar_y_enviar_bloque_unificado(5, "TUS 5 FAVORITAS", "⭐", favoritas, "#3861fb", "grafico_favoritas.png")
         
-        print("¡Los 5 bloques de inteligencia de mercado se enviaron con éxito en orden perfecto!")
+        print("¡Los 5 bloques de inteligencia estructural avanzada se enviaron con éxito!")
     else:
         raise Exception("No se pudieron obtener datos de la API de Binance.")
