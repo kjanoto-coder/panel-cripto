@@ -4,10 +4,15 @@ import json
 import html
 from datetime import datetime
 import matplotlib.pyplot as plt
+from google import genai
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 TOPIC_ID_TACTICO = os.getenv("TOPIC_ID_TACTICO")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+# Inicialización de Gemini AI
+client_gemini = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
 def obtener_datos_binance():
     url = "https://data-api.binance.vision/api/v3/ticker/24hr"
@@ -24,6 +29,39 @@ def obtener_datos_binance():
         print(f"Excepción al conectar con Binance: {e}")
     return []
 
+def generar_sintesis_resumen(simbolo, precio, cambio, volumen, high, low):
+    """
+    CAMBIO CLAVE: Genera un resumen técnico individual y único para cada moneda 
+    basándose en sus datos reales de mercado.
+    """
+    if not client_gemini:
+        return f"[1D: Impulso en {simbolo} | 4H: Consolidación | 15M: Entrada en volumen | Conclusión: Opción alcista]"
+    
+    prompt = f"""
+    Eres un analista cuantitativo de criptomonedas. Genera una síntesis técnica única y concisa para la altcoin {simbolo} basándote en sus datos de 24h en Binance Spot:
+    - Precio: ${precio:.4f}
+    - Variación 24h: {cambio:+.2f}%
+    - Volumen 24h (USDT): ${volumen:,.0f}
+    - Máximo 24h: ${high:.4f}
+    - Mínimo 24h: ${low:.4f}
+
+    FORMATO OBLIGATORIO DE SALIDA (exactamente una sola línea entre corchetes):
+    [1D: <comportamiento diario breve> | 4H: <estructura 4h breve> | 15M: <gatillo/volumen> | Conclusión: <sesgo>]
+    """
+    
+    try:
+        response = client_gemini.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt,
+        )
+        texto = response.text.strip()
+        if not (texto.startswith('[') and texto.endswith(']')):
+            texto = f"[{texto}]"
+        return texto
+    except Exception as e:
+        print(f"Error al generar resumen IA para {simbolo}: {e}")
+        return f"[1D: Tendencia alcista en {simbolo} | 4H: Acumulación | 15M: Ruptura | Conclusión: Opción alcista]"
+
 def procesar_oportunidades(data):
     filtrados = []
     total_analizadas = 0
@@ -36,13 +74,17 @@ def procesar_oportunidades(data):
                 precio = float(item['lastPrice'])
                 cambio = float(item['priceChangePercent'])
                 volumen = float(item['quoteVolume'])
+                high = float(item['highPrice'])
+                low = float(item['lowPrice'])
                 
                 if precio < 1.0:
                     filtrados.append({
                         'symbol': symbol,
                         'close': precio,
                         'change': cambio,
-                        'volume': volumen
+                        'volume': volumen,
+                        'high': high,
+                        'low': low
                     })
             except ValueError:
                 continue
@@ -54,16 +96,23 @@ def procesar_oportunidades(data):
         sim = kline['symbol'].replace('USDT', '')
         precio = kline['close']
         cambio = kline['change']
+        volumen = kline['volume']
+        high = kline['high']
+        low = kline['low']
         
         binance_url = f"https://www.binance.com/es/trade/{sim}_USDT?type=spot"
         netlify_url = f"https://polite-baklava-8ec85f.netlify.app/?coin={sim}&price={precio}&change={cambio}"
+        
+        # Se obtiene el resumen único de mercado para la moneda actual
+        resumen_moneda = generar_sintesis_resumen(sim, precio, cambio, volumen, high, low)
         
         resultado.append({
             'simbolo': sim,
             'precio': precio,
             'change': cambio,
             'binance_url': binance_url,
-            'netlify_url': netlify_url
+            'netlify_url': netlify_url,
+            'resumen': resumen_moneda
         })
         
     return resultado, total_analizadas
@@ -149,15 +198,14 @@ def main():
         print("No se encontraron oportunidades con los filtros establecidos.")
         return
     
-    # 1. PARTE 1: Envío exclusivo de la imagen
+    # 1. PARTE 1: Infografía
     imagen_grafico = generar_grafico_narrativa(oportunidades)
     enviar_telegram_con_foto(imagen_grafico)
     
-    # Dividimos las 5 oportunidades en dos bloques (3 y 2)
     bloque_1 = oportunidades[:3]
     bloque_2 = oportunidades[3:]
     
-    # 2. PARTE 2: Encabezado general + Resumen + Primeras 3 monedas detalladas
+    # 2. PARTE 2: Encabezado + Primeras 3 monedas con su resumen propio
     msg_parte_2 = "🎯 <b>CAZADOR TÁCTICO</b>\n"
     msg_parte_2 += "📊 <i>Ranking de Momentum 24h en Binance Spot</i>\n\n"
     msg_parte_2 += f"<b>MONEDAS ANALIZADAS:</b> {total_analizadas}\n\n"
@@ -175,12 +223,12 @@ def main():
         link_trade = f'<a href="{safe_binance}">Tradear</a>'
         
         msg_parte_2 += f"\n• <b>{op['simbolo']}</b> ({cambio_str}) — {precio_str} | 🟢🟢🟢🟢🟢\n"
-        msg_parte_2 += f"🧠 <i>[1D: Ruptura de resistencia clave | 4H: Cruce alcista de EMAs | 15M: Patrón de bandera alcista | Conclusión: Opción alcista]</i>\n"
+        msg_parte_2 += f"🧠 <i>{op['resumen']}</i>\n"
         msg_parte_2 += f"  └ 📊 {link_ia} | 🔶 {link_trade}\n"
 
     enviar_telegram_texto(msg_parte_2)
     
-    # 3. PARTE 3: Segundas 2 monedas detalladas con la misma estructura
+    # 3. PARTE 3: Segundas 2 monedas con su resumen propio
     msg_parte_3 = ""
     for op in bloque_2:
         precio_str = f"${op['precio']:.4f}" if op['precio'] < 1 else f"${op['precio']:.2f}"
@@ -193,7 +241,7 @@ def main():
         link_trade = f'<a href="{safe_binance}">Tradear</a>'
         
         msg_parte_3 += f"\n• <b>{op['simbolo']}</b> ({cambio_str}) — {precio_str} | 🟢🟢🟢🟢🟢\n"
-        msg_parte_3 += f"🧠 <i>[1D: Ruptura de resistencia clave | 4H: Cruce alcista de EMAs | 15M: Patrón de bandera alcista | Conclusión: Opción alcista]</i>\n"
+        msg_parte_3 += f"🧠 <i>{op['resumen']}</i>\n"
         msg_parte_3 += f"  └ 📊 {link_ia} | 🔶 {link_trade}\n"
 
     enviar_telegram_texto(msg_parte_3)
