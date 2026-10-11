@@ -115,8 +115,11 @@ def procesar_oportunidades(data):
         
         binance_url = f"https://www.binance.com/es/trade/{sim}_USDT?type=spot"
         
-        # URL optimizada que envía explícitamente high y low al panel web de Netlify
-        netlify_url = f"https://polite-baklava-8ec85f.netlify.app/?coin={sim}&price={precio}&change={cambio}&high={high}&low={low}&vol={volumen:,.0f}"
+        # Parámetro timestamp para romper la caché del navegador de Telegram
+        timestamp = int(time.time())
+        
+        # URL optimizada que envía high, low y un cache-buster dinámico
+        netlify_url = f"https://polite-baklava-8ec85f.netlify.app/?coin={sim}&price={precio}&change={cambio}&high={high}&low={low}&vol={volumen:,.0f}&v={timestamp}"
         
         resumen_moneda = generar_sintesis_resumen(sim, precio, cambio, volumen, high, low)
         time.sleep(0.8) # Pausa estratégica para estabilidad de rate limit
