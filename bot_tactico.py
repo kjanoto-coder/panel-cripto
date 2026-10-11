@@ -5,20 +5,11 @@ import html
 import time
 from datetime import datetime
 import matplotlib.pyplot as plt
-from google import genai
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 TOPIC_ID_TACTICO = os.getenv("TOPIC_ID_TACTICO")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-
-# Inicialización segura de Gemini
-client_gemini = None
-if GEMINI_API_KEY:
-    try:
-        client_gemini = genai.Client(api_key=GEMINI_API_KEY)
-    except Exception as e:
-        print(f"Error al inicializar cliente Gemini: {e}")
 
 def obtener_datos_binance():
     url = "https://data-api.binance.vision/api/v3/ticker/24hr"
@@ -37,47 +28,55 @@ def obtener_datos_binance():
 
 def generar_sintesis_resumen(simbolo, precio, cambio, volumen, high, low):
     """
-    Genera un resumen técnico individual y único para cada moneda mediante Gemini AI.
-    Si la API falla, genera un análisis técnico adaptado a los datos numéricos propios de esa moneda.
+    Genera un análisis técnico detallado, específico e independiente utilizando la API REST de Gemini.
     """
-    if client_gemini:
+    if GEMINI_API_KEY:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+        headers = {"Content-Type": "application/json"}
+        
         prompt = f"""
-        Eres un analista cuantitativo de criptomonedas. Escribe un análisis técnico ultra-sintético e independiente para la altcoin {simbolo} basado en sus datos de 24h en Binance Spot:
-        - Precio: ${precio:.4f}
-        - Cambio 24h: {cambio:+.2f}%
+        Eres un analista técnico sénior de mercados cripto. Genera un análisis técnico específico y detallado para la moneda {simbolo} en Binance Spot usando estos datos exactos de 24h:
+        - Precio actual: ${precio:.4f}
+        - Variación 24h: {cambio:+.2f}%
         - Volumen 24h: ${volumen:,.0f} USDT
-        - Máximo: ${high:.4f} | Mínimo: ${low:.4f}
+        - Máximo 24h (Resistencia): ${high:.4f}
+        - Mínimo 24h (Soporte): ${low:.4f}
 
-        FORMATO OBLIGATORIO (Exactamente una línea entre corchetes):
-        [1D: <comportamiento técnico único> | 4H: <estructura técnica de 4h> | 15M: <gatillo o volumen> | Conclusión: <sesgo actual>]
+        INSTRUCCIONES:
+        Escribe un diagnóstico de precisión en exactamente una sola línea encerrada entre corchetes, especificando niveles exactos de precio.
+
+        FORMATO OBLIGATORIO:
+        [1D: Impulso sobre soporte en ${low:.4f} | 4H: Búsqueda de resistencia en ${high:.4f} | 15M: Gatillo activo en ${precio:.4f} | Conclusión: Opción alcista]
         """
+        
+        payload = {
+            "contents": [{
+                "parts": [{"text": prompt}]
+            }]
+        }
+        
         try:
-            response = client_gemini.models.generate_content(
-                model='gemini-1.5-flash',
-                contents=prompt,
-            )
-            texto = response.text.strip()
-            if texto.startswith('[') and texto.endswith(']'):
+            response = requests.post(url, headers=headers, json=payload, timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                texto = data['candidates'][0]['content']['parts'][0]['text'].strip()
+                if not (texto.startswith('[') and texto.endswith(']')):
+                    texto = f"[{texto}]"
                 return texto
-            else:
-                return f"[{texto}]"
         except Exception as e:
-            print(f"Error en consulta Gemini para {simbolo}: {e}")
+            print(f"Error en API REST de Gemini para {simbolo}: {e}")
 
-    # Respuestas dinámicas e independientes si falla la API
-    distancia_max = ((high - precio) / high) * 100 if high > 0 else 0
+    # Fallback técnico dinámico con números reales si la API no está disponible
     if cambio > 40:
-        return f"[1D: Impulso alcista extremo en {simbolo} (+{cambio:.1f}%) | 4H: Sobreextensión sobre VWAP | 15M: Volumen climático a ${precio:.4f} | Conclusión: Momentum muy fuerte]"
+        return f"[1D: Impulso extremo hacia ${high:.4f} | 4H: Extensión sobre soporte ${low:.4f} | 15M: Volumen masivo a ${precio:.4f} | Conclusión: Momentum muy fuerte]"
     elif cambio > 25:
-        return f"[1D: Ruptura de rango en {simbolo} | 4H: Consolidación alcista sobre EMA 20 | 15M: Test de mínimos en ${low:.4f} superado | Conclusión: Estructura alcista]"
-    elif cambio > 15:
-        return f"[1D: Presión compradora en {simbolo} | 4H: Formación de máximos crecientes | 15M: Acomodo cerca del máximo de ${high:.4f} | Conclusión: Giro alcista]"
+        return f"[1D: Ruptura de rango rumbo a ${high:.4f} | 4H: Consolidación sobre ${precio:.4f} | 15M: Base sólida en ${low:.4f} | Conclusión: Continuación alcista]"
     else:
-        return f"[1D: Acumulación activa en {simbolo} | 4H: Compresión de volatilidad | 15M: Entrada de volumen discreto a ${precio:.4f} | Conclusión: Oportunidad táctica]"
+        return f"[1D: Acumulación sobre piso en ${low:.4f} | 4H: Testeo de techo en ${high:.4f} | 15M: Entrada de flujo en ${precio:.4f} | Conclusión: Giro alcista en desarrollo]"
 
 def procesar_oportunidades(data):
     filtrados = []
-    total_sub1 = 0  # Conteo correcto exclusivo de monedas sub-$1 USD
+    total_sub1 = 0
     
     for item in data:
         symbol = item['symbol']
@@ -89,7 +88,7 @@ def procesar_oportunidades(data):
                 high = float(item['highPrice'])
                 low = float(item['lowPrice'])
                 
-                # FILTRO SUB-$1 USD
+                # Conteo exclusivo de activos sub-$1 USD
                 if 0 < precio < 1.0:
                     total_sub1 += 1
                     filtrados.append({
@@ -115,11 +114,12 @@ def procesar_oportunidades(data):
         low = kline['low']
         
         binance_url = f"https://www.binance.com/es/trade/{sim}_USDT?type=spot"
-        netlify_url = f"https://polite-baklava-8ec85f.netlify.app/?coin={sim}&price={precio}&change={cambio}"
         
-        # Generación del resumen único por moneda
+        # URL optimizada para Netlify enviando maximo (high), minimo (low) y volumen
+        netlify_url = f"https://polite-baklava-8ec85f.netlify.app/?coin={sim}&price={precio}&change={cambio}&high={high}&low={low}&vol={volumen:,.0f}"
+        
         resumen_moneda = generar_sintesis_resumen(sim, precio, cambio, volumen, high, low)
-        time.sleep(0.5) # Pausa preventiva para no saturar la API
+        time.sleep(0.8) # Pausa estratégica para estabilidad de rate limit
         
         resultado.append({
             'simbolo': sim,
@@ -208,23 +208,23 @@ def main():
         print("Error al obtener datos de Binance.")
         return
 
-    oportunidades, total_analizadas = procesar_oportunidades(datos)
+    oportunidades, total_sub1 = procesar_oportunidades(datos)
     if not oportunidades:
         print("No se encontraron oportunidades con los filtros establecidos.")
         return
     
-    # 1. PARTE 1: Infografía
+    # PARTE 1: Infografía
     imagen_grafico = generar_grafico_narrativa(oportunidades)
     enviar_telegram_con_foto(imagen_grafico)
     
     bloque_1 = oportunidades[:3]
     bloque_2 = oportunidades[3:]
     
-    # 2. PARTE 2: Encabezado + Monedas Analizadas Real (Sub-$1) + Primeras 3 monedas
+    # PARTE 2: Encabezado + Universo Sub-$1 + Primeras 3 altcoins
     msg_parte_2 = "🎯 <b>CAZADOR TÁCTICO</b>\n"
     msg_parte_2 += "📊 <i>Ranking de Momentum 24h en Binance Spot</i>\n\n"
-    msg_parte_2 += f"<b>MONEDAS ANALIZADAS:</b> {total_analizadas}\n\n"
-    msg_parte_2 += f"<b>RESUMEN:</b> Estas altcoins fueron seleccionadas de un universo de {total_analizadas} activos bajo $1 USD en Binance Spot debido a una confluencia de compresión de volatilidad previa y rotación agresiva de capital hacia activos de alta beta.\n\n"
+    msg_parte_2 += f"<b>MONEDAS ANALIZADAS:</b> {total_sub1}\n\n"
+    msg_parte_2 += f"<b>RESUMEN:</b> Estas altcoins fueron seleccionadas de un universo de {total_sub1} activos bajo $1 USD en Binance Spot debido a una confluencia de compresión de volatilidad previa y rotación agresiva de capital hacia activos de alta beta.\n\n"
     msg_parte_2 += "🚀 <b>TOP OPORTUNIDADES TÁCTICAS</b>\n"
     
     for op in bloque_1:
@@ -243,7 +243,7 @@ def main():
 
     enviar_telegram_texto(msg_parte_2)
     
-    # 3. PARTE 3: Últimas 2 monedas
+    # PARTE 3: Últimas 2 altcoins
     msg_parte_3 = ""
     for op in bloque_2:
         precio_str = f"${op['precio']:.4f}" if op['precio'] < 1 else f"${op['precio']:.2f}"
