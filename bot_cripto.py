@@ -39,9 +39,12 @@ def formatear_precio(precio):
     else:
         return f"${precio:.8f}"
 
-def generar_barra_progreso(cambio, es_acumulacion=False):
-    if es_acumulacion:
+def generar_barra_progreso(cambio, tipo_bloque=""):
+    if tipo_bloque == "acumulacion_24h":
         return "🟨🟨🟨⬜⬜"
+    elif tipo_bloque == "silenciosa":
+        return "💎💎⬜⬜⬜"
+    
     if cambio > 20:
         return "🟢🟢🟢🟢🟢"
     elif cambio > 10:
@@ -75,15 +78,28 @@ def preparar_datos(tickers):
     # 1. Top 7 Ganadoras
     ganadoras = sorted(usdt_pairs, key=lambda x: x['priceChangePercent_f'], reverse=True)[:7]
     
-    # 2. Top 7 Acumulación (< $1 USD ordenados por volumen)
-    acumulacion_pool = [t for t in usdt_pairs if t['lastPrice_f'] < 1.0]
-    acumulacion = sorted(acumulacion_pool, key=lambda x: x['quoteVolume_f'], reverse=True)[:7]
-    print(f"Pares de acumulación encontrados: {len(acumulacion)}")
+    # 2. Top 7 Acumulación 24h (< $1 USD ordenados por volumen general)
+    acumulacion_pool_24h = [t for t in usdt_pairs if t['lastPrice_f'] < 1.0]
+    acumulacion_24h = sorted(acumulacion_pool_24h, key=lambda x: x['quoteVolume_f'], reverse=True)[:7]
     
-    # 3. Top 7 Perdedoras
+    # 3. Top 7 Acumulación Silenciosa / Perlas Escondidas (< $1 USD y cambio entre 0% y +2%)
+    silenciosa_pool = [
+        t for t in usdt_pairs 
+        if t['lastPrice_f'] < 1.0 
+        and 0.0 <= t['priceChangePercent_f'] <= 2.0
+    ]
+    if len(silenciosa_pool) < 7:
+        silenciosa_pool = [
+            t for t in usdt_pairs 
+            if t['lastPrice_f'] < 1.0 
+            and -1.0 <= t['priceChangePercent_f'] <= 3.0
+        ]
+    acumulacion_silenciosa = sorted(silenciosa_pool, key=lambda x: x['quoteVolume_f'], reverse=True)[:7]
+    
+    # 4. Top 7 Perdedoras
     perdedoras = sorted(usdt_pairs, key=lambda x: x['priceChangePercent_f'])[:7]
     
-    # 4. Tus 5 favoritas
+    # 5. Tus 5 favoritas
     favoritas_simbolos = ['QI', 'TUT', 'NEIRO', 'LUNC', 'BANK']
     favoritas = []
     for sim in favoritas_simbolos:
@@ -91,7 +107,7 @@ def preparar_datos(tickers):
         if match:
             favoritas.append(match)
             
-    return ganadoras, acumulacion, perdedoras, favoritas
+    return ganadoras, acumulacion_24h, acumulacion_silenciosa, perdedoras, favoritas
 
 def generar_grafico_tema(lista_items, titulo_grafico, color_barra, filename):
     items_ordenados = sorted(lista_items, key=lambda x: x['priceChangePercent_f'])
@@ -148,18 +164,17 @@ def enviar_foto_con_detalle_telegram(image_path, caption_text):
             print(f"❌ Error al enviar a Telegram ({res.status_code}): {res.text}")
         return res
 
-def procesar_y_enviar_bloque_unificado(num_bloque, titulo_bloque, icono, lista_items, color_grafico, filename_grafico, es_acumulacion=False):
+def procesar_y_enviar_bloque_unificado(num_bloque, titulo_bloque, icono, lista_items, color_grafico, filename_grafico, tipo_bloque=""):
     if not lista_items:
         print(f"⚠️ Advertencia: No hay items para el bloque {num_bloque}")
         return
     
-    print(f"Generando gráfico y unificando mensaje para Bloque {num_bloque}: {titulo_bloque}...")
+    print(f"Generando gráfico y unificando mensaje para Bloque {num_bloque}/5: {titulo_bloque}...")
     generar_grafico_tema(lista_items, f"{icono} {titulo_bloque.upper()} • Ranking 24h", color_grafico, filename_grafico)
     
-    # ESCAPAR el título para que el símbolo '<' no rompa el analizador HTML de Telegram
     titulo_seguro = html.escape(titulo_bloque.upper())
     
-    caption = f"🧠 <b>CENTRAL DE INTELIGENCIA DE MERCADO ({num_bloque}/4)</b>\n"
+    caption = f"🧠 <b>CENTRAL DE INTELIGENCIA DE MERCADO ({num_bloque}/5)</b>\n"
     caption += f"{icono} <b>{num_bloque}. {titulo_seguro} (Detalle)</b>\n\n"
     
     for item in lista_items:
@@ -170,7 +185,7 @@ def procesar_y_enviar_bloque_unificado(num_bloque, titulo_bloque, icono, lista_i
         high = item['highPrice_f']
         low = item['lowPrice_f']
         
-        barra = generar_barra_progreso(cambio, es_acumulacion=es_acumulacion)
+        barra = generar_barra_progreso(cambio, tipo_bloque=tipo_bloque)
         unique_id = int(time.time() * 1000) + random.randint(1, 99999)
         
         url_ia = f"{BASE_URL_NETLIFY}/?coin={sim}&price={precio}&change={cambio}&high={high}&low={low}&v={sim}_{unique_id}"
@@ -184,30 +199,33 @@ def procesar_y_enviar_bloque_unificado(num_bloque, titulo_bloque, icono, lista_i
         )
     
     res = enviar_foto_con_detalle_telegram(filename_grafico, caption)
-    print(f"Bloque {num_bloque} unificado status: {res.status_code}")
+    print(f"Bloque {num_bloque}/5 unificado status: {res.status_code}")
     time.sleep(3)
 
 if __name__ == "__main__":
-    print("Iniciando análisis de mercado unificado...")
+    print("Iniciando análisis de mercado de 5 bloques...")
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         raise ValueError("Faltan las credenciales de Telegram.")
         
     datos = obtener_datos_binance()
     if datos:
-        ganadoras, acumulacion, perdedoras, favoritas = preparar_datos(datos)
+        ganadoras, acumulacion_24h, acumulacion_silenciosa, perdedoras, favoritas = preparar_datos(datos)
         
         # Tema 1: Ganadoras
         procesar_y_enviar_bloque_unificado(1, "TOP 7 GANADORAS", "🚀", ganadoras, "#00c853", "grafico_ganadoras.png")
         
-        # Tema 2: Acumulación
-        procesar_y_enviar_bloque_unificado(2, "TOP 7 ACUMULACIÓN (< $1 USD)", "💎", acumulacion, "#ffab00", "grafico_acumulacion.png", es_acumulacion=True)
+        # Tema 2: Acumulación 24h
+        procesar_y_enviar_bloque_unificado(2, "TOP 7 ACUMULACIÓN 24H (< $1 USD)", "💎", acumulacion_24h, "#ffab00", "grafico_acumulacion_24h.png", tipo_bloque="acumulacion_24h")
         
-        # Tema 3: Perdedoras
-        procesar_y_enviar_bloque_unificado(3, "TOP 7 PERDEDORAS", "📉", perdedoras, "#f6465d", "grafico_perdedoras.png")
+        # Tema 3: Acumulación Silenciosa (Perlas Escondidas 0% a 2%)
+        procesar_y_enviar_bloque_unificado(3, "TOP 7 ACUMULACIÓN SILENCIOSA (< $1)", "🕵️‍♂️", acumulacion_silenciosa, "#00bcd4", "grafico_silenciosa.png", tipo_bloque="silenciosa")
         
-        # Tema 4: Favoritas
-        procesar_y_enviar_bloque_unificado(4, "TUS 5 FAVORITAS", "⭐", favoritas, "#3861fb", "grafico_favoritas.png")
+        # Tema 4: Perdedoras
+        procesar_y_enviar_bloque_unificado(4, "TOP 7 PERDEDORAS", "📉", perdedoras, "#f6465d", "grafico_perdedoras.png")
         
-        print("¡Los 4 mensajes unificados con sus gráficos y detalles se enviaron con éxito!")
+        # Tema 5: Favoritas
+        procesar_y_enviar_bloque_unificado(5, "TUS 5 FAVORITAS", "⭐", favoritas, "#3861fb", "grafico_favoritas.png")
+        
+        print("¡Los 5 bloques de inteligencia de mercado se enviaron con éxito en orden perfecto!")
     else:
         raise Exception("No se pudieron obtener datos de la API de Binance.")
