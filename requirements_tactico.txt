@@ -1,3 +1,5 @@
+ccxt
+pandas
 requests
-google-genai
+google-generativeai
 matplotlib
