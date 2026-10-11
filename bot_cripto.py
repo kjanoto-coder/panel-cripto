@@ -56,23 +56,32 @@ def generar_barra_progreso(cambio, es_acumulacion=False):
         return "🟥🟥🟥🟥🟥"
 
 def preparar_datos(tickers):
-    usdt_pairs = [
-        t for t in tickers 
-        if t['symbol'].endswith('USDT') 
-        and not any(x in t['symbol'] for x in ['UP', 'DOWN', 'BULL', 'BEAR'])
-        and t['symbol'] not in LISTA_NEGRA
-    ]
+    usdt_pairs = []
+    for t in tickers:
+        symbol = t.get('symbol', '')
+        if symbol.endswith('USDT') and not any(x in symbol for x in ['UP', 'DOWN', 'BULL', 'BEAR']) and symbol not in LISTA_NEGRA:
+            try:
+                t['lastPrice_f'] = float(t.get('lastPrice', 0))
+                t['priceChangePercent_f'] = float(t.get('priceChangePercent', 0))
+                t['quoteVolume_f'] = float(t.get('quoteVolume', 0))
+                t['highPrice_f'] = float(t.get('highPrice', 0))
+                t['lowPrice_f'] = float(t.get('lowPrice', 0))
+                usdt_pairs.append(t)
+            except (ValueError, TypeError):
+                continue
+
     print(f"Pares USDT válidos filtrados: {len(usdt_pairs)}")
     
     # 1. Top 7 Ganadoras
-    ganadoras = sorted(usdt_pairs, key=lambda x: float(x['priceChangePercent']), reverse=True)[:7]
+    ganadoras = sorted(usdt_pairs, key=lambda x: x['priceChangePercent_f'], reverse=True)[:7]
     
-    # 2. Top 7 Acumulación (< $1 USD ordenados por volumen)
-    acumulacion_pool = [t for t in usdt_pairs if float(t['lastPrice']) < 1.0]
-    acumulacion = sorted(acumulacion_pool, key=lambda x: float(x['quoteVolume']), reverse=True)[:7]
+    # 2. Top 7 Acumulación (< $1 USD ordenados por volumen de forma segura)
+    acumulacion_pool = [t for t in usdt_pairs if t['lastPrice_f'] < 1.0]
+    acumulacion = sorted(acumulacion_pool, key=lambda x: x['quoteVolume_f'], reverse=True)[:7]
+    print(f"Pares de acumulación encontrados: {len(acumulacion)}")
     
     # 3. Top 7 Perdedoras
-    perdedoras = sorted(usdt_pairs, key=lambda x: float(x['priceChangePercent']))[:7]
+    perdedoras = sorted(usdt_pairs, key=lambda x: x['priceChangePercent_f'])[:7]
     
     # 4. Tus 5 favoritas
     favoritas_simbolos = ['QI', 'TUT', 'NEIRO', 'LUNC', 'BANK']
@@ -81,14 +90,16 @@ def preparar_datos(tickers):
         match = next((t for t in usdt_pairs if t['symbol'] == f"{sim}USDT"), None)
         if match:
             favoritas.append(match)
+        else:
+            print(f"Advertencia: No se encontró el token favorito {sim}USDT")
             
     return ganadoras, acumulacion, perdedoras, favoritas
 
 def generar_grafico_tema(lista_items, titulo_grafico, color_barra, filename):
-    items_ordenados = sorted(lista_items, key=lambda x: float(x['priceChangePercent']))
+    items_ordenados = sorted(lista_items, key=lambda x: x['priceChangePercent_f'])
     
     simbolos = [item['symbol'].replace('USDT', '') for item in items_ordenados]
-    cambios = [float(item['priceChangePercent']) for item in items_ordenados]
+    cambios = [item['priceChangePercent_f'] for item in items_ordenados]
     
     fig, ax = plt.subplots(figsize=(8, 4.5), facecolor='#0b132b')
     ax.set_facecolor('#0b132b')
@@ -148,7 +159,7 @@ def enviar_texto_telegram(texto):
 
 def procesar_y_enviar_bloque(num_bloque, titulo_bloque, icono, lista_items, color_grafico, filename_grafico, es_acumulacion=False):
     if not lista_items:
-        print(f"Advertencia: No hay items para el bloque {num_bloque}")
+        print(f"⚠️ Advertencia: No hay items para el bloque {num_bloque}")
         return
     
     print(f"Generando y enviando Bloque {num_bloque}: {titulo_bloque}...")
@@ -158,17 +169,17 @@ def procesar_y_enviar_bloque(num_bloque, titulo_bloque, icono, lista_items, colo
     caption = f"🧠 <b>CENTRAL DE INTELIGENCIA DE MERCADO ({num_bloque}/4)</b>\n{icono} <b>{num_bloque}. {titulo_bloque.upper()}</b>"
     res_foto = enviar_foto_telegram(filename_grafico, caption)
     print(f"Foto Bloque {num_bloque} status: {res_foto.status_code}")
-    time.sleep(2) # Pausa de seguridad para evitar saturar a Telegram
+    time.sleep(2.5)
     
     # 2. Enviar el detalle en texto a continuación
     msg = f"{icono} <b>{num_bloque}. {titulo_bloque.upper()} (Detalle)</b>\n\n"
     for item in lista_items:
         sim = item['symbol'].replace('USDT', '')
-        precio = float(item['lastPrice'])
+        precio = item['lastPrice_f']
         precio_str = formatear_precio(precio)
-        cambio = float(item['priceChangePercent'])
-        high = float(item['highPrice'])
-        low = float(item['lowPrice'])
+        cambio = item['priceChangePercent_f']
+        high = item['highPrice_f']
+        low = item['lowPrice_f']
         
         barra = generar_barra_progreso(cambio, es_acumulacion=es_acumulacion)
         unique_id = int(time.time() * 1000) + random.randint(1, 99999)
@@ -185,7 +196,7 @@ def procesar_y_enviar_bloque(num_bloque, titulo_bloque, icono, lista_items, colo
     
     res_txt = enviar_texto_telegram(msg)
     print(f"Texto Bloque {num_bloque} status: {res_txt.status_code}")
-    time.sleep(3) # Pausa más amplia antes de pasar al siguiente tema
+    time.sleep(3)
 
 if __name__ == "__main__":
     print("Iniciando análisis de mercado...")
