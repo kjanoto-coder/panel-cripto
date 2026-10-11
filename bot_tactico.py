@@ -78,6 +78,9 @@ def procesar_oportunidades(data):
     filtrados = []
     total_sub1 = 0
     
+    # Lista negra de tokens deslistados o con anomalías en la API Spot de Binance
+    LISTA_NEGRA = ['PNTUSDT', 'VGXUSDT', 'BNCUSDT']
+    
     for item in data:
         symbol = item['symbol']
         if symbol.endswith('USDT'):
@@ -88,8 +91,8 @@ def procesar_oportunidades(data):
                 high = float(item['highPrice'])
                 low = float(item['lowPrice'])
                 
-                # Conteo exclusivo de activos sub-$1 USD
-                if 0 < precio < 1.0:
+                # Conteo exclusivo de activos sub-$1 USD, con volumen real > $50,000 USDT y fuera de lista negra
+                if 0 < precio < 1.0 and volumen > 50000 and symbol not in LISTA_NEGRA:
                     total_sub1 += 1
                     filtrados.append({
                         'symbol': symbol,
