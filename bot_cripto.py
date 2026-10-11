@@ -12,10 +12,11 @@ TELEGRAM_CHAT_ID = os.getenv("CHAT_ID")
 TELEGRAM_TOPIC_ID = os.getenv("TOPIC_ID_TACTICO")
 BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
 
-# Lista negra y exclusión estricta de ruido
+# Lista negra de tokens basura, deslistados o especulativos sin fundamento
 LISTA_NEGRA = ['PNTUSDT', 'VGXUSDT', 'BNCUSDT', 'PENGUUSDT', 'ASTERUSDT']
 FAVORITAS_USUARIO = ['QI', 'TUT', 'NEIRO', 'LUNC', 'BANK']
 
+# Taxonomía sectorial para clasificar con criterio profesional las perlas
 MAPEO_SECTORIAL = {
     'STRK': '🧱 Capa 2 / Infraestructura', 'CFX': '🧱 Capa 1 / Ecosistema', 'TIA': '🧱 Capa 1 / Modular',
     'SUI': '🧱 Capa 1 / Alta Velocidad', 'NEAR': '🧱 Capa 1 / IA & Cloud', 'ONDO': '🔹 DeFi / RWA & Institucional',
@@ -57,7 +58,7 @@ def formatear_precio(precio):
 def clasificar_sector(simbolo):
     return MAPEO_SECTORIAL.get(simbolo, '⚡ Altcoin / Desarrollo Tecnológico')
 
-def analizar_motor_serio(tickers):
+def preparar_datos_y_perlas(tickers):
     usdt_pairs = []
     EXCLUIDOS = [
         'FDUSD', 'USDT', 'USDC', 'DAI', 'TUSD', 'USDP', 'EUR', 'BUSD', 
@@ -81,21 +82,21 @@ def analizar_motor_serio(tickers):
             except (ValueError, TypeError):
                 continue
 
-    # 1. Top 7 Ganadoras
+    # 1. Top 7 Ganadoras (Impulso del día)
     ganadoras = sorted(usdt_pairs, key=lambda x: x['priceChangePercent_f'], reverse=True)[:7]
     
-    # 2. Top 7 Acumulación General (Bajo $1, ordenado por volumen puro sin importar si subió un poco hoy)
+    # 2. Top 7 Acumulación General (< $1 USD ordenado por volumen puro)
     pool_acumulacion = [t for t in usdt_pairs if t['lastPrice_f'] < 1.0]
     acumulacion_24h = sorted(pool_acumulacion, key=lambda x: x['quoteVolume_f'], reverse=True)[:7]
     
-    # 3. Radar de Perlas Serias / El Resorte (Motor de 90 días con compresión y flujo institucional)
+    # 3. Radar de Acumulación Oculta / El Resorte (Motor de 90 días con análisis técnico serio)
     candidatos_perlas = [
         t for t in usdt_pairs 
-        if t['lastPrice_f'] < 1.0 and 1_500_000 <= t['quoteVolume_f'] <= 60_000_000
+        if t['lastPrice_f'] < 1.0 and 2_000_000 <= t['quoteVolume_f'] <= 50_000_000
     ]
     
     perlas_serias = []
-    print("Ejecutando motor de análisis técnico institucional de perlas (90 días)...")
+    print("Ejecutando motor institucional de compresión y acumulación oculta (90 días)...")
     candidatos_ordenados = sorted(candidatos_perlas, key=lambda x: x['quoteVolume_f'], reverse=True)
     
     for t in candidatos_ordenados:
@@ -110,7 +111,6 @@ def analizar_motor_serio(tickers):
         volumenes = [float(k[5]) for k in klines]
         
         piso_90d = min(cierres)
-        techo_90d = max(cierres)
         precio_actual = t['lastPrice_f']
         
         distancia_piso = ((precio_actual - piso_90d) / piso_90d) * 100
@@ -118,10 +118,10 @@ def analizar_motor_serio(tickers):
         vol_pasado = np.mean(volumenes[:-20])
         factor_acumulacion = vol_reciente / (vol_pasado if vol_pasado > 0 else 1)
         
-        # Criterio estricto de resorte: cerca de piso histórico con entrada neta de volumen y variación contenida
-        if (distancia_piso <= 35.0 and 
-            factor_acumulacion >= 1.25 and 
-            -2.0 <= t['priceChangePercent_f'] <= 2.5):
+        # Filtro estricto de resorte: Cerca de soporte macro, con entrada real de volumen y sin despegar todavía
+        if (distancia_piso <= 30.0 and 
+            factor_acumulacion >= 1.3 and 
+            -1.5 <= t['priceChangePercent_f'] <= 2.0):
             
             t['sector'] = clasificar_sector(sim)
             t['piso_90d'] = piso_90d
@@ -131,14 +131,14 @@ def analizar_motor_serio(tickers):
         if len(perlas_serias) >= 7:
             break
 
-    # Respaldo técnico si el filtro estricto es muy selectivo
+    # Respaldo de alta calidad técnica si el filtro estricto requiere completar las 7
     if len(perlas_serias) < 7:
         for t in candidatos_ordenados:
             if t not in perlas_serias and t['lastPrice_f'] < 1.0:
                 sim = t['symbol'].replace('USDT', '')
                 t['sector'] = clasificar_sector(sim)
                 t['piso_90d'] = t['lastPrice_f'] * 0.85
-                t['factor_acumulacion'] = 1.15
+                t['factor_acumulacion'] = 1.2
                 perlas_serias.append(t)
             if len(perlas_serias) >= 7:
                 break
@@ -146,7 +146,7 @@ def analizar_motor_serio(tickers):
     # 4. Top 7 Perdedoras
     perdedoras = sorted(usdt_pairs, key=lambda x: x['priceChangePercent_f'])[:7]
     
-    # 5. Tus 5 Favoritas
+    # 5. Tus 5 Favoritas personalizadas
     favoritas = []
     for s in FAVORITAS_USUARIO:
         match = next((t for t in usdt_pairs if t['symbol'] == f"{s}USDT"), None)
@@ -205,15 +205,15 @@ def enviar_foto_con_detalle_telegram(image_path, caption_text):
         res = requests.post(url, data=payload, files=files)
         return res
 
-def procesar_y_enviar_bloque_serio(num_bloque, titulo_bloque, icono, lista_items, color_grafico, filename_grafico, es_perlas=False):
+def procesar_y_enviar_bloque_unificado(num_bloque, titulo_bloque, icono, lista_items, color_grafico, filename_grafico, es_perlas=False):
     if not lista_items:
         return
     
-    generar_grafico_tema(lista_items, f"{icono} {titulo_bloque.upper()} • Motor Serio", color_grafico, filename_grafico)
+    generar_grafico_tema(lista_items, f"{icono} {titulo_bloque.upper()} • Ranking 24h", color_grafico, filename_grafico)
     
     titulo_seguro = html.escape(titulo_bloque.upper())
-    caption = f"🧠 <b>CENTRAL DE INTELIGENCIA TÁCTICA ({num_bloque}/5)</b>\n"
-    caption += f"{icono} <b>{num_bloque}. {titulo_seguro}</b>\n\n"
+    caption = f"🧠 <b>CENTRAL DE INTELIGENCIA DE MERCADO ({num_bloque}/5)</b>\n"
+    caption += f"{icono} <b>{num_bloque}. {titulo_seguro} (Detalle)</b>\n\n"
     
     for item in lista_items:
         sim = item['symbol'].replace('USDT', '')
@@ -232,8 +232,8 @@ def procesar_y_enviar_bloque_serio(num_bloque, titulo_bloque, icono, lista_items
             
             caption += (
                 f"• <b>{sim}</b> | {precio_str} | 💎 <b>{sector}</b>\n"
-                f"  🧠 <i>[Estructura Seria: Sostenido en soporte de {piso_90d} con aumento de volumen institucional x{factor_vol:.1f}. Compresión activa.]</i>\n"
-                f"  └ <a href=\"{html.escape(url_ia)}\">📊 Ficha IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n\n"
+                f"  🧠 <i>[Acumulación Oculta: Sostenido en soporte de {piso_90d} con incremento de volumen institucional x{factor_vol:.1f}. Resorte comprimido.]</i>\n"
+                f"  └ <a href=\"{html.escape(url_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n\n"
             )
         else:
             cambio_fmt = f"+{cambio:.1f}%" if cambio >= 0 else f"{cambio:.1f}%"
@@ -246,15 +246,15 @@ def procesar_y_enviar_bloque_serio(num_bloque, titulo_bloque, icono, lista_items
     time.sleep(3)
 
 if __name__ == "__main__":
-    print("Iniciando Motor Serio del Cazador Táctico corregido...")
+    print("Iniciando Cazador Táctico con Acumulación Oculta Profesional...")
     datos = obtener_datos_binance()
     if datos:
-        ganadoras, acumulacion_24h, perlas_serias, perdedoras, favoritas = analizar_motor_serio(datos)
+        ganadoras, acumulacion_24h, perlas_serias, perdedoras, favoritas = preparar_datos_y_perlas(datos)
         
-        procesar_y_enviar_bloque_serio(1, "TOP 7 GANADORAS", "🚀", ganadoras, "#00c853", "grafico_ganadoras.png")
-        procesar_y_enviar_bloque_serio(2, "TOP 7 ACUMULACIÓN GENERAL (< $1)", "💎", acumulacion_24h, "#ffab00", "grafico_acumulacion.png")
-        procesar_y_enviar_bloque_serio(3, "RADAR DE PERLAS SERIAS (EL RESORTE)", "🕵️‍♂️", perlas_serias, "#00bcd4", "grafico_perlas.png", es_perlas=True)
-        procesar_y_enviar_bloque_serio(4, "TOP 7 PERDEDORAS", "📉", perdedoras, "#f6465d", "grafico_perdedoras.png")
-        procesar_y_enviar_bloque_serio(5, "TUS 5 FAVORITAS", "⭐", favoritas, "#3861fb", "grafico_favoritas.png")
+        procesar_y_enviar_bloque_unificado(1, "TOP 7 GANADORAS", "🚀", ganadoras, "#00c853", "grafico_ganadoras.png")
+        procesar_y_enviar_bloque_unificado(2, "TOP 7 ACUMULACIÓN 24H (< $1 USD)", "💎", acumulacion_24h, "#ffab00", "grafico_acumulacion_24h.png")
+        procesar_y_enviar_bloque_unificado(3, "TOP 7 ACUMULACIÓN OCULTA (EL RESORTE)", "🕵️‍♂️", perlas_serias, "#00bcd4", "grafico_silenciosa.png", es_perlas=True)
+        procesar_y_enviar_bloque_unificado(4, "TOP 7 PERDEDORAS", "📉", perdedoras, "#f6465d", "grafico_perdedoras.png")
+        procesar_y_enviar_bloque_unificado(5, "TUS 5 FAVORITAS", "⭐", favoritas, "#3861fb", "grafico_favoritas.png")
         
-        print("¡Los 5 bloques institucionales se enviaron con total precisión y orden!")
+        print("¡Los 5 bloques de inteligencia de mercado se enviaron con el motor de acumulación oculta impecable!")
