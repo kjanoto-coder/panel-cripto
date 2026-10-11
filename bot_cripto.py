@@ -75,7 +75,7 @@ def preparar_datos(tickers):
     # 1. Top 7 Ganadoras
     ganadoras = sorted(usdt_pairs, key=lambda x: x['priceChangePercent_f'], reverse=True)[:7]
     
-    # 2. Top 7 Acumulación (< $1 USD ordenados por volumen de forma segura)
+    # 2. Top 7 Acumulación (< $1 USD ordenados por volumen)
     acumulacion_pool = [t for t in usdt_pairs if t['lastPrice_f'] < 1.0]
     acumulacion = sorted(acumulacion_pool, key=lambda x: x['quoteVolume_f'], reverse=True)[:7]
     print(f"Pares de acumulación encontrados: {len(acumulacion)}")
@@ -90,8 +90,6 @@ def preparar_datos(tickers):
         match = next((t for t in usdt_pairs if t['symbol'] == f"{sim}USDT"), None)
         if match:
             favoritas.append(match)
-        else:
-            print(f"Advertencia: No se encontró el token favorito {sim}USDT")
             
     return ganadoras, acumulacion, perdedoras, favoritas
 
@@ -134,45 +132,32 @@ def generar_grafico_tema(lista_items, titulo_grafico, color_barra, filename):
     plt.close()
     return filename
 
-def enviar_foto_telegram(image_path, caption=""):
+def enviar_foto_con_detalle_telegram(image_path, caption_text):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
     with open(image_path, 'rb') as photo:
-        payload = {"chat_id": TELEGRAM_CHAT_ID, "caption": caption, "parse_mode": "HTML"}
+        payload = {
+            "chat_id": TELEGRAM_CHAT_ID, 
+            "caption": caption_text, 
+            "parse_mode": "HTML"
+        }
         if TELEGRAM_TOPIC_ID:
             payload["message_thread_id"] = TELEGRAM_TOPIC_ID
         files = {"photo": photo}
         res = requests.post(url, data=payload, files=files)
         return res
 
-def enviar_texto_telegram(texto):
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": TELEGRAM_CHAT_ID,
-        "text": texto,
-        "parse_mode": "HTML",
-        "disable_web_page_preview": True
-    }
-    if TELEGRAM_TOPIC_ID:
-        payload["message_thread_id"] = TELEGRAM_TOPIC_ID
-    res = requests.post(url, json=payload)
-    return res
-
-def procesar_y_enviar_bloque(num_bloque, titulo_bloque, icono, lista_items, color_grafico, filename_grafico, es_acumulacion=False):
+def procesar_y_enviar_bloque_unificado(num_bloque, titulo_bloque, icono, lista_items, color_grafico, filename_grafico, es_acumulacion=False):
     if not lista_items:
         print(f"⚠️ Advertencia: No hay items para el bloque {num_bloque}")
         return
     
-    print(f"Generando y enviando Bloque {num_bloque}: {titulo_bloque}...")
+    print(f"Generando gráfico y unificando mensaje para Bloque {num_bloque}: {titulo_bloque}...")
     generar_grafico_tema(lista_items, f"{icono} {titulo_bloque.upper()} • Ranking 24h", color_grafico, filename_grafico)
     
-    # 1. Enviar el gráfico primero
-    caption = f"🧠 <b>CENTRAL DE INTELIGENCIA DE MERCADO ({num_bloque}/4)</b>\n{icono} <b>{num_bloque}. {titulo_bloque.upper()}</b>"
-    res_foto = enviar_foto_telegram(filename_grafico, caption)
-    print(f"Foto Bloque {num_bloque} status: {res_foto.status_code}")
-    time.sleep(2.5)
+    # Construimos todo el mensaje en el caption de la foto (Gráfico + Detalle unificado)
+    caption = f"🧠 <b>CENTRAL DE INTELIGENCIA DE MERCADO ({num_bloque}/4)</b>\n"
+    caption += f"{icono} <b>{num_bloque}. {titulo_bloque.upper()} (Detalle)</b>\n\n"
     
-    # 2. Enviar el detalle en texto a continuación
-    msg = f"{icono} <b>{num_bloque}. {titulo_bloque.upper()} (Detalle)</b>\n\n"
     for item in lista_items:
         sim = item['symbol'].replace('USDT', '')
         precio = item['lastPrice_f']
@@ -189,17 +174,18 @@ def procesar_y_enviar_bloque(num_bloque, titulo_bloque, icono, lista_items, colo
         
         cambio_fmt = f"+{cambio:.1f}%" if cambio >= 0 else f"{cambio:.1f}%"
         
-        msg += (
+        caption += (
             f"• <b>{sim}</b> | {precio_str} | {barra} | {cambio_fmt}\n"
             f"  └ <a href=\"{html.escape(url_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n"
         )
     
-    res_txt = enviar_texto_telegram(msg)
-    print(f"Texto Bloque {num_bloque} status: {res_txt.status_code}")
-    time.sleep(3)
+    # Envío único de foto con su mensaje completo integrado
+    res = enviar_foto_con_detalle_telegram(filename_grafico, caption)
+    print(f"Bloque {num_bloque} unificado status: {res.status_code} - Res: {res.text}")
+    time.sleep(3) # Pausa de seguridad entre cada uno de los 4 temas
 
 if __name__ == "__main__":
-    print("Iniciando análisis de mercado...")
+    print("Iniciando análisis de mercado unificado...")
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         raise ValueError("Faltan las credenciales de Telegram.")
         
@@ -208,17 +194,17 @@ if __name__ == "__main__":
         ganadoras, acumulacion, perdedoras, favoritas = preparar_datos(datos)
         
         # Tema 1: Ganadoras
-        procesar_y_enviar_bloque(1, "TOP 7 GANADORAS", "🚀", ganadoras, "#00c853", "grafico_ganadoras.png")
+        procesar_y_enviar_bloque_unificado(1, "TOP 7 GANADORAS", "🚀", ganadoras, "#00c853", "grafico_ganadoras.png")
         
         # Tema 2: Acumulación
-        procesar_y_enviar_bloque(2, "TOP 7 ACUMULACIÓN (< $1 USD)", "💎", acumulacion, "#ffab00", "grafico_acumulacion.png", es_acumulacion=True)
+        procesar_y_enviar_bloque_unificado(2, "TOP 7 ACUMULACIÓN (< $1 USD)", "💎", acumulacion, "#ffab00", "grafico_acumulacion.png", es_acumulacion=True)
         
         # Tema 3: Perdedoras
-        procesar_y_enviar_bloque(3, "TOP 7 PERDEDORAS", "📉", perdedoras, "#f6465d", "grafico_perdedoras.png")
+        procesar_y_enviar_bloque_unificado(3, "TOP 7 PERDEDORAS", "📉", perdedoras, "#f6465d", "grafico_perdedoras.png")
         
         # Tema 4: Favoritas
-        procesar_y_enviar_bloque(4, "TUS 5 FAVORITAS", "⭐", favoritas, "#3861fb", "grafico_favoritas.png")
+        procesar_y_enviar_bloque_unificado(4, "TUS 5 FAVORITAS", "⭐", favoritas, "#3861fb", "grafico_favoritas.png")
         
-        print("¡Los 4 temas con sus gráficos y detalles fueron enviados en orden perfecto!")
+        print("¡Los 4 mensajes unificados con sus gráficos y detalles se enviaron con éxito!")
     else:
         raise Exception("No se pudieron obtener datos de la API de Binance.")
