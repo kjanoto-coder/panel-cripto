@@ -1,4 +1,5 @@
 import os
+import json
 import time
 import random
 import requests
@@ -11,7 +12,28 @@ TELEGRAM_CHAT_ID = os.getenv("CHAT_ID")
 TELEGRAM_TOPIC_ID = os.getenv("TOPIC_ID_TACTICO")
 BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
 
+# Lista negra de tokens basura, deslistados o especulativos
 LISTA_NEGRA = ['PNTUSDT', 'VGXUSDT', 'BNCUSDT', 'PENGUUSDT', 'ASTERUSDT']
+
+ARCHIVO_MEMORIA = "ultimas_perlas.json"
+
+def cargar_memoria_perlas():
+    """Carga el historial de las últimas selecciones para evitar repeticiones innecesarias"""
+    if os.path.exists(ARCHIVO_MEMORIA):
+        try:
+            with open(ARCHIVO_MEMORIA, 'r') as f:
+                return json.load(f)
+        except Exception:
+            return []
+    return []
+
+def guardar_memoria_perlas(historial_reportes):
+    """Guarda los últimos 2 reportes de perlas"""
+    try:
+        with open(ARCHIVO_MEMORIA, 'w') as f:
+            json.dump(historial_reportes[-2:], f)
+    except Exception as e:
+        print(f"Error guardando memoria: {e}")
 
 def obtener_datos_binance():
     url = "https://data-api.binance.vision/api/v3/ticker/24hr"
@@ -56,7 +78,8 @@ def generar_barra_progreso(cambio, tipo_bloque=""):
 
 def preparar_datos(tickers):
     usdt_pairs = []
-    EXCLUIDOS = ['FDUSD', 'USDT', 'USDC', 'DAI', 'TUSD', 'USDP', 'EUR', 'BUSD', 'DOGE', 'TRX', 'SHIB', 'WLD', 'SOL', 'BTC', 'ETH']
+    # Exclusión de gigantes estables, monedas pesadas y tokens repetitivos masivos
+    EXCLUIDOS = ['FDUSD', 'USDT', 'USDC', 'DAI', 'TUSD', 'USDP', 'EUR', 'BUSD', 'DOGE', 'TRX', 'SHIB', 'WLD', 'SOL', 'BTC', 'ETH', 'ADA', 'ONDO']
     
     for t in tickers:
         symbol = t.get('symbol', '')
@@ -82,17 +105,34 @@ def preparar_datos(tickers):
     acumulacion_pool_24h = [t for t in usdt_pairs if t['lastPrice_f'] < 1.0]
     acumulacion_24h = sorted(acumulacion_pool_24h, key=lambda x: x['quoteVolume_f'], reverse=True)[:7]
     
-    # 3. Top 7 Acumulación Silenciosa (Filtro limpio de proyectos sólidos estables/laterales)
-    silenciosa_pool = [
+    # 3. Top 7 Acumulación Silenciosa con SISTEMA DE ENFRIAMIENTO (Anti-Repetición)
+    historial_previo = cargar_memoria_perlas()
+    simbolos_bloqueados = [item for reporte in historial_previo for item in reporte]
+    
+    # Filtrar candidatos que cumplan con compresión y volumen sano, pero excluyendo los recientes
+    silenciosa_pool_fresca = [
         t for t in usdt_pairs 
         if t['lastPrice_f'] < 1.0 
-        and -1.0 <= t['priceChangePercent_f'] <= 2.0
-        and t['quoteVolume_f'] >= 2_000_000
+        and -1.5 <= t['priceChangePercent_f'] <= 1.5
+        and t['quoteVolume_f'] >= 1_500_000
+        and t['symbol'] not in simbolos_bloqueados
     ]
-    if len(silenciosa_pool) < 7:
-        silenciosa_pool = [t for t in usdt_pairs if t['lastPrice_f'] < 1.0 and t['quoteVolume_f'] >= 1_000_000]
+    
+    # Si tras el filtro de enfriamiento nos faltan candidatos, relajamos el bloqueo trayendo otras opciones secundarias válidas
+    if len(silenciosa_pool_fresca) < 7:
+        silenciosa_pool_fresca = [
+            t for t in usdt_pairs 
+            if t['lastPrice_f'] < 1.0 
+            and -2.0 <= t['priceChangePercent_f'] <= 2.0
+            and t['quoteVolume_f'] >= 1_000_000
+        ]
         
-    acumulacion_silenciosa = sorted(silenciosa_pool, key=lambda x: x['quoteVolume_f'], reverse=True)[:7]
+    acumulacion_silenciosa = sorted(silenciosa_pool_fresca, key=lambda x: x['quoteVolume_f'], reverse=True)[:7]
+    
+    # Actualizar memoria con las nuevas perlas seleccionadas
+    nuevos_simbolos = [t['symbol'] for t in acumulacion_silenciosa]
+    historial_previo.append(nuevos_simbolos)
+    guardar_memoria_perlas(historial_previo)
     
     # 4. Top 7 Perdedoras
     perdedoras = sorted(usdt_pairs, key=lambda x: x['priceChangePercent_f'])[:7]
@@ -195,7 +235,7 @@ def procesar_y_enviar_bloque_unificado(num_bloque, titulo_bloque, icono, lista_i
     time.sleep(3)
 
 if __name__ == "__main__":
-    print("Iniciando envío de bloques...")
+    print("Iniciando envío de bloques con sistema de rotación de perlas...")
     datos = obtener_datos_binance()
     if datos:
         ganadoras, acumulacion_24h, acumulacion_silenciosa, perdedoras, favoritas = preparar_datos(datos)
@@ -206,4 +246,4 @@ if __name__ == "__main__":
         procesar_y_enviar_bloque_unificado(4, "TOP 7 PERDEDORAS", "📉", perdedoras, "#f6465d", "grafico_perdedoras.png")
         procesar_y_enviar_bloque_unificado(5, "TUS 5 FAVORITAS", "⭐", favoritas, "#3861fb", "grafico_favoritas.png")
         
-        print("¡Los 5 bloques se enviaron correctamente!")
+        print("¡Los 5 bloques con rotación inteligente se enviaron correctamente!")
