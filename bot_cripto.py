@@ -2,9 +2,17 @@ import os
 import time
 import random
 import requests
+import html
+from datetime import datetime
+import matplotlib.pyplot as plt
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("CHAT_ID")
+TELEGRAM_TOPIC_ID = os.getenv("TOPIC_ID_TACTICO") # Opcional si usas hilos/topics
+BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
+
+# Lista negra global para descartar tokens deslistados o con anomalías
+LISTA_NEGRA = ['PNTUSDT', 'VGXUSDT', 'BNCUSDT']
 
 def obtener_datos_binance():
     url = "https://data-api.binance.vision/api/v3/ticker/24hr"
@@ -20,17 +28,17 @@ def obtener_datos_binance():
         raise e
 
 def formatear_precio(precio):
-    """Ajusta la cantidad de decimales dinámicamente según el valor del token, igual que la interfaz de Binance."""
+    """Ajusta la cantidad de decimales dinámicamente según el valor del token."""
     if precio is None:
         return "$0.00"
     elif precio >= 1.0:
-        return f"${precio:.2f}"      # Para monedas de más de $1 (ej. BTC, ETH)
+        return f"${precio:.2f}"
     elif precio >= 0.01:
-        return f"${precio:.4f}"      # Para tokens como BANK, TUT o PYR (ej. $0.0283)
+        return f"${precio:.4f}"
     elif precio >= 0.0001:
-        return f"${precio:.6f}"      # Para precios intermedios
+        return f"${precio:.6f}"
     else:
-        return f"${precio:.8f}"      # Para memecoins con muchos ceros (ej. NEIRO, LUNC)
+        return f"${precio:.8f}"
 
 def generar_barra_progreso(cambio, es_acumulacion=False):
     if es_acumulacion:
@@ -49,14 +57,19 @@ def generar_barra_progreso(cambio, es_acumulacion=False):
         return "🟥🟥🟥🟥🟥"
 
 def preparar_datos(tickers):
-    usdt_pairs = [t for t in tickers if t['symbol'].endswith('USDT') and not any(x in t['symbol'] for x in ['UP', 'DOWN', 'BULL', 'BEAR'])]
+    usdt_pairs = [
+        t for t in tickers 
+        if t['symbol'].endswith('USDT') 
+        and not any(x in t['symbol'] for x in ['UP', 'DOWN', 'BULL', 'BEAR'])
+        and t['symbol'] not in LISTA_NEGRA
+    ]
     print(f"Pares USDT válidos filtrados: {len(usdt_pairs)}")
     
     # Top 7 Ganadoras
     ganadoras = sorted(usdt_pairs, key=lambda x: float(x['priceChangePercent']), reverse=True)[:7]
     
-    # Top 7 Acumulación (< $1 USD)
-    acumulacion_pool = [t for t in usdt_pairs if float(t['lastPrice']) < 1.0]
+    # Top 7 Acumulación (< $1 USD y Volumen > $50,000)
+    acumulacion_pool = [t for t in usdt_pairs if float(t['lastPrice']) < 1.0 and float(t['quoteVolume']) > 50000]
     acumulacion = sorted(acumulacion_pool, key=lambda x: float(x['quoteVolume']), reverse=True)[:7]
     
     # Top 7 Perdedoras
@@ -74,114 +87,106 @@ def preparar_datos(tickers):
             
     return ganadoras, acumulacion, perdedoras, favoritas
 
-def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
-    base_url_netlify = "https://gregarious-frangollo-0346c5.netlify.app"
+def generar_grafico_tema(lista_items, titulo_grafico, color_barra, filename):
+    """Genera un gráfico de barras ordenado de menor a mayor porcentaje (de izquierda a derecha)."""
+    # Se ordena de menor a mayor cambio para el eje X
+    items_ordenados = sorted(lista_items, key=lambda x: float(x['priceChangePercent']))
     
-    # Parte 1: Ganadoras (7) y Acumulación (7)
-    mensaje_1 = (
-        "🧠 **CENTRAL DE INTELIGENCIA DE MERCADO** (1/2)\n"
-        "📊 Monitoreo Global: Top de Binance\n"
-        "⚡ **Estado:** Automatización Activa (Cada 15m)\n\n"
-        "🚀 **1. TOP 7 GANADORAS**\n"
-    )
+    simbolos = [item['symbol'].replace('USDT', '') for item in items_ordenados]
+    cambios = [float(item['priceChangePercent']) for item in items_ordenados]
     
-    for item in ganadoras:
-        sim = item['symbol'].replace('USDT', '')
-        precio = float(item['lastPrice'])
-        precio_str = formatear_precio(precio)
-        cambio = float(item['priceChangePercent'])
-        barra = generar_barra_progreso(cambio)
-        unique_id = int(time.time() * 1000) + random.randint(1, 99999)
-        url_ia = f"{base_url_netlify}/?coin={sim}&price={precio}&change={cambio}&v={sim}_{unique_id}"
-        url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
-        
-        mensaje_1 += (
-            f"• **{sim}** | {precio_str} | {barra} | +{cambio:.1f}%\n"
-            f"  └ [📊 Resumen IA]({url_ia}) | [🔶 Tradear]({url_trade})\n"
-        )
-
-    mensaje_1 += "\n💎 **2. TOP 7 ACUMULACIÓN (< $1 USD)**\n"
-    for item in acumulacion:
-        sim = item['symbol'].replace('USDT', '')
-        precio = float(item['lastPrice'])
-        precio_str = formatear_precio(precio)
-        cambio = float(item['priceChangePercent'])
-        barra = generar_barra_progreso(cambio, es_acumulacion=True)
-        unique_id = int(time.time() * 1000) + random.randint(1, 99999)
-        url_ia = f"{base_url_netlify}/?coin={sim}&price={precio}&change={cambio}&v={sim}_{unique_id}"
-        url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
-        
-        mensaje_1 += (
-            f"• **{sim}** | {precio_str} | {barra} | {cambio:+.1f}%\n"
-            f"  └ [📊 Resumen IA]({url_ia}) | [🔶 Tradear]({url_trade})\n"
-        )
-
-    # Parte 2: Perdedoras (7) y Favoritas (5)
-    mensaje_2 = (
-        "🧠 **CENTRAL DE INTELIGENCIA DE MERCADO** (2/2)\n\n"
-        "📉 **3. TOP 7 PERDEDORAS**\n"
-    )
-    for item in perdedoras:
-        sim = item['symbol'].replace('USDT', '')
-        precio = float(item['lastPrice'])
-        precio_str = formatear_precio(precio)
-        cambio = float(item['priceChangePercent'])
-        barra = generar_barra_progreso(cambio)
-        unique_id = int(time.time() * 1000) + random.randint(1, 99999)
-        url_ia = f"{base_url_netlify}/?coin={sim}&price={precio}&change={cambio}&v={sim}_{unique_id}"
-        url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
-        
-        mensaje_2 += (
-            f"• **{sim}** | {precio_str} | {barra} | {cambio:.1f}%\n"
-            f"  └ [📊 Resumen IA]({url_ia}) | [🔶 Tradear]({url_trade})\n"
-        )
-
-    mensaje_2 += "\n⭐ **4. TUS 5 FAVORITAS**\n"
-    for item in favoritas:
-        sim = item['symbol'].replace('USDT', '')
-        precio = float(item['lastPrice'])
-        precio_str = formatear_precio(precio)
-        cambio = float(item['priceChangePercent'])
-        barra = generar_barra_progreso(cambio)
-        unique_id = int(time.time() * 1000) + random.randint(1, 99999)
-        url_ia = f"{base_url_netlify}/?coin={sim}&price={precio}&change={cambio}&v={sim}_{unique_id}"
-        url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
-        
-        mensaje_2 += (
-            f"• **{sim}** | {precio_str} | {barra} | {cambio:+.1f}%\n"
-            f"  └ [📊 Resumen IA]({url_ia}) | [🔶 Tradear]({url_trade})\n"
-        )
-
-    mensaje_2 += "\n✅ Alerta enviada correctamente."
+    fig, ax = plt.subplots(figsize=(8, 4.5), facecolor='#0b132b')
+    ax.set_facecolor('#0b132b')
     
-    return mensaje_1, mensaje_2
+    bars = ax.bar(simbolos, cambios, color=color_barra, width=0.5, zorder=3)
+    ax.grid(True, color='#1e293b', linestyle='-', linewidth=0.8, zorder=1)
+    ax.set_axisbelow(True)
+    
+    for spine in ['top', 'right', 'left', 'bottom']:
+        ax.spines[spine].set_visible(False)
+        
+    ax.tick_params(left=False, labelleft=False, bottom=False)
+    ax.tick_params(axis='x', colors='white', labelsize=10)
+    
+    for bar, sim, cambio in zip(bars, simbolos, cambios):
+        yval = bar.get_height()
+        xval = bar.get_x() + bar.get_width() / 2.0
+        offset = 2.5 if yval >= 0 else -5.5
+        
+        ax.text(xval, yval + offset, f"+{cambio:.1f}%" if cambio >= 0 else f"{cambio:.1f}%", 
+                ha='center', va='bottom' if yval >= 0 else 'top', color=color_barra, fontweight='bold', fontsize=10)
+        
+        ax.plot(xval, yval + (1.2 if yval >= 0 else -1.2), marker='o', markersize=18, markerfacecolor='#0f172a', markeredgecolor=color_barra, markeredgewidth=1.5, zorder=4)
+        ax.text(xval, yval + (1.2 if yval >= 0 else -1.2), sim, ha='center', va='center', color='white', fontsize=7, fontweight='bold', zorder=5)
 
-def enviar_a_telegram(mensaje_1, mensaje_2):
+    fecha_str = datetime.now().strftime('%Y-%m-%d')
+    plt.title(titulo_grafico, loc='left', color='#ffab00', fontsize=12, fontweight='bold', pad=12)
+    ax.text(0.0, 1.02, f"Fecha: {fecha_str}", transform=ax.transAxes, color='#94a3b8', fontsize=8)
+    
+    plt.tight_layout()
+    plt.savefig(filename, dpi=300, facecolor=fig.get_facecolor(), edgecolor='none')
+    plt.close()
+    return filename
+
+def enviar_foto_telegram(image_path, caption=""):
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
+    with open(image_path, 'rb') as photo:
+        payload = {"chat_id": TELEGRAM_CHAT_ID, "caption": caption, "parse_mode": "HTML"}
+        if TELEGRAM_TOPIC_ID:
+            payload["message_thread_id"] = TELEGRAM_TOPIC_ID
+        files = {"photo": photo}
+        res = requests.post(url, data=payload, files=files)
+        return res
+
+def enviar_texto_telegram(texto):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    
-    print("Enviando Parte 1 a Telegram...")
-    p1 = requests.post(url, json={
+    payload = {
         "chat_id": TELEGRAM_CHAT_ID,
-        "text": mensaje_1,
-        "parse_mode": "Markdown",
+        "text": texto,
+        "parse_mode": "HTML",
         "disable_web_page_preview": True
-    })
+    }
+    if TELEGRAM_TOPIC_ID:
+        payload["message_thread_id"] = TELEGRAM_TOPIC_ID
+    res = requests.post(url, json=payload)
+    return res
+
+def procesar_y_enviar_bloque(num_bloque, titulo_bloque, icono, lista_items, color_grafico, es_acumulacion=False):
+    if not lista_items:
+        return
     
-    print("Enviando Parte 2 a Telegram...")
-    p2 = requests.post(url, json={
-        "chat_id": TELEGRAM_CHAT_ID,
-        "text": mensaje_2,
-        "parse_mode": "Markdown",
-        "disable_web_page_preview": True
-    })
+    filename = f"grafico_tema_{num_bloque}.png"
+    generar_grafico_tema(lista_items, f"{icono} {titulo_bloque.upper()} • Ranking 24h", color_grafico, filename)
     
-    print(f"Estado HTTP Telegram P1: {p1.status_code} - Res: {p1.text}")
-    print(f"Estado HTTP Telegram P2: {p2.status_code} - Res: {p2.text}")
+    # Send Photo Header
+    caption = f"🧠 <b>CENTRAL DE INTELIGENCIA DE MERCADO ({num_bloque}/4)</b>\n{icono} <b>{num_bloque}. {titulo_bloque.upper()}</b>"
+    enviar_foto_telegram(filename, caption)
     
-    if p1.status_code != 200 or p2.status_code != 200:
-        raise Exception(f"Telegram rechazó los mensajes. P1: {p1.text} | P2: {p2.text}")
+    # Send Text Details
+    msg = f"{icono} <b>{num_bloque}. {titulo_bloque.upper()} (Detalle)</b>\n\n"
+    for item in lista_items:
+        sim = item['symbol'].replace('USDT', '')
+        precio = float(item['lastPrice'])
+        precio_str = formatear_precio(precio)
+        cambio = float(item['priceChangePercent'])
+        high = float(item['highPrice'])
+        low = float(item['lowPrice'])
+        
+        barra = generar_barra_progreso(cambio, es_acumulacion=es_acumulacion)
+        unique_id = int(time.time() * 1000) + random.randint(1, 99999)
+        
+        url_ia = f"{BASE_URL_NETLIFY}/?coin={sim}&price={precio}&change={cambio}&high={high}&low={low}&v={sim}_{unique_id}"
+        url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
+        
+        cambio_fmt = f"+{cambio:.1f}%" if cambio >= 0 else f"{cambio:.1f}%"
+        
+        msg += (
+            f"• <b>{sim}</b> | {precio_str} | {barra} | {cambio_fmt}\n"
+            f"  └ <a href=\"{html.escape(url_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n"
+        )
     
-    print("¡Mensajes enviados con éxito a Telegram!")
+    enviar_texto_telegram(msg)
+    time.sleep(1.2) # Pausa estratégica entre bloques
 
 if __name__ == "__main__":
     print("Iniciando análisis de mercado...")
@@ -191,7 +196,19 @@ if __name__ == "__main__":
     datos = obtener_datos_binance()
     if datos:
         ganadoras, acumulacion, perdedoras, favoritas = preparar_datos(datos)
-        msg_1, msg_2 = construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas)
-        enviar_a_telegram(msg_1, msg_2)
+        
+        # Bloque 1: Top 7 Ganadoras
+        procesar_y_enviar_bloque(1, "TOP 7 GANADORAS", "🚀", ganadoras, "#00c853")
+        
+        # Bloque 2: Top 7 Acumulación (< $1 USD)
+        procesar_y_enviar_bloque(2, "TOP 7 ACUMULACIÓN (< $1 USD)", "💎", acumulacion, "#ffab00", es_acumulacion=True)
+        
+        # Bloque 3: Top 7 Perdedoras
+        procesar_y_enviar_bloque(3, "TOP 7 PERDEDORAS", "📉", perdedoras, "#f6465d")
+        
+        # Bloque 4: Tus 5 Favoritas
+        procesar_y_enviar_bloque(4, "TUS 5 FAVORITAS", "⭐", favoritas, "#3861fb")
+        
+        print("¡Los 4 bloques del reporte han sido enviados exitosamente!")
     else:
         raise Exception("No se pudieron obtener datos de la API de Binance.")
