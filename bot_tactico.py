@@ -115,7 +115,7 @@ def procesar_oportunidades(data):
         
         binance_url = f"https://www.binance.com/es/trade/{sim}_USDT?type=spot"
         
-        # URL optimizada para Netlify enviando maximo (high), minimo (low) y volumen
+        # URL optimizada que envía explícitamente high y low al panel web de Netlify
         netlify_url = f"https://polite-baklava-8ec85f.netlify.app/?coin={sim}&price={precio}&change={cambio}&high={high}&low={low}&vol={volumen:,.0f}"
         
         resumen_moneda = generar_sintesis_resumen(sim, precio, cambio, volumen, high, low)
