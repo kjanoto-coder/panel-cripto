@@ -67,7 +67,7 @@ def preparar_datos(tickers):
     # Top 7 Ganadoras
     ganadoras = sorted(usdt_pairs, key=lambda x: float(x['priceChangePercent']), reverse=True)[:7]
     
-    # Top 7 Acumulación (< $1 USD sin filtro restrictivo de volumen)
+    # Top 7 Acumulación (< $1 USD)
     acumulacion_pool = [t for t in usdt_pairs if float(t['lastPrice']) < 1.0]
     acumulacion = sorted(acumulacion_pool, key=lambda x: float(x['quoteVolume']), reverse=True)[:7]
     
@@ -152,7 +152,7 @@ def procesar_y_enviar_bloque(num_bloque, titulo_bloque, icono, lista_items, colo
         return
     
     filename = f"grafico_tema_{num_bloque}.png"
-    generar_grafico_tema(lista_items, f"{icono} {titulo_bloque.UPPER()} • Ranking 24h", color_grafico, filename)
+    generar_grafico_tema(lista_items, f"{icono} {titulo_bloque.upper()} • Ranking 24h", color_grafico, filename)
     
     caption = f"🧠 <b>CENTRAL DE INTELIGENCIA DE MERCADO ({num_bloque}/4)</b>\n{icono} <b>{num_bloque}. {titulo_bloque.upper()}</b>"
     enviar_foto_telegram(filename, caption)
