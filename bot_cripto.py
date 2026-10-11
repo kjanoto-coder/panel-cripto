@@ -8,10 +8,10 @@ import matplotlib.pyplot as plt
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("CHAT_ID")
-TELEGRAM_TOPIC_ID = os.getenv("TOPIC_ID_TACTICO") # Opcional si usas hilos/topics
+TELEGRAM_TOPIC_ID = os.getenv("TOPIC_ID_TACTICO")
 BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
 
-# Lista negra global para descartar tokens deslistados o con anomalías
+# Lista negra para descartar tokens deslistados
 LISTA_NEGRA = ['PNTUSDT', 'VGXUSDT', 'BNCUSDT']
 
 def obtener_datos_binance():
@@ -21,14 +21,13 @@ def obtener_datos_binance():
         response = requests.get(url, timeout=15)
         response.raise_for_status()
         datos = response.json()
-        print(f"¡Conexión exitosa! Se obtuvieron {len(datos)} pares de mercado.")
+        print(f"¡Conexión exitosa! Se obtuvieron {len(datos)} pares.")
         return datos
     except Exception as e:
         print(f"Error crítico al conectar con Binance: {e}")
         raise e
 
 def formatear_precio(precio):
-    """Ajusta la cantidad de decimales dinámicamente según el valor del token."""
     if precio is None:
         return "$0.00"
     elif precio >= 1.0:
@@ -68,28 +67,24 @@ def preparar_datos(tickers):
     # Top 7 Ganadoras
     ganadoras = sorted(usdt_pairs, key=lambda x: float(x['priceChangePercent']), reverse=True)[:7]
     
-    # Top 7 Acumulación (< $1 USD y Volumen > $50,000)
-    acumulacion_pool = [t for t in usdt_pairs if float(t['lastPrice']) < 1.0 and float(t['quoteVolume']) > 50000]
+    # Top 7 Acumulación (< $1 USD sin filtro restrictivo de volumen)
+    acumulacion_pool = [t for t in usdt_pairs if float(t['lastPrice']) < 1.0]
     acumulacion = sorted(acumulacion_pool, key=lambda x: float(x['quoteVolume']), reverse=True)[:7]
     
     # Top 7 Perdedoras
     perdedoras = sorted(usdt_pairs, key=lambda x: float(x['priceChangePercent']))[:7]
     
-    # Tus 5 favoritas (QI, TUT, NEIRO, LUNC, BANK)
+    # Tus 5 favoritas
     favoritas_simbolos = ['QI', 'TUT', 'NEIRO', 'LUNC', 'BANK']
     favoritas = []
     for sim in favoritas_simbolos:
         match = next((t for t in usdt_pairs if t['symbol'] == f"{sim}USDT"), None)
         if match:
             favoritas.append(match)
-        else:
-            print(f"Advertencia: No se encontró el token favorito {sim}USDT")
             
     return ganadoras, acumulacion, perdedoras, favoritas
 
 def generar_grafico_tema(lista_items, titulo_grafico, color_barra, filename):
-    """Genera un gráfico de barras ordenado de menor a mayor porcentaje (de izquierda a derecha)."""
-    # Se ordena de menor a mayor cambio para el eje X
     items_ordenados = sorted(lista_items, key=lambda x: float(x['priceChangePercent']))
     
     simbolos = [item['symbol'].replace('USDT', '') for item in items_ordenados]
@@ -153,16 +148,15 @@ def enviar_texto_telegram(texto):
 
 def procesar_y_enviar_bloque(num_bloque, titulo_bloque, icono, lista_items, color_grafico, es_acumulacion=False):
     if not lista_items:
+        print(f"Advertencia: No hay items para el bloque {num_bloque}")
         return
     
     filename = f"grafico_tema_{num_bloque}.png"
-    generar_grafico_tema(lista_items, f"{icono} {titulo_bloque.upper()} • Ranking 24h", color_grafico, filename)
+    generar_grafico_tema(lista_items, f"{icono} {titulo_bloque.UPPER()} • Ranking 24h", color_grafico, filename)
     
-    # Send Photo Header
     caption = f"🧠 <b>CENTRAL DE INTELIGENCIA DE MERCADO ({num_bloque}/4)</b>\n{icono} <b>{num_bloque}. {titulo_bloque.upper()}</b>"
     enviar_foto_telegram(filename, caption)
     
-    # Send Text Details
     msg = f"{icono} <b>{num_bloque}. {titulo_bloque.upper()} (Detalle)</b>\n\n"
     for item in lista_items:
         sim = item['symbol'].replace('USDT', '')
@@ -186,12 +180,12 @@ def procesar_y_enviar_bloque(num_bloque, titulo_bloque, icono, lista_items, colo
         )
     
     enviar_texto_telegram(msg)
-    time.sleep(1.2) # Pausa estratégica entre bloques
+    time.sleep(1.2)
 
 if __name__ == "__main__":
     print("Iniciando análisis de mercado...")
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        raise ValueError("Faltan las credenciales de Telegram (TELEGRAM_TOKEN o CHAT_ID en los Secrets).")
+        raise ValueError("Faltan las credenciales de Telegram.")
         
     datos = obtener_datos_binance()
     if datos:
@@ -209,6 +203,4 @@ if __name__ == "__main__":
         # Bloque 4: Tus 5 Favoritas
         procesar_y_enviar_bloque(4, "TUS 5 FAVORITAS", "⭐", favoritas, "#3861fb")
         
-        print("¡Los 4 bloques del reporte han sido enviados exitosamente!")
-    else:
-        raise Exception("No se pudieron obtener datos de la API de Binance.")
+        print("¡Los 4 bloques con sus infografías completas han sido enviados exitosamente!")
