@@ -144,6 +144,8 @@ def enviar_foto_con_detalle_telegram(image_path, caption_text):
             payload["message_thread_id"] = TELEGRAM_TOPIC_ID
         files = {"photo": photo}
         res = requests.post(url, data=payload, files=files)
+        if res.status_code != 200:
+            print(f"❌ Error al enviar a Telegram ({res.status_code}): {res.text}")
         return res
 
 def procesar_y_enviar_bloque_unificado(num_bloque, titulo_bloque, icono, lista_items, color_grafico, filename_grafico, es_acumulacion=False):
@@ -154,9 +156,11 @@ def procesar_y_enviar_bloque_unificado(num_bloque, titulo_bloque, icono, lista_i
     print(f"Generando gráfico y unificando mensaje para Bloque {num_bloque}: {titulo_bloque}...")
     generar_grafico_tema(lista_items, f"{icono} {titulo_bloque.upper()} • Ranking 24h", color_grafico, filename_grafico)
     
-    # Construimos todo el mensaje en el caption de la foto (Gráfico + Detalle unificado)
+    # ESCAPAR el título para que el símbolo '<' no rompa el analizador HTML de Telegram
+    titulo_seguro = html.escape(titulo_bloque.upper())
+    
     caption = f"🧠 <b>CENTRAL DE INTELIGENCIA DE MERCADO ({num_bloque}/4)</b>\n"
-    caption += f"{icono} <b>{num_bloque}. {titulo_bloque.upper()} (Detalle)</b>\n\n"
+    caption += f"{icono} <b>{num_bloque}. {titulo_seguro} (Detalle)</b>\n\n"
     
     for item in lista_items:
         sim = item['symbol'].replace('USDT', '')
@@ -179,10 +183,9 @@ def procesar_y_enviar_bloque_unificado(num_bloque, titulo_bloque, icono, lista_i
             f"  └ <a href=\"{html.escape(url_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n"
         )
     
-    # Envío único de foto con su mensaje completo integrado
     res = enviar_foto_con_detalle_telegram(filename_grafico, caption)
-    print(f"Bloque {num_bloque} unificado status: {res.status_code} - Res: {res.text}")
-    time.sleep(3) # Pausa de seguridad entre cada uno de los 4 temas
+    print(f"Bloque {num_bloque} unificado status: {res.status_code}")
+    time.sleep(3)
 
 if __name__ == "__main__":
     print("Iniciando análisis de mercado unificado...")
