@@ -20,10 +20,10 @@
         .section-content { font-size: 0.9rem; line-height: 1.5; color: #eaecef; }
         .btn { display: block; width: 100%; background: #f0b90b; color: #181a20; text-align: center; padding: 12px; border-radius: 6px; font-weight: bold; text-decoration: none; margin-top: 15px; }
         .btn:hover { background: #d9a70a; }
-        .metric-grid { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 8px; margin-bottom: 10px; }
+        .metric-grid { display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: 8px; margin-bottom: 10px; }
         .metric-box { background: #1e2329; padding: 8px; border-radius: 6px; text-align: center; display: flex; flex-direction: column; justify-content: center; }
         .metric-title { font-size: 0.65rem; color: #848e9c; font-weight: bold; margin-bottom: 4px; }
-        .metric-value { font-size: 0.82rem; font-weight: bold; }
+        .metric-value { font-size: 0.80rem; font-weight: bold; }
         .tag-row { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
         .tag { background: #2b313a; color: #d1d5db; padding: 3px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; text-decoration: none; }
         .x-card { background: #111418; border: 1px solid #2b313a; padding: 10px; border-radius: 6px; margin-top: 8px; font-size: 0.85rem; }
@@ -51,7 +51,7 @@
         </div>
         <div class="metric-box">
             <div class="metric-title">MÁX / MÍN (24H)</div>
-            <div class="metric-value" style="font-size: 0.75rem; line-height: 1.4;">
+            <div class="metric-value" style="font-size: 0.72rem; line-height: 1.3;">
                 <span style="color: #848e9c;">Máx:</span> <span id="val-max" style="color: #0ecb81; font-weight: bold;">-</span><br>
                 <span style="color: #848e9c;">Mín:</span> <span id="val-min" style="color: #f6465d; font-weight: bold;">-</span>
             </div>
