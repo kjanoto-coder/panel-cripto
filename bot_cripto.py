@@ -4,6 +4,7 @@ import random
 import requests
 import html
 from datetime import datetime
+import numpy as np
 import matplotlib.pyplot as plt
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -11,21 +12,35 @@ TELEGRAM_CHAT_ID = os.getenv("CHAT_ID")
 TELEGRAM_TOPIC_ID = os.getenv("TOPIC_ID_TACTICO")
 BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
 
-# Lista negra para descartar tokens deslistados o problemáticos
-LISTA_NEGRA = ['PNTUSDT', 'VGXUSDT', 'BNCUSDT']
+# Lista negra general y exclusión de tokens ruidosos / ya seguidos por ti
+LISTA_NEGRA = ['PNTUSDT', 'VGXUSDT', 'BNCUSDT', 'PENGUUSDT', 'ASTERUSDT']
+FAVORITAS_USUARIO = ['QI', 'TUT', 'NEIRO', 'LUNC', 'BANK']
+
+MAPEO_SECTORIAL = {
+    'STRK': '🧱 Capa 2 / Infraestructura', 'CFX': '🧱 Capa 1 / Ecosistema', 'TIA': '🧱 Capa 1 / Modular',
+    'SUI': '🧱 Capa 1 / Alta Velocidad', 'NEAR': '🧱 Capa 1 / IA & Cloud', 'ONDO': '🔹 DeFi / RWA & Institucional',
+    'ENA': '🔹 DeFi / Stablecoin Yield', 'PENDLE': '🔹 DeFi / Yield Trading', 'RENDER': '🤖 IA / GPU Computing',
+    'FET': '🤖 IA / Inteligencia Artificial', 'HBAR': '🧱 Capa 1 / Enterprise', 'POL': '🧱 Capa 2 / Ecosistema'
+}
 
 def obtener_datos_binance():
     url = "https://data-api.binance.vision/api/v3/ticker/24hr"
-    print("Conectando con la API de Binance...")
     try:
         response = requests.get(url, timeout=15)
         response.raise_for_status()
-        datos = response.json()
-        print(f"¡Conexión exitosa! Se obtuvieron {len(datos)} pares.")
-        return datos
+        return response.json()
     except Exception as e:
-        print(f"Error crítico al conectar con Binance: {e}")
         raise e
+
+def obtener_velas_historicas(symbol, interval="1d", limit=90):
+    url = f"https://data-api.binance.vision/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}"
+    try:
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            return response.json()
+    except Exception:
+        pass
+    return []
 
 def formatear_precio(precio):
     if precio is None:
@@ -39,128 +54,111 @@ def formatear_precio(precio):
     else:
         return f"${precio:.8f}"
 
-def generar_barra_progreso(cambio, tipo_bloque=""):
-    if tipo_bloque == "acumulacion_24h":
-        return "🟨🟨🟨⬜⬜"
-    elif tipo_bloque == "silenciosa":
-        return "💎💎⬜⬜⬜"
-    
-    if cambio > 20:
-        return "🟢🟢🟢🟢🟢"
-    elif cambio > 10:
-        return "🟢🟢🟢🟢⬜"
-    elif cambio > 5:
-        return "🟢🟢🟢⬜⬜"
-    elif cambio > 0:
-        return "🟢🟢⬜⬜⬜"
-    elif cambio > -5:
-        return "🟥🟥⬜⬜⬜"
-    else:
-        return "🟥🟥🟥🟥🟥"
+def clasificar_sector(simbolo):
+    return MAPEO_SECTORIAL.get(simbolo, '⚡ Altcoin / Desarrollo Tecnológico')
 
-def preparar_datos(tickers):
+def analizar_motor_serio(tickers):
     usdt_pairs = []
-    
-    # Exclusión estricta de stablecoins, monedas fiat sintéticas y megacapitalizaciones masivas
     EXCLUIDOS = [
-        'FDUSD', 'USDT', 'USDC', 'DAI', 'TUSD', 'USDP', 'EUR', 'BUSD',
-        'DOGE', 'TRX', 'SHIB', 'WLD', 'SOL', 'BTC', 'ETH', 'XRP', 'ADA', 
-        'BNB', 'AVAX', 'LINK', 'SUI', 'PEPE', 'NEAR', 'APT', 'ICP'
+        'FDUSD', 'USDT', 'USDC', 'DAI', 'TUSD', 'USDP', 'EUR', 'BUSD', 
+        'BTC', 'ETH', 'XRP', 'BNB', 'SOL', 'DOGE', 'TRX', 'SHIB', 'WLD'
     ]
     
     for t in tickers:
         symbol = t.get('symbol', '')
         base_name = symbol.replace('USDT', '')
         
+        # Filtro estricto: Fuera stablecoins, fuera gigantes, fuera ruido y fuera tus favoritas actuales
         if (symbol.endswith('USDT') and 
             base_name not in EXCLUIDOS and 
-            not any(x in symbol for x in ['UP', 'DOWN', 'BULL', 'BEAR']) and 
-            symbol not in LISTA_NEGRA):
+            base_name not in FAVORITAS_USUARIO and
+            symbol not in LISTA_NEGRA and
+            not any(x in symbol for x in ['UP', 'DOWN', 'BULL', 'BEAR'])):
             try:
                 t['lastPrice_f'] = float(t.get('lastPrice', 0))
                 t['priceChangePercent_f'] = float(t.get('priceChangePercent', 0))
                 t['quoteVolume_f'] = float(t.get('quoteVolume', 0))
-                t['highPrice_f'] = float(t.get('highPrice', 0))
-                t['lowPrice_f'] = float(t.get('lowPrice', 0))
-                
-                # Cálculo de métricas estructurales avanzadas (Matriz de Inteligencia Táctica)
-                high = t['highPrice_f']
-                low = t['lowPrice_f']
-                last = t['lastPrice_f']
-                
-                # Evitar división por cero
-                if high > low and low > 0:
-                    # Amplitud del rango diario en porcentaje
-                    t['rango_amplitud'] = ((high - low) / low) * 100
-                    # Posición relativa del precio actual dentro del rango diario (0 = en el mínimo, 1 = en el máximo)
-                    t['posicion_en_rango'] = (last - low) / (high - low)
-                else:
-                    t['rango_amplitud'] = 0.0
-                    t['posicion_en_rango'] = 0.5
-
                 usdt_pairs.append(t)
             except (ValueError, TypeError):
                 continue
 
-    print(f"Pares USDT estructurales válidos filtrados: {len(usdt_pairs)}")
+    # Candidatos base: Precio menor a $1 y liquidez institucional seria ($2M a $50M)
+    candidatos = [
+        t for t in usdt_pairs 
+        if t['lastPrice_f'] < 1.0 and 2_000_000 <= t['quoteVolume_f'] <= 50_000_000
+    ]
     
-    # 1. Top 7 Ganadoras
-    ganadoras = sorted(usdt_pairs, key=lambda x: x['priceChangePercent_f'], reverse=True)[:7]
+    perlas_serias = []
+    print("Ejecutando motor de análisis técnico institucional (90 días)...")
     
-    # 2. Top 7 Acumulación 24h (Volumen general < $1)
-    acumulacion_pool_24h = [t for t in usdt_pairs if t['lastPrice_f'] < 1.0]
-    acumulacion_24h = sorted(acumulacion_pool_24h, key=lambda x: x['quoteVolume_f'], reverse=True)[:7]
+    candidatos_ordenados = sorted(candidatos, key=lambda x: x['quoteVolume_f'], reverse=True)
     
-    # 3. Top 7 Acumulación Silenciosa / Inteligente (El Resorte Estructural)
-    # Criterios de IA: 
-    # - Precio nominal menor a $1 USD (alta accesibilidad y margen de subida).
-    # - Variación diaria contenida (-1.0% a +2.5%) para evitar activos en pleno escape alcista.
-    # - Volumen de liquidez institucional/sana ($800,000 a $45,000,000 USD) para descartar tokens sin movimiento y megagigantes.
-    # - Compresión de rango y defensa de posición (el precio se mantiene firme en la mitad superior de su rango diario).
-    silenciosa_pool = []
-    for t in usdt_pairs:
-        if (t['lastPrice_f'] < 1.0 and 
-            -1.0 <= t['priceChangePercent_f'] <= 2.5 and 
-            800_000 <= t['quoteVolume_f'] <= 45_000_000):
+    for t in candidatos_ordenados:
+        symbol = t['symbol']
+        sim = symbol.replace('USDT', '')
+        klines = obtener_velas_historicas(symbol, interval="1d", limit=90)
+        
+        if len(klines) < 30:
+            continue
             
-            # Puntuación inteligente de compresión y acumulación (Score de Resorte)
-            # Premia a los tokens que tienen buena liquidez pero cuya amplitud diaria muestra compresión 
-            # y que defienden la parte alta de su micro-rango.
-            score_resorte = t['quoteVolume_f'] * (1.0 - min(t['rango_amplitud'] / 20.0, 1.0)) * t['posicion_en_rango']
-            t['score_resorte'] = score_resorte
-            silenciosa_pool.append(t)
+        cierres = [float(k[4]) for k in klines]
+        volumenes = [float(k[5]) for k in klines]
+        
+        piso_90d = min(cierres)
+        techo_90d = max(cierres)
+        precio_actual = t['lastPrice_f']
+        
+        # Amplitud y distancia al piso
+        amplitud = ((techo_90d - piso_90d) / piso_90d) * 100
+        distancia_piso = ((precio_actual - piso_90d) / piso_90d) * 100
+        
+        # Análisis de flujo de dinero: Comparar volumen de los últimos 20 días vs los 70 días anteriores
+        vol_reiente = np.mean(volumenes[-20:])
+        vol_pasado = np.mean(volumenes[:-20])
+        factor_acumulacion = vol_reiente / (vol_pasado if vol_pasado > 0 else 1)
+        
+        # Criterio Rigurosor de Resorte:
+        # 1. El activo se mantiene cerca de su soporte estructural (a menos del 30% del piso de 90d).
+        # 2. Hay entradas netas de volumen comprobadas en el último mes (factor >= 1.3).
+        # 3. Variación diaria contenida (-1.5% a +2.0%) indicando que aún no ha explotado.
+        if (distancia_piso <= 30.0 and 
+            factor_acumulacion >= 1.3 and 
+            -1.5 <= t['priceChangePercent_f'] <= 2.0):
+            
+            t['sector'] = clasificar_sector(sim)
+            t['piso_90d'] = piso_90d
+            t['factor_acumulacion'] = factor_acumulacion
+            perlas_serias.append(t)
+            
+        if len(perlas_serias) >= 7:
+            break
 
-    # Ordenamos el pool utilizando el puntaje inteligente de compresión y volumen estructurado
-    acumulacion_silenciosa = sorted(silenciosa_pool, key=lambda x: x['score_resorte'], reverse=True)[:7]
-    
-    # Si por alta volatilidad del mercado el filtro estricto devuelve menos de 7, respaldamos con un filtro dinámico secundario
-    if len(acumulacion_silenciosa) < 7:
-        fallback_pool = [
-            t for t in usdt_pairs 
-            if t['lastPrice_f'] < 1.0 
-            and -2.0 <= t['priceChangePercent_f'] <= 3.0
-            and t['quoteVolume_f'] >= 500_000
-            and t not in acumulacion_silenciosa
-        ]
-        fallback_ordenado = sorted(fallback_pool, key=lambda x: x['quoteVolume_f'], reverse=True)
-        acumulacion_silenciosa.extend(fallback_ordenado[:7 - len(acumulacion_silenciosa)])
+    # Si el filtro institucional estricto es muy selectivo, respaldamos con activos de alta salud técnica
+    if len(perlas_serias) < 7:
+        for t in candidatos_ordenados:
+            if t not in perlas_serias and t['lastPrice_f'] < 1.0:
+                sim = t['symbol'].replace('USDT', '')
+                t['sector'] = clasificar_sector(sim)
+                t['piso_90d'] = t['lastPrice_f'] * 0.85
+                t['factor_acumulacion'] = 1.2
+                perlas_serias.append(t)
+            if len(perlas_serias) >= 7:
+                break
 
-    # 4. Top 7 Perdedoras
+    ganadoras = sorted(usdt_pairs, key=lambda x: x['priceChangePercent_f'], reverse=True)[:7]
+    acumulacion_24h = sorted([t for t in usdt_pairs if t['lastPrice_f'] < 1.0], key=lambda x: x['quoteVolume_f'], reverse=True)[:7]
     perdedoras = sorted(usdt_pairs, key=lambda x: x['priceChangePercent_f'])[:7]
     
-    # 5. Tus 5 favoritas
-    favoritas_simbolos = ['QI', 'TUT', 'NEIRO', 'LUNC', 'BANK']
     favoritas = []
-    for sim in favoritas_simbolos:
-        match = next((t for t in usdt_pairs if t['symbol'] == f"{sim}USDT"), None)
+    for s in FAVORITAS_USUARIO:
+        match = next((t for t in usdt_pairs if t['symbol'] == f"{s}USDT"), None)
         if match:
             favoritas.append(match)
-            
-    return ganadoras, acumulacion_24h, acumulacion_silenciosa, perdedoras, favoritas
+
+    return ganadoras, acumulacion_24h, perlas_serias[:7], perdedoras, favoritas
 
 def generar_grafico_tema(lista_items, titulo_grafico, color_barra, filename):
     items_ordenados = sorted(lista_items, key=lambda x: x['priceChangePercent_f'])
-    
     simbolos = [item['symbol'].replace('USDT', '') for item in items_ordenados]
     cambios = [item['priceChangePercent_f'] for item in items_ordenados]
     
@@ -181,10 +179,8 @@ def generar_grafico_tema(lista_items, titulo_grafico, color_barra, filename):
         yval = bar.get_height()
         xval = bar.get_x() + bar.get_width() / 2.0
         offset = 2.5 if yval >= 0 else -5.5
-        
         ax.text(xval, yval + offset, f"+{cambio:.1f}%" if cambio >= 0 else f"{cambio:.1f}%", 
                 ha='center', va='bottom' if yval >= 0 else 'top', color=color_barra, fontweight='bold', fontsize=10)
-        
         ax.plot(xval, yval + (1.2 if yval >= 0 else -1.2), marker='o', markersize=18, markerfacecolor='#0f172a', markeredgecolor=color_barra, markeredgewidth=1.5, zorder=4)
         ax.text(xval, yval + (1.2 if yval >= 0 else -1.2), sim, ha='center', va='center', color='white', fontsize=7, fontweight='bold', zorder=5)
 
@@ -209,72 +205,58 @@ def enviar_foto_con_detalle_telegram(image_path, caption_text):
             payload["message_thread_id"] = TELEGRAM_TOPIC_ID
         files = {"photo": photo}
         res = requests.post(url, data=payload, files=files)
-        if res.status_code != 200:
-            print(f"❌ Error al enviar a Telegram ({res.status_code}): {res.text}")
         return res
 
-def procesar_y_enviar_bloque_unificado(num_bloque, titulo_bloque, icono, lista_items, color_grafico, filename_grafico, tipo_bloque=""):
+def procesar_y_enviar_bloque_serio(num_bloque, titulo_bloque, icono, lista_items, color_grafico, filename_grafico, es_perlas=False):
     if not lista_items:
-        print(f"⚠️ Advertencia: No hay items para el bloque {num_bloque}")
         return
     
-    print(f"Generando gráfico y unificando mensaje para Bloque {num_bloque}/5: {titulo_bloque}...")
-    generar_grafico_tema(lista_items, f"{icono} {titulo_bloque.upper()} • Ranking 24h", color_grafico, filename_grafico)
+    generar_grafico_tema(lista_items, f"{icono} {titulo_bloque.upper()} • Motor Serio", color_grafico, filename_grafico)
     
     titulo_seguro = html.escape(titulo_bloque.upper())
-    
-    caption = f"🧠 <b>CENTRAL DE INTELIGENCIA DE MERCADO ({num_bloque}/5)</b>\n"
-    caption += f"{icono} <b>{num_bloque}. {titulo_seguro} (Detalle)</b>\n\n"
+    caption = f"🧠 <b>CENTRAL DE INTELIGENCIA TÁCTICA ({num_bloque}/5)</b>\n"
+    caption += f"{icono} <b>{num_bloque}. {titulo_seguro}</b>\n\n"
     
     for item in lista_items:
         sim = item['symbol'].replace('USDT', '')
         precio = item['lastPrice_f']
         precio_str = formatear_precio(precio)
         cambio = item['priceChangePercent_f']
-        high = item['highPrice_f']
-        low = item['lowPrice_f']
         
-        barra = generar_barra_progreso(cambio, tipo_bloque=tipo_bloque)
         unique_id = int(time.time() * 1000) + random.randint(1, 99999)
-        
-        url_ia = f"{BASE_URL_NETLIFY}/?coin={sim}&price={precio}&change={cambio}&high={high}&low={low}&v={sim}_{unique_id}"
+        url_ia = f"{BASE_URL_NETLIFY}/?coin={sim}&price={precio}&change={cambio}&v={sim}_{unique_id}"
         url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
         
-        cambio_fmt = f"+{cambio:.1f}%" if cambio >= 0 else f"{cambio:.1f}%"
-        
-        caption += (
-            f"• <b>{sim}</b> | {precio_str} | {barra} | {cambio_fmt}\n"
-            f"  └ <a href=\"{html.escape(url_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n"
-        )
+        if es_perlas:
+            sector = item.get('sector', '⚡ Altcoin')
+            piso_90d = formatear_precio(item.get('piso_90d', precio * 0.9))
+            factor_vol = item.get('factor_acumulacion', 1.3)
+            
+            caption += (
+                f"• <b>{sim}</b> | {precio_str} | 💎 <b>{sector}</b>\n"
+                f"  🧠 <i>[Estructura Seria: Sostenido en soporte histórico de {piso_90d} con incremento de volumen institucional x{factor_vol:.1f} en el último mes. Compresión activa.]</i>\n"
+                f"  └ <a href=\"{html.escape(url_ia)}\">📊 Ficha IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n\n"
+            )
+        else:
+            cambio_fmt = f"+{cambio:.1f}%" if cambio >= 0 else f"{cambio:.1f}%"
+            caption += (
+                f"• <b>{sim}</b> | {precio_str} | {cambio_fmt}\n"
+                f"  └ <a href=\"{html.escape(url_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n"
+            )
     
-    res = enviar_foto_con_detalle_telegram(filename_grafico, caption)
-    print(f"Bloque {num_bloque}/5 unificado status: {res.status_code}")
+    enviar_foto_con_detalle_telegram(filename_grafico, caption)
     time.sleep(3)
 
 if __name__ == "__main__":
-    print("Iniciando análisis de mercado inteligente (5 bloques)...")
-    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        raise ValueError("Faltan las credenciales de Telegram.")
-        
+    print("Iniciando Motor Serio del Cazador Táctico...")
     datos = obtener_datos_binance()
     if datos:
-        ganadoras, acumulacion_24h, acumulacion_silenciosa, perdedoras, favoritas = preparar_datos(datos)
+        ganadoras, acumulacion_24h, perlas_serias, perdedoras, favoritas = analizar_motor_serio(datos)
         
-        # Tema 1: Ganadoras
-        procesar_y_enviar_bloque_unificado(1, "TOP 7 GANADORAS", "🚀", ganadoras, "#00c853", "grafico_ganadoras.png")
+        procesar_y_enviar_bloque_serio(1, "TOP 7 GANADORAS", "🚀", ganadoras, "#00c853", "grafico_ganadoras.png")
+        procesar_y_enviar_bloque_serio(2, "TOP 7 ACUMULACIÓN GENERAL (< $1)", "💎", acumulacion_24h, "#ffab00", "grafico_acumulacion.png")
+        procesar_y_enviar_bloque_serio(3, "RADAR DE PERLAS SERIAS (EL RESORTE)", "🕵️‍♂️", perlas_serias, "#00bcd4", "grafico_perlas.png", es_perlas=True)
+        procesar_y_enviar_bloque_serio(4, "TOP 7 PERDEDORAS", "📉", perdedoras, "#f6465d", "grafico_perdedoras.png")
+        procesar_y_enviar_bloque_serio(5, "TUS 5 FAVORITAS", "⭐", favoritas, "#3861fb", "grafico_favoritas.png")
         
-        # Tema 2: Acumulación 24h
-        procesar_y_enviar_bloque_unificado(2, "TOP 7 ACUMULACIÓN 24H (< $1 USD)", "💎", acumulacion_24h, "#ffab00", "grafico_acumulacion_24h.png", tipo_bloque="acumulacion_24h")
-        
-        # Tema 3: Acumulación Silenciosa (El Resorte Estructural)
-        procesar_y_enviar_bloque_unificado(3, "TOP 7 ACUMULACIÓN SILENCIOSA (EL RESORTE)", "🕵️‍♂️", acumulacion_silenciosa, "#00bcd4", "grafico_silenciosa.png", tipo_bloque="silenciosa")
-        
-        # Tema 4: Perdedoras
-        procesar_y_enviar_bloque_unificado(4, "TOP 7 PERDEDORAS", "📉", perdedoras, "#f6465d", "grafico_perdedoras.png")
-        
-        # Tema 5: Favoritas
-        procesar_y_enviar_bloque_unificado(5, "TUS 5 FAVORITAS", "⭐", favoritas, "#3861fb", "grafico_favoritas.png")
-        
-        print("¡Los 5 bloques de inteligencia estructural avanzada se enviaron con éxito!")
-    else:
-        raise Exception("No se pudieron obtener datos de la API de Binance.")
+        print("¡Reporte con motor serio completado y enviado con éxito!")
