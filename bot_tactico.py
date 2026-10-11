@@ -26,6 +26,17 @@ def obtener_datos_binance():
         print(f"Excepción al conectar con Binance: {e}")
     return []
 
+def formatear_precio(val):
+    """Ajusta dinámicamente la cantidad de decimales según el valor de la criptomoneda para evitar ceros incorrectos."""
+    if val < 0.0001:
+        return f"${val:.8f}"
+    elif val < 0.01:
+        return f"${val:.6f}"
+    elif val < 1.0:
+        return f"${val:.4f}"
+    else:
+        return f"${val:.2f}"
+
 def generar_sintesis_resumen(simbolo, precio, cambio, volumen, high, low):
     """
     Genera un análisis técnico detallado, específico e independiente utilizando la API REST de Gemini.
@@ -35,18 +46,18 @@ def generar_sintesis_resumen(simbolo, precio, cambio, volumen, high, low):
         headers = {"Content-Type": "application/json"}
         
         prompt = f"""
-        Eres un analista técnico sénior de mercados cripto. Genera un análisis técnico específico y detallado para la moneda {simbolo} en Binance Spot usando estos datos exactos de 24h:
-        - Precio actual: ${precio:.4f}
+        Eres un analista técnico sénior de mercados cripto. Genera un análisis técnico específico y detallado para la criptomoneda {simbolo} en Binance Spot usando estos datos exactos de 24h:
+        - Precio actual: {formatear_precio(precio)}
         - Variación 24h: {cambio:+.2f}%
         - Volumen 24h: ${volumen:,.0f} USDT
-        - Máximo 24h (Resistencia): ${high:.4f}
-        - Mínimo 24h (Soporte): ${low:.4f}
+        - Máximo 24h (Resistencia): {formatear_precio(high)}
+        - Mínimo 24h (Soporte): {formatear_precio(low)}
 
         INSTRUCCIONES:
         Escribe un diagnóstico de precisión en exactamente una sola línea encerrada entre corchetes, especificando niveles exactos de precio.
 
         FORMATO OBLIGATORIO:
-        [1D: Impulso sobre soporte en ${low:.4f} | 4H: Búsqueda de resistencia en ${high:.4f} | 15M: Gatillo activo en ${precio:.4f} | Conclusión: Opción alcista]
+        [1D: Impulso sobre soporte en {formatear_precio(low)} | 4H: Búsqueda de resistencia en {formatear_precio(high)} | 15M: Gatillo activo en {formatear_precio(precio)} | Conclusión: Opción alcista]
         """
         
         payload = {
@@ -67,18 +78,13 @@ def generar_sintesis_resumen(simbolo, precio, cambio, volumen, high, low):
             print(f"Error en API REST de Gemini para {simbolo}: {e}")
 
     # Fallback técnico dinámico con números reales si la API no está disponible
-    if cambio > 40:
-        return f"[1D: Impulso extremo hacia ${high:.4f} | 4H: Extensión sobre soporte ${low:.4f} | 15M: Volumen masivo a ${precio:.4f} | Conclusión: Momentum muy fuerte]"
-    elif cambio > 25:
-        return f"[1D: Ruptura de rango rumbo a ${high:.4f} | 4H: Consolidación sobre ${precio:.4f} | 15M: Base sólida en ${low:.4f} | Conclusión: Continuación alcista]"
-    else:
-        return f"[1D: Acumulación sobre piso en ${low:.4f} | 4H: Testeo de techo en ${high:.4f} | 15M: Entrada de flujo en ${precio:.4f} | Conclusión: Giro alcista en desarrollo]"
+    return f"[1D: Acumulación sobre piso en {formatear_precio(low)} | 4H: Testeo de techo en {formatear_precio(high)} | 15M: Entrada de flujo en {formatear_precio(precio)} | Conclusión: Giro alcista]"
 
 def procesar_oportunidades(data):
     filtrados = []
     total_sub1 = 0
     
-    # Lista negra de tokens deslistados o con anomalías en la API Spot de Binance
+    # Lista negra de tokens deslistados o con anomalías de nombres/datos en la API Spot de Binance
     LISTA_NEGRA = ['PNTUSDT', 'VGXUSDT', 'BNCUSDT']
     
     for item in data:
@@ -117,15 +123,13 @@ def procesar_oportunidades(data):
         low = kline['low']
         
         binance_url = f"https://www.binance.com/es/trade/{sim}_USDT?type=spot"
-        
-        # Parámetro timestamp para romper la caché del navegador de Telegram
         timestamp = int(time.time())
         
         # URL optimizada que envía high, low y un cache-buster dinámico
         netlify_url = f"https://polite-baklava-8ec85f.netlify.app/?coin={sim}&price={precio}&change={cambio}&high={high}&low={low}&vol={volumen:,.0f}&v={timestamp}"
         
         resumen_moneda = generar_sintesis_resumen(sim, precio, cambio, volumen, high, low)
-        time.sleep(0.8) # Pausa estratégica para estabilidad de rate limit
+        time.sleep(0.8)
         
         resultado.append({
             'simbolo': sim,
@@ -182,9 +186,7 @@ def generar_grafico_narrativa(oportunidades):
 def enviar_telegram_con_foto(image_path):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendPhoto"
     with open(image_path, 'rb') as photo:
-        payload = {
-            "chat_id": CHAT_ID
-        }
+        payload = {"chat_id": CHAT_ID}
         if TOPIC_ID_TACTICO:
             payload["message_thread_id"] = TOPIC_ID_TACTICO
         
@@ -219,14 +221,12 @@ def main():
         print("No se encontraron oportunidades con los filtros establecidos.")
         return
     
-    # PARTE 1: Infografía
     imagen_grafico = generar_grafico_narrativa(oportunidades)
     enviar_telegram_con_foto(imagen_grafico)
     
     bloque_1 = oportunidades[:3]
     bloque_2 = oportunidades[3:]
     
-    # PARTE 2: Encabezado + Universo Sub-$1 + Primeras 3 altcoins
     msg_parte_2 = "🎯 <b>CAZADOR TÁCTICO</b>\n"
     msg_parte_2 += "📊 <i>Ranking de Momentum 24h en Binance Spot</i>\n\n"
     msg_parte_2 += f"<b>MONEDAS ANALIZADAS:</b> {total_sub1}\n\n"
@@ -234,7 +234,7 @@ def main():
     msg_parte_2 += "🚀 <b>TOP OPORTUNIDADES TÁCTICAS</b>\n"
     
     for op in bloque_1:
-        precio_str = f"${op['precio']:.4f}" if op['precio'] < 1 else f"${op['precio']:.2f}"
+        precio_str = formatear_precio(op['precio'])
         cambio_str = f"+{op['change']:.1f}%" if op['change'] >= 0 else f"{op['change']:.1f}%"
         
         safe_netlify = html.escape(op['netlify_url'])
@@ -249,10 +249,9 @@ def main():
 
     enviar_telegram_texto(msg_parte_2)
     
-    # PARTE 3: Últimas 2 altcoins
     msg_parte_3 = ""
     for op in bloque_2:
-        precio_str = f"${op['precio']:.4f}" if op['precio'] < 1 else f"${op['precio']:.2f}"
+        precio_str = formatear_precio(op['precio'])
         cambio_str = f"+{op['change']:.1f}%" if op['change'] >= 0 else f"{op['change']:.1f}%"
         
         safe_netlify = html.escape(op['netlify_url'])
