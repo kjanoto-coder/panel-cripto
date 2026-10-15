@@ -3,3 +3,4 @@ pandas
 requests
 matplotlib
 google-genai
+yfinance
