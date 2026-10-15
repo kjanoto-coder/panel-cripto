@@ -15,8 +15,32 @@ MESSAGE_THREAD_ID = os.getenv("TOPIC_ID_PRE_EXPLOSION")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 NETLIFY_BASE_URL = "https://tu-nuevo-motor-pre-explosion.netlify.app"
+HISTORIAL_FILE = "historial_alertas_recientes.json"
 
-print("🚀 Ejecutando Radar con Espejos Estables Anti-Bloqueo...")
+print("🚀 Ejecutando Radar con Termómetro Equilibrado y Rotación Anti-Repetición...")
+
+# ---------------------------------------------------------
+# FUNCIONES DE MEMORIA Y ROTACIÓN
+# ---------------------------------------------------------
+def cargar_historial_reciente():
+    """Carga los tickers que ya fueron alertados en los últimos reportes para no repetirlos."""
+    if os.path.exists(HISTORIAL_FILE):
+        try:
+            with open(HISTORIAL_FILE, "r") as f:
+                data = json.load(f)
+                return data.get("recent_tickers", [])
+        except Exception:
+            return []
+    return []
+
+def guardar_historial_reciente(tickers_actuales):
+    """Actualiza la memoria de exclusión con los nuevos tickers enviados."""
+    try:
+        data = {"recent_tickers": tickers_actuales}
+        with open(HISTORIAL_FILE, "w") as f:
+            json.dump(data, f, indent=4)
+    except Exception:
+        pass
 
 # ---------------------------------------------------------
 # FUNCIONES AUXILIARES Y MÉTRICAS MULTI-CAPA
@@ -41,9 +65,7 @@ def formatear_precio(precio):
 
 def analizar_multi_temporalidad_y_liquidaciones(exchange_spot, symbol, ticker):
     metricas = {
-        "oi_status": "⚡ Compresión de Rango",
         "zona_liq": "🛡️ Zonas Estables",
-        "catalizador_x": "🔥 Tracción y Hype en Redes Sociales",
         "confluencia_tf": "⏳ Alineación 1H/4H en Curso"
     }
     try:
@@ -152,10 +174,10 @@ def generar_resumen_ia(candidatas):
                 return response.text
         except Exception:
             continue
-    return "Máxima atención a los activos en fase Roja y Amarilla: la acumulación silenciosa detectada anticipa el próximo movimiento explosivo del día."
+    return "Máxima atención a los activos en fase Roja y Amarilla: la rotación de capital detectada anticipa el próximo movimiento explosivo del día."
 
 # ---------------------------------------------------------
-# ESCÁNER ROBUSTO (CON ESPEJO Spot SEGURO)
+# ESCÁNER CON ROTACIÓN Y FASES EQUILIBRADAS
 # ---------------------------------------------------------
 try:
     exchange_spot = ccxt.binance({
@@ -166,6 +188,9 @@ try:
 
     tickers_spot = exchange_spot.fetch_tickers()
     total_pares_analizados = len(tickers_spot)
+    
+    historial_excluidos = cargar_historial_reciente()
+    print(f"🔄 Excluyendo {len(historial_excluidos)} tokens repetidos de los reportes anteriores.")
 
     candidatas_rojas = []
     candidatas_amarillas = []
@@ -175,6 +200,10 @@ try:
         if not symbol.endswith('/USDT'):
             continue
         ticker_limpio = symbol.split('/')[0]
+        
+        # Filtro de rotación: Si ya salió en los reportes recientes, se salta para buscar nuevos
+        if ticker_limpio in historial_excluidos:
+            continue
         
         price_change_24h = data['percentage'] if data['percentage'] is not None else 0
         vol_24h = data['quoteVolume'] if data['quoteVolume'] is not None else 0
@@ -191,19 +220,20 @@ try:
                 if promedio_vol_24h > 0:
                     ratio_volumen = round(vol_actual_1h / promedio_vol_24h, 2)
                     
-                    if ratio_volumen >= 3.2:
+                    # FASES BALANCEADAS Y ESTRICTAS
+                    if ratio_volumen >= 4.5 and price_change_24h >= 2.0:
                         fase = "ROJO"
                         etiqueta_graf = f"🚨 {ticker_limpio}"
-                    elif ratio_volumen >= 2.0 and -4.0 <= price_change_24h <= 5.0:
+                    elif ratio_volumen >= 2.2 and -3.0 <= price_change_24h <= 4.0:
                         fase = "AMARILLO"
                         etiqueta_graf = f"🟡 {ticker_limpio}"
-                    elif ratio_volumen >= 1.3:
+                    elif ratio_volumen >= 1.5:
                         fase = "VERDE"
                         etiqueta_graf = ticker_limpio
                     else:
                         continue
                     
-                    score = round(ratio_volumen * (abs(price_change_24h) + 1.2) * (2.5 if fase == "ROJO" else (1.6 if fase == "AMARILLO" else 1.0)), 2)
+                    score = round(ratio_volumen * (abs(price_change_24h) + 1.0), 2)
                     metricas_avanzadas = analizar_multi_temporalidad_y_liquidaciones(exchange_spot, symbol, ticker_limpio)
                     
                     item_coin = {
@@ -227,19 +257,31 @@ try:
             except Exception:
                 continue
 
+    # Ordenar y asegurar mezcla equilibrada entre Rojos, Amarillos y Verdes
     candidatas_rojas = sorted(candidatas_rojas, key=lambda x: x['score'], reverse=True)
     candidatas_amarillas = sorted(candidatas_amarillas, key=lambda x: x['score'], reverse=True)
     candidatas_verdes = sorted(candidatas_verdes, key=lambda x: x['score'], reverse=True)
 
-    top_candidatas = (candidatas_rojas + candidatas_amarillas + candidatas_verdes)[:7]
-    print(f"📊 Total candidatas en termómetro balanceado: {len(top_candidatas)}")
+    # Tomar selección combinada para asegurar variedad de colores en el termómetro
+    top_candidatas = (candidatas_rojas[:3] + candidatas_amarillas[:3] + candidatas_verdes[:2])[:7]
+    
+    # Si faltasen por escasez en alguna fase, rellenar con lo que haya disponible
+    if len(top_candidatas) < 7:
+        todas_disponibles = sorted(candidatas_rojas + candidatas_amarillas + candidatas_verdes, key=lambda x: x['score'], reverse=True)
+        top_candidatas = todas_disponibles[:7]
+
+    print(f"📊 Total candidatas en termómetro (con rotación): {len(top_candidatas)}")
 
     if top_candidatas:
+        # Guardar los nuevos en el historial para que descansen en los próximos reportes
+        nuevos_tickers_historial = [c['ticker'] for c in top_candidatas]
+        guardar_historial_reciente(nuevos_tickers_historial)
+
         generar_grafico_termometro(top_candidatas)
         resumen_ia = generar_resumen_ia(top_candidatas)
         
-        mensaje_telegram = "🧠 **RADAR TÁCTICO • TERMÓMETRO BALANCEADO**\n"
-        mensaje_telegram += "🚀 **ANTICIPACIÓN DE GANADORAS (HOY)**\n"
+        mensaje_telegram = "🧠 **RADAR TÁCTICO • TERMÓMETRO DINÁMICO**\n"
+        mensaje_telegram += "🚀 **ANTICIPACIÓN DE GANADORAS & ROTACIÓN DE CAPITAL**\n"
         mensaje_telegram += f"🔍 *Pares analizados:* `{total_pares_analizados}`\n\n"
         mensaje_telegram += f"💡 **Dictamen de Anticipación (IA):**\n{resumen_ia}\n\n"
         mensaje_telegram += "─────────────────────────\n"
@@ -272,7 +314,7 @@ try:
             with open('grafico_pre_explosion.png', 'rb') as foto:
                 payload_foto = {
                     'chat_id': TELEGRAM_CHAT_ID,
-                    'caption': "🌡️ **Termómetro Balanceado — Anticipación de Ganadoras**",
+                    'caption': "🌡️ **Termómetro Dinámico — Rotación de Candidatas (Hoy)**",
                     'parse_mode': 'Markdown'
                 }
                 if MESSAGE_THREAD_ID:
@@ -295,7 +337,7 @@ except Exception as e:
 
 estructura_ia = {
     "timestamp": pd.Timestamp.now().isoformat(),
-    "bot_origen": "Radar Termómetro Balanceado",
+    "bot_origen": "Radar Termómetro Dinámico",
     "total_analizados": total_pares_analizados if 'total_pares_analizados' in locals() else 0,
     "top_candidatas": top_candidatas if 'top_candidatas' in locals() else []
 }
