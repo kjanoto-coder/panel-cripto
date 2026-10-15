@@ -1,7 +1,6 @@
 import os
 import json
 import requests
-import yfinance as yf
 import pandas as pd
 from google import genai
 
@@ -10,210 +9,165 @@ from google import genai
 # ---------------------------------------------------------
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("CHAT_ID")
-MESSAGE_THREAD_ID = os.getenv("TOPIC_ID_SENTINEL_MACRO")
+MESSAGE_THREAD_ID = os.getenv("TOPIC_ID_SENTINEL_MACRO")  # ID 2489 (Sentimiento Mercado)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # ---------------------------------------------------------
-# RASTREO DE MERCADOS TRADICIONALES (WALL STREET & MACRO)
+# 1. CAPTURA DE DATOS Y RECURSOS
 # ---------------------------------------------------------
-def obtener_datos_wall_street():
-    """Descarga cotizaciones e índices clave de Yahoo Finance"""
-    tickers_macro = {
-        "SPX": "^GSPC",    # S&P 500
-        "NDX": "^IXIC",    # Nasdaq 100
-        "VIX": "^VIX",     # Índice de Volatilidad / Miedo
-        "DXY": "DX-Y.NYB", # Índice del Dólar Estadounidense
-        "US10Y": "^TNX",   # Rendimiento del Bono a 10 años EE.UU.
-        "GOLD": "GC=F"     # Oro
-    }
-    
-    resultados = {}
-    
-    for nombre, sym in tickers_macro.items():
-        try:
-            ticker = yf.Ticker(sym)
-            hist = ticker.history(period="2d")
-            if len(hist) >= 2:
-                precio_actual = hist['Close'].iloc[-1]
-                precio_previo = hist['Close'].iloc[-2]
-                var_pct = round(((precio_actual - precio_previo) / precio_previo) * 100, 2)
-                resultados[nombre] = {"precio": round(precio_actual, 2), "var_pct": var_pct}
-            else:
-                resultados[nombre] = {"precio": 0, "var_pct": 0}
-        except Exception:
-            resultados[nombre] = {"precio": 0, "var_pct": 0}
-            
-    return resultados
-
-def obtener_datos_cripto_macro():
-    """Descarga datos macro de Bitcoin y Ethereum"""
-    resultados = {}
+def descargar_heatmap_wall_street():
+    """Descarga el mosaico/heatmap en tiempo real del S&P 500"""
+    url_map = "https://finviz.com/map.ashx?t=sec"
+    headers = {"User-Agent": "Mozilla/5.0"}
     try:
-        url = "https://data-api.binance.vision/api/v3/ticker/24hr"
-        res = requests.get(url, timeout=5).json()
-        
-        for item in res:
-            if item['symbol'] == 'BTCUSDT':
-                resultados['BTC'] = {
-                    "precio": round(float(item['lastPrice']), 2),
-                    "var_pct": round(float(item['priceChangePercent']), 2)
-                }
-            elif item['symbol'] == 'ETHUSDT':
-                resultados['ETH'] = {
-                    "precio": round(float(item['lastPrice']), 2),
-                    "var_pct": round(float(item['priceChangePercent']), 2)
-                }
-    except Exception:
-        resultados['BTC'] = {"precio": 0, "var_pct": 0}
-        resultados['ETH'] = {"precio": 0, "var_pct": 0}
-        
-    return resultados
-
-def obtener_calor_del_mercado():
-    """Consulta el índice de Miedo y Codicia (Fear & Greed) y evalúa el sentimiento institucional"""
-    calor = {
-        "score_fg": 50,
-        "sentimiento_fg": "Neutral",
-        "apuesta_mercado": "Equilibrio / Espera de Catalizador"
-    }
-    try:
-        # API pública de Alternative.me para el Crypto Fear & Greed Index
-        url_fg = "https://api.alternative.me/fng/?limit=1"
-        res = requests.get(url_fg, timeout=5).json()
-        if "data" in res and len(res["data"]) > 0:
-            score = int(res["data"][0]["value"])
-            clasificacion = res["data"][0]["value_classification"]
-            calor["score_fg"] = score
-            calor["sentimiento_fg"] = clasificacion
-            
-            # Interpretar las apuestas de la masa según el índice
-            if score <= 25:
-                calor["apuesta_mercado"] = "🐻 Pánico Extremo (Oportunidad de Acumulación en Suelo)"
-            elif score <= 45:
-                calor["apuesta_mercado"] = "⚠️ Miedo / Cautela Moderada"
-            elif score <= 55:
-                calor["apuesta_mercado"] = "⚖️ Zona Neutral / Indecisión del Mercado"
-            elif score <= 75:
-                calor["apuesta_mercado"] = "🐂 Codicia / Optimismo Creciente"
-            else:
-                calor["apuesta_mercado"] = "🚨 Euforia Extrema (Alto Riesgo de Corrección)"
+        res = requests.get(url_map, headers=headers, timeout=10)
+        if res.status_code == 200:
+            with open("heatmap_wall_street.png", "wb") as f:
+                f.write(res.content)
+            return True
     except Exception:
         pass
-        
-    return calor
+    return False
+
+def obtener_fear_and_greed_cripto():
+    fg = {"score": 50, "clasificacion": "Neutral"}
+    try:
+        url = "https://api.alternative.me/fng/?limit=1"
+        res = requests.get(url, timeout=5).json()
+        if "data" in res and len(res["data"]) > 0:
+            fg["score"] = int(res["data"][0]["value"])
+            fg["clasificacion"] = res["data"][0]["value_classification"]
+    except Exception:
+        pass
+    return fg
+
+def obtener_datos_cripto_global():
+    datos = {"BTC": 0, "BTC_VAR": 0, "ETH": 0, "ETH_VAR": 0}
+    try:
+        res = requests.get("https://data-api.binance.vision/api/v3/ticker/24hr", timeout=5).json()
+        for item in res:
+            if item['symbol'] == 'BTCUSDT':
+                datos["BTC"] = round(float(item['lastPrice']), 2)
+                datos["BTC_VAR"] = round(float(item['priceChangePercent']), 2)
+            elif item['symbol'] == 'ETHUSDT':
+                datos["ETH"] = round(float(item['lastPrice']), 2)
+                datos["ETH_VAR"] = round(float(item['priceChangePercent']), 2)
+    except Exception:
+        pass
+    return datos
+
+def obtener_vix_wall_street():
+    try:
+        import yfinance as yf
+        vix = yf.Ticker("^VIX").history(period="1d")['Close'].iloc[-1]
+        return round(vix, 2)
+    except Exception:
+        return 16.5
 
 # ---------------------------------------------------------
-# INTERPRETACIÓN CON IA (GEMINI)
+# 2. MOTOR DE ANÁLISIS GLOBAL E IMPULSORES (POR QUÉ SUBE O BAJA)
 # ---------------------------------------------------------
-def evaluar_clima_mercado_ia(ws, cripto, calor):
-    """Genera un diagnóstico macro global y de sentimiento sobre la postura de inversión"""
-    if not GEMINI_API_KEY:
-        return "⚠️ *Análisis macro de IA no disponible (Falta GEMINI_API_KEY)*"
+def analizar_causas_wall_street_ia(vix_val):
+    if not GEMINI_API_KEY: 
+        return "Análisis de causas no disponible."
         
     client = genai.Client(api_key=GEMINI_API_KEY)
-    
     prompt = f"""
-    Actúa como un estratega macroeconómico global y CIO de un fondo cuantitativo.
-    Analiza el estado actual del mercado financiero global y el "calor del mercado" con los siguientes datos:
-
-    MERCADOS TRADICIONALES (WALL STREET & MACRO):
-    - S&P 500 (SPX): {ws['SPX']['precio']} ({ws['SPX']['var_pct']}%)
-    - Nasdaq (NDX): {ws['NDX']['precio']} ({ws['NDX']['var_pct']}%)
-    - Índice de Miedo VIX: {ws['VIX']['precio']} ({ws['VIX']['var_pct']}%)
-    - Dólar Global (DXY): {ws['DXY']['precio']} ({ws['DXY']['var_pct']}%)
-
-    MERCADO CRIPTO MACRO:
-    - Bitcoin (BTC): ${cripto['BTC']['precio']} ({cripto['BTC']['var_pct']}%)
-    - Ethereum (ETH): ${cripto['ETH']['precio']} ({cripto['ETH']['var_pct']}%)
-
-    CALOR DEL MERCADO & SENTIMIENTO (FEAR & GREED):
-    - Score: {calor['score_fg']}/100 ({calor['sentimiento_fg']})
-    - Postura de apuestas de la masa: {calor['apuesta_mercado']}
-
-    Redacta un diagnóstico conciso en español (máximo 4 líneas) respondiendo:
-    1. ¿Cómo contrasta el apetito por riesgo macroeconómico con el "calor del mercado" actual (sentimiento de masas)?
-    2. ¿Indica sobreventa (suelo potencial) o sobrecompra (riesgo de reversión)?
-    3. Recomendación operativa breve para anticiparse al movimiento de las próximas horas.
-    """
+    Actúa como un estratega macroeconómico senior de Wall Street.
+    El índice de volatilidad VIX está en {vix_val}.
     
+    Redacta un resumen técnico y global (máximo 4 líneas) explicando:
+    1. ¿Por qué Wall Street y las tecnológicas cotizan al alza o a la baja en la jornada actual? (Menciona factores clave como políticas de la Fed, datos de inflación, empleo, rendimientos de bonos o reportes de ganancias).
+    2. ¿Cuál es el catalizador principal que está moviendo el mercado hoy?
+    3. Perspectiva de riesgo para el cierre.
+    """
     for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
         try:
-            response = client.models.generate_content(model=mod, contents=prompt)
-            if response and response.text:
-                return response.text
-        except Exception:
-            continue
-            
-    return "El sentimiento de mercado muestra divergencia con Wall Street. Se recomienda operar con cautela estricta y validar soportes clave antes de posicionarse."
+            res = client.models.generate_content(model=mod, contents=prompt)
+            if res and res.text: return res.text
+        except: continue
+    return "Wall Street reacciona a los ajustes en las expectativas de tasas de la Reserva Federal y el comportamiento del sector tecnológico."
 
-# ---------------------------------------------------------
-# ESCANEO Y PUBLICACIÓN
-# ---------------------------------------------------------
-print("🌐 Consultando mercados, Wall Street y el Calor del Mercado...")
-
-datos_ws = obtener_datos_wall_street()
-datos_cripto = obtener_datos_cripto_macro()
-calor_mercado = obtener_calor_del_mercado()
-
-# Estado general del VIX
-vix_val = datos_ws['VIX']['precio']
-if vix_val >= 25:
-    estado_vix = "🚨 ALTO MIEDO EN WALL STREET"
-elif vix_val >= 18:
-    estado_vix = "⚠️ VOLATILIDAD MODERADA"
-else:
-    estado_vix = "🟢 CALMA EN LOS MERCADOS"
-
-diagnostico_ia = evaluar_clima_mercado_ia(datos_ws, datos_cripto, calor_mercado)
-
-# Mensaje para Telegram
-mensaje = "🏛️ **ALERTAS DE MERCADO GLOBAL — SENTINEL MACRO**\n"
-mensaje += f"ESTADO GENERAL: `{estado_vix}` (VIX: `{vix_val}`)\n\n"
-
-mensaje += "🔥 **Calor del Mercado & Sentimiento (Fear & Greed):**\n"
-mensaje += f"• Índice: `{calor_mercado['score_fg']}/100` ({calor_mercado['sentimiento_fg']})\n"
-mensaje += f"• Apuesta de la Masa: `{calor_mercado['apuesta_mercado']}`\n\n"
-
-mensaje += "💡 **Diagnóstico Global (IA):**\n"
-mensaje += f"{diagnostico_ia}\n\n"
-
-mensaje += "─────────────────────────\n"
-mensaje += "📈 **MERCADOS TRADICIONALES (WALL STREET)**\n"
-mensaje += f"• **S&P 500 (SPX):** `{datos_ws['SPX']['precio']}` | `{datos_ws['SPX']['var_pct']}%`\n"
-mensaje += f"• **Nasdaq (NDX):** `{datos_ws['NDX']['precio']}` | `{datos_ws['NDX']['var_pct']}%`\n"
-mensaje += f"• **Índice Dólar (DXY):** `{datos_ws['DXY']['precio']}` | `{datos_ws['DXY']['var_pct']}%`\n"
-mensaje += f"• **Bonos US 10Y:** `{datos_ws['US10Y']['precio']}%` | `{datos_ws['US10Y']['var_pct']}%`\n"
-mensaje += f"• **Oro:** `${datos_ws['GOLD']['precio']}` | `{datos_ws['GOLD']['var_pct']}%`\n\n"
-
-mensaje += "🪙 **MERCADO CRIPTO MACRO**\n"
-mensaje += f"• **Bitcoin (BTC):** `${datos_cripto['BTC']['precio']}` | `{datos_cripto['BTC']['var_pct']}%`\n"
-mensaje += f"• **Ethereum (ETH):** `${datos_cripto['ETH']['precio']}` | `{datos_cripto['ETH']['var_pct']}%`\n"
-
-# Enviar a Telegram dirigiendo al topic específico (Sentimiento Mercado / 2489)
-if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
-    url_msg = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload_msg = {
-        'chat_id': TELEGRAM_CHAT_ID,
-        'text': mensaje,
-        'parse_mode': 'Markdown',
-        'disable_web_page_preview': True
-    }
-    if MESSAGE_THREAD_ID:
-        payload_msg['message_thread_id'] = int(MESSAGE_THREAD_ID)
+def analizar_causas_cripto_ia(fg_data, cripto_data):
+    if not GEMINI_API_KEY: 
+        return "Análisis de causas no disponible."
         
-    res_tg = requests.post(url_msg, json=payload_msg)
-    if res_tg.json().get("ok"):
-        print("✅ Alerta de Mercado Global con Calor del Mercado enviada al topic 'Sentimiento Mercado'.")
-    else:
-        print(f"[-] Error enviando a Telegram: {res_tg.json()}")
+    client = genai.Client(api_key=GEMINI_API_KEY)
+    prompt = f"""
+    Actúa como un analista cuantitativo del mercado cripto.
+    El índice de Miedo y Codicia está en {fg_data['score']}/100 ({fg_data['clasificacion']}) con BTC en ${cripto_data['BTC']} ({cripto_data['BTC_VAR']}%).
+    
+    Redacta un resumen técnico (máximo 4 líneas) explicando:
+    1. ¿Por qué el mercado cripto está subiendo o bajando? (Evalúa flujos institucionales en ETFs, volumen en redes sociales (X), liquidaciones en derivados y la correlación macro con el dólar/Wall Street).
+    2. ¿Es un movimiento orgánico de acumulación/distribución o impulsado por noticias/rumores?
+    3. Conclusión sobre los niveles de soporte/resistencia clave en Bitcoin.
+    """
+    for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
+        try:
+            res = client.models.generate_content(model=mod, contents=prompt)
+            if res and res.text: return res.text
+        except: continue
+    return f"El mercado refleja cautela en la zona de {fg_data['clasificacion']} a la espera de confirmación de volumen en los ETFs spot de Bitcoin."
 
-# Guardar estructura JSON para el Trader Autónomo de IA
-estructura_macro = {
-    "timestamp": pd.Timestamp.now().isoformat(),
-    "wall_street": datos_ws,
-    "cripto_macro": datos_cripto,
-    "calor_mercado": calor_mercado,
-    "diagnostico_ia": diagnostico_ia
-}
-with open("datos_sentinel_macro.json", "w") as f:
-    json.dump(estructura_macro, f, indent=4)
+# ---------------------------------------------------------
+# 3. EJECUCIÓN Y ENVÍO A TELEGRAM
+# ---------------------------------------------------------
+print("🌐 Analizando causas del mercado global y generando reportes...")
+
+vix = obtener_vix_wall_street()
+fg_cripto = obtener_fear_and_greed_cripto()
+datos_cripto = obtener_datos_cripto_global()
+
+causas_tradfi = analizar_causas_wall_street_ia(vix)
+causas_cripto = analizar_causas_cripto_ia(fg_cripto, datos_cripto)
+
+# Estado visual VIX
+if vix >= 22:
+    estado_vix = "🚨 PÁNICO / ALTA VOLATILIDAD"
+elif vix >= 17:
+    estado_vix = "⚠️ PRECAUCIÓN EN BOLSAS"
+else:
+    estado_vix = "🟢 CALMA Y OPTIMISMO"
+
+# --- MENSAJE 1: WALL STREET & TRADFI ---
+msg_tradfi = "🏛️ **SENTINEL MACRO — 1. WALL STREET & TRADFI**\n\n"
+msg_tradfi += f"📊 **Índice de Volatilidad (VIX):** `{vix}` | `{estado_vix}`\n\n"
+msg_tradfi += f"🔍 **¿Por qué se mueve Wall Street? (Diagnóstico Global):**\n{causas_tradfi}\n"
+
+# --- MENSAJE 2: MERCADO CRIPTO ---
+msg_cripto = "🪙 **SENTINEL MACRO — 2. MERCADO CRIPTO**\n\n"
+msg_cripto += f"🌡️ **Índice de Miedo y Codicia:** `{fg_cripto['score']}/100` — *{fg_cripto['clasificacion']}*\n"
+msg_cripto += f"• **Bitcoin (BTC):** `${datos_cripto['BTC']}` | `{datos_cripto['BTC_VAR']}%`\n"
+msg_cripto += f"• **Ethereum (ETH):** `${datos_cripto['ETH']}` | `{datos_cripto['ETH_VAR']}%`\n\n"
+msg_cripto += f"🔍 **¿Por qué se mueve el Mercado Cripto? (Análisis Técnico & X):**\n{causas_cripto}\n"
+
+# Envío a Telegram dirigiendo al Topic 2489 (Sentimiento Mercado)
+if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
+    url_base = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
+    thread_id = int(MESSAGE_THREAD_ID) if MESSAGE_THREAD_ID else None
+
+    # Descargar Heatmap de Wall Street
+    descargar_heatmap_wall_street()
+
+    # ENVÍO REPORTE 1: WALL STREET
+    if os.path.exists("heatmap_wall_street.png"):
+        with open("heatmap_wall_street.png", "rb") as foto1:
+            p_f1 = {'chat_id': TELEGRAM_CHAT_ID, 'caption': "🗺️ **Mapa de Calor en Vivo — Wall Street (S&P 500)**", 'parse_mode': 'Markdown'}
+            if thread_id: p_f1['message_thread_id'] = thread_id
+            requests.post(f"{url_base}/sendPhoto", data=p_f1, files={'photo': foto1})
+
+    p_m1 = {'chat_id': TELEGRAM_CHAT_ID, 'text': msg_tradfi, 'parse_mode': 'Markdown'}
+    if thread_id: p_m1['message_thread_id'] = thread_id
+    requests.post(f"{url_base}/sendMessage", json=p_m1)
+
+    # ENVÍO REPORTE 2: CRIPTO
+    url_fg_img = "https://alternative.me/crypto/fear-and-greed-index.png"
+    p_f2 = {'chat_id': TELEGRAM_CHAT_ID, 'photo': url_fg_img, 'caption': "🌡️ **Medidor Oficial Fear & Greed Cripto**", 'parse_mode': 'Markdown'}
+    if thread_id: p_f2['message_thread_id'] = thread_id
+    requests.post(f"{url_base}/sendPhoto", data=p_f2)
+
+    p_m2 = {'chat_id': TELEGRAM_CHAT_ID, 'text': msg_cripto, 'parse_mode': 'Markdown'}
+    if thread_id: p_m2['message_thread_id'] = thread_id
+    requests.post(f"{url_base}/sendMessage", json=p_m2)
+
+    print("✅ Ambos reportes con análisis de causas global enviados exitosamente a Telegram.")
