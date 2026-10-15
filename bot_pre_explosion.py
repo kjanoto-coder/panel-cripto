@@ -5,49 +5,58 @@ import ccxt
 import pandas as pd
 
 # ---------------------------------------------------------
-# CONFIGURACIÓN DE CREDENCIALES (Alineado con tus secretos)
+# CONFIGURACIÓN DE CREDENCIALES Y VARIABLES DE ENTORNO
 # ---------------------------------------------------------
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("CHAT_ID")
 MESSAGE_THREAD_ID = os.getenv("TOPIC_ID_PRE_EXPLOSION")
 
-# URL de tu web desplegada en Netlify (Reemplaza con tu dominio real de Netlify si es necesario)
+# Dirección de tu aplicación desplegada en Netlify
 NETLIFY_BASE_URL = "https://tu-motor-pre-explosion.netlify.app"
 
 # ---------------------------------------------------------
-# 1 Y 2. ESCÁNER DE VOLUMEN Y ANOMALÍAS (BINANCE)
+# 1 Y 2. ESCÁNER DE ANOMALÍAS DE VOLUMEN (BINANCE GLOBAL)
 # ---------------------------------------------------------
 print("🚀 Iniciando escaneo de Criptos Pre-Explosión...")
 
-exchange = ccxt.binance({'enableRateLimit': True})
+# Se configura el servidor público global de Binance para evitar el bloqueo regional (Error 451)
+exchange = ccxt.binance({
+    'enableRateLimit': True,
+    'urls': {
+        'api': {
+            'public': 'https://data-api.binance.vision/api/v3',
+        }
+    }
+})
+
 tickers = exchange.fetch_tickers()
 
 candidatas_pre_explosion = []
 
 for symbol, data in tickers.items():
-    # Filtrar solo pares USDT
+    # Filtrar solo pares cotizados en USDT
     if not symbol.endswith('/USDT'):
         continue
         
     price_change_24h = data['percentage'] if data['percentage'] is not None else 0
     vol_24h = data['quoteVolume'] if data['quoteVolume'] is not None else 0
     
-    # Filtro 1: El precio aún no explotó (entre 0% y +5.0%) y tiene volumen mínimo
+    # Filtro 1: Monedas con variación entre 0% y +5.0% (aún no han despegado) y volumen representativo
     if 0 <= price_change_24h <= 5.0 and vol_24h > 100000:
         try:
-            # Obtener velas de 1 hora
+            # Consulta de velas horarias (1H) para calcular la acumulación de volumen
             ohlcv = exchange.fetch_ohlcv(symbol, timeframe='1h', limit=24)
             df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
             
             vol_actual_1h = df['volume'].iloc[-1]
             promedio_vol_24h = df['volume'].mean()
             
-            # Filtro 2: El volumen de la última hora es al menos 2.5 veces el promedio
+            # Filtro 2: El volumen en la última hora supera 2.5 veces el promedio de las últimas 24H
             if promedio_vol_24h > 0 and vol_actual_1h >= (promedio_vol_24h * 2.5):
                 ratio_volumen = round(vol_actual_1h / promedio_vol_24h, 2)
-                ticker_limpio = symbol.split('/')[0] # ej: "GNS" de "GNS/USDT"
+                ticker_limpio = symbol.split('/')[0] # Extrae el ticker base (ej. "GNS")
                 
-                # Cálculo de Score preliminar
+                # Cálculo de puntaje de prioridad (Score Pre-Explosión)
                 score = round(ratio_volumen * (5.1 - price_change_24h), 2)
                 
                 candidatas_pre_explosion.append({
@@ -57,14 +66,14 @@ for symbol, data in tickers.items():
                     'ratio_volumen': ratio_volumen,
                     'score': score
                 })
-        except Exception as e:
+        except Exception:
             continue
 
-# Ordenar por Score y tomar el TOP 7
+# Selección del TOP 7 ordenado de mayor a menor Score
 top_7_candidatas = sorted(candidatas_pre_explosion, key=lambda x: x['score'], reverse=True)[:7]
 
 # ---------------------------------------------------------
-# 3. PARTE 3: CONSTRUCCIÓN DEL MENSAJE Y BOTONES EN TELEGRAM
+# 3. ENVÍO DE REPORTE CON BOTONERA DINÁMICA A TELEGRAM
 # ---------------------------------------------------------
 if top_7_candidatas:
     mensaje_telegram = "🚀 **TOP 7 CRIPTOS PRE-EXPLOSIÓN (Detección Temprana)**\n\n"
@@ -78,15 +87,15 @@ if top_7_candidatas:
             f"Vol 1H: `{coin['ratio_volumen']}x` | Score: `{coin['score']}`\n"
         )
         
-        # URL dinámica pasando la moneda elegida como parámetro hacia Netlify
+        # Enlace dinámico pasando la moneda como parámetro único a Netlify
         url_dinamica = f"{NETLIFY_BASE_URL}/?coin={coin['ticker']}"
         
-        # Botón para la botonera de Telegram
+        # Botón dinámico por moneda
         inline_keyboard.append([
             {"text": f"🔍 Analizar ${coin['ticker']} en Netlify", "url": url_dinamica}
         ])
 
-    # Enviar reporte a Telegram con botones interactivos y al tema específico
+    # Enviar payload a la API de Telegram asignando el tema específico si está definido
     if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
         url_api = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
         payload = {
@@ -96,15 +105,14 @@ if top_7_candidatas:
             'reply_markup': json.dumps({'inline_keyboard': inline_keyboard})
         }
         
-        # Incluir el ID del tema (Topic ID) configurado en GitHub Secrets
         if MESSAGE_THREAD_ID:
             payload['message_thread_id'] = int(MESSAGE_THREAD_ID)
             
         res = requests.post(url_api, json=payload)
-        print("✅ Reporte de Pre-Explosión enviado al tema de Telegram.")
+        print("✅ Reporte enviado a Telegram exitosamente.")
 
 # ---------------------------------------------------------
-# 4. PARTE 4: EXPORTACIÓN DE ESTRUCTURA JSON PARA EL TRADER IA
+# 4. ARCHIVO DE SALIDA ESTRUCTURADO PARA TRADER IA
 # ---------------------------------------------------------
 estructura_ia = {
     "timestamp": pd.Timestamp.now().isoformat(),
@@ -121,8 +129,7 @@ estructura_ia = {
     ]
 }
 
-# Guardar los datos procesados en un archivo JSON local que la IA podrá consultar
 with open("datos_pre_explosion_ia.json", "w") as f:
     json.dump(estructura_ia, f, indent=4)
 
-print("💾 Archivo 'datos_pre_explosion_ia.json' generado exitosamente para el Trader IA.")
+print("💾 Archivo 'datos_pre_explosion_ia.json' generado exitosamente.")
