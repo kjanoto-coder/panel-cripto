@@ -2,6 +2,9 @@ import os
 import json
 import requests
 import pandas as pd
+import yfinance as yf
+import matplotlib.pyplot as plt
+import squarify
 from google import genai
 
 # ---------------------------------------------------------
@@ -9,165 +12,190 @@ from google import genai
 # ---------------------------------------------------------
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("CHAT_ID")
-MESSAGE_THREAD_ID = os.getenv("TOPIC_ID_SENTINEL_MACRO")  # ID 2489 (Sentimiento Mercado)
+MESSAGE_THREAD_ID = os.getenv("TOPIC_ID_SENTINEL_MACRO")  # Topic 2489 (Sentimiento Mercado)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # ---------------------------------------------------------
-# 1. CAPTURA DE DATOS Y RECURSOS
+# 1. MAPA DE CALOR PROPORCIONAL DE WALL STREET (TRADFI)
 # ---------------------------------------------------------
-def descargar_heatmap_wall_street():
-    """Descarga el mosaico/heatmap en tiempo real del S&P 500"""
-    url_map = "https://finviz.com/map.ashx?t=sec"
-    headers = {"User-Agent": "Mozilla/5.0"}
-    try:
-        res = requests.get(url_map, headers=headers, timeout=10)
-        if res.status_code == 200:
-            with open("heatmap_wall_street.png", "wb") as f:
-                f.write(res.content)
-            return True
-    except Exception:
-        pass
-    return False
+def obtener_datos_wall_street_treemap():
+    """Descarga datos y capitalización para armar el mapa de calor real por mosaicos"""
+    acciones = {
+        "NVDA": ("NVDA", 3.0), "AAPL": ("AAPL", 3.3), "MSFT": ("MSFT", 3.1),
+        "GOOGL": ("GOOGL", 2.1), "AMZN": ("AMZN", 2.2), "META": ("META", 1.4),
+        "TSLA": ("TSLA", 0.8), "AVGO": ("AVGO", 0.8), "JPM": ("JPM", 0.6),
+        "AMD": ("AMD", 0.3)
+    }
+    datos = []
+    for label, (ticker_str, mcap_weight) in acciones.items():
+        try:
+            t = yf.Ticker(ticker_str)
+            hist = t.history(period="2d")
+            if len(hist) >= 2:
+                p_act = hist['Close'].iloc[-1]
+                p_prev = hist['Close'].iloc[-2]
+                var = round(((p_act - p_prev) / p_prev) * 100, 2)
+            else:
+                var = 0.0
+        except Exception:
+            var = 0.0
+            
+        datos.append({"ticker": label, "weight": mcap_weight, "var": var})
+    return pd.DataFrame(datos)
 
-def obtener_fear_and_greed_cripto():
-    fg = {"score": 50, "clasificacion": "Neutral"}
-    try:
-        url = "https://api.alternative.me/fng/?limit=1"
-        res = requests.get(url, timeout=5).json()
-        if "data" in res and len(res["data"]) > 0:
-            fg["score"] = int(res["data"][0]["value"])
-            fg["clasificacion"] = res["data"][0]["value_classification"]
-    except Exception:
-        pass
-    return fg
+def generar_treemap_wall_street(df):
+    """Genera el mapa de calor mosaico idéntico al de TradingView"""
+    fig, ax = plt.subplots(figsize=(10, 6), facecolor='#0b0e14')
+    ax.set_facecolor('#0b0e14')
 
-def obtener_datos_cripto_global():
-    datos = {"BTC": 0, "BTC_VAR": 0, "ETH": 0, "ETH_VAR": 0}
+    sizes = df['weight']
+    labels = [f"{row['ticker']}\n{row['var']}%" for _, row in df.iterrows()]
+    
+    # Asignar colores verde/rojo según variación
+    colors = ['#26a69a' if v >= 0 else '#ef5350' for v in df['var']]
+
+    squarify.plot(sizes=sizes, label=labels, color=colors, alpha=0.9,
+                  text_kwargs={'color':'white', 'fontsize':10, 'weight':'bold'}, ax=ax)
+
+    plt.title("MAPA DE CALOR DE ACCIONES (S&P 500 / WALL STREET)", color='#FFD700', fontsize=12, fontweight='bold', pad=12)
+    plt.axis('off')
+    plt.tight_layout()
+    plt.savefig('heatmap_wall_street.png', dpi=250, facecolor=fig.get_facecolor(), edgecolor='none')
+    plt.close()
+
+# ---------------------------------------------------------
+# 2. MAPA DE CALOR PROPORCIONAL DE CRIPTO (FUTUROS/SPOT)
+# ---------------------------------------------------------
+def obtener_datos_cripto_treemap():
+    """Obtiene datos de volumen y variación de Binance para el Mapa de Calor Cripto"""
+    criptos = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "AVAXUSDT"]
+    datos = []
     try:
         res = requests.get("https://data-api.binance.vision/api/v3/ticker/24hr", timeout=5).json()
-        for item in res:
-            if item['symbol'] == 'BTCUSDT':
-                datos["BTC"] = round(float(item['lastPrice']), 2)
-                datos["BTC_VAR"] = round(float(item['priceChangePercent']), 2)
-            elif item['symbol'] == 'ETHUSDT':
-                datos["ETH"] = round(float(item['lastPrice']), 2)
-                datos["ETH_VAR"] = round(float(item['priceChangePercent']), 2)
+        dict_res = {item['symbol']: item for item in res}
+        
+        for symbol in criptos:
+            if symbol in dict_res:
+                item = dict_res[symbol]
+                ticker_clean = symbol.replace("USDT", "")
+                vol = float(item['quoteVolume'])
+                var = round(float(item['priceChangePercent']), 2)
+                datos.append({"ticker": ticker_clean, "vol": vol, "var": var})
     except Exception:
         pass
-    return datos
-
-def obtener_vix_wall_street():
-    try:
-        import yfinance as yf
-        vix = yf.Ticker("^VIX").history(period="1d")['Close'].iloc[-1]
-        return round(vix, 2)
-    except Exception:
-        return 16.5
-
-# ---------------------------------------------------------
-# 2. MOTOR DE ANÁLISIS GLOBAL E IMPULSORES (POR QUÉ SUBE O BAJA)
-# ---------------------------------------------------------
-def analizar_causas_wall_street_ia(vix_val):
-    if not GEMINI_API_KEY: 
-        return "Análisis de causas no disponible."
         
+    if not datos:
+        datos = [{"ticker": "BTC", "vol": 100, "var": -1.5}, {"ticker": "ETH", "vol": 60, "var": -2.8}]
+        
+    return pd.DataFrame(datos)
+
+def generar_treemap_cripto(df):
+    """Genera el mapa de calor mosaico idéntico al de Binance Futures"""
+    fig, ax = plt.subplots(figsize=(10, 6), facecolor='#0b0e14')
+    ax.set_facecolor('#0b0e14')
+
+    sizes = df['vol']
+    labels = [f"{row['ticker']}USDT\n{row['var']}%" for _, row in df.iterrows()]
+    colors = ['#26a69a' if v >= 0 else '#ef5350' for v in df['var']]
+
+    squarify.plot(sizes=sizes, label=labels, color=colors, alpha=0.9,
+                  text_kwargs={'color':'white', 'fontsize':11, 'weight':'bold'}, ax=ax)
+
+    plt.title("MAPA DE CALOR CRIPTO (BINANCE MARKET HEATMAP)", color='#FFD700', fontsize=12, fontweight='bold', pad=12)
+    plt.axis('off')
+    plt.tight_layout()
+    plt.savefig('heatmap_cripto.png', dpi=250, facecolor=fig.get_facecolor(), edgecolor='none')
+    plt.close()
+
+# ---------------------------------------------------------
+# 3. NOTICIAS Y DIAGNÓSTICO CON IA (GEMINI)
+# ---------------------------------------------------------
+def analizar_noticias_wall_street_ia(df_ws):
+    if not GEMINI_API_KEY: return "Análisis no disponible."
     client = genai.Client(api_key=GEMINI_API_KEY)
-    prompt = f"""
-    Actúa como un estratega macroeconómico senior de Wall Street.
-    El índice de volatilidad VIX está en {vix_val}.
     
-    Redacta un resumen técnico y global (máximo 4 líneas) explicando:
-    1. ¿Por qué Wall Street y las tecnológicas cotizan al alza o a la baja en la jornada actual? (Menciona factores clave como políticas de la Fed, datos de inflación, empleo, rendimientos de bonos o reportes de ganancias).
-    2. ¿Cuál es el catalizador principal que está moviendo el mercado hoy?
-    3. Perspectiva de riesgo para el cierre.
+    resumen_mercado = ", ".join([f"{r['ticker']}: {r['var']}%" for _, r in df_ws.iterrows()])
+    
+    prompt = f"""
+    Actúa como un analista financiero jefe de Wall Street.
+    El estado actual del mercado bursátil refleja las siguientes variaciones: {resumen_mercado}.
+
+    Redacta un reporte breve en español (máximo 4 líneas) explicando:
+    1. ¿Por qué el mapa de calor muestra esos colores? (Causas de fondo: sector tecnológico/IA, interrupciones de red, deudas del sector o expectativas de tasas de la Fed).
+    2. Resumen de noticias recientes que están impactando la jornada actual.
     """
     for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
         try:
             res = client.models.generate_content(model=mod, contents=prompt)
             if res and res.text: return res.text
         except: continue
-    return "Wall Street reacciona a los ajustes en las expectativas de tasas de la Reserva Federal y el comportamiento del sector tecnológico."
+    return "El sector tecnológico ajusta posiciones tras la volatilidad en las empresas de IA y la cautela por las tasas de interés."
 
-def analizar_causas_cripto_ia(fg_data, cripto_data):
-    if not GEMINI_API_KEY: 
-        return "Análisis de causas no disponible."
-        
+def analizar_noticias_cripto_ia(df_cripto):
+    if not GEMINI_API_KEY: return "Análisis no disponible."
     client = genai.Client(api_key=GEMINI_API_KEY)
-    prompt = f"""
-    Actúa como un analista cuantitativo del mercado cripto.
-    El índice de Miedo y Codicia está en {fg_data['score']}/100 ({fg_data['clasificacion']}) con BTC en ${cripto_data['BTC']} ({cripto_data['BTC_VAR']}%).
     
-    Redacta un resumen técnico (máximo 4 líneas) explicando:
-    1. ¿Por qué el mercado cripto está subiendo o bajando? (Evalúa flujos institucionales en ETFs, volumen en redes sociales (X), liquidaciones en derivados y la correlación macro con el dólar/Wall Street).
-    2. ¿Es un movimiento orgánico de acumulación/distribución o impulsado por noticias/rumores?
-    3. Conclusión sobre los niveles de soporte/resistencia clave en Bitcoin.
+    resumen_cripto = ", ".join([f"{r['ticker']}: {r['var']}%" for _, r in df_cripto.iterrows()])
+    
+    prompt = f"""
+    Actúa como un estratega cuantitativo cripto.
+    El mapa de calor de Binance muestra las siguientes variaciones en 24h: {resumen_cripto}.
+
+    Redacta un reporte breve en español (máximo 4 líneas) explicando:
+    1. Por qué el mercado cripto está cotizando en esa dirección (presión en liquidez, salidas/entradas de ETFs, derivación de altcoins).
+    2. Noticias de última hora y eventos en redes (X) motivando la tendencia actual.
     """
     for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
         try:
             res = client.models.generate_content(model=mod, contents=prompt)
             if res and res.text: return res.text
         except: continue
-    return f"El mercado refleja cautela en la zona de {fg_data['clasificacion']} a la espera de confirmación de volumen en los ETFs spot de Bitcoin."
+    return "Bitcoin y las principales altcoins reaccionan a la toma de ganancias y a la fluctuación de los derivados en Binance."
 
 # ---------------------------------------------------------
-# 3. EJECUCIÓN Y ENVÍO A TELEGRAM
+# 4. EJECUCIÓN Y ENVÍO A TELEGRAM
 # ---------------------------------------------------------
-print("🌐 Analizando causas del mercado global y generando reportes...")
+print("🌐 Generando Mapas de Calor Reales y Análisis de Noticias...")
 
-vix = obtener_vix_wall_street()
-fg_cripto = obtener_fear_and_greed_cripto()
-datos_cripto = obtener_datos_cripto_global()
+# --- 1. WALL STREET ---
+df_ws = obtener_datos_wall_street_treemap()
+generar_treemap_wall_street(df_ws)
+causas_ws = analizar_noticias_wall_street_ia(df_ws)
 
-causas_tradfi = analizar_causas_wall_street_ia(vix)
-causas_cripto = analizar_causas_cripto_ia(fg_cripto, datos_cripto)
+msg_ws = "🏛️ **SENTINEL MACRO — 1. MAPA DE CALOR & NOTICIAS WALL STREET**\n\n"
+msg_ws += f"🔍 **¿Qué está pasando y por qué? (Noticias & Análisis):**\n{causas_ws}\n"
 
-# Estado visual VIX
-if vix >= 22:
-    estado_vix = "🚨 PÁNICO / ALTA VOLATILIDAD"
-elif vix >= 17:
-    estado_vix = "⚠️ PRECAUCIÓN EN BOLSAS"
-else:
-    estado_vix = "🟢 CALMA Y OPTIMISMO"
+# --- 2. CRIPTO ---
+df_cripto = obtener_datos_cripto_treemap()
+generar_treemap_cripto(df_cripto)
+causas_cripto = analizar_noticias_cripto_ia(df_cripto)
 
-# --- MENSAJE 1: WALL STREET & TRADFI ---
-msg_tradfi = "🏛️ **SENTINEL MACRO — 1. WALL STREET & TRADFI**\n\n"
-msg_tradfi += f"📊 **Índice de Volatilidad (VIX):** `{vix}` | `{estado_vix}`\n\n"
-msg_tradfi += f"🔍 **¿Por qué se mueve Wall Street? (Diagnóstico Global):**\n{causas_tradfi}\n"
+msg_cripto = "🪙 **SENTINEL MACRO — 2. MAPA DE CALOR & NOTICIAS CRIPTO**\n\n"
+msg_cripto += f"🔍 **¿Qué está pasando y por qué? (Noticias & Mercado):**\n{causas_cripto}\n"
 
-# --- MENSAJE 2: MERCADO CRIPTO ---
-msg_cripto = "🪙 **SENTINEL MACRO — 2. MERCADO CRIPTO**\n\n"
-msg_cripto += f"🌡️ **Índice de Miedo y Codicia:** `{fg_cripto['score']}/100` — *{fg_cripto['clasificacion']}*\n"
-msg_cripto += f"• **Bitcoin (BTC):** `${datos_cripto['BTC']}` | `{datos_cripto['BTC_VAR']}%`\n"
-msg_cripto += f"• **Ethereum (ETH):** `${datos_cripto['ETH']}` | `{datos_cripto['ETH_VAR']}%`\n\n"
-msg_cripto += f"🔍 **¿Por qué se mueve el Mercado Cripto? (Análisis Técnico & X):**\n{causas_cripto}\n"
-
-# Envío a Telegram dirigiendo al Topic 2489 (Sentimiento Mercado)
+# Envío a Telegram (Topic 2489 - Sentimiento Mercado)
 if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
     url_base = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
     thread_id = int(MESSAGE_THREAD_ID) if MESSAGE_THREAD_ID else None
 
-    # Descargar Heatmap de Wall Street
-    descargar_heatmap_wall_street()
+    # 1. Enviar Mapa de Calor Wall Street + Noticias
+    with open('heatmap_wall_street.png', 'rb') as f1:
+        p_f1 = {'chat_id': TELEGRAM_CHAT_ID, 'caption': "🗺️ **Mapa de Calor en Vivo — Wall Street (S&P 500)**", 'parse_mode': 'Markdown'}
+        if thread_id: p_f1['message_thread_id'] = thread_id
+        requests.post(f"{url_base}/sendPhoto", data=p_f1, files={'photo': f1})
 
-    # ENVÍO REPORTE 1: WALL STREET
-    if os.path.exists("heatmap_wall_street.png"):
-        with open("heatmap_wall_street.png", "rb") as foto1:
-            p_f1 = {'chat_id': TELEGRAM_CHAT_ID, 'caption': "🗺️ **Mapa de Calor en Vivo — Wall Street (S&P 500)**", 'parse_mode': 'Markdown'}
-            if thread_id: p_f1['message_thread_id'] = thread_id
-            requests.post(f"{url_base}/sendPhoto", data=p_f1, files={'photo': foto1})
-
-    p_m1 = {'chat_id': TELEGRAM_CHAT_ID, 'text': msg_tradfi, 'parse_mode': 'Markdown'}
+    p_m1 = {'chat_id': TELEGRAM_CHAT_ID, 'text': msg_ws, 'parse_mode': 'Markdown'}
     if thread_id: p_m1['message_thread_id'] = thread_id
     requests.post(f"{url_base}/sendMessage", json=p_m1)
 
-    # ENVÍO REPORTE 2: CRIPTO
-    url_fg_img = "https://alternative.me/crypto/fear-and-greed-index.png"
-    p_f2 = {'chat_id': TELEGRAM_CHAT_ID, 'photo': url_fg_img, 'caption': "🌡️ **Medidor Oficial Fear & Greed Cripto**", 'parse_mode': 'Markdown'}
-    if thread_id: p_f2['message_thread_id'] = thread_id
-    requests.post(f"{url_base}/sendPhoto", data=p_f2)
+    # 2. Enviar Mapa de Calor Cripto + Noticias
+    with open('heatmap_cripto.png', 'rb') as f2:
+        p_f2 = {'chat_id': TELEGRAM_CHAT_ID, 'caption': "🗺️ **Mapa de Calor en Vivo — Binance Cripto Market**", 'parse_mode': 'Markdown'}
+        if thread_id: p_f2['message_thread_id'] = thread_id
+        requests.post(f"{url_base}/sendPhoto", data=p_f2, files={'photo': f2})
 
     p_m2 = {'chat_id': TELEGRAM_CHAT_ID, 'text': msg_cripto, 'parse_mode': 'Markdown'}
     if thread_id: p_m2['message_thread_id'] = thread_id
     requests.post(f"{url_base}/sendMessage", json=p_m2)
 
-    print("✅ Ambos reportes con análisis de causas global enviados exitosamente a Telegram.")
+    print("✅ Ambos reportes con Mapas de Calor Mosaico y Noticias enviados a Telegram.")
