@@ -1,6 +1,6 @@
 {
-    "timestamp": "2026-10-15T22:10:27.668323",
-    "bot_origen": "Radar Term\u00f3metro Din\u00e1mico",
+    "timestamp": "2026-10-15T22:18:23.803129",
+    "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
         {
@@ -9,9 +9,9 @@
             "price": 0.015,
             "price_change": -54.55,
             "ratio_volumen": 3.5,
-            "fase": "VERDE",
-            "etiqueta_grafico": "PHB",
-            "score": 194.41,
+            "fase": "ROJO",
+            "etiqueta_grafico": "\ud83d\udea8 PHB",
+            "score": 195.11,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
@@ -23,9 +23,51 @@
             "price": 0.237,
             "price_change": -19.93,
             "ratio_volumen": 6.84,
-            "fase": "VERDE",
-            "etiqueta_grafico": "FORTH",
-            "score": 143.17,
+            "fase": "ROJO",
+            "etiqueta_grafico": "\ud83d\udea8 FORTH",
+            "score": 144.54,
+            "metricas_avanzadas": {
+                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
+                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+            }
+        },
+        {
+            "symbol": "MDT/USDT",
+            "ticker": "MDT",
+            "price": 0.00403,
+            "price_change": -4.5,
+            "ratio_volumen": 2.48,
+            "fase": "AMARILLO",
+            "etiqueta_grafico": "\ud83d\udfe1 MDT",
+            "score": 14.14,
+            "metricas_avanzadas": {
+                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
+                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+            }
+        },
+        {
+            "symbol": "FIO/USDT",
+            "ticker": "FIO",
+            "price": 0.00094,
+            "price_change": -4.08,
+            "ratio_volumen": 2.11,
+            "fase": "AMARILLO",
+            "etiqueta_grafico": "\ud83d\udfe1 FIO",
+            "score": 11.15,
+            "metricas_avanzadas": {
+                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
+                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+            }
+        },
+        {
+            "symbol": "COCOS/USDT",
+            "ticker": "COCOS",
+            "price": 1.7546,
+            "price_change": 3.44,
+            "ratio_volumen": 2.16,
+            "fase": "AMARILLO",
+            "etiqueta_grafico": "\ud83d\udfe1 COCOS",
+            "score": 10.03,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
@@ -39,7 +81,7 @@
             "ratio_volumen": 2.12,
             "fase": "VERDE",
             "etiqueta_grafico": "NFP",
-            "score": 141.72,
+            "score": 142.14,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
@@ -53,49 +95,7 @@
             "ratio_volumen": 2.54,
             "fase": "VERDE",
             "etiqueta_grafico": "VIC",
-            "score": 111.67,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
-            }
-        },
-        {
-            "symbol": "VIB/USDT",
-            "ticker": "VIB",
-            "price": 0.00223,
-            "price_change": -63.26,
-            "ratio_volumen": 1.6,
-            "fase": "VERDE",
-            "etiqueta_grafico": "VIB",
-            "score": 102.82,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
-            }
-        },
-        {
-            "symbol": "CREAM/USDT",
-            "ticker": "CREAM",
-            "price": 2.1,
-            "price_change": 65.35,
-            "ratio_volumen": 1.5,
-            "fase": "VERDE",
-            "etiqueta_grafico": "CREAM",
-            "score": 99.53,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
-                "confluencia_tf": "\u26a1 Estructura 1D Favorable"
-            }
-        },
-        {
-            "symbol": "NTRN/USDT",
-            "ticker": "NTRN",
-            "price": 0.0016,
-            "price_change": -23.81,
-            "ratio_volumen": 3.97,
-            "fase": "VERDE",
-            "etiqueta_grafico": "NTRN",
-            "score": 98.5,
+            "score": 112.17,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
