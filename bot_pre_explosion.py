@@ -11,14 +11,37 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("CHAT_ID")
 MESSAGE_THREAD_ID = os.getenv("TOPIC_ID_PRE_EXPLOSION")
 
-NETLIFY_BASE_URL = "https://tu-motor-pre-explosion.netlify.app"
+# Por ahora dejamos esta variable lista; más tarde le asignamos el nuevo proyecto de Netlify
+NETLIFY_BASE_URL = "https://tu-nuevo-motor-pre-explosion.netlify.app"
+
+# ---------------------------------------------------------
+# FUNCIONES AUXILIARES DE FORMATO VISUAL
+# ---------------------------------------------------------
+def obtener_barras_fuerza(ratio_volumen):
+    """Genera 5 bloques de color según el nivel de disparo de volumen 1H"""
+    if ratio_volumen >= 5.0:
+        return "🟢🟢🟢🟢🟢"
+    elif ratio_volumen >= 4.0:
+        return "🟢🟢🟢🟢⚪"
+    elif ratio_volumen >= 3.0:
+        return "🟢🟢🟢⚪⚪"
+    else:
+        return "🟢🟢⚪⚪⚪"
+
+def formatear_precio(precio):
+    """Formatea precios pequeños o grandes limpiamente"""
+    if precio < 0.01:
+        return f"${precio:.6f}"
+    elif precio < 1.0:
+        return f"${precio:.4f}"
+    else:
+        return f"${precio:.2f}"
 
 # ---------------------------------------------------------
 # 1 Y 2. ESCÁNER DE VOLUMEN (BINANCE SPOT GLOBAL)
 # ---------------------------------------------------------
 print("🚀 Iniciando escaneo de Criptos Pre-Explosión...")
 
-# Se configura únicamente el mercado 'spot' y se desactiva 'swap/future' para evitar la API bloqueada fapi.binance.com
 exchange = ccxt.binance({
     'enableRateLimit': True,
     'options': {
@@ -33,21 +56,20 @@ exchange = ccxt.binance({
     }
 })
 
-# Cargar solo mercados spot
 tickers = exchange.fetch_tickers()
 
 candidatas_pre_explosion = []
 
 for symbol, data in tickers.items():
-    # Filtrar únicamente pares USDT
     if not symbol.endswith('/USDT'):
         continue
         
     price_change_24h = data['percentage'] if data['percentage'] is not None else 0
     vol_24h = data['quoteVolume'] if data['quoteVolume'] is not None else 0
+    last_price = data['last'] if data['last'] is not None else 0
     
-    # Filtro 1: Monedas con variación entre 0% y +5.0% y volumen mínimo representativo
-    if 0 <= price_change_24h <= 5.0 and vol_24h > 100000:
+    # Filtro: Monedas con variación entre 0% y +5.0% que aún no despegaron y volumen aceptable
+    if 0 <= price_change_24h <= 5.0 and vol_24h > 100000 and last_price > 0:
         try:
             ohlcv = exchange.fetch_ohlcv(symbol, timeframe='1h', limit=24)
             df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
@@ -55,7 +77,6 @@ for symbol, data in tickers.items():
             vol_actual_1h = df['volume'].iloc[-1]
             promedio_vol_24h = df['volume'].mean()
             
-            # Filtro 2: El volumen de la última hora es al menos 2.5 veces el promedio de 24H
             if promedio_vol_24h > 0 and vol_actual_1h >= (promedio_vol_24h * 2.5):
                 ratio_volumen = round(vol_actual_1h / promedio_vol_24h, 2)
                 ticker_limpio = symbol.split('/')[0]
@@ -65,6 +86,7 @@ for symbol, data in tickers.items():
                 candidatas_pre_explosion.append({
                     'symbol': symbol,
                     'ticker': ticker_limpio,
+                    'price': last_price,
                     'price_change': round(price_change_24h, 2),
                     'ratio_volumen': ratio_volumen,
                     'score': score
@@ -75,42 +97,45 @@ for symbol, data in tickers.items():
 top_7_candidatas = sorted(candidatas_pre_explosion, key=lambda x: x['score'], reverse=True)[:7]
 
 # ---------------------------------------------------------
-# 3. PARTE 3: ENVÍO A TELEGRAM
+# 3. CONSTRUCCIÓN DEL MENSAJE ESTÉTICO (TIPO CANAL PRINCIPAL)
 # ---------------------------------------------------------
 if top_7_candidatas:
-    mensaje_telegram = "🚀 **TOP 7 CRIPTOS PRE-EXPLOSIÓN (Detección Temprana)**\n\n"
-    mensaje_telegram += "Monedas con acumulación silenciosa de volumen 1H que aún no se dispararon:\n\n"
+    mensaje_telegram = "🧠 **CENTRAL DE INTELIGENCIA DE MERCADO**\n"
+    mensaje_telegram += "🚀 **TOP 7 PRE-EXPLOSIÓN (Detección Temprana)**\n\n"
     
-    inline_keyboard = []
-    
-    for idx, coin in enumerate(top_7_candidatas, 1):
-        mensaje_telegram += (
-            f"**{idx}. {coin['ticker']}** | Var 24h: `{coin['price_change']}%` | "
-            f"Vol 1H: `{coin['ratio_volumen']}x` | Score: `{coin['score']}`\n"
-        )
+    for coin in top_7_candidatas:
+        precio_fmt = formatear_precio(coin['price'])
+        barras = obtener_barras_fuerza(coin['ratio_volumen'])
         
-        url_dinamica = f"{NETLIFY_BASE_URL}/?coin={coin['ticker']}"
-        inline_keyboard.append([
-            {"text": f"🔍 Analizar ${coin['ticker']} en Netlify", "url": url_dinamica}
-        ])
+        # Enlace 1: Resumen IA (Hacia Netlify)
+        url_netlify = f"{NETLIFY_BASE_URL}/?coin={coin['ticker']}"
+        
+        # Enlace 2: Tradear (Hacia Binance Spot público directo)
+        url_binance = f"https://www.binance.com/es/trade/{coin['ticker']}_USDT?type=spot"
+        
+        mensaje_telegram += (
+            f"• **{coin['ticker']}** | `{precio_fmt}` | {barras} | `+{coin['price_change']}%`\n"
+            f"   └ 📊 [Resumen IA]({url_netlify}) | 🔶 [Tradear]({url_binance}) | Vol 1H: `{coin['ratio_volumen']}x`\n\n"
+        )
 
+    # Enviar payload a Telegram (sin la botonera gigante de abajo para mantenerlo limpio)
     if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
         url_api = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
         payload = {
             'chat_id': TELEGRAM_CHAT_ID,
             'text': mensaje_telegram,
             'parse_mode': 'Markdown',
-            'reply_markup': json.dumps({'inline_keyboard': inline_keyboard})
+            'disable_web_page_preview': True
         }
         
         if MESSAGE_THREAD_ID:
             payload['message_thread_id'] = int(MESSAGE_THREAD_ID)
             
         res = requests.post(url_api, json=payload)
-        print("✅ Reporte de Pre-Explosión enviado a Telegram.")
+        print("✅ Reporte con formato limpio y enlaces enviado a Telegram.")
 
 # ---------------------------------------------------------
-# 4. PARTE 4: ESTRUCTURA JSON PARA TRADER IA
+# 4. ESTRUCTURA JSON PARA TRADER IA
 # ---------------------------------------------------------
 estructura_ia = {
     "timestamp": pd.Timestamp.now().isoformat(),
@@ -118,6 +143,7 @@ estructura_ia = {
     "top_candidatas": [
         {
             "token": item['ticker'],
+            "precio": item['price'],
             "score_acumulacion": item['score'],
             "variacion_24h": item['price_change'],
             "volumen_anomalo_1h": f"{item['ratio_volumen']}x",
@@ -130,4 +156,4 @@ estructura_ia = {
 with open("datos_pre_explosion_ia.json", "w") as f:
     json.dump(estructura_ia, f, indent=4)
 
-print("💾 Archivo 'datos_pre_explosion_ia.json' generado exitosamente.")
+print("💾 Archivo JSON generado exitosamente.")
