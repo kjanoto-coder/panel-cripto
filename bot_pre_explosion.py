@@ -245,47 +245,4 @@ if top_candidatas:
         # Etiqueta visual distintiva si detecta acumulación oculta anticipada
         prefijo_alerta = "🚨 **[ANOMALÍA OCULTA / ACUMULACIÓN DIP]**\n   " if coin['alerta_anomalia'] else ""
         
-        mensaje_telegram += (
-            f"{prefijo_alerta}• **{coin['ticker']}** | `{precio_fmt}` | {barras} | `+{coin['price_change']}%`\n"
-            f"   ├ 📈 **Futuros/OI:** `{mf['oi_status']}`\n"
-            f"   ├ 💥 **Liquidaciones:** `{mf['zona_liq']}`\n"
-            f"   ├ 🗓️ **Catalizador X:** `{mf['catalizador_x']}`\n"
-            f"   └ 📊 [Resumen IA]({url_netlify}) | 🔶 [Tradear]({url_binance}) | Vol 1H: `{coin['ratio_volumen']}x` | Score: `{coin['score']}`\n\n"
-        )
-
-    if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
-        url_foto = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
-        with open('grafico_pre_explosion.png', 'rb') as foto:
-            payload_foto = {
-                'chat_id': TELEGRAM_CHAT_ID,
-                'caption': "🚨 **RADAR — Detección Temprana de Acumulación y Rupturas**",
-                'parse_mode': 'Markdown'
-            }
-            if MESSAGE_THREAD_ID:
-                payload_foto['message_thread_id'] = int(MESSAGE_THREAD_ID)
-            requests.post(url_foto, data=payload_foto, files={'photo': foto})
-
-        url_msg = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-        payload_msg = {
-            'chat_id': TELEGRAM_CHAT_ID,
-            'text': mensaje_telegram,
-            'parse_mode': 'Markdown',
-            'disable_web_page_preview': True
-        }
-        if MESSAGE_THREAD_ID:
-            payload_msg['message_thread_id'] = int(MESSAGE_THREAD_ID)
-        requests.post(url_msg, json=payload_msg)
-        
-        print("✅ Alerta de radar y anomalías ocultas enviada con éxito.")
-
-estructura_ia = {
-    "timestamp": pd.Timestamp.now().isoformat(),
-    "bot_origen": "Radar Pre-Explosión & Anomalías",
-    "total_analizados": total_pares_analizados,
-    "top_candidatas": top_candidatas
-}
-with open("datos_pre_explosion_ia.json", "w") as f:
-    json.dump(estructura_ia, f, indent=4)
-}
-with open("datos_pre_explosion_ia.json", "w") as f:
-    json.dump(estructura_ia, f, indent=4)
+        mensaje
