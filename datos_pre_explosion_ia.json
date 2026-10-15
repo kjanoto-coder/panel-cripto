@@ -1,6 +1,6 @@
 {
-    "timestamp": "2026-10-15T21:56:05.688295",
-    "bot_origen": "Radar Term\u00f3metro Balanceado",
+    "timestamp": "2026-10-15T22:10:27.668323",
+    "bot_origen": "Radar Term\u00f3metro Din\u00e1mico",
     "total_analizados": 3732,
     "top_candidatas": [
         {
@@ -9,13 +9,11 @@
             "price": 0.015,
             "price_change": -54.55,
             "ratio_volumen": 3.5,
-            "fase": "ROJO",
-            "etiqueta_grafico": "\ud83d\udea8 PHB",
-            "score": 487.77,
+            "fase": "VERDE",
+            "etiqueta_grafico": "PHB",
+            "score": 194.41,
             "metricas_avanzadas": {
-                "oi_status": "\u26a1 Compresi\u00f3n de Rango",
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
-                "catalizador_x": "\ud83d\udd25 Tracci\u00f3n y Hype en Redes Sociales",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
             }
         },
@@ -25,14 +23,68 @@
             "price": 0.237,
             "price_change": -19.93,
             "ratio_volumen": 6.84,
-            "fase": "ROJO",
-            "etiqueta_grafico": "\ud83d\udea8 FORTH",
-            "score": 361.36,
+            "fase": "VERDE",
+            "etiqueta_grafico": "FORTH",
+            "score": 143.17,
             "metricas_avanzadas": {
-                "oi_status": "\u26a1 Compresi\u00f3n de Rango",
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
-                "catalizador_x": "\ud83d\udd25 Tracci\u00f3n y Hype en Redes Sociales",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+            }
+        },
+        {
+            "symbol": "NFP/USDT",
+            "ticker": "NFP",
+            "price": 0.00181,
+            "price_change": -65.85,
+            "ratio_volumen": 2.12,
+            "fase": "VERDE",
+            "etiqueta_grafico": "NFP",
+            "score": 141.72,
+            "metricas_avanzadas": {
+                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
+                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+            }
+        },
+        {
+            "symbol": "VIC/USDT",
+            "ticker": "VIC",
+            "price": 0.0077,
+            "price_change": -42.96,
+            "ratio_volumen": 2.54,
+            "fase": "VERDE",
+            "etiqueta_grafico": "VIC",
+            "score": 111.67,
+            "metricas_avanzadas": {
+                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
+                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+            }
+        },
+        {
+            "symbol": "VIB/USDT",
+            "ticker": "VIB",
+            "price": 0.00223,
+            "price_change": -63.26,
+            "ratio_volumen": 1.6,
+            "fase": "VERDE",
+            "etiqueta_grafico": "VIB",
+            "score": 102.82,
+            "metricas_avanzadas": {
+                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
+                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+            }
+        },
+        {
+            "symbol": "CREAM/USDT",
+            "ticker": "CREAM",
+            "price": 2.1,
+            "price_change": 65.35,
+            "ratio_volumen": 1.5,
+            "fase": "VERDE",
+            "etiqueta_grafico": "CREAM",
+            "score": 99.53,
+            "metricas_avanzadas": {
+                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
+                "confluencia_tf": "\u26a1 Estructura 1D Favorable"
             }
         },
         {
@@ -41,78 +93,12 @@
             "price": 0.0016,
             "price_change": -23.81,
             "ratio_volumen": 3.97,
-            "fase": "ROJO",
-            "etiqueta_grafico": "\ud83d\udea8 NTRN",
-            "score": 248.22,
+            "fase": "VERDE",
+            "etiqueta_grafico": "NTRN",
+            "score": 98.5,
             "metricas_avanzadas": {
-                "oi_status": "\u26a1 Compresi\u00f3n de Rango",
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
-                "catalizador_x": "\ud83d\udd25 Tracci\u00f3n y Hype en Redes Sociales",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
-            }
-        },
-        {
-            "symbol": "CLV/USDT",
-            "ticker": "CLV",
-            "price": 0.02937,
-            "price_change": 13.97,
-            "ratio_volumen": 3.5,
-            "fase": "ROJO",
-            "etiqueta_grafico": "\ud83d\udea8 CLV",
-            "score": 132.74,
-            "metricas_avanzadas": {
-                "oi_status": "\u26a1 Compresi\u00f3n de Rango",
-                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
-                "catalizador_x": "\ud83d\udd25 Tracci\u00f3n y Hype en Redes Sociales",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
-            }
-        },
-        {
-            "symbol": "DNT/USDT",
-            "ticker": "DNT",
-            "price": 0.036,
-            "price_change": -6.0,
-            "ratio_volumen": 6.96,
-            "fase": "ROJO",
-            "etiqueta_grafico": "\ud83d\udea8 DNT",
-            "score": 125.37,
-            "metricas_avanzadas": {
-                "oi_status": "\u26a1 Compresi\u00f3n de Rango",
-                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
-                "catalizador_x": "\ud83d\udd25 Tracci\u00f3n y Hype en Redes Sociales",
-                "confluencia_tf": "\ud83d\ude80 Confluencia Total (1H + 4H + 1D Alcista)"
-            }
-        },
-        {
-            "symbol": "AST/USDT",
-            "ticker": "AST",
-            "price": 0.0261,
-            "price_change": -5.78,
-            "ratio_volumen": 3.48,
-            "fase": "ROJO",
-            "etiqueta_grafico": "\ud83d\udea8 AST",
-            "score": 60.69,
-            "metricas_avanzadas": {
-                "oi_status": "\u26a1 Compresi\u00f3n de Rango",
-                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
-                "catalizador_x": "\ud83d\udd25 Tracci\u00f3n y Hype en Redes Sociales",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
-            }
-        },
-        {
-            "symbol": "LOKA/USDT",
-            "ticker": "LOKA",
-            "price": 0.1237,
-            "price_change": 3.86,
-            "ratio_volumen": 3.6,
-            "fase": "ROJO",
-            "etiqueta_grafico": "\ud83d\udea8 LOKA",
-            "score": 45.56,
-            "metricas_avanzadas": {
-                "oi_status": "\u26a1 Compresi\u00f3n de Rango",
-                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
-                "catalizador_x": "\ud83d\udd25 Tracci\u00f3n y Hype en Redes Sociales",
-                "confluencia_tf": "\ud83d\ude80 Confluencia Total (1H + 4H + 1D Alcista)"
             }
         }
     ]
