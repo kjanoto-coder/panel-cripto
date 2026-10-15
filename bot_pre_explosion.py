@@ -17,13 +17,12 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 NETLIFY_BASE_URL = "https://tu-nuevo-motor-pre-explosion.netlify.app"
 HISTORIAL_FILE = "historial_alertas_recientes.json"
 
-print("🚀 Ejecutando Radar con Termómetro Equilibrado y Rotación Anti-Repetición...")
+print("🚀 Ejecutando Radar con Estructura Obligatoria de 3 Fases...")
 
 # ---------------------------------------------------------
 # FUNCIONES DE MEMORIA Y ROTACIÓN
 # ---------------------------------------------------------
 def cargar_historial_reciente():
-    """Carga los tickers que ya fueron alertados en los últimos reportes para no repetirlos."""
     if os.path.exists(HISTORIAL_FILE):
         try:
             with open(HISTORIAL_FILE, "r") as f:
@@ -34,7 +33,6 @@ def cargar_historial_reciente():
     return []
 
 def guardar_historial_reciente(tickers_actuales):
-    """Actualiza la memoria de exclusión con los nuevos tickers enviados."""
     try:
         data = {"recent_tickers": tickers_actuales}
         with open(HISTORIAL_FILE, "w") as f:
@@ -43,12 +41,12 @@ def guardar_historial_reciente(tickers_actuales):
         pass
 
 # ---------------------------------------------------------
-# FUNCIONES AUXILIARES Y MÉTRICAS MULTI-CAPA
+# FUNCIONES AUXILIARES
 # ---------------------------------------------------------
 def obtener_barras_fuerza(ratio_volumen):
-    if ratio_volumen >= 4.0:
+    if ratio_volumen >= 3.5:
         return "🟢🟢🟢🟢🟢"
-    elif ratio_volumen >= 2.8:
+    elif ratio_volumen >= 2.5:
         return "🟢🟢🟢🟢⚪"
     elif ratio_volumen >= 1.8:
         return "🟢🟢🟢⚪⚪"
@@ -79,7 +77,7 @@ def analizar_multi_temporalidad_y_liquidaciones(exchange_spot, symbol, ticker):
         media_4h = df_4h['volume'].mean()
         tendencia_1d_alcista = df_1d['close'].iloc[-1] > df_1d['open'].iloc[-1]
         
-        if media_4h > 0 and (vol_4h_reciente / media_4h) >= 1.5 and tendencia_1d_alcista:
+        if media_4h > 0 and (vol_4h_reciente / media_4h) >= 1.4 and tendencia_1d_alcista:
             metricas["confluencia_tf"] = "🚀 Confluencia Total (1H + 4H + 1D Alcista)"
         elif tendencia_1d_alcista:
             metricas["confluencia_tf"] = "⚡ Estructura 1D Favorable"
@@ -110,7 +108,7 @@ def generar_grafico_termometro(candidatas):
     etiquetas_pct = [f"+{c['ratio_volumen']}x" for c in candidatas_ordenadas]
 
     colores_map = {
-        'ROJO': '#FF3D00',     # Explosión inminente
+        'ROJO': '#FF3D00',     # Detonación inminente
         'AMARILLO': '#FFD600', # Acumulación en rango
         'VERDE': '#00E676'     # Vigilancia inicial
     }
@@ -174,10 +172,10 @@ def generar_resumen_ia(candidatas):
                 return response.text
         except Exception:
             continue
-    return "Máxima atención a los activos en fase Roja y Amarilla: la rotación de capital detectada anticipa el próximo movimiento explosivo del día."
+    return "Máxima atención a los activos en fase Roja y Amarilla: la acumulación silenciosa detectada anticipa el próximo movimiento explosivo del día."
 
 # ---------------------------------------------------------
-# ESCÁNER CON ROTACIÓN Y FASES EQUILIBRADAS
+# ESCÁNER CON SELECCIÓN BALANCEADA OBLIGATORIA
 # ---------------------------------------------------------
 try:
     exchange_spot = ccxt.binance({
@@ -190,7 +188,6 @@ try:
     total_pares_analizados = len(tickers_spot)
     
     historial_excluidos = cargar_historial_reciente()
-    print(f"🔄 Excluyendo {len(historial_excluidos)} tokens repetidos de los reportes anteriores.")
 
     candidatas_rojas = []
     candidatas_amarillas = []
@@ -201,7 +198,7 @@ try:
             continue
         ticker_limpio = symbol.split('/')[0]
         
-        # Filtro de rotación: Si ya salió en los reportes recientes, se salta para buscar nuevos
+        # Filtro de rotación si ya salió en el reporte inmediato anterior
         if ticker_limpio in historial_excluidos:
             continue
         
@@ -209,7 +206,7 @@ try:
         vol_24h = data['quoteVolume'] if data['quoteVolume'] is not None else 0
         last_price = data['last'] if data['last'] is not None else 0
         
-        if vol_24h > 30000 and last_price > 0:
+        if vol_24h > 25000 and last_price > 0:
             try:
                 ohlcv = exchange_spot.fetch_ohlcv(symbol, timeframe='1h', limit=12)
                 df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
@@ -220,20 +217,20 @@ try:
                 if promedio_vol_24h > 0:
                     ratio_volumen = round(vol_actual_1h / promedio_vol_24h, 2)
                     
-                    # FASES BALANCEADAS Y ESTRICTAS
-                    if ratio_volumen >= 4.5 and price_change_24h >= 2.0:
+                    # REGLAS RECTIFICADAS PARA GARANTIZAR LAS 3 FASES
+                    if ratio_volumen >= 2.6:
                         fase = "ROJO"
                         etiqueta_graf = f"🚨 {ticker_limpio}"
-                    elif ratio_volumen >= 2.2 and -3.0 <= price_change_24h <= 4.0:
+                    elif ratio_volumen >= 1.7 and -5.0 <= price_change_24h <= 5.0:
                         fase = "AMARILLO"
                         etiqueta_graf = f"🟡 {ticker_limpio}"
-                    elif ratio_volumen >= 1.5:
+                    elif ratio_volumen >= 1.2:
                         fase = "VERDE"
                         etiqueta_graf = ticker_limpio
                     else:
                         continue
                     
-                    score = round(ratio_volumen * (abs(price_change_24h) + 1.0), 2)
+                    score = round(ratio_volumen * (abs(price_change_24h) + 1.2), 2)
                     metricas_avanzadas = analizar_multi_temporalidad_y_liquidaciones(exchange_spot, symbol, ticker_limpio)
                     
                     item_coin = {
@@ -257,31 +254,38 @@ try:
             except Exception:
                 continue
 
-    # Ordenar y asegurar mezcla equilibrada entre Rojos, Amarillos y Verdes
+    # ORDENAR CADA GRUPO POR SCORE
     candidatas_rojas = sorted(candidatas_rojas, key=lambda x: x['score'], reverse=True)
     candidatas_amarillas = sorted(candidatas_amarillas, key=lambda x: x['score'], reverse=True)
     candidatas_verdes = sorted(candidatas_verdes, key=lambda x: x['score'], reverse=True)
 
-    # Tomar selección combinada para asegurar variedad de colores en el termómetro
-    top_candidatas = (candidatas_rojas[:3] + candidatas_amarillas[:3] + candidatas_verdes[:2])[:7]
+    # CONSTRUCCIÓN OBLIGATORIA DEL TOP 7 MEZCLADO (ROJO, AMARILLO Y VERDE)
+    top_candidatas = []
     
-    # Si faltasen por escasez en alguna fase, rellenar con lo que haya disponible
-    if len(top_candidatas) < 7:
-        todas_disponibles = sorted(candidatas_rojas + candidatas_amarillas + candidatas_verdes, key=lambda x: x['score'], reverse=True)
-        top_candidatas = todas_disponibles[:7]
+    # Tomar 2 Rojas, 3 Amarillas y 2 Verdes
+    top_candidatas.extend(candidatas_rojas[:2])
+    top_candidatas.extend(candidatas_amarillas[:3])
+    top_candidatas.extend(candidatas_verdes[:2])
 
-    print(f"📊 Total candidatas en termómetro (con rotación): {len(top_candidatas)}")
+    # Si por baja volatilidad falta alguna fase, rellenar de forma balanceada
+    if len(top_candidatas) < 7:
+        restantes = [c for c in (candidatas_rojas + candidatas_amarillas + candidatas_verdes) if c not in top_candidatas]
+        restantes_ordenados = sorted(restantes, key=lambda x: x['score'], reverse=True)
+        top_candidatas.extend(restantes_ordenados[:(7 - len(top_candidatas))])
+
+    top_candidatas = top_candidatas[:7]
+    print(f"📊 Selección balanceada lista (Rojos: {len([c for c in top_candidatas if c['fase']=='ROJO'])}, Amarillos: {len([c for c in top_candidatas if c['fase']=='AMARILLO'])}, Verdes: {len([c for c in top_candidatas if c['fase']=='VERDE'])})")
 
     if top_candidatas:
-        # Guardar los nuevos en el historial para que descansen en los próximos reportes
+        # Guardar en la memoria de exclusión para refrescar en el siguiente ciclo
         nuevos_tickers_historial = [c['ticker'] for c in top_candidatas]
         guardar_historial_reciente(nuevos_tickers_historial)
 
         generar_grafico_termometro(top_candidatas)
         resumen_ia = generar_resumen_ia(top_candidatas)
         
-        mensaje_telegram = "🧠 **RADAR TÁCTICO • TERMÓMETRO DINÁMICO**\n"
-        mensaje_telegram += "🚀 **ANTICIPACIÓN DE GANADORAS & ROTACIÓN DE CAPITAL**\n"
+        mensaje_telegram = "🧠 **RADAR TÁCTICO • TERMÓMETRO BALANCEADO 3-FASES**\n"
+        mensaje_telegram += "🚀 **ANTICIPACIÓN DE GANADORAS (ROJO / AMARILLO / VERDE)**\n"
         mensaje_telegram += f"🔍 *Pares analizados:* `{total_pares_analizados}`\n\n"
         mensaje_telegram += f"💡 **Dictamen de Anticipación (IA):**\n{resumen_ia}\n\n"
         mensaje_telegram += "─────────────────────────\n"
@@ -314,7 +318,7 @@ try:
             with open('grafico_pre_explosion.png', 'rb') as foto:
                 payload_foto = {
                     'chat_id': TELEGRAM_CHAT_ID,
-                    'caption': "🌡️ **Termómetro Dinámico — Rotación de Candidatas (Hoy)**",
+                    'caption': "🌡️ **Termómetro Táctico — 3 Fases de Anticipación (Hoy)**",
                     'parse_mode': 'Markdown'
                 }
                 if MESSAGE_THREAD_ID:
@@ -337,7 +341,7 @@ except Exception as e:
 
 estructura_ia = {
     "timestamp": pd.Timestamp.now().isoformat(),
-    "bot_origen": "Radar Termómetro Dinámico",
+    "bot_origen": "Radar Termómetro Balanceado 3 Fases",
     "total_analizados": total_pares_analizados if 'total_pares_analizados' in locals() else 0,
     "top_candidatas": top_candidatas if 'top_candidatas' in locals() else []
 }
