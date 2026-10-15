@@ -126,30 +126,3 @@ def generar_grafico_estilo_exacto(candidatas):
 def generar_resumen_ia(candidatas):
     if not GEMINI_API_KEY:
         return "⚠️ *Análisis de IA no disponible*"
-        
-    client = genai.Client(api_key=GEMINI_API_KEY)
-    
-    lista_texto = "\n".join([
-        f"- {c['ticker']}: Precio: {c['price']}, Var 24h: {c['price_change']}%, Vol Spot 1H: {c['ratio_volumen']}x, "
-        f"Anomalía Oculta: {'SÍ (Acumulación previa a ruptura)' if c['alerta_anomalia'] else 'No'}, "
-        f"Futuros/OI: {c['metricas_futuros']['oi_status']}, Liquidaciones: {c['metricas_futuros']['zona_liq']}, Score: {c['score']}" 
-        for c in candidatas
-    ])
-    
-    prompt = f"""
-    Actúa como un trader institucional de alta frecuencia experto en detección de movimientos anticipados.
-    El escáner multi-capa ha detectado estas oportunidades de pre-explosión, incluyendo fichas con anomalías de acumulación oculta (volumen masivo con precio en rojo/neutro):
-
-    {lista_texto}
-
-    Redacta un dictamen técnico directo (máximo 4 líneas) explicando:
-    1. Qué nos dicen las anomalías detectadas (volumen alto con precios comprimidos/rojos) sobre la intención de las ballenas.
-    2. Cuál de las candidatas presenta el patrón más claro de anticipación alcista antes del movimiento brusco.
-    """
-    for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
-        try:
-            response = client.models.generate_content(model=mod, contents=prompt)
-            if response and response.text:
-                return response.text
-        except Exception:
-            continue
