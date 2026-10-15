@@ -16,15 +16,20 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 NETLIFY_BASE_URL = "https://tu-nuevo-motor-pre-explosion.netlify.app"
 
+print("🔍 Verificando credenciales...")
+print(f"TELEGRAM_CHAT_ID presente: {bool(TELEGRAM_CHAT_ID)}")
+print(f"TELEGRAM_BOT_TOKEN presente: {bool(TELEGRAM_BOT_TOKEN)}")
+print(f"MESSAGE_THREAD_ID: {MESSAGE_THREAD_ID}")
+
 # ---------------------------------------------------------
 # FUNCIONES AUXILIARES Y MÉTRICAS MULTI-CAPA
 # ---------------------------------------------------------
 def obtener_barras_fuerza(ratio_volumen):
-    if ratio_volumen >= 5.0:
+    if ratio_volumen >= 4.0:
         return "🟢🟢🟢🟢🟢"
-    elif ratio_volumen >= 3.5:
+    elif ratio_volumen >= 3.0:
         return "🟢🟢🟢🟢⚪"
-    elif ratio_volumen >= 2.5:
+    elif ratio_volumen >= 2.0:
         return "🟢🟢🟢⚪⚪"
     else:
         return "🟢🟢⚪⚪⚪"
@@ -46,7 +51,7 @@ def obtener_datos_futuros_y_social(ticker):
     }
     try:
         url_fapi = f"https://fapi.binance.com/fapi/v1/ticker/24hr?symbol={ticker}USDT"
-        res_fapi = requests.get(url_fapi, timeout=4).json()
+        res_fapi = requests.get(url_fapi, timeout=3).json()
         
         if isinstance(res_fapi, dict) and 'highPrice' in res_fapi:
             high_price = float(res_fapi.get('highPrice', 0))
@@ -57,7 +62,7 @@ def obtener_datos_futuros_y_social(ticker):
                 distancia_top = round(((high_price - last_price) / last_price) * 100, 2)
                 if distancia_top <= 1.5:
                     datos_futuros["zona_liq"] = "🔥 Alta (Short Squeeze Inminente)"
-                elif distancia_top <= 3.5:
+                elif distancia_top <= 3.0:
                     datos_futuros["zona_liq"] = "⚡ Media (Pools de Liquidez)"
                 else:
                     datos_futuros["zona_liq"] = "🛡️ Normal"
@@ -126,3 +131,152 @@ def generar_grafico_estilo_exacto(candidatas):
 def generar_resumen_ia(candidatas):
     if not GEMINI_API_KEY:
         return "⚠️ *Análisis de IA no disponible*"
+        
+    client = genai.Client(api_key=GEMINI_API_KEY)
+    lista_texto = "\n".join([f"- {c['ticker']}: Precio: {c['price']}, Var 24h: {c['price_change']}%, Vol Spot 1H: {c['ratio_volumen']}x, Score: {c['score']}" for c in candidatas])
+    
+    prompt = f"Actúa como un trader institucional de alta frecuencia. Analiza estas oportunidades de pre-explosión:\n{lista_texto}\nRedacta un dictamen técnico breve (máximo 4 líneas)."
+    
+    for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
+        try:
+            response = client.models.generate_content(model=mod, contents=prompt)
+            if response and response.text:
+                return response.text
+        except Exception:
+            continue
+    return "Se detectan anomalías de volumen con compresión de precio, anticipando resolución alcista."
+
+# ---------------------------------------------------------
+# ESCÁNER PRINCIPAL
+# ---------------------------------------------------------
+print("🚀 Conectando a Binance para escanear mercado...")
+
+try:
+    exchange = ccxt.binance({
+        'enableRateLimit': True,
+        'options': {'defaultType': 'spot', 'fetchMarkets': ['spot']},
+        'urls': {'api': {'public': 'https://data-api.binance.vision/api/v3', 'spot': 'https://data-api.binance.vision/api/v3'}}
+    })
+
+    tickers = exchange.fetch_tickers()
+    total_pares_analizados = len(tickers)
+    print(f"✅ Pares obtenidos de Binance: {total_pares_analizados}")
+
+    candidatas_radar = []
+    candidatas_backup = []
+
+    for symbol, data in tickers.items():
+        if not symbol.endswith('/USDT'):
+            continue
+            
+        price_change_24h = data['percentage'] if data['percentage'] is not None else 0
+        vol_24h = data['quoteVolume'] if data['quoteVolume'] is not None else 0
+        last_price = data['last'] if data['last'] is not None else 0
+        
+        if vol_24h > 20000 and last_price > 0:
+            try:
+                ohlcv = exchange.fetch_ohlcv(symbol, timeframe='1h', limit=12)
+                df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+                
+                vol_actual_1h = df['volume'].iloc[-1]
+                promedio_vol_24h = df['volume'].mean()
+                
+                if promedio_vol_24h > 0:
+                    ratio_volumen = round(vol_actual_1h / promedio_vol_24h, 2)
+                    ticker_limpio = symbol.split('/')[0]
+                    es_anomalia_oculta = (ratio_volumen >= 2.0) and (-6.0 <= price_change_24h <= 6.0)
+                    
+                    item_coin = {
+                        'symbol': symbol,
+                        'ticker': ticker_limpio,
+                        'price': last_price,
+                        'price_change': round(price_change_24h, 2),
+                        'ratio_volumen': ratio_volumen,
+                        'alerta_anomalia': es_anomalia_oculta,
+                        'etiqueta_grafico': f"🚨 {ticker_limpio}" if es_anomalia_oculta else ticker_limpio,
+                        'score': round(ratio_volumen * (abs(price_change_24h) + 1.0) * (2.0 if es_anomalia_oculta else 1.0), 2)
+                    }
+                    item_coin['metricas_futuros'] = obtener_datos_futuros_y_social(ticker_limpio)
+                    
+                    if ratio_volumen >= 1.2 and -15.0 <= price_change_24h <= 30.0:
+                        candidatas_radar.append(item_coin)
+                    else:
+                        candidatas_backup.append(item_coin)
+            except Exception:
+                continue
+
+    top_candidatas = sorted(candidatas_radar, key=lambda x: x['score'], reverse=True)[:7]
+    if len(top_candidatas) < 7 and candidatas_backup:
+        faltantes = 7 - len(top_candidatas)
+        backup_ordenado = sorted(candidatas_backup, key=lambda x: x['score'], reverse=True)
+        top_candidatas.extend(backup_ordenado[:faltantes])
+
+    top_candidatas = top_candidatas[:7]
+    print(f"📊 Candidatas listas para reporte: {len(top_candidatas)}")
+
+    if top_candidatas:
+        generar_grafico_estilo_exacto(top_candidatas)
+        resumen_ia = generar_resumen_ia(top_candidatas)
+        
+        mensaje_telegram = "🧠 **RADAR TÁCTICO DE INTELIGENCIA DE MERCADO**\n"
+        mensaje_telegram += "🚀 **ALERTA DE PRE-EXPLOSIÓN & ACUMULACIÓN OCULTA**\n"
+        mensaje_telegram += f"🔍 *Pares analizados en Binance:* `{total_pares_analizados}`\n\n"
+        mensaje_telegram += f"💡 **Dictamen de Anomalías (IA):**\n{resumen_ia}\n\n"
+        mensaje_telegram += "─────────────────────────\n"
+        
+        for coin in top_candidatas:
+            precio_fmt = formatear_precio(coin['price'])
+            barras = obtener_barras_fuerza(coin['ratio_volumen'])
+            url_netlify = f"{NETLIFY_BASE_URL}/?coin={coin['ticker']}"
+            url_binance = f"https://www.binance.com/es/trade/{coin['ticker']}_USDT?type=spot"
+            mf = coin['metricas_futuros']
+            
+            prefijo_alerta = "🚨 **[ANOMALÍA OCULTA / ACUMULACIÓN DIP]**\n   " if coin['alerta_anomalia'] else ""
+            
+            mensaje_telegram += (
+                f"{prefijo_alerta}• **{coin['ticker']}** | `{precio_fmt}` | {barras} | `+{coin['price_change']}%`\n"
+                f"   ├ 📈 **Futuros/OI:** `{mf['oi_status']}`\n"
+                f"   ├ 💥 **Liquidaciones:** `{mf['zona_liq']}`\n"
+                f"   ├ 🗓️ **Catalizador X:** `{mf['catalizador_x']}`\n"
+                f"   └ 📊 [Resumen IA]({url_netlify}) | 🔶 [Tradear]({url_binance}) | Vol 1H: `{coin['ratio_volumen']}x` | Score: `{coin['score']}`\n\n"
+            )
+
+        if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
+            url_base = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
+            
+            # Enviar foto
+            with open('grafico_pre_explosion.png', 'rb') as foto:
+                payload_foto = {
+                    'chat_id': TELEGRAM_CHAT_ID,
+                    'caption': "🚨 **RADAR — Detección Temprana de Acumulación y Rupturas**",
+                    'parse_mode': 'Markdown'
+                }
+                if MESSAGE_THREAD_ID:
+                    payload_foto['message_thread_id'] = int(MESSAGE_THREAD_ID)
+                res_foto = requests.post(f"{url_base}/sendPhoto", data=payload_foto, files={'photo': foto})
+                print(f"📡 Respuesta Telegram Foto: {res_foto.status_code} - {res_foto.text}")
+
+            # Enviar texto
+            payload_msg = {
+                'chat_id': TELEGRAM_CHAT_ID,
+                'text': mensaje_telegram,
+                'parse_mode': 'Markdown',
+                'disable_web_page_preview': True
+            }
+            if MESSAGE_THREAD_ID:
+                payload_msg['message_thread_id'] = int(MESSAGE_THREAD_ID)
+            res_msg = requests.post(f"{url_base}/sendMessage", json=payload_msg)
+            print(f"📡 Respuesta Telegram Texto: {res_msg.status_code} - {res_msg.text}")
+
+except Exception as e:
+    print(f"❌ Error crítico en la ejecución del script: {str(e)}")
+    raise e
+
+estructura_ia = {
+    "timestamp": pd.Timestamp.now().isoformat(),
+    "bot_origen": "Radar Pre-Explosión & Anomalías",
+    "total_analizados": total_pares_analizados if 'total_pares_analizados' in locals() else 0,
+    "top_candidatas": top_candidatas if 'top_candidatas' in locals() else []
+}
+with open("datos_pre_explosion_ia.json", "w") as f:
+    json.dump(estructura_ia, f, indent=4)
