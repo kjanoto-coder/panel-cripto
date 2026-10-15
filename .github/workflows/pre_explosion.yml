@@ -1,16 +1,20 @@
-name: Criptos Pre-Explosión IA
+name: Criptos Pre-Explosion IA
 
 on:
   schedule:
-    # Se ejecuta automáticamente cada 4 horas
-    - cron: '0 */4 * * *'
-  workflow_dispatch: # Permite ejecutarlo manualmente con un botón en GitHub
+    # Se ejecuta de forma exacta cada 15 minutos continuos
+    - cron: '*/15 * * * *'
+  workflow_dispatch: # Permite ejecución manual instantánea desde GitHub
+
+permissions:
+  contents: write
 
 jobs:
   run-pre-explosion:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repositorio
+      - name: Checkout Repositorio
         uses: actions/checkout@v3
 
       - name: Configurar Python
@@ -18,9 +22,9 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Instalar dependencias
+      - name: Instalar Dependencias
         run: |
-          pip install ccxt pandas requests matplotlib google-genai
+          pip install requests ccxt pandas matplotlib google-genai
 
       - name: Ejecutar Bot de Pre-Explosión
         env:
@@ -28,5 +32,12 @@ jobs:
           CHAT_ID: ${{ secrets.CHAT_ID }}
           TOPIC_ID_PRE_EXPLOSION: ${{ secrets.TOPIC_ID_PRE_EXPLOSION }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python bot_pre_explosion.py
+
+      - name: Guardar Estado de Pre-Explosión
         run: |
-          python bot_pre_explosion.py
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add datos_pre_explosion_ia.json || true
+          git commit -m "Auto-update: Datos Pre-Explosión IA" || true
+          git push || true
