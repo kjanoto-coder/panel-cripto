@@ -4,7 +4,7 @@ on:
   schedule:
     # Se ejecuta cada 30 minutos de forma continua
     - cron: '*/30 * * * *'
-  workflow_dispatch: # Permite ejecución manual si lo deseas
+  workflow_dispatch: # Permite ejecución manual
 
 jobs:
   run-sentinel-macro:
@@ -21,7 +21,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install requests pandas google-genai yfinance squarify
+          pip install requests pandas google-genai yfinance matplotlib squarify
 
       - name: Run Sentinel Macro Script
         env:
@@ -31,7 +31,6 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python bot_sentinel_macro.py
 
-      # Guarda el historial de noticias para que no se repitan en la siguiente corrida
       - name: Commit & Push Historial de Noticias
         run: |
           git config --global user.name "github-actions[bot]"
