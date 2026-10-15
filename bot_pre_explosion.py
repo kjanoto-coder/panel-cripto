@@ -16,7 +16,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 NETLIFY_BASE_URL = "https://tu-nuevo-motor-pre-explosion.netlify.app"
 
-print("🚀 Ejecutando Radar con Termómetro Balanceado (Spot + Futuros)...")
+print("🚀 Ejecutando Radar con Espejos Anti-Bloqueo (Spot + Futuros)...")
 
 # ---------------------------------------------------------
 # FUNCIONES AUXILIARES Y MÉTRICAS MULTI-CAPA
@@ -64,7 +64,7 @@ def analizar_multi_temporalidad_y_liquidaciones(exchange_spot, symbol, ticker):
         else:
             metricas["confluencia_tf"] = "💤 Acumulación en Soporte"
 
-        url_fapi = f"https://fapi.binance.com/fapi/v1/ticker/24hr?symbol={ticker}USDT"
+        url_fapi = f"https://fapi.binance.vision/fapi/v1/ticker/24hr?symbol={ticker}USDT"
         res_fapi = requests.get(url_fapi, timeout=3).json()
         
         if isinstance(res_fapi, dict) and 'highPrice' in res_fapi:
@@ -87,7 +87,6 @@ def generar_grafico_termometro(candidatas):
     scores = [c['score'] for c in candidatas_ordenadas]
     etiquetas_pct = [f"+{c['ratio_volumen']}x" for c in candidatas_ordenadas]
 
-    # Mapeo estricto de colores para asegurar que aparezcan Rojos, Amarillos y Verdes
     colores_map = {
         'ROJO': '#FF3D00',     # Explosión inminente
         'AMARILLO': '#FFD600', # Acumulación en rango
@@ -156,7 +155,7 @@ def generar_resumen_ia(candidatas):
     return "Máxima atención a los activos en fase Roja y Amarilla: la acumulación silenciosa detectada anticipa el próximo movimiento explosivo del día."
 
 # ---------------------------------------------------------
-# ESCÁNER DUAL BALANCEADO
+# ESCÁNER DUAL BALANCEADO (CON ESPEJOS PÚBLICOS `.vision`)
 # ---------------------------------------------------------
 try:
     exchange_spot = ccxt.binance({
@@ -164,9 +163,16 @@ try:
         'options': {'defaultType': 'spot', 'fetchMarkets': ['spot']},
         'urls': {'api': {'public': 'https://data-api.binance.vision/api/v3', 'spot': 'https://data-api.binance.vision/api/v3'}}
     })
+    
     exchange_future = ccxt.binance({
         'enableRateLimit': True,
-        'options': {'defaultType': 'future'}
+        'options': {'defaultType': 'future'},
+        'urls': {
+            'api': {
+                'public': 'https://fapi.binance.vision/fapi/v1',
+                'fapiPublic': 'https://fapi.binance.vision/fapi/v1'
+            }
+        }
     })
 
     tickers_spot = exchange_spot.fetch_tickers()
@@ -207,7 +213,6 @@ try:
                         ratio_volumen = round(vol_actual_1h / promedio_vol_24h, 2)
                         procesados.add(ticker_limpio)
                         
-                        # NUEVA DISTRIBUCIÓN BALANCEADA DE FASES (PARA ASEGURAR AMARILLOS Y ROJOS)
                         if ratio_volumen >= 3.2:
                             fase = "ROJO"
                             etiqueta_graf = f"🚨 {ticker_limpio}"
@@ -245,7 +250,6 @@ try:
                 except Exception:
                     continue
 
-    # Mezclar garantizando representación de fases (Prioridad Rojos y Amarillos)
     candidatas_rojas = sorted(candidatas_rojas, key=lambda x: x['score'], reverse=True)
     candidatas_amarillas = sorted(candidatas_amarillas, key=lambda x: x['score'], reverse=True)
     candidatas_verdes = sorted(candidatas_verdes, key=lambda x: x['score'], reverse=True)
