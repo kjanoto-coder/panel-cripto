@@ -1,0 +1,119 @@
+{
+    "timestamp": "2026-10-15T20:44:27.272282",
+    "bot_origen": "Radar Pre-Explosi\u00f3n & Anomal\u00edas",
+    "total_analizados": 3732,
+    "top_candidatas": [
+        {
+            "symbol": "CLV/USDT",
+            "ticker": "CLV",
+            "price": 0.02937,
+            "price_change": 13.97,
+            "ratio_volumen": 3.5,
+            "alerta_anomalia": false,
+            "etiqueta_grafico": "CLV",
+            "score": 52.4,
+            "metricas_futuros": {
+                "oi_status": "\u26a1 Neutro / En Consolidaci\u00f3n",
+                "zona_liq": "\ud83d\udee1\ufe0f Normal (Sin barrido inmediato)",
+                "catalizador_x": "\u26a1 Gobernanza: Propuesta de Activaci\u00f3n de Liquidez",
+                "institucional": "\ud83d\udd0d Seguimiento On-Chain"
+            }
+        },
+        {
+            "symbol": "DNT/USDT",
+            "ticker": "DNT",
+            "price": 0.036,
+            "price_change": -6.0,
+            "ratio_volumen": 6.96,
+            "alerta_anomalia": false,
+            "etiqueta_grafico": "DNT",
+            "score": 48.75,
+            "metricas_futuros": {
+                "oi_status": "\u26a1 Neutro / En Consolidaci\u00f3n",
+                "zona_liq": "\ud83d\udee1\ufe0f Normal (Sin barrido inmediato)",
+                "catalizador_x": "\ud83d\uddd3\ufe0f Evento Inminente: Actualizaci\u00f3n de Mainnet / Staking",
+                "institucional": "\ud83d\udd0d Seguimiento On-Chain"
+            }
+        },
+        {
+            "symbol": "AST/USDT",
+            "ticker": "AST",
+            "price": 0.0261,
+            "price_change": -5.78,
+            "ratio_volumen": 3.48,
+            "alerta_anomalia": true,
+            "etiqueta_grafico": "\ud83d\udea8 AST",
+            "score": 47.16,
+            "metricas_futuros": {
+                "oi_status": "\u26a1 Neutro / En Consolidaci\u00f3n",
+                "zona_liq": "\ud83d\udee1\ufe0f Normal (Sin barrido inmediato)",
+                "catalizador_x": "\ud83d\uddd3\ufe0f Evento Inminente: Actualizaci\u00f3n de Mainnet / Staking",
+                "institucional": "\ud83d\udd0d Seguimiento On-Chain"
+            }
+        },
+        {
+            "symbol": "MDX/USDT",
+            "ticker": "MDX",
+            "price": 0.0345,
+            "price_change": 13.52,
+            "ratio_volumen": 3.0,
+            "alerta_anomalia": false,
+            "etiqueta_grafico": "MDX",
+            "score": 43.57,
+            "metricas_futuros": {
+                "oi_status": "\u26a1 Neutro / En Consolidaci\u00f3n",
+                "zona_liq": "\ud83d\udee1\ufe0f Normal (Sin barrido inmediato)",
+                "catalizador_x": "\u26a1 Gobernanza: Propuesta de Activaci\u00f3n de Liquidez",
+                "institucional": "\ud83d\udd0d Seguimiento On-Chain"
+            }
+        },
+        {
+            "symbol": "BIFI/USDT",
+            "ticker": "BIFI",
+            "price": 32.1,
+            "price_change": -13.24,
+            "ratio_volumen": 2.68,
+            "alerta_anomalia": false,
+            "etiqueta_grafico": "BIFI",
+            "score": 38.17,
+            "metricas_futuros": {
+                "oi_status": "\u26a1 Neutro / En Consolidaci\u00f3n",
+                "zona_liq": "\ud83d\udee1\ufe0f Normal (Sin barrido inmediato)",
+                "catalizador_x": "\ud83d\uddd3\ufe0f Evento Inminente: Actualizaci\u00f3n de Mainnet / Staking",
+                "institucional": "\ud83d\udd0d Seguimiento On-Chain"
+            }
+        },
+        {
+            "symbol": "PLA/USDT",
+            "ticker": "PLA",
+            "price": 0.2347,
+            "price_change": 5.53,
+            "ratio_volumen": 2.82,
+            "alerta_anomalia": true,
+            "etiqueta_grafico": "\ud83d\udea8 PLA",
+            "score": 36.83,
+            "metricas_futuros": {
+                "oi_status": "\u26a1 Neutro / En Consolidaci\u00f3n",
+                "zona_liq": "\ud83d\udee1\ufe0f Normal (Sin barrido inmediato)",
+                "catalizador_x": "\u26a1 Gobernanza: Propuesta de Activaci\u00f3n de Liquidez",
+                "institucional": "\ud83d\udd0d Seguimiento On-Chain"
+            }
+        },
+        {
+            "symbol": "LOKA/USDT",
+            "ticker": "LOKA",
+            "price": 0.1237,
+            "price_change": 3.86,
+            "ratio_volumen": 3.6,
+            "alerta_anomalia": true,
+            "etiqueta_grafico": "\ud83d\udea8 LOKA",
+            "score": 35.01,
+            "metricas_futuros": {
+                "oi_status": "\u26a1 Neutro / En Consolidaci\u00f3n",
+                "zona_liq": "\ud83d\udee1\ufe0f Normal (Sin barrido inmediato)",
+                "catalizador_x": "\ud83d\ude80 Rumores de Listado & Expansi\u00f3n de Ecosistema",
+                "institucional": "\ud83d\udd0d Seguimiento On-Chain"
+            }
+        }
+    ]
+}
