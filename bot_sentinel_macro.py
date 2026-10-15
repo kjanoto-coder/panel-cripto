@@ -146,54 +146,66 @@ def generar_treemap_cripto(df):
     plt.close()
 
 # ---------------------------------------------------------
-# 3. ANÁLISIS DE NOTICIAS CON IA (GEMINI)
+# 3. ANÁLISIS DE DATOS REALES CON IA PROFUNDA (GEMINI)
 # ---------------------------------------------------------
 def analizar_noticias_wall_street_ia(df_ws, sesion):
     if not GEMINI_API_KEY: return "Análisis no disponible."
     client = genai.Client(api_key=GEMINI_API_KEY)
-    resumen_mercado = ", ".join([f"{r['ticker']}: {r['var']}%" for _, r in df_ws.iterrows()])
+    
+    # Pasamos los datos exactos obtenidos de Yahoo Finance
+    detalle_activos = "\n".join([f"- {r['ticker']}: {r['var']}%" for _, r in df_ws.iterrows()])
     
     prompt = f"""
-    Actúa como un estratega macroeconómico global.
-    Sesión actual: {sesion}.
-    Variaciones: {resumen_mercado}.
+    Actúa como un trader institucional senior y analista macroeconómico de Wall Street.
+    Sesión analizada: {sesion}.
+    
+    Datos exactos de variación en tiempo real del S&P 500 / Big Tech:
+    {detalle_activos}
 
-    Redacta un reporte técnico de última hora (máximo 4 líneas) explicando:
-    1. Por qué el mapa de calor del S&P 500 muestra ese comportamiento sectorial.
-    2. Factores de liquidez o reportes recientes que mueven Wall Street hoy.
+    Redacta un reporte táctico directo y agudo (de 3 a 5 líneas máximo). 
+    REGLAS OBLIGATORIAS:
+    - No uses frases cliché ni vacías. 
+    - Menciona qué acciones específicas están liderando las subidas o bajadas según los datos provistos.
+    - Explica con precisión quirúrgica qué sector ( semiconductores, consumo, banca, tecnología) tracciona el mercado hoy y qué factores macro (rendimiento de bonos, tensiones geopolíticas, expectativas de tasas) explican este comportamiento.
     """
     for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
         try:
             res = client.models.generate_content(model=mod, contents=prompt)
             if res and res.text: return res.text
         except: continue
-    return "Los mercados tradicionales ajustan posiciones bajo la supervisión de los flujos institucionales."
+    return "Variaciones mixtas en el S&P 500 con rotación de capital hacia activos defensivos ante la cautela en la renta variable tecnológica."
 
 def analizar_noticias_cripto_ia(df_cripto, sesion):
     if not GEMINI_API_KEY: return "Análisis no disponible."
     client = genai.Client(api_key=GEMINI_API_KEY)
-    resumen_cripto = ", ".join([f"{r['ticker']}: {r['var']}%" for _, r in df_cripto.iterrows()])
+    
+    # Pasamos los datos exactos obtenidos de Binance
+    detalle_cripto = "\n".join([f"- {r['ticker']}: {r['var']}% (Vol: {r['vol']:,.0f})" for _, r in df_cripto.iterrows()])
     
     prompt = f"""
-    Actúa como un analista cuantitativo de criptomonedas.
-    Sesión actual: {sesion}.
-    Variaciones en Binance: {resumen_cripto}.
+    Actúa como un analista cuantitativo de criptomonedas y experto en derivados de Binance.
+    Sesión analizada: {sesion}.
+    
+    Datos exactos de variación y volumen en 24h:
+    {detalle_cripto}
 
-    Redacta un reporte técnico de última hora (máximo 4 líneas) explicando:
-    1. Por qué el mercado cripto reacciona con estos porcentajes.
-    2. Dinámica de liquidaciones en futuros y flujos de capital.
+    Redacta un reporte táctico directo y agudo (de 3 a 5 líneas máximo).
+    REGLAS OBLIGATORIAS:
+    - No uses frases cliché ni vacías.
+    - Analiza qué altcoins o majors (BTC, ETH, SOL, etc.) están absorbiendo volumen o sufriendo presión vendedora.
+    - Explica la salud del mercado en base a las cifras: ¿hay apetito de riesgo en altcoins o refugio exclusivo en Bitcoin? Menciona la dinámica de liquidaciones o flujos institucionales.
     """
     for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
         try:
             res = client.models.generate_content(model=mod, contents=prompt)
             if res and res.text: return res.text
         except: continue
-    return "El mercado de criptomonedas opera con correlación a la liquidez global y especulación en derivados."
+    return "El mercado cripto muestra selectividad en altcoins con flujos concentrados en los activos de mayor capitalización."
 
 # ---------------------------------------------------------
-# 4. EJECUCIÓN Y ENVÍO A TELEGRAM CON BOTONES DE ENLACE EXACTOS
+# 4. EJECUCIÓN Y ENVÍO A TELEGRAM CON BOTONES
 # ---------------------------------------------------------
-print("🌐 Ejecutando Sentinel Macro con enlaces exactos configurados...")
+print("🌐 Ejecutando Sentinel Macro con análisis de IA profunda...")
 
 sesion_actual = obtener_sesion_actual_mercado()
 
@@ -204,7 +216,7 @@ causas_ws = analizar_noticias_wall_street_ia(df_ws, sesion_actual)
 
 msg_ws = f"🏛️ **SENTINEL MACRO — 1. S&P 500 & TRADFI**\n"
 msg_ws += f"🕒 *Sesión:* `{sesion_actual}`\n\n"
-msg_ws += f"🔍 **¿Qué está pasando y por qué? (Noticias & Análisis):**\n{causas_ws}\n"
+msg_ws += f"🔍 **Análisis Táctico & Diagnóstico de Mercado:**\n{causas_ws}\n"
 
 # Cripto
 df_cripto = obtener_datos_cripto_treemap()
@@ -213,14 +225,13 @@ causas_cripto = analizar_noticias_cripto_ia(df_cripto, sesion_actual)
 
 msg_cripto = f"🪙 **SENTINEL MACRO — 2. BINANCE CRIPTO MARKET**\n"
 msg_cripto += f"🕒 *Sesión:* `{sesion_actual}`\n\n"
-msg_cripto += f"🔍 **¿Qué está pasando y por qué? (Noticias & Mercado):**\n{causas_cripto}\n"
+msg_cripto += f"🔍 **Análisis Táctico & Diagnóstico de Mercado:**\n{causas_cripto}\n"
 
-# Enviar a Telegram con Teclado Inline
+# Enviar a Telegram
 if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
     url_base = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
     thread_id = int(MESSAGE_THREAD_ID) if MESSAGE_THREAD_ID else None
 
-    # Teclados con los enlaces exactos que solicitaste
     teclado_ws = {
         "inline_keyboard": [[
             {"text": "📊 Ver Mapa Interactivo S&P 500 (Investing)", "url": "https://es.investing.com/markets/heatmap"}
@@ -263,4 +274,4 @@ if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
     if thread_id: p_m2['message_thread_id'] = thread_id
     requests.post(f"{url_base}/sendMessage", json=p_m2)
 
-    print("✅ Reportes con enlaces exactos a Investing S&P 500 y Binance Futures enviados con éxito.")
+    print("✅ Reportes con diagnóstico analítico profundo enviados exitosamente.")
