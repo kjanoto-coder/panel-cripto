@@ -2,11 +2,9 @@ name: Sentinel Macro Global Alert
 
 on:
   schedule:
-    # Se ejecuta 3 veces al día coincidiendo con apertura/cierre de Wall Street
-    - cron: '0 13 * * 1-5'  # 10:00 AM ART (Apertura NY)
-    - cron: '0 17 * * 1-5'  # 02:00 PM ART (Mid-day NY)
-    - cron: '0 21 * * 1-5'  # 06:00 PM ART (Cierre NY)
-  workflow_dispatch:        # Permite ejecución manual
+    # Se ejecuta cada 30 minutos de forma continua
+    - cron: '*/30 * * * *'
+  workflow_dispatch: # Permite ejecución manual si lo deseas
 
 jobs:
   run-sentinel-macro:
@@ -23,7 +21,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install requests pandas google-genai yfinance
+          pip install requests pandas google-genai yfinance squarify
 
       - name: Run Sentinel Macro Script
         env:
@@ -32,3 +30,12 @@ jobs:
           TOPIC_ID_SENTINEL_MACRO: ${{ secrets.TOPIC_ID_SENTINEL_MACRO }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python bot_sentinel_macro.py
+
+      # Guarda el historial de noticias para que no se repitan en la siguiente corrida
+      - name: Commit & Push Historial de Noticias
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add historial_noticias.json datos_sentinel_macro.json || true
+          git commit -m "Auto-update: Historial de noticias y datos macro" || true
+          git push || true
