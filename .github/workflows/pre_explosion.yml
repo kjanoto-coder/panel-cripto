@@ -20,12 +20,13 @@ jobs:
 
       - name: Instalar dependencias
         run: |
-          pip install ccxt pandas requests
+          pip install ccxt pandas requests matplotlib google-genai
 
       - name: Ejecutar Bot de Pre-Explosión
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
           TOPIC_ID_PRE_EXPLOSION: ${{ secrets.TOPIC_ID_PRE_EXPLOSION }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           python bot_pre_explosion.py
