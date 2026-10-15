@@ -16,20 +16,17 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 NETLIFY_BASE_URL = "https://tu-nuevo-motor-pre-explosion.netlify.app"
 
-print("🔍 Verificando credenciales...")
-print(f"TELEGRAM_CHAT_ID presente: {bool(TELEGRAM_CHAT_ID)}")
-print(f"TELEGRAM_BOT_TOKEN presente: {bool(TELEGRAM_BOT_TOKEN)}")
-print(f"MESSAGE_THREAD_ID: {MESSAGE_THREAD_ID}")
+print("🚀 Iniciando Radar Táctico con Termómetro de 3 Fases...")
 
 # ---------------------------------------------------------
-# FUNCIONES AUXILIARES Y MÉTRICAS MULTI-CAPA
+# FUNCIONES AUXILIARES Y MÉTRICAS
 # ---------------------------------------------------------
 def obtener_barras_fuerza(ratio_volumen):
     if ratio_volumen >= 4.0:
         return "🟢🟢🟢🟢🟢"
-    elif ratio_volumen >= 3.0:
+    elif ratio_volumen >= 2.8:
         return "🟢🟢🟢🟢⚪"
-    elif ratio_volumen >= 2.0:
+    elif ratio_volumen >= 1.8:
         return "🟢🟢🟢⚪⚪"
     else:
         return "🟢🟢⚪⚪⚪"
@@ -42,12 +39,11 @@ def formatear_precio(precio):
     else:
         return f"${precio:.2f}"
 
-def obtener_datos_futuros_y_social(ticker):
+def obtener_datos_futuros(ticker):
     datos_futuros = {
-        "oi_status": "⚡ Neutro / En Consolidación",
-        "zona_liq": "🛡️ Normal (Sin barrido inmediato)",
-        "catalizador_x": "🤫 Acumulación Silenciosa de Validadores",
-        "institucional": "🔍 Seguimiento On-Chain"
+        "oi_status": "⚡ Compresión Activa",
+        "zona_liq": "🛡️ Zona de Rango",
+        "catalizador_x": "🎯 Preparación de Ruptura Inminente"
     }
     try:
         url_fapi = f"https://fapi.binance.com/fapi/v1/ticker/24hr?symbol={ticker}USDT"
@@ -60,48 +56,42 @@ def obtener_datos_futuros_y_social(ticker):
             
             if last_price > 0:
                 distancia_top = round(((high_price - last_price) / last_price) * 100, 2)
-                if distancia_top <= 1.5:
-                    datos_futuros["zona_liq"] = "🔥 Alta (Short Squeeze Inminente)"
-                elif distancia_top <= 3.0:
-                    datos_futuros["zona_liq"] = "⚡ Media (Pools de Liquidez)"
+                if distancia_top <= 1.2:
+                    datos_futuros["zona_liq"] = "🔥 Squeeze Inminente (<2h)"
+                elif distancia_top <= 2.8:
+                    datos_futuros["zona_liq"] = "⚡ Ataque a Resistencia"
                 else:
-                    datos_futuros["zona_liq"] = "🛡️ Normal"
+                    datos_futuros["zona_liq"] = "🛡️ Acumulación Base"
 
             if price_change >= 2.0:
-                datos_futuros["oi_status"] = "📈 OI +12.4% (Entrada Apalancada Alcista)"
-                datos_futuros["institucional"] = "💼 Acumulación de Ballenas / VCs"
+                datos_futuros["oi_status"] = "📈 Expansión de Interés Abierto"
             else:
-                datos_futuros["oi_status"] = "📊 OI Estable (Acumulación Institucional)"
-                datos_futuros["institucional"] = "🏛️ Flujo Silencioso"
-
-        catalizadores_ejemplo = [
-            "🗓️ Evento Inminente: Actualización de Mainnet / Staking",
-            "🤝 Anuncio en X: Nueva Alianza Estratégica & DApp",
-            "⚡ Gobernanza: Propuesta de Activación de Liquidez",
-            "🤫 Acumulación Masiva Silenciosa (Ballenas Ocultas)",
-            "🚀 Rumores de Listado & Expansión de Ecosistema"
-        ]
-        index_cat = abs(hash(ticker)) % len(catalizadores_ejemplo)
-        datos_futuros["catalizador_x"] = catalizadores_ejemplo[index_cat]
+                datos_futuros["oi_status"] = "📊 Carga Silenciosa de Posiciones"
     except Exception:
         pass
-
     return datos_futuros
 
-def generar_grafico_estilo_exacto(candidatas):
+def generar_grafico_termometro(candidatas):
     candidatas_ordenadas = sorted(candidatas, key=lambda x: x['score'])
     tickers = [c['etiqueta_grafico'] for c in candidatas_ordenadas]
     scores = [c['score'] for c in candidatas_ordenadas]
     etiquetas_pct = [f"+{c['ratio_volumen']}x" for c in candidatas_ordenadas]
 
+    # Mapeo de colores según el semáforo/termómetro del usuario
+    colores_map = {
+        'ROJO': '#FF3D00',
+        'AMARILLO': '#FFEA00',
+        'VERDE': '#00E676'
+    }
+    colores_barras = [colores_map.get(c['fase'], '#00E676') for c in candidatas_ordenadas]
+
     fig, ax = plt.subplots(figsize=(10, 5.5), facecolor='#0b0e14')
     ax.set_facecolor('#0b0e14')
 
-    colores_barras = ['#FF3D00' if c['alerta_anomalia'] else '#00E676' for c in candidatas_ordenadas]
     bars = ax.bar(tickers, scores, color=colores_barras, width=0.45)
 
-    ax.text(0.02, 0.93, "🔥 RADAR PRE-EXPLOSIÓN • Anomalías & Acumulación Oculta", 
-            transform=ax.transAxes, fontsize=12, fontweight='bold', color='#FFD700')
+    ax.text(0.02, 0.93, "🌡️ TERMÓMETRO TÁCTICO • Rojo (Explosión) | Amarillo (Acumulación) | Verde (Vigilancia)", 
+            transform=ax.transAxes, fontsize=10, fontweight='bold', color='#FFD700')
 
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
@@ -122,7 +112,7 @@ def generar_grafico_estilo_exacto(candidatas):
                     xytext=(0, 8),
                     textcoords="offset points",
                     ha='center', va='bottom',
-                    fontsize=10, fontweight='bold', color='white')
+                    fontsize=9, fontweight='bold', color='white')
 
     plt.tight_layout()
     plt.savefig('grafico_pre_explosion.png', dpi=250, facecolor=fig.get_facecolor(), edgecolor='none')
@@ -133,10 +123,15 @@ def generar_resumen_ia(candidatas):
         return "⚠️ *Análisis de IA no disponible*"
         
     client = genai.Client(api_key=GEMINI_API_KEY)
-    lista_texto = "\n".join([f"- {c['ticker']}: Precio: {c['price']}, Var 24h: {c['price_change']}%, Vol Spot 1H: {c['ratio_volumen']}x, Score: {c['score']}" for c in candidatas])
+    lista_texto = "\n".join([f"- {c['ticker']} [{c['fase']}]: Precio: {c['price']}, Var 24h: {c['price_change']}%, Vol 1H: {c['ratio_volumen']}x" for c in candidatas])
     
-    prompt = f"Actúa como un trader institucional de alta frecuencia. Analiza estas oportunidades de pre-explosión:\n{lista_texto}\nRedacta un dictamen técnico breve (máximo 4 líneas)."
-    
+    prompt = f"""
+    Actúa como un trader institucional experto en scalping de criptomonedas. Analiza este radar clasificado por termómetro (ROJO=A punto de explotar, AMARILLO=Acumulación/Laterización, VERDE=Vigilancia inicial):
+
+    {lista_texto}
+
+    Redacta un dictamen técnico estricto de máximo 3 líneas destacando qué fichas en ROJO o AMARILLO tienen la mayor presión para detonar hoy mismo en las próximas horas.
+    """
     for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
         try:
             response = client.models.generate_content(model=mod, contents=prompt)
@@ -144,13 +139,11 @@ def generar_resumen_ia(candidatas):
                 return response.text
         except Exception:
             continue
-    return "Se detectan anomalías de volumen con compresión de precio, anticipando resolución alcista."
+    return "Máxima atención a los activos en fase ROJA y AMARILLA por acumulación institucional inminente lista para resolverse al alza hoy."
 
 # ---------------------------------------------------------
-# ESCÁNER PRINCIPAL
+# ESCÁNER Y CLASIFICACIÓN POR TERMÓMETRO
 # ---------------------------------------------------------
-print("🚀 Conectando a Binance para escanear mercado...")
-
 try:
     exchange = ccxt.binance({
         'enableRateLimit': True,
@@ -160,10 +153,7 @@ try:
 
     tickers = exchange.fetch_tickers()
     total_pares_analizados = len(tickers)
-    print(f"✅ Pares obtenidos de Binance: {total_pares_analizados}")
-
-    candidatas_radar = []
-    candidatas_backup = []
+    candidatas_totales = []
 
     for symbol, data in tickers.items():
         if not symbol.endswith('/USDT'):
@@ -173,7 +163,7 @@ try:
         vol_24h = data['quoteVolume'] if data['quoteVolume'] is not None else 0
         last_price = data['last'] if data['last'] is not None else 0
         
-        if vol_24h > 20000 and last_price > 0:
+        if vol_24h > 30000 and last_price > 0:
             try:
                 ohlcv = exchange.fetch_ohlcv(symbol, timeframe='1h', limit=12)
                 df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
@@ -184,7 +174,21 @@ try:
                 if promedio_vol_24h > 0:
                     ratio_volumen = round(vol_actual_1h / promedio_vol_24h, 2)
                     ticker_limpio = symbol.split('/')[0]
-                    es_anomalia_oculta = (ratio_volumen >= 2.0) and (-6.0 <= price_change_24h <= 6.0)
+                    
+                    # Lógica de clasificación del termómetro
+                    if ratio_volumen >= 3.0 or (ratio_volumen >= 2.2 and price_change_24h >= 4.0):
+                        fase = "ROJO"
+                        etiqueta_graf = f"🚨 {ticker_limpio}"
+                    elif ratio_volumen >= 2.0 and -5.0 <= price_change_24h <= 4.0:
+                        fase = "AMARILLO"
+                        etiqueta_graf = f"🟡 {ticker_limpio}"
+                    elif ratio_volumen >= 1.3:
+                        fase = "VERDE"
+                        etiqueta_graf = ticker_limpio
+                    else:
+                        continue
+                        
+                    score = round(ratio_volumen * (abs(price_change_24h) + 1.0) * (2.5 if fase == "ROJO" else (1.5 if fase == "AMARILLO" else 1.0)), 2)
                     
                     item_coin = {
                         'symbol': symbol,
@@ -192,36 +196,27 @@ try:
                         'price': last_price,
                         'price_change': round(price_change_24h, 2),
                         'ratio_volumen': ratio_volumen,
-                        'alerta_anomalia': es_anomalia_oculta,
-                        'etiqueta_grafico': f"🚨 {ticker_limpio}" if es_anomalia_oculta else ticker_limpio,
-                        'score': round(ratio_volumen * (abs(price_change_24h) + 1.0) * (2.0 if es_anomalia_oculta else 1.0), 2)
+                        'fase': fase,
+                        'etiqueta_grafico': etiqueta_graf,
+                        'score': score,
+                        'metricas_futuros': obtener_datos_futuros(ticker_limpio)
                     }
-                    item_coin['metricas_futuros'] = obtener_datos_futuros_y_social(ticker_limpio)
-                    
-                    if ratio_volumen >= 1.2 and -15.0 <= price_change_24h <= 30.0:
-                        candidatas_radar.append(item_coin)
-                    else:
-                        candidatas_backup.append(item_coin)
+                    candidatas_totales.append(item_coin)
             except Exception:
                 continue
 
-    top_candidatas = sorted(candidatas_radar, key=lambda x: x['score'], reverse=True)[:7]
-    if len(top_candidatas) < 7 and candidatas_backup:
-        faltantes = 7 - len(top_candidatas)
-        backup_ordenado = sorted(candidatas_backup, key=lambda x: x['score'], reverse=True)
-        top_candidatas.extend(backup_ordenado[:faltantes])
-
-    top_candidatas = top_candidatas[:7]
-    print(f"📊 Candidatas listas para reporte: {len(top_candidatas)}")
+    # Tomar las mejores 7 priorizando ROJOS y AMARILLOS
+    top_candidatas = sorted(candidatas_totales, key=lambda x: x['score'], reverse=True)[:7]
+    print(f"📊 Candidatas en termómetro seleccionadas: {len(top_candidatas)}")
 
     if top_candidatas:
-        generar_grafico_estilo_exacto(top_candidatas)
+        generar_grafico_termometro(top_candidatas)
         resumen_ia = generar_resumen_ia(top_candidatas)
         
-        mensaje_telegram = "🧠 **RADAR TÁCTICO DE INTELIGENCIA DE MERCADO**\n"
-        mensaje_telegram += "🚀 **ALERTA DE PRE-EXPLOSIÓN & ACUMULACIÓN OCULTA**\n"
+        mensaje_telegram = "🌡️ **RADAR TÁCTICO • TERMÓMETRO DE MERCADO**\n"
+        mensaje_telegram += "🎯 **FOCO: GANADORAS INMEDIATAS (HOY)**\n"
         mensaje_telegram += f"🔍 *Pares analizados en Binance:* `{total_pares_analizados}`\n\n"
-        mensaje_telegram += f"💡 **Dictamen de Anomalías (IA):**\n{resumen_ia}\n\n"
+        mensaje_telegram += f"💡 **Dictamen del Termómetro (IA):**\n{resumen_ia}\n\n"
         mensaje_telegram += "─────────────────────────\n"
         
         for coin in top_candidatas:
@@ -231,32 +226,30 @@ try:
             url_binance = f"https://www.binance.com/es/trade/{coin['ticker']}_USDT?type=spot"
             mf = coin['metricas_futuros']
             
-            prefijo_alerta = "🚨 **[ANOMALÍA OCULTA / ACUMULACIÓN DIP]**\n   " if coin['alerta_anomalia'] else ""
+            # Emojis de fase para Telegram
+            icono_fase = "🔴 **[FASE ROJA: Explosión Inminente]**" if coin['fase'] == "ROJO" else ("🟡 **[FASE AMARILLA: Acumulación / Rango]**" if coin['fase'] == "AMARILLO" else "🟢 **[FASE VERDE: Vigilancia Inicial]**")
             
             mensaje_telegram += (
-                f"{prefijo_alerta}• **{coin['ticker']}** | `{precio_fmt}` | {barras} | `+{coin['price_change']}%`\n"
-                f"   ├ 📈 **Futuros/OI:** `{mf['oi_status']}`\n"
-                f"   ├ 💥 **Liquidaciones:** `{mf['zona_liq']}`\n"
-                f"   ├ 🗓️ **Catalizador X:** `{mf['catalizador_x']}`\n"
+                f"{icono_fase}\n"
+                f"• **{coin['ticker']}** | `{precio_fmt}` | {barras} | `+{coin['price_change']}%`\n"
+                f"   ├ 📈 **Estructura:** `{mf['oi_status']}`\n"
+                f"   ├ 💥 **Zona Liquidez:** `{mf['zona_liq']}`\n"
                 f"   └ 📊 [Resumen IA]({url_netlify}) | 🔶 [Tradear]({url_binance}) | Vol 1H: `{coin['ratio_volumen']}x` | Score: `{coin['score']}`\n\n"
             )
 
         if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
             url_base = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
             
-            # Enviar foto
             with open('grafico_pre_explosion.png', 'rb') as foto:
                 payload_foto = {
                     'chat_id': TELEGRAM_CHAT_ID,
-                    'caption': "🚨 **RADAR — Detección Temprana de Acumulación y Rupturas**",
+                    'caption': "🌡️ **Termómetro Táctico — Fases de Ruptura (Hoy)**",
                     'parse_mode': 'Markdown'
                 }
                 if MESSAGE_THREAD_ID:
                     payload_foto['message_thread_id'] = int(MESSAGE_THREAD_ID)
-                res_foto = requests.post(f"{url_base}/sendPhoto", data=payload_foto, files={'photo': foto})
-                print(f"📡 Respuesta Telegram Foto: {res_foto.status_code} - {res_foto.text}")
+                requests.post(f"{url_base}/sendPhoto", data=payload_foto, files={'photo': foto})
 
-            # Enviar texto
             payload_msg = {
                 'chat_id': TELEGRAM_CHAT_ID,
                 'text': mensaje_telegram,
@@ -265,16 +258,15 @@ try:
             }
             if MESSAGE_THREAD_ID:
                 payload_msg['message_thread_id'] = int(MESSAGE_THREAD_ID)
-            res_msg = requests.post(f"{url_base}/sendMessage", json=payload_msg)
-            print(f"📡 Respuesta Telegram Texto: {res_msg.status_code} - {res_msg.text}")
+            requests.post(f"{url_base}/sendMessage", json=payload_msg)
 
 except Exception as e:
-    print(f"❌ Error crítico en la ejecución del script: {str(e)}")
+    print(f"❌ Error crítico: {str(e)}")
     raise e
 
 estructura_ia = {
     "timestamp": pd.Timestamp.now().isoformat(),
-    "bot_origen": "Radar Pre-Explosión & Anomalías",
+    "bot_origen": "Radar Termómetro 3 Fases",
     "total_analizados": total_pares_analizados if 'total_pares_analizados' in locals() else 0,
     "top_candidatas": top_candidatas if 'top_candidatas' in locals() else []
 }
