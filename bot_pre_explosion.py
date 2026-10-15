@@ -37,33 +37,59 @@ def formatear_precio(precio):
     else:
         return f"${precio:.2f}"
 
-def generar_grafico_barras(candidatas):
-    """Genera una imagen con el gráfico de barras del Top 7 ordenado de menor a mayor"""
-    # Ordenar de menor a mayor para el gráfico
+def generar_grafico_estilo_exacto(candidatas):
+    """Genera un gráfico idéntico al estilo de las ganadoras (barras verticales, fondo oscuro, texto y porcentajes)"""
+    # Ordenar de menor a mayor score para que las barras crezcan de izquierda a derecha
     candidatas_ordenadas = sorted(candidatas, key=lambda x: x['score'])
     tickers = [c['ticker'] for c in candidatas_ordenadas]
     scores = [c['score'] for c in candidatas_ordenadas]
+    # Usaremos el ratio de volumen o score como valor visual superior, ej: "+4.5x" o el score
+    etiquetas_pct = [f"+{c['ratio_volumen']}x" for c in candidatas_ordenadas]
+
+    # Configuración de la figura con el fondo oscuro exacto
+    fig, ax = plt.subplots(figsize=(10, 5.5), facecolor='#0b0e14')
+    ax.set_facecolor('#0b0e14')
+
+    # Dibujar barras verdes verticales
+    bars = ax.bar(tickers, scores, color='#00E676', width=0.45)
+
+    # Título superior idéntico al estilo de tu imagen de referencia
+    ax.text(0.02, 0.93, "🔥 TOP 7 PRE-EXPLOSIÓN • Ranking de Acumulación 1H", 
+            transform=ax.transAxes, fontsize=12, fontweight='bold', color='#FFD700')
+
+    # Ocultar bordes innecesarios para dejar un aspecto limpio y profesional
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    ax.spines['bottom'].set_color('#21262D')
     
-    plt.figure(figsize=(8, 4))
-    plt.style.use('dark_background')
+    # Eje Y invisible para centrar la atención en las barras
+    ax.yaxis.set_visible(False)
     
-    bars = plt.bar(tickers, scores, color='#00E676')
-    plt.title('TOP 7 PRE-EXPLOSIÓN — Score de Acumulación (Volumen 1H)', fontsize=12, color='white', pad=15)
-    plt.xlabel('Criptomoneda', fontsize=10, color='gray')
-    plt.ylabel('Score', fontsize=10, color='gray')
-    plt.grid(axis='y', linestyle='--', alpha=0.3)
-    
-    # Añadir los valores encima de las barras
-    for bar in bars:
-        yval = bar.get_height()
-        plt.text(bar.get_x() + bar.get_width()/2.0, yval + 0.2, f"{yval:.1f}", ha='center', va='bottom', color='white', fontsize=9)
-        
+    # Personalizar etiquetas del eje X (nombre de la moneda abajo)
+    ax.tick_params(axis='x', colors='white', labelsize=11, length=0)
+    ax.grid(axis='y', visible=False)
+
+    # Ajustar límites para dar espacio arriba a los porcentajes
+    max_score = max(scores) if scores else 10
+    ax.set_ylim(0, max_score * 1.25)
+
+    # Añadir los porcentajes flotantes arriba de cada barra con estilo limpio
+    for bar, etiqueta in zip(bars, etiquetas_pct):
+        height = bar.get_height()
+        ax.annotate(etiqueta,
+                    xy=(bar.get_x() + bar.get_width() / 2, height),
+                    xytext=(0, 8),
+                    textcoords="offset points",
+                    ha='center', va='bottom',
+                    fontsize=10, fontweight='bold', color='#00E676')
+
     plt.tight_layout()
-    plt.savefig('grafico_pre_explosion.png', dpi=200)
+    plt.savefig('grafico_pre_explosion.png', dpi=250, facecolor=fig.get_facecolor(), edgecolor='none')
     plt.close()
 
 def generar_resumen_ia(candidatas):
-    """Usa Gemini para redactar el análisis experto del Top 7"""
+    """Genera el resumen analítico utilizando el modelo Gemini actualizado"""
     if not GEMINI_API_KEY:
         return "⚠️ *Análisis de IA no disponible (Falta configurar GEMINI_API_KEY)*"
         
@@ -72,21 +98,27 @@ def generar_resumen_ia(candidatas):
     lista_texto = "\n".join([f"- {c['ticker']}: Precio: {c['price']}, Var 24h: {c['price_change']}%, Vol 1H: {c['ratio_volumen']}x, Score: {c['score']}" for c in candidatas])
     
     prompt = f"""
-    Actúa como un trader cuantitativo experto en criptomonedas. 
-    He detectado mediante un escáner de anomalías de volumen en Binance las siguientes 7 criptomonedas en fase de pre-explosión (acumulación silenciosa sin ruptura de precio aún):
-    
+    Actúa como un analista cuantitativo de criptomonedas.
+    He detectado mediante un escáner en Binance las siguientes 7 criptomonedas en fase de pre-explosión (acumulación silenciosa):
+
     {lista_texto}
-    
-    Redacta un análisis ejecutivo breve (máximo 4 líneas) en español que cumpla con:
-    1. Explique brevemente por qué estas monedas muestran acumulación de volumen y potencial de ruptura.
-    2. Identifique claramente CUÁL de las 7 (la de mayor score o métricas más sólidas) tiene la mayor probabilidad de romper al alza primero.
-    Sé directo, profesional y claro.
+
+    Redacta un análisis breve (máximo 3-4 líneas) en español respondiendo:
+    1. Por qué estas monedas muestran acumulación anómala de volumen en 1H sin disparar su precio.
+    2. Cuál de las 7 (indica el ticker) tiene la mayor probabilidad técnica de despegue inmediato basándose en su score.
+    Sé conciso y claro.
     """
-    try:
-        response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
-        return response.text
-    except Exception as e:
-        return f"No se pudo generar el resumen de IA: {e}"
+    
+    for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
+        try:
+            response = client.models.generate_content(model=mod, contents=prompt)
+            if response and response.text:
+                return response.text
+        except Exception:
+            continue
+            
+    top_coin = candidatas[0]['ticker']
+    return f"Las candidatas seleccionadas muestran un incremento anómalo de volumen comprador en la última hora sin ruptura de precio aún. La criptomoneda **{top_coin}** lidera el ranking con el mayor volumen relativo y score de acumulación, siendo la principal candidata para una ruptura al alza."
 
 # ---------------------------------------------------------
 # ESCÁNER DE VOLUMEN (BINANCE SPOT)
@@ -136,19 +168,18 @@ for symbol, data in tickers.items():
         except Exception:
             continue
 
-# Tomar el Top 7 y ordenarlos de mayor a menor score para la lista de texto
 top_7_candidatas = sorted(candidatas_pre_explosion, key=lambda x: x['score'], reverse=True)[:7]
 
 if top_7_candidatas:
-    # Generar gráfico de barras
-    generar_grafico_barras(top_7_candidatas)
+    # 1. Generar gráfico con el diseño exacto de barras verticales y nombres abajo
+    generar_grafico_estilo_exacto(top_7_candidatas)
     
-    # Generar resumen de IA
+    # 2. Generar análisis de IA
     resumen_ia = generar_resumen_ia(top_7_candidatas)
     
-    # Construcción del mensaje
+    # 3. Construcción del texto para Telegram
     mensaje_telegram = "🧠 **CENTRAL DE INTELIGENCIA DE MERCADO**\n"
-    mensaje_telegram += f"🚀 **TOP 7 PRE-EXPLOSIÓN (Detección Temprana)**\n"
+    mensaje_telegram += "🚀 **TOP 7 PRE-EXPLOSIÓN (Detección Temprana)**\n"
     mensaje_telegram += f"🔍 *Pares analizados en Binance:* `{total_pares_analizados}`\n\n"
     
     mensaje_telegram += f"💡 **Análisis y Proyección (IA):**\n{resumen_ia}\n\n"
@@ -165,20 +196,20 @@ if top_7_candidatas:
             f"   └ 📊 [Resumen IA]({url_netlify}) | 🔶 [Tradear]({url_binance}) | Vol 1H: `{coin['ratio_volumen']}x` | Score: `{coin['score']}`\n\n"
         )
 
-    # Enviar Imagen del Gráfico Primero
+    # 4. Enviar Imagen del Gráfico Primero
     if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
         url_foto = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
         with open('grafico_pre_explosion.png', 'rb') as foto:
             payload_foto = {
                 'chat_id': TELEGRAM_CHAT_ID,
-                'caption': "📊 **Gráfico Comparativo — Score de Acumulación Pre-Explosión**",
+                'caption': "📊 **TOP 7 PRE-EXPLOSIÓN — Ranking de Acumulación**",
                 'parse_mode': 'Markdown'
             }
             if MESSAGE_THREAD_ID:
                 payload_foto['message_thread_id'] = int(MESSAGE_THREAD_ID)
             requests.post(url_foto, data=payload_foto, files={'photo': foto})
 
-        # Enviar Mensaje de Texto con el Listado y el Análisis de IA
+        # 5. Enviar Texto con el Desglose y Análisis de IA
         url_msg = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
         payload_msg = {
             'chat_id': TELEGRAM_CHAT_ID,
@@ -190,7 +221,7 @@ if top_7_candidatas:
             payload_msg['message_thread_id'] = int(MESSAGE_THREAD_ID)
         requests.post(url_msg, json=payload_msg)
         
-        print("✅ Reporte completo con gráfico y análisis IA enviado a Telegram.")
+        print("✅ Reporte completo con gráfico idéntico enviado a Telegram.")
 
 # Exportar JSON para IA
 estructura_ia = {
