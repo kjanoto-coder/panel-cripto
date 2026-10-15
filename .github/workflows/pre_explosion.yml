@@ -1,0 +1,31 @@
+name: Criptos Pre-Explosión IA
+
+on:
+  schedule:
+    # Se ejecuta automáticamente cada 4 horas
+    - cron: '0 */4 * * *'
+  workflow_dispatch: # Permite ejecutarlo manualmente con un botón en GitHub
+
+jobs:
+  run-pre-explosion:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repositorio
+        uses: actions/checkout@v3
+
+      - name: Configurar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Instalar dependencias
+        run: |
+          pip install ccxt pandas requests
+
+      - name: Ejecutar Bot de Pre-Explosión
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+          TOPIC_ID_PRE_EXPLOSION: ${{ secrets.TOPIC_ID_PRE_EXPLOSION }}
+        run: |
+          python bot_pre_explosion.py
