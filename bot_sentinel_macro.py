@@ -10,7 +10,8 @@ from google import genai
 # ---------------------------------------------------------
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("CHAT_ID")
-MESSAGE_THREAD_ID = os.getenv("TOPIC_ID_SENTINEL_MACRO")  # ID del tema en Telegram si usas Topics
+# Tomamos el ID del topic específico para Sentimiento Mercado (2489)
+MESSAGE_THREAD_ID = os.getenv("TOPIC_ID_SENTINEL_MACRO")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # ---------------------------------------------------------
@@ -149,7 +150,7 @@ mensaje += "🪙 **MERCADO CRIPTO MACRO**\n"
 mensaje += f"• **Bitcoin (BTC):** `${datos_cripto['BTC']['precio']}` | `{datos_cripto['BTC']['var_pct']}%`\n"
 mensaje += f"• **Ethereum (ETH):** `${datos_cripto['ETH']['precio']}` | `{datos_cripto['ETH']['var_pct']}%`\n"
 
-# Enviar a Telegram
+# Enviar a Telegram dirigiendo al topic específico (Sentimiento Mercado / 2489)
 if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
     url_msg = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload_msg = {
@@ -161,8 +162,11 @@ if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
     if MESSAGE_THREAD_ID:
         payload_msg['message_thread_id'] = int(MESSAGE_THREAD_ID)
         
-    requests.post(url_msg, json=payload_msg)
-    print("✅ Alerta de Mercado Global enviada exitosamente a Telegram.")
+    res_tg = requests.post(url_msg, json=payload_msg)
+    if res_tg.json().get("ok"):
+        print("✅ Alerta de Mercado Global enviada exitosamente al topic 'Sentimiento Mercado'.")
+    else:
+        print(f"[-] Error enviando a Telegram: {res_tg.json()}")
 
 # Guardar estructura JSON para el Trader Autónomo de IA
 estructura_macro = {
