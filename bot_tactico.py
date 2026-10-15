@@ -4,12 +4,33 @@ import json
 import html
 import time
 from datetime import datetime
+import numpy as np
 import matplotlib.pyplot as plt
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 TOPIC_ID_TACTICO = os.getenv("TOPIC_ID_TACTICO")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+ARCHIVO_MEMORIA = "ultimas_perlas_cazador.json"
+
+def cargar_memoria_perlas():
+    """Carga el historial de las últimas selecciones para evitar repeticiones innecesarias"""
+    if os.path.exists(ARCHIVO_MEMORIA):
+        try:
+            with open(ARCHIVO_MEMORIA, 'r') as f:
+                return json.load(f)
+        except Exception:
+            return []
+    return []
+
+def guardar_memoria_perlas(historial_reportes):
+    """Guarda los últimos 2 reportes de perlas"""
+    try:
+        with open(ARCHIVO_MEMORIA, 'w') as f:
+            json.dump(historial_reportes[-2:], f)
+    except Exception as e:
+        print(f"Error guardando memoria: {e}")
 
 def obtener_datos_binance():
     url = "https://data-api.binance.vision/api/v3/ticker/24hr"
@@ -26,6 +47,29 @@ def obtener_datos_binance():
         print(f"Excepción al conectar con Binance: {e}")
     return []
 
+def obtener_velas_historicas(symbol, interval="1d", limit=30):
+    url = f"https://data-api.binance.vision/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}"
+    try:
+        response = requests.get(url, timeout=8)
+        if response.status_code == 200:
+            return response.json()
+    except Exception:
+        pass
+    return []
+
+def obtener_mapa_calor_liquidaciones(symbol):
+    """Consulta el ratio de apalancamiento en Futuros para detectar imanes de Shorts"""
+    try:
+        url_ratio = f"https://fapi.binance.com/futures/data/topLongShortAccountRatio?symbol={symbol}&period=5m&limit=1"
+        res = requests.get(url_ratio, timeout=4).json()
+        if res and isinstance(res, list) and len(res) > 0:
+            short_ratio = float(res[0].get('shortAccount', 0.5)) * 100
+            es_iman_alcista = short_ratio >= 51.5
+            return es_iman_alcista, short_ratio
+    except Exception:
+        pass
+    return False, 50.0
+
 def formatear_precio(val):
     """Ajusta dinámicamente la cantidad de decimales según el valor de la criptomoneda para evitar ceros incorrectos."""
     if val < 0.0001:
@@ -37,13 +81,15 @@ def formatear_precio(val):
     else:
         return f"${val:.2f}"
 
-def generar_sintesis_resumen(simbolo, precio, cambio, volumen, high, low):
+def generar_sintesis_resumen(simbolo, precio, cambio, volumen, high, low, es_iman=False, vol_rel=1.0):
     """
     Genera un análisis técnico detallado, específico e independiente utilizando la API REST de Gemini.
     """
     if GEMINI_API_KEY:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
         headers = {"Content-Type": "application/json"}
+        
+        tag_extra = " | Imán de Liquidación Shorts Activo" if es_iman else f" | Vol. Relativo x{vol_rel:.1f}"
         
         prompt = f"""
         Eres un analista técnico sénior de mercados cripto. Genera un análisis técnico específico y detallado para la criptomoneda {simbolo} en Binance Spot usando estos datos exactos de 24h:
@@ -52,12 +98,13 @@ def generar_sintesis_resumen(simbolo, precio, cambio, volumen, high, low):
         - Volumen 24h: ${volumen:,.0f} USDT
         - Máximo 24h (Resistencia): {formatear_precio(high)}
         - Mínimo 24h (Soporte): {formatear_precio(low)}
+        - Contexto Quirúrgico: {tag_extra}
 
         INSTRUCCIONES:
         Escribe un diagnóstico de precisión en exactamente una sola línea encerrada entre corchetes, especificando niveles exactos de precio.
 
         FORMATO OBLIGATORIO:
-        [1D: Impulso sobre soporte en {formatear_precio(low)} | 4H: Búsqueda de resistencia en {formatear_precio(high)} | 15M: Gatillo activo en {formatear_precio(precio)} | Conclusión: Opción alcista]
+        [1D: Impulso sobre soporte en {formatear_precio(low)} | 4H: Búsqueda de resistencia en {formatear_precio(high)} | 15M: Gatillo activo en {formatear_precio(precio)} | Conclusión: Opción alcista{tag_extra}]
         """
         
         payload = {
@@ -85,7 +132,13 @@ def procesar_oportunidades(data):
     total_sub1 = 0
     
     # Lista negra de tokens deslistados o con anomalías de nombres/datos en la API Spot de Binance
-    LISTA_NEGRA = ['PNTUSDT', 'VGXUSDT', 'BNCUSDT']
+    LISTA_NEGRA = ['PNTUSDT', 'VGXUSDT', 'BNCUSDT', 'PENGUUSDT', 'ASTERUSDT']
+    
+    # Cargar memoria de enfriamiento para evitar repeticiones
+    historial_previo = cargar_memoria_perlas()
+    simbolos_bloqueados = [item for reporte in historial_previo for item in reporte]
+    
+    candidatos_base = []
     
     for item in data:
         symbol = item['symbol']
@@ -97,21 +150,89 @@ def procesar_oportunidades(data):
                 high = float(item['highPrice'])
                 low = float(item['lowPrice'])
                 
-                # Conteo exclusivo de activos sub-$1 USD, con volumen real > $50,000 USDT y fuera de lista negra
-                if 0 < precio < 1.0 and volumen > 50000 and symbol not in LISTA_NEGRA:
+                # Conteo exclusivo de activos sub-$1 USD, con volumen real y fuera de lista negra
+                if 0 < precio < 1.0 and volumen >= 1_500_000 and symbol not in LISTA_NEGRA:
                     total_sub1 += 1
-                    filtrados.append({
-                        'symbol': symbol,
-                        'close': precio,
-                        'change': cambio,
-                        'volume': volumen,
-                        'high': high,
-                        'low': low
-                    })
+                    # Filtro de compresión/movimiento moderado y exclusión por memoria
+                    if -1.5 <= cambio <= 2.5 and symbol not in simbolos_bloqueados:
+                        candidatos_base.append({
+                            'symbol': symbol,
+                            'close': precio,
+                            'change': cambio,
+                            'volume': volumen,
+                            'high': high,
+                            'low': low
+                        })
             except ValueError:
                 continue
 
-    top_datos = sorted(filtrados, key=lambda x: x['change'], reverse=True)[:5]
+    perlas_quirurgicas = []
+    print(f"Ejecutando motor quirúrgico en Cazador Táctico sobre {len(candidatos_base)} candidatos...")
+
+    for item in candidatos_base:
+        symbol = item['symbol']
+        klines = obtener_velas_historicas(symbol, interval="1d", limit=30)
+        
+        if len(klines) < 20:
+            continue
+            
+        volumenes = [float(k[5]) for k in klines]
+        vol_reciente = np.mean(volumenes[-5:])
+        vol_historico = np.mean(volumenes[:-5])
+        factor_vol_relativo = vol_reciente / (vol_historico if vol_historico > 0 else 1)
+        
+        es_iman, pct_shorts = obtener_mapa_calor_liquidaciones(symbol)
+        
+        # Filtro quirúrgico estricto: Anomalía de volumen o imán de liquidación alcista
+        if factor_vol_relativo >= 1.2 or es_iman:
+            item['factor_vol'] = factor_vol_relativo
+            item['es_iman'] = es_iman
+            perlas_quirurgicas.append(item)
+            
+        if len(perlas_quirurgicas) >= 5:
+            break
+
+    # Si faltan candidatos por el filtro estricto, completamos con los candidatos base válidos
+    if len(perlas_quirurgicas) < 5:
+        for item in candidatos_base:
+            if item not in perlas_quirurgicas:
+                item['factor_vol'] = 1.1
+                item['es_iman'] = False
+                perlas_quirurgicas.append(item)
+            if len(perlas_quirurgicas) >= 5:
+                break
+
+    # Si aún faltan por el bloqueo estricto de memoria, permitimos rotación secundaria segura
+    if len(perlas_quirurgicas) < 5:
+        for item in data:
+            symbol = item['symbol']
+            if symbol.endswith('USDT') and symbol not in [p['symbol'] for p in perlas_quirurgicas]:
+                try:
+                    precio = float(item['lastPrice'])
+                    cambio = float(item['priceChangePercent'])
+                    volumen = float(item['quoteVolume'])
+                    if 0 < precio < 1.0 and volumen >= 1_000_000 and symbol not in LISTA_NEGRA:
+                        perlas_quirurgicas.append({
+                            'symbol': symbol,
+                            'close': precio,
+                            'change': cambio,
+                            'volume': volumen,
+                            'high': float(item['highPrice']),
+                            'low': float(item['lowPrice']),
+                            'factor_vol': 1.0,
+                            'es_iman': False
+                        })
+                except ValueError:
+                    continue
+            if len(perlas_quirurgicas) >= 5:
+                break
+
+    top_datos = sorted(perlas_quirurgicas, key=lambda x: x['volume'], reverse=True)[:5]
+
+    # Actualizar memoria de perlas
+    nuevos_simbolos = [k['symbol'] for k in top_datos]
+    historial_previo.append(nuevos_simbolos)
+    guardar_memoria_perlas(historial_previo)
 
     resultado = []
     for kline in top_datos:
@@ -121,14 +242,15 @@ def procesar_oportunidades(data):
         volumen = kline['volume']
         high = kline['high']
         low = kline['low']
+        es_iman = kline.get('es_iman', False)
+        vol_rel = kline.get('factor_vol', 1.0)
         
         binance_url = f"https://www.binance.com/es/trade/{sim}_USDT?type=spot"
         timestamp = int(time.time())
         
-        # URL optimizada que envía high, low y un cache-buster dinámico
         netlify_url = f"https://polite-baklava-8ec85f.netlify.app/?coin={sim}&price={precio}&change={cambio}&high={high}&low={low}&vol={volumen:,.0f}&v={timestamp}"
         
-        resumen_moneda = generar_sintesis_resumen(sim, precio, cambio, volumen, high, low)
+        resumen_moneda = generar_sintesis_resumen(sim, precio, cambio, volumen, high, low, es_iman, vol_rel)
         time.sleep(0.8)
         
         resultado.append({
@@ -230,7 +352,7 @@ def main():
     msg_parte_2 = "🎯 <b>CAZADOR TÁCTICO</b>\n"
     msg_parte_2 += "📊 <i>Ranking de Momentum 24h en Binance Spot</i>\n\n"
     msg_parte_2 += f"<b>MONEDAS ANALIZADAS:</b> {total_sub1}\n\n"
-    msg_parte_2 += f"<b>RESUMEN:</b> Estas altcoins fueron seleccionadas de un universo de {total_sub1} activos bajo $1 USD en Binance Spot debido a una confluencia de compresión de volatilidad previa y rotación agresiva de capital hacia activos de alta beta.\n\n"
+    msg_parte_2 += f"<b>RESUMEN:</b> Estas altcoins fueron seleccionadas de un universo de {total_sub1} activos bajo $1 USD en Binance Spot debido a una confluencia de compresión de volatilidad previa, anomalía de volumen e imán de liquidación institucional en derivados.\n\n"
     msg_parte_2 += "🚀 <b>TOP OPORTUNIDADES TÁCTICAS</b>\n"
     
     for op in bloque_1:
@@ -249,22 +371,23 @@ def main():
 
     enviar_telegram_texto(msg_parte_2)
     
-    msg_parte_3 = ""
-    for op in bloque_2:
-        precio_str = formatear_precio(op['precio'])
-        cambio_str = f"+{op['change']:.1f}%" if op['change'] >= 0 else f"{op['change']:.1f}%"
-        
-        safe_netlify = html.escape(op['netlify_url'])
-        safe_binance = html.escape(op['binance_url'])
-        
-        link_ia = f'<a href="{safe_netlify}">Resumen IA</a>'
-        link_trade = f'<a href="{safe_binance}">Tradear</a>'
-        
-        msg_parte_3 += f"\n• <b>{op['simbolo']}</b> ({cambio_str}) — {precio_str} | 🟢🟢🟢🟢🟢\n"
-        msg_parte_3 += f"🧠 <i>{op['resumen']}</i>\n"
-        msg_parte_3 += f"  └ 📊 {link_ia} | 🔶 {link_trade}\n"
+    if bloque_2:
+        msg_parte_3 = ""
+        for op in bloque_2:
+            precio_str = formatear_precio(op['precio'])
+            cambio_str = f"+{op['change']:.1f}%" if op['change'] >= 0 else f"{op['change']:.1f}%"
+            
+            safe_netlify = html.escape(op['netlify_url'])
+            safe_binance = html.escape(op['binance_url'])
+            
+            link_ia = f'<a href="{safe_netlify}">Resumen IA</a>'
+            link_trade = f'<a href="{safe_binance}">Tradear</a>'
+            
+            msg_parte_3 += f"\n• <b>{op['simbolo']}</b> ({cambio_str}) — {precio_str} | 🟢🟢🟢🟢🟢\n"
+            msg_parte_3 += f"🧠 <i>{op['resumen']}</i>\n"
+            msg_parte_3 += f"  └ 📊 {link_ia} | 🔶 {link_trade}\n"
 
-    enviar_telegram_texto(msg_parte_3)
+        enviar_telegram_texto(msg_parte_3)
 
 if __name__ == "__main__":
     main()
