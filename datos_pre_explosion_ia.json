@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-15T22:18:23.803129",
+    "timestamp": "2026-10-15T22:53:38.800312",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -60,17 +60,17 @@
             }
         },
         {
-            "symbol": "COCOS/USDT",
-            "ticker": "COCOS",
-            "price": 1.7546,
-            "price_change": 3.44,
-            "ratio_volumen": 2.16,
+            "symbol": "VELODROME/USDT",
+            "ticker": "VELODROME",
+            "price": 0.04061,
+            "price_change": 3.25,
+            "ratio_volumen": 2.27,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 COCOS",
-            "score": 10.03,
+            "etiqueta_grafico": "\ud83d\udfe1 VELODROME",
+            "score": 10.11,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+                "confluencia_tf": "\u26a1 Estructura 1D Favorable"
             }
         },
         {
