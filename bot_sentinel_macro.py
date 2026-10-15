@@ -50,13 +50,12 @@ def obtener_sesion_actual_mercado():
     elif 21 == hora_actual:
         return "🪙 CIERRE DIARIO DE VELA CRIPTO (21:00 ART)"
     else:
-        return "🌎 SESIÓN EE. UU. (Wall Street / Nueva York)"
+        return "🌎 SESIÓN EE. UU. (Wall Street / S&P 500)"
 
 # ---------------------------------------------------------
-# 1. MAPA DE CALOR PROPORCIONAL DE WALL STREET (MEJORADO)
+# 1. MAPA DE CALOR PROPORCIONAL DE S&P 500 (WALL STREET)
 # ---------------------------------------------------------
 def obtener_datos_wall_street_treemap():
-    # Ampliamos la lista para que el mapa quede denso y poblado como TradingView
     acciones = {
         "NVDA": ("NVDA", 3.2), "AAPL": ("AAPL", 3.4), "MSFT": ("MSFT", 3.1),
         "GOOGL": ("GOOGL", 2.1), "AMZN": ("AMZN", 2.2), "META": ("META", 1.5),
@@ -87,22 +86,20 @@ def generar_treemap_wall_street(df):
 
     sizes = df['weight']
     labels = [f"{row['ticker']}\n{row['var']}%" for _, row in df.iterrows()]
-    
-    # Colores profesionales estilo terminal (Verde esmeralda y rojo carmesí oscuro)
     colors = ['#00796b' if v >= 2 else ('#26a69a' if v >= 0 else ('#e53935' if v <= -2 else '#c62828')) for v in df['var']]
 
     squarify.plot(sizes=sizes, label=labels, color=colors, alpha=0.95,
                   pad=True, edgecolor="#0b0e14", linewidth=2,
                   text_kwargs={'color':'white', 'fontsize':9, 'weight':'bold'}, ax=ax)
 
-    plt.title("MAPA DE CALOR PROFESIONAL — WALL STREET & BIG TECH", color='#FFD700', fontsize=13, fontweight='bold', pad=15)
+    plt.title("MAPA DE CALOR PROFESIONAL — S&P 500 (WALL STREET)", color='#FFD700', fontsize=13, fontweight='bold', pad=15)
     plt.axis('off')
     plt.tight_layout()
     plt.savefig('heatmap_wall_street.png', dpi=300, facecolor=fig.get_facecolor(), edgecolor='none')
     plt.close()
 
 # ---------------------------------------------------------
-# 2. MAPA DE CALOR PROPORCIONAL DE CRIPTO (MEJORADO)
+# 2. MAPA DE CALOR PROPORCIONAL DE CRIPTO
 # ---------------------------------------------------------
 def obtener_datos_cripto_treemap():
     criptos = [
@@ -162,15 +159,15 @@ def analizar_noticias_wall_street_ia(df_ws, sesion):
     Variaciones: {resumen_mercado}.
 
     Redacta un reporte técnico de última hora (máximo 4 líneas) explicando:
-    1. Por qué el mapa de calor muestra ese comportamiento sectorial.
-    2. Factores de liquidez, tipos de interés o reportes recientes que mueven el S&P 500 hoy.
+    1. Por qué el mapa de calor del S&P 500 muestra ese comportamiento sectorial.
+    2. Factores de liquidez o reportes recientes que mueven Wall Street hoy.
     """
     for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
         try:
             res = client.models.generate_content(model=mod, contents=prompt)
             if res and res.text: return res.text
         except: continue
-    return "Los mercados tradicionales ajustan posiciones bajo la supervisión de los flujos institucionales y reportes macro."
+    return "Los mercados tradicionales ajustan posiciones bajo la supervisión de los flujos institucionales."
 
 def analizar_noticias_cripto_ia(df_cripto, sesion):
     if not GEMINI_API_KEY: return "Análisis no disponible."
@@ -184,7 +181,7 @@ def analizar_noticias_cripto_ia(df_cripto, sesion):
 
     Redacta un reporte técnico de última hora (máximo 4 líneas) explicando:
     1. Por qué el mercado cripto reacciona con estos porcentajes.
-    2. Dinámica de liquidaciones en futuros y flujos de capital hacia Bitcoin y altcoins.
+    2. Dinámica de liquidaciones en futuros y flujos de capital.
     """
     for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
         try:
@@ -194,18 +191,18 @@ def analizar_noticias_cripto_ia(df_cripto, sesion):
     return "El mercado de criptomonedas opera con correlación a la liquidez global y especulación en derivados."
 
 # ---------------------------------------------------------
-# 4. EJECUCIÓN Y ENVÍO A TELEGRAM
+# 4. EJECUCIÓN Y ENVÍO A TELEGRAM CON BOTONES DE ENLACE EXACTOS
 # ---------------------------------------------------------
-print("🌐 Ejecutando Sentinel Macro con mapas de calor densos y prolijos...")
+print("🌐 Ejecutando Sentinel Macro con enlaces exactos configurados...")
 
 sesion_actual = obtener_sesion_actual_mercado()
 
-# Wall Street
+# S&P 500 / Wall Street
 df_ws = obtener_datos_wall_street_treemap()
 generar_treemap_wall_street(df_ws)
 causas_ws = analizar_noticias_wall_street_ia(df_ws, sesion_actual)
 
-msg_ws = f"🏛️ **SENTINEL MACRO — 1. WALL STREET & TRADFI**\n"
+msg_ws = f"🏛️ **SENTINEL MACRO — 1. S&P 500 & TRADFI**\n"
 msg_ws += f"🕒 *Sesión:* `{sesion_actual}`\n\n"
 msg_ws += f"🔍 **¿Qué está pasando y por qué? (Noticias & Análisis):**\n{causas_ws}\n"
 
@@ -218,29 +215,52 @@ msg_cripto = f"🪙 **SENTINEL MACRO — 2. BINANCE CRIPTO MARKET**\n"
 msg_cripto += f"🕒 *Sesión:* `{sesion_actual}`\n\n"
 msg_cripto += f"🔍 **¿Qué está pasando y por qué? (Noticias & Mercado):**\n{causas_cripto}\n"
 
-# Enviar a Telegram
+# Enviar a Telegram con Teclado Inline
 if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
     url_base = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
     thread_id = int(MESSAGE_THREAD_ID) if MESSAGE_THREAD_ID else None
 
-    # Wall Street
+    # Teclados con los enlaces exactos que solicitaste
+    teclado_ws = {
+        "inline_keyboard": [[
+            {"text": "📊 Ver Mapa Interactivo S&P 500 (Investing)", "url": "https://es.investing.com/markets/heatmap"}
+        ]]
+    }
+
+    teclado_cripto = {
+        "inline_keyboard": [[
+            {"text": "🪙 Ver Mapa Interactivo Binance Futures", "url": "https://www.binance.com/es-AR/futures/crypto-heatmap"}
+        ]]
+    }
+
+    # 1. Enviar S&P 500
     with open('heatmap_wall_street.png', 'rb') as f1:
-        p_f1 = {'chat_id': TELEGRAM_CHAT_ID, 'caption': f"🗺️ **Mapa de Calor — Wall Street ({sesion_actual})**", 'parse_mode': 'Markdown'}
+        p_f1 = {'chat_id': TELEGRAM_CHAT_ID, 'caption': f"🗺️ **Mapa de Calor — S&P 500 ({sesion_actual})**", 'parse_mode': 'Markdown'}
         if thread_id: p_f1['message_thread_id'] = thread_id
         requests.post(f"{url_base}/sendPhoto", data=p_f1, files={'photo': f1})
 
-    p_m1 = {'chat_id': TELEGRAM_CHAT_ID, 'text': msg_ws, 'parse_mode': 'Markdown'}
+    p_m1 = {
+        'chat_id': TELEGRAM_CHAT_ID, 
+        'text': msg_ws, 
+        'parse_mode': 'Markdown',
+        'reply_markup': teclado_ws
+    }
     if thread_id: p_m1['message_thread_id'] = thread_id
     requests.post(f"{url_base}/sendMessage", json=p_m1)
 
-    # Cripto
+    # 2. Enviar Cripto
     with open('heatmap_cripto.png', 'rb') as f2:
         p_f2 = {'chat_id': TELEGRAM_CHAT_ID, 'caption': f"🗺️ **Mapa de Calor — Cripto ({sesion_actual})**", 'parse_mode': 'Markdown'}
         if thread_id: p_f2['message_thread_id'] = thread_id
         requests.post(f"{url_base}/sendPhoto", data=p_f2, files={'photo': f2})
 
-    p_m2 = {'chat_id': TELEGRAM_CHAT_ID, 'text': msg_cripto, 'parse_mode': 'Markdown'}
+    p_m2 = {
+        'chat_id': TELEGRAM_CHAT_ID, 
+        'text': msg_cripto, 
+        'parse_mode': 'Markdown',
+        'reply_markup': teclado_cripto
+    }
     if thread_id: p_m2['message_thread_id'] = thread_id
     requests.post(f"{url_base}/sendMessage", json=p_m2)
 
-    print("✅ Reportes con mapas de calor densos y estilizados enviados correctamente.")
+    print("✅ Reportes con enlaces exactos a Investing S&P 500 y Binance Futures enviados con éxito.")
