@@ -5,12 +5,13 @@ import ccxt
 import pandas as pd
 
 # ---------------------------------------------------------
-# CONFIGURACIÓN DE CREDENCIALES
+# CONFIGURACIÓN DE CREDENCIALES (Alineado con tus secretos)
 # ---------------------------------------------------------
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("CHAT_ID")
+MESSAGE_THREAD_ID = os.getenv("TOPIC_ID_PRE_EXPLOSION")
 
-# URL de tu web desplegada en Netlify
+# URL de tu web desplegada en Netlify (Reemplaza con tu dominio real de Netlify si es necesario)
 NETLIFY_BASE_URL = "https://tu-motor-pre-explosion.netlify.app"
 
 # ---------------------------------------------------------
@@ -77,7 +78,7 @@ if top_7_candidatas:
             f"Vol 1H: `{coin['ratio_volumen']}x` | Score: `{coin['score']}`\n"
         )
         
-        # URL dinámica pasando la moneda elegida como parámetro
+        # URL dinámica pasando la moneda elegida como parámetro hacia Netlify
         url_dinamica = f"{NETLIFY_BASE_URL}/?coin={coin['ticker']}"
         
         # Botón para la botonera de Telegram
@@ -85,7 +86,7 @@ if top_7_candidatas:
             {"text": f"🔍 Analizar ${coin['ticker']} en Netlify", "url": url_dinamica}
         ])
 
-    # Enviar reporte a Telegram con botones interactivos
+    # Enviar reporte a Telegram con botones interactivos y al tema específico
     if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
         url_api = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
         payload = {
@@ -94,8 +95,13 @@ if top_7_candidatas:
             'parse_mode': 'Markdown',
             'reply_markup': json.dumps({'inline_keyboard': inline_keyboard})
         }
+        
+        # Incluir el ID del tema (Topic ID) configurado en GitHub Secrets
+        if MESSAGE_THREAD_ID:
+            payload['message_thread_id'] = int(MESSAGE_THREAD_ID)
+            
         res = requests.post(url_api, json=payload)
-        print("✅ Reporte de Pre-Explosión enviado a Telegram.")
+        print("✅ Reporte de Pre-Explosión enviado al tema de Telegram.")
 
 # ---------------------------------------------------------
 # 4. PARTE 4: EXPORTACIÓN DE ESTRUCTURA JSON PARA EL TRADER IA
