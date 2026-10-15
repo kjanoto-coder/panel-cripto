@@ -5,6 +5,7 @@ import random
 import requests
 import html
 from datetime import datetime
+import numpy as np
 import matplotlib.pyplot as plt
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -44,6 +45,29 @@ def obtener_datos_binance():
         return response.json()
     except Exception as e:
         raise e
+
+def obtener_velas_historicas(symbol, interval="1d", limit=30):
+    url = f"https://data-api.binance.vision/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}"
+    try:
+        response = requests.get(url, timeout=8)
+        if response.status_code == 200:
+            return response.json()
+    except Exception:
+        pass
+    return []
+
+def obtener_mapa_calor_liquidaciones(symbol):
+    """Consulta el mapa de calor/ratio de apalancamiento en Futuros para detectar imanes de Shorts"""
+    try:
+        url_ratio = f"https://fapi.binance.com/futures/data/topLongShortAccountRatio?symbol={symbol}&period=5m&limit=1"
+        res = requests.get(url_ratio, timeout=4).json()
+        if res and isinstance(res, list) and len(res) > 0:
+            short_ratio = float(res[0].get('shortAccount', 0.5)) * 100
+            es_iman_alcista = short_ratio >= 51.5
+            return es_iman_alcista, short_ratio
+    except Exception:
+        pass
+    return False, 50.0
 
 def formatear_precio(precio):
     if precio is None:
@@ -105,29 +129,67 @@ def preparar_datos(tickers):
     acumulacion_pool_24h = [t for t in usdt_pairs if t['lastPrice_f'] < 1.0]
     acumulacion_24h = sorted(acumulacion_pool_24h, key=lambda x: x['quoteVolume_f'], reverse=True)[:7]
     
-    # 3. Top 7 Acumulación Silenciosa con SISTEMA DE ENFRIAMIENTO (Anti-Repetición)
+    # 3. Top 7 Acumulación Silenciosa con SISTEMA DE ENFRIAMIENTO + MOTOR QUIRÚRGICO
     historial_previo = cargar_memoria_perlas()
     simbolos_bloqueados = [item for reporte in historial_previo for item in reporte]
     
-    # Filtrar candidatos que cumplan con compresión y volumen sano, pero excluyendo los recientes
+    # Filtrar candidatos base con el filtro de enfriamiento y rango de compresión
     silenciosa_pool_fresca = [
         t for t in usdt_pairs 
         if t['lastPrice_f'] < 1.0 
-        and -1.5 <= t['priceChangePercent_f'] <= 1.5
+        and -1.5 <= t['priceChangePercent_f'] <= 1.8
         and t['quoteVolume_f'] >= 1_500_000
         and t['symbol'] not in simbolos_bloqueados
     ]
     
-    # Si tras el filtro de enfriamiento nos faltan candidatos, relajamos el bloqueo trayendo otras opciones secundarias válidas
-    if len(silenciosa_pool_fresca) < 7:
-        silenciosa_pool_fresca = [
+    perlas_quirurgicas = []
+    print("Ejecutando motor quirúrgico (Volumen Relativo + Mapa de Calor) en Acumulación Silenciosa...")
+    
+    for t in silenciosa_pool_fresca:
+        symbol = t['symbol']
+        klines = obtener_velas_historicas(symbol, interval="1d", limit=30)
+        
+        if len(klines) < 20:
+            continue
+            
+        volumenes = [float(k[5]) for k in klines]
+        vol_reciente = np.mean(volumenes[-5:])
+        vol_historico = np.mean(volumenes[:-5])
+        factor_vol_relativo = vol_reciente / (vol_historico if vol_historico > 0 else 1)
+        
+        es_iman, pct_shorts = obtener_mapa_calor_liquidaciones(symbol)
+        
+        # Aplicamos el filtro quirúrgico: anomalía de volumen o imán alcista
+        if factor_vol_relativo >= 1.2 or es_iman:
+            t['factor_vol'] = factor_vol_relativo
+            t['iman_alcista'] = es_iman
+            perlas_quirurgicas.append(t)
+            
+        if len(perlas_quirurgicas) >= 7:
+            break
+            
+    # Si faltan candidatos por exigencia del motor quirúrgico, completamos con la piscina fresca
+    if len(perlas_quirurgicas) < 7:
+        for t in silenciosa_pool_fresca:
+            if t not in perlas_quirurgicas:
+                t['factor_vol'] = 1.1
+                t['iman_alcista'] = False
+                perlas_quirurgicas.append(t)
+            if len(perlas_quirurgicas) >= 7:
+                break
+
+    # Si aún tras todo esto faltan por el bloqueo de memoria, relajamos la memoria de forma segura
+    if len(perlas_quirurgicas) < 7:
+        silenciosa_pool_respaldo = [
             t for t in usdt_pairs 
             if t['lastPrice_f'] < 1.0 
             and -2.0 <= t['priceChangePercent_f'] <= 2.0
             and t['quoteVolume_f'] >= 1_000_000
+            and t not in perlas_quirurgicas
         ]
+        perlas_quirurgicas.extend(sorted(silenciosa_pool_respaldo, key=lambda x: x['quoteVolume_f'], reverse=True)[:7 - len(perlas_quirurgicas)])
         
-    acumulacion_silenciosa = sorted(silenciosa_pool_fresca, key=lambda x: x['quoteVolume_f'], reverse=True)[:7]
+    acumulacion_silenciosa = sorted(perlas_quirurgicas, key=lambda x: x['quoteVolume_f'], reverse=True)[:7]
     
     # Actualizar memoria con las nuevas perlas seleccionadas
     nuevos_simbolos = [t['symbol'] for t in acumulacion_silenciosa]
@@ -226,16 +288,25 @@ def procesar_y_enviar_bloque_unificado(num_bloque, titulo_bloque, icono, lista_i
         
         cambio_fmt = f"+{cambio:.1f}%" if cambio >= 0 else f"{cambio:.1f}%"
         
-        caption += (
-            f"• <b>{sim}</b> | {precio_str} | {barra} | {cambio_fmt}\n"
-            f"  └ <a href=\"{html.escape(url_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n"
-        )
+        if tipo_bloque == "silenciosa":
+            vol_rel = item.get('factor_vol', 1.0)
+            tag_iman = " 🔥 [Imán Alcista]" if item.get('iman_alcista', False) else ""
+            caption += (
+                f"• <b>{sim}</b> | {precio_str} | {barra} | {cambio_fmt}{tag_iman}\n"
+                f"  🧠 <i>[Vol. Relativo x{vol_rel:.1f}]</i>\n"
+                f"  └ <a href=\"{html.escape(url_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n"
+            )
+        else:
+            caption += (
+                f"• <b>{sim}</b> | {precio_str} | {barra} | {cambio_fmt}\n"
+                f"  └ <a href=\"{html.escape(url_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n"
+            )
     
     enviar_foto_con_detalle_telegram(filename_grafico, caption)
     time.sleep(3)
 
 if __name__ == "__main__":
-    print("Iniciando envío de bloques con sistema de rotación de perlas...")
+    print("Iniciando envío de bloques con sistema de rotación y motor quirúrgico...")
     datos = obtener_datos_binance()
     if datos:
         ganadoras, acumulacion_24h, acumulacion_silenciosa, perdedoras, favoritas = preparar_datos(datos)
@@ -246,4 +317,4 @@ if __name__ == "__main__":
         procesar_y_enviar_bloque_unificado(4, "TOP 7 PERDEDORAS", "📉", perdedoras, "#f6465d", "grafico_perdedoras.png")
         procesar_y_enviar_bloque_unificado(5, "TUS 5 FAVORITAS", "⭐", favoritas, "#3861fb", "grafico_favoritas.png")
         
-        print("¡Los 5 bloques con rotación inteligente se enviaron correctamente!")
+        print("¡Los 5 bloques actualizados se enviaron correctamente!")
