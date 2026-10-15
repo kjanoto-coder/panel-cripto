@@ -16,7 +16,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 NETLIFY_BASE_URL = "https://tu-nuevo-motor-pre-explosion.netlify.app"
 
-print("🚀 Ejecutando Radar con Espejos Anti-Bloqueo (Spot + Futuros)...")
+print("🚀 Ejecutando Radar con Espejos Estables Anti-Bloqueo...")
 
 # ---------------------------------------------------------
 # FUNCIONES AUXILIARES Y MÉTRICAS MULTI-CAPA
@@ -64,7 +64,7 @@ def analizar_multi_temporalidad_y_liquidaciones(exchange_spot, symbol, ticker):
         else:
             metricas["confluencia_tf"] = "💤 Acumulación en Soporte"
 
-        url_fapi = f"https://fapi.binance.vision/fapi/v1/ticker/24hr?symbol={ticker}USDT"
+        url_fapi = f"https://fapi.binance.com/fapi/v1/ticker/24hr?symbol={ticker}USDT"
         res_fapi = requests.get(url_fapi, timeout=3).json()
         
         if isinstance(res_fapi, dict) and 'highPrice' in res_fapi:
@@ -155,7 +155,7 @@ def generar_resumen_ia(candidatas):
     return "Máxima atención a los activos en fase Roja y Amarilla: la acumulación silenciosa detectada anticipa el próximo movimiento explosivo del día."
 
 # ---------------------------------------------------------
-# ESCÁNER DUAL BALANCEADO (CON ESPEJOS PÚBLICOS `.vision`)
+# ESCÁNER ROBUSTO (CON ESPEJO Spot SEGURO)
 # ---------------------------------------------------------
 try:
     exchange_spot = ccxt.binance({
@@ -163,92 +163,69 @@ try:
         'options': {'defaultType': 'spot', 'fetchMarkets': ['spot']},
         'urls': {'api': {'public': 'https://data-api.binance.vision/api/v3', 'spot': 'https://data-api.binance.vision/api/v3'}}
     })
-    
-    exchange_future = ccxt.binance({
-        'enableRateLimit': True,
-        'options': {'defaultType': 'future'},
-        'urls': {
-            'api': {
-                'public': 'https://fapi.binance.vision/fapi/v1',
-                'fapiPublic': 'https://fapi.binance.vision/fapi/v1'
-            }
-        }
-    })
 
     tickers_spot = exchange_spot.fetch_tickers()
-    tickers_future = exchange_future.fetch_tickers()
-    total_pares_analizados = len(tickers_spot) + len(tickers_future)
+    total_pares_analizados = len(tickers_spot)
 
     candidatas_rojas = []
     candidatas_amarillas = []
     candidatas_verdes = []
-    procesados = set()
 
-    fuentes_mercado = [
-        (tickers_spot, exchange_spot, "SPOT"),
-        (tickers_future, exchange_spot, "FUTUROS")
-    ]
-
-    for tickers_dict, ex_ref, tipo_mercado in fuentes_mercado:
-        for symbol, data in tickers_dict.items():
-            if not symbol.endswith('/USDT'):
-                continue
-            ticker_limpio = symbol.split('/')[0]
-            if ticker_limpio in procesados:
-                continue
-            
-            price_change_24h = data['percentage'] if data['percentage'] is not None else 0
-            vol_24h = data['quoteVolume'] if data['quoteVolume'] is not None else 0
-            last_price = data['last'] if data['last'] is not None else 0
-            
-            if vol_24h > 30000 and last_price > 0:
-                try:
-                    ohlcv = ex_ref.fetch_ohlcv(symbol, timeframe='1h', limit=12)
-                    df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+    for symbol, data in tickers_spot.items():
+        if not symbol.endswith('/USDT'):
+            continue
+        ticker_limpio = symbol.split('/')[0]
+        
+        price_change_24h = data['percentage'] if data['percentage'] is not None else 0
+        vol_24h = data['quoteVolume'] if data['quoteVolume'] is not None else 0
+        last_price = data['last'] if data['last'] is not None else 0
+        
+        if vol_24h > 30000 and last_price > 0:
+            try:
+                ohlcv = exchange_spot.fetch_ohlcv(symbol, timeframe='1h', limit=12)
+                df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+                
+                vol_actual_1h = df['volume'].iloc[-1]
+                promedio_vol_24h = df['volume'].mean()
+                
+                if promedio_vol_24h > 0:
+                    ratio_volumen = round(vol_actual_1h / promedio_vol_24h, 2)
                     
-                    vol_actual_1h = df['volume'].iloc[-1]
-                    promedio_vol_24h = df['volume'].mean()
+                    if ratio_volumen >= 3.2:
+                        fase = "ROJO"
+                        etiqueta_graf = f"🚨 {ticker_limpio}"
+                    elif ratio_volumen >= 2.0 and -4.0 <= price_change_24h <= 5.0:
+                        fase = "AMARILLO"
+                        etiqueta_graf = f"🟡 {ticker_limpio}"
+                    elif ratio_volumen >= 1.3:
+                        fase = "VERDE"
+                        etiqueta_graf = ticker_limpio
+                    else:
+                        continue
                     
-                    if promedio_vol_24h > 0:
-                        ratio_volumen = round(vol_actual_1h / promedio_vol_24h, 2)
-                        procesados.add(ticker_limpio)
-                        
-                        if ratio_volumen >= 3.2:
-                            fase = "ROJO"
-                            etiqueta_graf = f"🚨 {ticker_limpio}"
-                        elif ratio_volumen >= 2.0 and -4.0 <= price_change_24h <= 5.0:
-                            fase = "AMARILLO"
-                            etiqueta_graf = f"🟡 {ticker_limpio}"
-                        elif ratio_volumen >= 1.3:
-                            fase = "VERDE"
-                            etiqueta_graf = ticker_limpio
-                        else:
-                            continue
-                        
-                        score = round(ratio_volumen * (abs(price_change_24h) + 1.2) * (2.5 if fase == "ROJO" else (1.6 if fase == "AMARILLO" else 1.0)), 2)
-                        metricas_avanzadas = analizar_multi_temporalidad_y_liquidaciones(exchange_spot, symbol, ticker_limpio)
-                        
-                        item_coin = {
-                            'symbol': symbol,
-                            'ticker': ticker_limpio,
-                            'price': last_price,
-                            'price_change': round(price_change_24h, 2),
-                            'ratio_volumen': ratio_volumen,
-                            'fase': fase,
-                            'mercado': tipo_mercado,
-                            'etiqueta_grafico': etiqueta_graf,
-                            'score': score,
-                            'metricas_avanzadas': metricas_avanzadas
-                        }
-                        
-                        if fase == "ROJO":
-                            candidatas_rojas.append(item_coin)
-                        elif fase == "AMARILLO":
-                            candidatas_amarillas.append(item_coin)
-                        else:
-                            candidatas_verdes.append(item_coin)
-                except Exception:
-                    continue
+                    score = round(ratio_volumen * (abs(price_change_24h) + 1.2) * (2.5 if fase == "ROJO" else (1.6 if fase == "AMARILLO" else 1.0)), 2)
+                    metricas_avanzadas = analizar_multi_temporalidad_y_liquidaciones(exchange_spot, symbol, ticker_limpio)
+                    
+                    item_coin = {
+                        'symbol': symbol,
+                        'ticker': ticker_limpio,
+                        'price': last_price,
+                        'price_change': round(price_change_24h, 2),
+                        'ratio_volumen': ratio_volumen,
+                        'fase': fase,
+                        'etiqueta_grafico': etiqueta_graf,
+                        'score': score,
+                        'metricas_avanzadas': metricas_avanzadas
+                    }
+                    
+                    if fase == "ROJO":
+                        candidatas_rojas.append(item_coin)
+                    elif fase == "AMARILLO":
+                        candidatas_amarillas.append(item_coin)
+                    else:
+                        candidatas_verdes.append(item_coin)
+            except Exception:
+                continue
 
     candidatas_rojas = sorted(candidatas_rojas, key=lambda x: x['score'], reverse=True)
     candidatas_amarillas = sorted(candidatas_amarillas, key=lambda x: x['score'], reverse=True)
@@ -275,11 +252,11 @@ try:
             ma = coin['metricas_avanzadas']
             
             if coin['fase'] == "ROJO":
-                icono_fase = f"🔴 **[ROJO / {coin['mercado']}: Explosión Inminente]**"
+                icono_fase = "🔴 **[ROJO: Explosión Inminente]**"
             elif coin['fase'] == "AMARILLO":
-                icono_fase = f"🟡 **[AMARILLO / {coin['mercado']}: Acumulación / Rango]**"
+                icono_fase = "🟡 **[AMARILLO: Acumulación / Rango]**"
             else:
-                icono_fase = f"🟢 **[VERDE / {coin['mercado']}: Vigilancia Inicial]**"
+                icono_fase = "🟢 **[VERDE: Vigilancia Inicial]**"
             
             mensaje_telegram += (
                 f"{icono_fase}\n"
