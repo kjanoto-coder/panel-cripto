@@ -10,7 +10,6 @@ from google import genai
 # ---------------------------------------------------------
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("CHAT_ID")
-# Tomamos el ID del topic específico para Sentimiento Mercado (2489)
 MESSAGE_THREAD_ID = os.getenv("TOPIC_ID_SENTINEL_MACRO")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
@@ -70,36 +69,71 @@ def obtener_datos_cripto_macro():
         
     return resultados
 
+def obtener_calor_del_mercado():
+    """Consulta el índice de Miedo y Codicia (Fear & Greed) y evalúa el sentimiento institucional"""
+    calor = {
+        "score_fg": 50,
+        "sentimiento_fg": "Neutral",
+        "apuesta_mercado": "Equilibrio / Espera de Catalizador"
+    }
+    try:
+        # API pública de Alternative.me para el Crypto Fear & Greed Index
+        url_fg = "https://api.alternative.me/fng/?limit=1"
+        res = requests.get(url_fg, timeout=5).json()
+        if "data" in res and len(res["data"]) > 0:
+            score = int(res["data"][0]["value"])
+            clasificacion = res["data"][0]["value_classification"]
+            calor["score_fg"] = score
+            calor["sentimiento_fg"] = clasificacion
+            
+            # Interpretar las apuestas de la masa según el índice
+            if score <= 25:
+                calor["apuesta_mercado"] = "🐻 Pánico Extremo (Oportunidad de Acumulación en Suelo)"
+            elif score <= 45:
+                calor["apuesta_mercado"] = "⚠️ Miedo / Cautela Moderada"
+            elif score <= 55:
+                calor["apuesta_mercado"] = "⚖️ Zona Neutral / Indecisión del Mercado"
+            elif score <= 75:
+                calor["apuesta_mercado"] = "🐂 Codicia / Optimismo Creciente"
+            else:
+                calor["apuesta_mercado"] = "🚨 Euforia Extrema (Alto Riesgo de Corrección)"
+    except Exception:
+        pass
+        
+    return calor
+
 # ---------------------------------------------------------
 # INTERPRETACIÓN CON IA (GEMINI)
 # ---------------------------------------------------------
-def evaluar_clima_mercado_ia(ws, cripto):
-    """Genera un diagnóstico macro global sobre la postura de inversión (Risk-On vs Risk-Off)"""
+def evaluar_clima_mercado_ia(ws, cripto, calor):
+    """Genera un diagnóstico macro global y de sentimiento sobre la postura de inversión"""
     if not GEMINI_API_KEY:
         return "⚠️ *Análisis macro de IA no disponible (Falta GEMINI_API_KEY)*"
         
     client = genai.Client(api_key=GEMINI_API_KEY)
     
     prompt = f"""
-    Actúa como un estratega macroeconómico global y CIO de un fondo de cobertura (Hedge Fund).
-    Analiza el estado actual del mercado financiero global con los siguientes datos:
+    Actúa como un estratega macroeconómico global y CIO de un fondo cuantitativo.
+    Analiza el estado actual del mercado financiero global y el "calor del mercado" con los siguientes datos:
 
     MERCADOS TRADICIONALES (WALL STREET & MACRO):
     - S&P 500 (SPX): {ws['SPX']['precio']} ({ws['SPX']['var_pct']}%)
     - Nasdaq (NDX): {ws['NDX']['precio']} ({ws['NDX']['var_pct']}%)
     - Índice de Miedo VIX: {ws['VIX']['precio']} ({ws['VIX']['var_pct']}%)
     - Dólar Global (DXY): {ws['DXY']['precio']} ({ws['DXY']['var_pct']}%)
-    - Rendimiento Bonos 10 Años (US10Y): {ws['US10Y']['precio']}% ({ws['US10Y']['var_pct']}%)
-    - Oro: ${ws['GOLD']['precio']} ({ws['GOLD']['var_pct']}%)
 
     MERCADO CRIPTO MACRO:
     - Bitcoin (BTC): ${cripto['BTC']['precio']} ({cripto['BTC']['var_pct']}%)
     - Ethereum (ETH): ${cripto['ETH']['precio']} ({cripto['ETH']['var_pct']}%)
 
+    CALOR DEL MERCADO & SENTIMIENTO (FEAR & GREED):
+    - Score: {calor['score_fg']}/100 ({calor['sentimiento_fg']})
+    - Postura de apuestas de la masa: {calor['apuesta_mercado']}
+
     Redacta un diagnóstico conciso en español (máximo 4 líneas) respondiendo:
-    1. ¿El clima global es **Risk-On** (Apetito por Riesgo) o **Risk-Off** (Pánico/Refugio)? Justifica usando VIX y DXY.
-    2. ¿Cómo impacta el comportamiento de Wall Street sobre Bitcoin y las Altcoins en las próximas horas?
-    3. Conclusión con una recomendación operativa breve (ej. Aumentar liquidez, Operar rupturas con cautela, Búsqueda de coberturas).
+    1. ¿Cómo contrasta el apetito por riesgo macroeconómico con el "calor del mercado" actual (sentimiento de masas)?
+    2. ¿Indica sobreventa (suelo potencial) o sobrecompra (riesgo de reversión)?
+    3. Recomendación operativa breve para anticiparse al movimiento de las próximas horas.
     """
     
     for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
@@ -110,15 +144,16 @@ def evaluar_clima_mercado_ia(ws, cripto):
         except Exception:
             continue
             
-    return "El mercado opera bajo prudencia. Monitorear la correlación entre el DXY y Bitcoin antes de aperturar nuevas operaciones de riesgo."
+    return "El sentimiento de mercado muestra divergencia con Wall Street. Se recomienda operar con cautela estricta y validar soportes clave antes de posicionarse."
 
 # ---------------------------------------------------------
 # ESCANEO Y PUBLICACIÓN
 # ---------------------------------------------------------
-print("🌐 Consultando mercados de Wall Street y Cripto...")
+print("🌐 Consultando mercados, Wall Street y el Calor del Mercado...")
 
 datos_ws = obtener_datos_wall_street()
 datos_cripto = obtener_datos_cripto_macro()
+calor_mercado = obtener_calor_del_mercado()
 
 # Estado general del VIX
 vix_val = datos_ws['VIX']['precio']
@@ -129,13 +164,17 @@ elif vix_val >= 18:
 else:
     estado_vix = "🟢 CALMA EN LOS MERCADOS"
 
-diagnostico_ia = evaluar_clima_mercado_ia(datos_ws, datos_cripto)
+diagnostico_ia = evaluar_clima_mercado_ia(datos_ws, datos_cripto, calor_mercado)
 
 # Mensaje para Telegram
 mensaje = "🏛️ **ALERTAS DE MERCADO GLOBAL — SENTINEL MACRO**\n"
 mensaje += f"ESTADO GENERAL: `{estado_vix}` (VIX: `{vix_val}`)\n\n"
 
-mensaje += "💡 **Diagnóstico Macro Global (IA):**\n"
+mensaje += "🔥 **Calor del Mercado & Sentimiento (Fear & Greed):**\n"
+mensaje += f"• Índice: `{calor_mercado['score_fg']}/100` ({calor_mercado['sentimiento_fg']})\n"
+mensaje += f"• Apuesta de la Masa: `{calor_mercado['apuesta_mercado']}`\n\n"
+
+mensaje += "💡 **Diagnóstico Global (IA):**\n"
 mensaje += f"{diagnostico_ia}\n\n"
 
 mensaje += "─────────────────────────\n"
@@ -164,7 +203,7 @@ if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
         
     res_tg = requests.post(url_msg, json=payload_msg)
     if res_tg.json().get("ok"):
-        print("✅ Alerta de Mercado Global enviada exitosamente al topic 'Sentimiento Mercado'.")
+        print("✅ Alerta de Mercado Global con Calor del Mercado enviada al topic 'Sentimiento Mercado'.")
     else:
         print(f"[-] Error enviando a Telegram: {res_tg.json()}")
 
@@ -173,6 +212,7 @@ estructura_macro = {
     "timestamp": pd.Timestamp.now().isoformat(),
     "wall_street": datos_ws,
     "cripto_macro": datos_cripto,
+    "calor_mercado": calor_mercado,
     "diagnostico_ia": diagnostico_ia
 }
 with open("datos_sentinel_macro.json", "w") as f:
