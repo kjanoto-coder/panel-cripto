@@ -19,7 +19,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 HISTORIAL_FILE = "historial_noticias.json"
 
 # ---------------------------------------------------------
-# GESTIÓN DE MEMORIA ANTI-REPETICIÓN DE NOTICIAS
+# GESTIÓN DE MEMORIA ANTI-REPETICIÓN
 # ---------------------------------------------------------
 def cargar_historial():
     if os.path.exists(HISTORIAL_FILE):
@@ -34,28 +34,17 @@ def guardar_noticia_en_historial(texto):
     historial = cargar_historial()
     if texto not in historial:
         historial.append(texto)
-        # Mantener solo las últimas 150 entradas
         historial = historial[-150:]
         with open(HISTORIAL_FILE, "w") as f:
             json.dump(historial, f, indent=4)
 
-def filtrar_noticias_nuevas(texto_analisis):
-    """Compara y evita duplicar fragmentos ya analizados en ejecuciones previas"""
-    historial = cargar_historial()
-    for item in historial:
-        if item in texto_analisis:
-            return False
-    guardar_noticia_en_historial(texto_analisis)
-    return True
-
 # ---------------------------------------------------------
-# DETECCIÓN DE SESIÓN GLOBAL (ASIA, EUROPA, EE.UU., CIERRE CRIPTO)
+# DETECCIÓN DE SESIÓN GLOBAL
 # ---------------------------------------------------------
 def obtener_sesion_actual_mercado():
     hora_actual = datetime.datetime.now().hour
-    # Hora Argentina (ART)
     if 20 <= hora_actual or hora_actual < 4:
-        return "🌏 SESIÓN ASIA (Tokio / Hong Kong) & Nocturno Cripto"
+        return "🌏 SESIÓN ASIA (Tokio / Hong Kong)"
     elif 4 <= hora_actual < 10:
         return "🌍 SESIÓN EUROPA (Londres / Frankfurt)"
     elif 21 == hora_actual:
@@ -64,14 +53,17 @@ def obtener_sesion_actual_mercado():
         return "🌎 SESIÓN EE. UU. (Wall Street / Nueva York)"
 
 # ---------------------------------------------------------
-# 1. MAPA DE CALOR PROPORCIONAL DE WALL STREET (TRADFI)
+# 1. MAPA DE CALOR PROPORCIONAL DE WALL STREET (MEJORADO)
 # ---------------------------------------------------------
 def obtener_datos_wall_street_treemap():
+    # Ampliamos la lista para que el mapa quede denso y poblado como TradingView
     acciones = {
-        "NVDA": ("NVDA", 3.0), "AAPL": ("AAPL", 3.3), "MSFT": ("MSFT", 3.1),
-        "GOOGL": ("GOOGL", 2.1), "AMZN": ("AMZN", 2.2), "META": ("META", 1.4),
-        "TSLA": ("TSLA", 0.8), "AVGO": ("AVGO", 0.8), "JPM": ("JPM", 0.6),
-        "AMD": ("AMD", 0.3)
+        "NVDA": ("NVDA", 3.2), "AAPL": ("AAPL", 3.4), "MSFT": ("MSFT", 3.1),
+        "GOOGL": ("GOOGL", 2.1), "AMZN": ("AMZN", 2.2), "META": ("META", 1.5),
+        "TSLA": ("TSLA", 0.9), "AVGO": ("AVGO", 0.9), "JPM": ("JPM", 0.7),
+        "AMD": ("AMD", 0.4), "NFLX": ("NFLX", 0.4), "INTC": ("INTC", 0.3),
+        "QCOM": ("QCOM", 0.3), "PEP": ("PEP", 0.4), "KO": ("KO", 0.4),
+        "DIS": ("DIS", 0.3), "PYPL": ("PYPL", 0.2), "CSCO": ("CSCO", 0.3)
     }
     datos = []
     for label, (ticker_str, mcap_weight) in acciones.items():
@@ -90,27 +82,34 @@ def obtener_datos_wall_street_treemap():
     return pd.DataFrame(datos)
 
 def generar_treemap_wall_street(df):
-    fig, ax = plt.subplots(figsize=(10, 6), facecolor='#0b0e14')
+    fig, ax = plt.subplots(figsize=(12, 7), facecolor='#0b0e14')
     ax.set_facecolor('#0b0e14')
 
     sizes = df['weight']
     labels = [f"{row['ticker']}\n{row['var']}%" for _, row in df.iterrows()]
-    colors = ['#26a69a' if v >= 0 else '#ef5350' for v in df['var']]
+    
+    # Colores profesionales estilo terminal (Verde esmeralda y rojo carmesí oscuro)
+    colors = ['#00796b' if v >= 2 else ('#26a69a' if v >= 0 else ('#e53935' if v <= -2 else '#c62828')) for v in df['var']]
 
-    squarify.plot(sizes=sizes, label=labels, color=colors, alpha=0.9,
-                  text_kwargs={'color':'white', 'fontsize':10, 'weight':'bold'}, ax=ax)
+    squarify.plot(sizes=sizes, label=labels, color=colors, alpha=0.95,
+                  pad=True, edgecolor="#0b0e14", linewidth=2,
+                  text_kwargs={'color':'white', 'fontsize':9, 'weight':'bold'}, ax=ax)
 
-    plt.title("MAPA DE CALOR — WALL STREET & BIG TECH", color='#FFD700', fontsize=12, fontweight='bold', pad=12)
+    plt.title("MAPA DE CALOR PROFESIONAL — WALL STREET & BIG TECH", color='#FFD700', fontsize=13, fontweight='bold', pad=15)
     plt.axis('off')
     plt.tight_layout()
-    plt.savefig('heatmap_wall_street.png', dpi=250, facecolor=fig.get_facecolor(), edgecolor='none')
+    plt.savefig('heatmap_wall_street.png', dpi=300, facecolor=fig.get_facecolor(), edgecolor='none')
     plt.close()
 
 # ---------------------------------------------------------
-# 2. MAPA DE CALOR PROPORCIONAL DE CRIPTO (BINANCE)
+# 2. MAPA DE CALOR PROPORCIONAL DE CRIPTO (MEJORADO)
 # ---------------------------------------------------------
 def obtener_datos_cripto_treemap():
-    criptos = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "AVAXUSDT"]
+    criptos = [
+        "BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", 
+        "DOGEUSDT", "ADAUSDT", "AVAXUSDT", "LINKUSDT", "DOTUSDT", 
+        "MATICUSDT", "NEARUSDT", "UNIUSDT", "ATOMUSDT", "LTCUSDT"
+    ]
     datos = []
     try:
         res = requests.get("https://data-api.binance.vision/api/v3/ticker/24hr", timeout=5).json()
@@ -132,51 +131,50 @@ def obtener_datos_cripto_treemap():
     return pd.DataFrame(datos)
 
 def generar_treemap_cripto(df):
-    fig, ax = plt.subplots(figsize=(10, 6), facecolor='#0b0e14')
+    fig, ax = plt.subplots(figsize=(12, 7), facecolor='#0b0e14')
     ax.set_facecolor('#0b0e14')
 
     sizes = df['vol']
-    labels = [f"{row['ticker']}USDT\n{row['var']}%" for _, row in df.iterrows()]
-    colors = ['#26a69a' if v >= 0 else '#ef5350' for v in df['var']]
+    labels = [f"{row['ticker']}\n{row['var']}%" for _, row in df.iterrows()]
+    colors = ['#00796b' if v >= 2 else ('#26a69a' if v >= 0 else ('#e53935' if v <= -2 else '#c62828')) for v in df['var']]
 
-    squarify.plot(sizes=sizes, label=labels, color=colors, alpha=0.9,
-                  text_kwargs={'color':'white', 'fontsize':11, 'weight':'bold'}, ax=ax)
+    squarify.plot(sizes=sizes, label=labels, color=colors, alpha=0.95,
+                  pad=True, edgecolor="#0b0e14", linewidth=2,
+                  text_kwargs={'color':'white', 'fontsize':9, 'weight':'bold'}, ax=ax)
 
-    plt.title("MAPA DE CALOR — BINANCE CRIPTO MARKET", color='#FFD700', fontsize=12, fontweight='bold', pad=12)
+    plt.title("MAPA DE CALOR PROFESIONAL — BINANCE CRIPTO MARKET", color='#FFD700', fontsize=13, fontweight='bold', pad=15)
     plt.axis('off')
     plt.tight_layout()
-    plt.savefig('heatmap_cripto.png', dpi=250, facecolor=fig.get_facecolor(), edgecolor='none')
+    plt.savefig('heatmap_cripto.png', dpi=300, facecolor=fig.get_facecolor(), edgecolor='none')
     plt.close()
 
 # ---------------------------------------------------------
-# 3. ANÁLISIS DE NOTICIAS Y CAUSAS CON IA (GEMINI)
+# 3. ANÁLISIS DE NOTICIAS CON IA (GEMINI)
 # ---------------------------------------------------------
 def analizar_noticias_wall_street_ia(df_ws, sesion):
     if not GEMINI_API_KEY: return "Análisis no disponible."
     client = genai.Client(api_key=GEMINI_API_KEY)
-    
     resumen_mercado = ", ".join([f"{r['ticker']}: {r['var']}%" for _, r in df_ws.iterrows()])
     
     prompt = f"""
     Actúa como un estratega macroeconómico global.
     Sesión actual: {sesion}.
-    Variaciones del mercado bursátil: {resumen_mercado}.
+    Variaciones: {resumen_mercado}.
 
     Redacta un reporte técnico de última hora (máximo 4 líneas) explicando:
-    1. Por qué el mapa de calor muestra ese comportamiento (factores geopolíticos, tecnológicas, tasas de la Fed).
-    2. Noticias recientes frescas que expliquen el movimiento actual de la sesión.
+    1. Por qué el mapa de calor muestra ese comportamiento sectorial.
+    2. Factores de liquidez, tipos de interés o reportes recientes que mueven el S&P 500 hoy.
     """
     for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
         try:
             res = client.models.generate_content(model=mod, contents=prompt)
             if res and res.text: return res.text
         except: continue
-    return "Mercados evaluando la liquidez institucional y los informes macroeconómicos recientes."
+    return "Los mercados tradicionales ajustan posiciones bajo la supervisión de los flujos institucionales y reportes macro."
 
 def analizar_noticias_cripto_ia(df_cripto, sesion):
     if not GEMINI_API_KEY: return "Análisis no disponible."
     client = genai.Client(api_key=GEMINI_API_KEY)
-    
     resumen_cripto = ", ".join([f"{r['ticker']}: {r['var']}%" for _, r in df_cripto.iterrows()])
     
     prompt = f"""
@@ -185,24 +183,24 @@ def analizar_noticias_cripto_ia(df_cripto, sesion):
     Variaciones en Binance: {resumen_cripto}.
 
     Redacta un reporte técnico de última hora (máximo 4 líneas) explicando:
-    1. Por qué el mercado cripto se mueve en esa dirección (flujos en ETFs, liquidaciones en derivados o narrativas en redes sociales).
-    2. Novedades y catalizadores recientes que impactan el volumen actual.
+    1. Por qué el mercado cripto reacciona con estos porcentajes.
+    2. Dinámica de liquidaciones en futuros y flujos de capital hacia Bitcoin y altcoins.
     """
     for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
         try:
             res = client.models.generate_content(model=mod, contents=prompt)
             if res and res.text: return res.text
         except: continue
-    return "El mercado cripto mantiene flujos condicionados por la apertura global y la actividad en derivados."
+    return "El mercado de criptomonedas opera con correlación a la liquidez global y especulación en derivados."
 
 # ---------------------------------------------------------
 # 4. EJECUCIÓN Y ENVÍO A TELEGRAM
 # ---------------------------------------------------------
-print("🌐 Ejecutando Sentinel Macro con sincronización de sesiones...")
+print("🌐 Ejecutando Sentinel Macro con mapas de calor densos y prolijos...")
 
 sesion_actual = obtener_sesion_actual_mercado()
 
-# --- 1. WALL STREET ---
+# Wall Street
 df_ws = obtener_datos_wall_street_treemap()
 generar_treemap_wall_street(df_ws)
 causas_ws = analizar_noticias_wall_street_ia(df_ws, sesion_actual)
@@ -211,7 +209,7 @@ msg_ws = f"🏛️ **SENTINEL MACRO — 1. WALL STREET & TRADFI**\n"
 msg_ws += f"🕒 *Sesión:* `{sesion_actual}`\n\n"
 msg_ws += f"🔍 **¿Qué está pasando y por qué? (Noticias & Análisis):**\n{causas_ws}\n"
 
-# --- 2. CRIPTO ---
+# Cripto
 df_cripto = obtener_datos_cripto_treemap()
 generar_treemap_cripto(df_cripto)
 causas_cripto = analizar_noticias_cripto_ia(df_cripto, sesion_actual)
@@ -220,12 +218,12 @@ msg_cripto = f"🪙 **SENTINEL MACRO — 2. BINANCE CRIPTO MARKET**\n"
 msg_cripto += f"🕒 *Sesión:* `{sesion_actual}`\n\n"
 msg_cripto += f"🔍 **¿Qué está pasando y por qué? (Noticias & Mercado):**\n{causas_cripto}\n"
 
-# Envío a Telegram (Topic 2489)
+# Enviar a Telegram
 if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
     url_base = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
     thread_id = int(MESSAGE_THREAD_ID) if MESSAGE_THREAD_ID else None
 
-    # Enviar Wall Street
+    # Wall Street
     with open('heatmap_wall_street.png', 'rb') as f1:
         p_f1 = {'chat_id': TELEGRAM_CHAT_ID, 'caption': f"🗺️ **Mapa de Calor — Wall Street ({sesion_actual})**", 'parse_mode': 'Markdown'}
         if thread_id: p_f1['message_thread_id'] = thread_id
@@ -235,7 +233,7 @@ if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
     if thread_id: p_m1['message_thread_id'] = thread_id
     requests.post(f"{url_base}/sendMessage", json=p_m1)
 
-    # Enviar Cripto
+    # Cripto
     with open('heatmap_cripto.png', 'rb') as f2:
         p_f2 = {'chat_id': TELEGRAM_CHAT_ID, 'caption': f"🗺️ **Mapa de Calor — Cripto ({sesion_actual})**", 'parse_mode': 'Markdown'}
         if thread_id: p_f2['message_thread_id'] = thread_id
@@ -245,4 +243,4 @@ if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
     if thread_id: p_m2['message_thread_id'] = thread_id
     requests.post(f"{url_base}/sendMessage", json=p_m2)
 
-    print("✅ Reportes con mapas de calor y control de sesiones enviados exitosamente.")
+    print("✅ Reportes con mapas de calor densos y estilizados enviados correctamente.")
