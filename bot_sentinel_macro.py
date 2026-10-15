@@ -17,26 +17,28 @@ MESSAGE_THREAD_ID = os.getenv("TOPIC_ID_SENTINEL_MACRO")  # Topic 2489 (Sentimie
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 HISTORIAL_FILE = "historial_noticias.json"
+ESTADO_PREVIO_FILE = "datos_sentinel_macro.json"
 
 # ---------------------------------------------------------
-# GESTIÓN DE MEMORIA ANTI-REPETICIÓN
+# MEMORIA Y COMPARATIVA DE ESTADO PREVIO (DETECCIÓN DE GIROS)
 # ---------------------------------------------------------
-def cargar_historial():
-    if os.path.exists(HISTORIAL_FILE):
+def cargar_estado_previo():
+    if os.path.exists(ESTADO_PREVIO_FILE):
         try:
-            with open(HISTORIAL_FILE, "r") as f:
+            with open(ESTADO_PREVIO_FILE, "r") as f:
                 return json.load(f)
         except Exception:
-            return []
-    return []
+            return {}
+    return {}
 
-def guardar_noticia_en_historial(texto):
-    historial = cargar_historial()
-    if texto not in historial:
-        historial.append(texto)
-        historial = historial[-150:]
-        with open(HISTORIAL_FILE, "w") as f:
-            json.dump(historial, f, indent=4)
+def guardar_estado_actual(datos_ws, datos_cripto):
+    estado = {
+        "timestamp": datetime.datetime.now().isoformat(),
+        "wall_street": datos_ws,
+        "cripto": datos_cripto
+    }
+    with open(ESTADO_PREVIO_FILE, "w") as f:
+        json.dump(estado, f, indent=4)
 
 # ---------------------------------------------------------
 # DETECCIÓN DE SESIÓN GLOBAL
@@ -146,86 +148,126 @@ def generar_treemap_cripto(df):
     plt.close()
 
 # ---------------------------------------------------------
-# 3. ANÁLISIS DE DATOS REALES CON IA PROFUNDA (GEMINI)
+# 3. INTELIGENCIA DE IA CON DETECCIÓN DE GIROS (DE ROJO A VERDE O VICEVERSA)
 # ---------------------------------------------------------
-def analizar_noticias_wall_street_ia(df_ws, sesion):
+def analizar_cripto_con_alerta_giro(df_cripto, sesion, estado_previo):
     if not GEMINI_API_KEY: return "Análisis no disponible."
     client = genai.Client(api_key=GEMINI_API_KEY)
     
-    # Pasamos los datos exactos obtenidos de Yahoo Finance
-    detalle_activos = "\n".join([f"- {r['ticker']}: {r['var']}%" for _, r in df_ws.iterrows()])
+    detalle_actual = {r['ticker']: r['var'] for _, r in df_cripto.iterrows()}
+    prev_cripto = estado_previo.get("cripto", {})
     
-    prompt = f"""
-    Actúa como un trader institucional senior y analista macroeconómico de Wall Street.
-    Sesión analizada: {sesion}.
-    
-    Datos exactos de variación en tiempo real del S&P 500 / Big Tech:
-    {detalle_activos}
+    # Evaluar si hubo un cambio reciente de signo (de negativo a positivo)
+    giros_detectados = []
+    for t, val_act in detalle_actual.items():
+        val_prev = prev_cripto.get(t, val_act)
+        if val_prev < 0 and val_act > 0:
+            giros_detectados.append(f"{t}: Cambio de ROJO ({val_prev}%) a VERDE (+{val_act}%)")
+        elif val_prev > 0 and val_act < 0:
+            giros_detectados.append(f"{t}: Cambio de VERDE (+{val_prev}%) a ROJO ({val_act}%)")
 
-    Redacta un reporte táctico directo y agudo (de 3 a 5 líneas máximo). 
-    REGLAS OBLIGATORIAS:
-    - No uses frases cliché ni vacías. 
-    - Menciona qué acciones específicas están liderando las subidas o bajadas según los datos provistos.
-    - Explica con precisión quirúrgica qué sector ( semiconductores, consumo, banca, tecnología) tracciona el mercado hoy y qué factores macro (rendimiento de bonos, tensiones geopolíticas, expectativas de tasas) explican este comportamiento.
+    texto_giros = "\n".join(giros_detectados) if giros_detectados else "Sin cambios drásticos de polaridad respecto a los últimos 30 min."
+    datos_actuales_txt = "\n".join([f"- {r['ticker']}: {r['var']}% (Vol: {r['vol']:,.0f})" for _, r in df_cripto.iterrows()])
+
+    prompt = f"""
+    Actúa como un trader de alta frecuencia y analista macro.
+    Sesión: {sesion}.
+    
+    ESTADO DEL MERCADO CRIPTO EN ESTE MOMENTO:
+    {datos_actuales_txt}
+
+    CAMBIOS Y GIROS DE IMPULSO RESPECTO A HACE 30 MINUTOS:
+    {texto_giros}
+
+    Genera el reporte estructurado en 2 partes:
+
+    📊 **DIAGNÓSTICO DEL DÍA (Apertura vs Estado Actual):**
+    - Resume cómo se movió el mercado durante la jornada y por qué (si pasó de rojo en la mañana a verde ahora).
+
+    🚨 **ALERTA TEMPRANA Y PROYECIÓN (Próximos Días):**
+    - Si detectas que el mercado cambió a verde o muestra absorción compradora, emite una ALERTA TEMPRANA indicando si este impulso se mantendrá o si es una trampa de toros/osos.
+    - Indica claramente si la tendencia para los próximos días se proyecta ALCISTA o BAJISTA y la razón principal.
     """
     for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
         try:
             res = client.models.generate_content(model=mod, contents=prompt)
             if res and res.text: return res.text
         except: continue
-    return "Variaciones mixtas en el S&P 500 con rotación de capital hacia activos defensivos ante la cautela en la renta variable tecnológica."
+    return "📊 Diagnóstico: Mercado buscando estabilización.\n🚨 Alerta: Monitoreando flujos de liquidez."
 
-def analizar_noticias_cripto_ia(df_cripto, sesion):
+def analizar_wall_street_con_alerta_giro(df_ws, sesion, estado_previo):
     if not GEMINI_API_KEY: return "Análisis no disponible."
     client = genai.Client(api_key=GEMINI_API_KEY)
     
-    # Pasamos los datos exactos obtenidos de Binance
-    detalle_cripto = "\n".join([f"- {r['ticker']}: {r['var']}% (Vol: {r['vol']:,.0f})" for _, r in df_cripto.iterrows()])
+    detalle_actual = {r['ticker']: r['var'] for _, r in df_ws.iterrows()}
+    prev_ws = estado_previo.get("wall_street", {})
     
-    prompt = f"""
-    Actúa como un analista cuantitativo de criptomonedas y experto en derivados de Binance.
-    Sesión analizada: {sesion}.
-    
-    Datos exactos de variación y volumen en 24h:
-    {detalle_cripto}
+    giros = []
+    for t, val_act in detalle_actual.items():
+        val_prev = prev_ws.get(t, val_act)
+        if val_prev < 0 and val_act > 0:
+            giros.append(f"{t}: Cambio de ROJO ({val_prev}%) a VERDE (+{val_act}%)")
+        elif val_prev > 0 and val_act < 0:
+            giros.append(f"{t}: Cambio de VERDE (+{val_prev}%) a ROJO ({val_act}%)")
 
-    Redacta un reporte táctico directo y agudo (de 3 a 5 líneas máximo).
-    REGLAS OBLIGATORIAS:
-    - No uses frases cliché ni vacías.
-    - Analiza qué altcoins o majors (BTC, ETH, SOL, etc.) están absorbiendo volumen o sufriendo presión vendedora.
-    - Explica la salud del mercado en base a las cifras: ¿hay apetito de riesgo en altcoins o refugio exclusivo en Bitcoin? Menciona la dinámica de liquidaciones o flujos institucionales.
+    texto_giros = "\n".join(giros) if giros else "Flujo sin giros bruscos en los últimos 30 min."
+    datos_actuales_txt = "\n".join([f"- {r['ticker']}: {r['var']}%" for _, r in df_ws.iterrows()])
+
+    prompt = f"""
+    Actúa como un estratega senior de Wall Street.
+    Sesión: {sesion}.
+    
+    S&P 500 HOY:
+    {datos_actuales_txt}
+
+    CAMBIOS Y GIROS DE IMPULSO RECIENTES:
+    {texto_giros}
+
+    Genera el reporte estructurado en 2 partes:
+
+    📊 **DIAGNÓSTICO DEL DÍA (Evolución de la Rueda Bursátil):**
+    - Explica el comportamiento desde la apertura y la rotación de sectores.
+
+    🚨 **ALERTA TEMPRANA Y PROYECCIÓN MACRO:**
+    - Emite un veredicto direccional para los próximos días (SUBIR o BAJAR) anticipando si los movimientos actuales consolidarán tendencia o si habrá corrección.
     """
     for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
         try:
             res = client.models.generate_content(model=mod, contents=prompt)
             if res and res.text: return res.text
         except: continue
-    return "El mercado cripto muestra selectividad en altcoins con flujos concentrados en los activos de mayor capitalización."
+    return "📊 Diagnóstico: Renta variable operando con volatilidad moderada.\n🚨 Alerta: Mantener cautela en posiciones apalancadas."
 
 # ---------------------------------------------------------
-# 4. EJECUCIÓN Y ENVÍO A TELEGRAM CON BOTONES
+# 4. EJECUCIÓN Y ENVÍO A TELEGRAM
 # ---------------------------------------------------------
-print("🌐 Ejecutando Sentinel Macro con análisis de IA profunda...")
+print("🌐 Ejecutando Sentinel Macro con motor de Alerta Temprana de Giros...")
 
 sesion_actual = obtener_sesion_actual_mercado()
+estado_previo = cargar_estado_previo()
 
-# S&P 500 / Wall Street
+# Wall Street
 df_ws = obtener_datos_wall_street_treemap()
 generar_treemap_wall_street(df_ws)
-causas_ws = analizar_noticias_wall_street_ia(df_ws, sesion_actual)
+causas_ws = analizar_wall_street_con_alerta_giro(df_ws, sesion_actual, estado_previo)
 
 msg_ws = f"🏛️ **SENTINEL MACRO — 1. S&P 500 & TRADFI**\n"
 msg_ws += f"🕒 *Sesión:* `{sesion_actual}`\n\n"
-msg_ws += f"🔍 **Análisis Táctico & Diagnóstico de Mercado:**\n{causas_ws}\n"
+msg_ws += f"{causas_ws}\n"
 
 # Cripto
 df_cripto = obtener_datos_cripto_treemap()
 generar_treemap_cripto(df_cripto)
-causas_cripto = analizar_noticias_cripto_ia(df_cripto, sesion_actual)
+causas_cripto = analizar_cripto_con_alerta_giro(df_cripto, sesion_actual, estado_previo)
 
 msg_cripto = f"🪙 **SENTINEL MACRO — 2. BINANCE CRIPTO MARKET**\n"
 msg_cripto += f"🕒 *Sesión:* `{sesion_actual}`\n\n"
-msg_cripto += f"🔍 **Análisis Táctico & Diagnóstico de Mercado:**\n{causas_cripto}\n"
+msg_cripto += f"{causas_cripto}\n"
+
+# Guardar estado para la siguiente corrida en 30 minutos
+dict_ws_save = {r['ticker']: r['var'] for _, r in df_ws.iterrows()}
+dict_cripto_save = {r['ticker']: r['var'] for _, r in df_cripto.iterrows()}
+guardar_estado_actual(dict_ws_save, dict_cripto_save)
 
 # Enviar a Telegram
 if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
@@ -274,4 +316,4 @@ if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
     if thread_id: p_m2['message_thread_id'] = thread_id
     requests.post(f"{url_base}/sendMessage", json=p_m2)
 
-    print("✅ Reportes con diagnóstico analítico profundo enviados exitosamente.")
+    print("✅ Reporte enviado con comparativa histórica y alertas de cambio de tendencia.")
