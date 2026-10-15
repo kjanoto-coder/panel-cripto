@@ -92,7 +92,6 @@ def generar_grafico_estilo_exacto(candidatas):
     fig, ax = plt.subplots(figsize=(10, 5.5), facecolor='#0b0e14')
     ax.set_facecolor('#0b0e14')
 
-    # Color especial rojo/naranja para las anomalías ocultas, verde para las demás
     colores_barras = ['#FF3D00' if c['alerta_anomalia'] else '#00E676' for c in candidatas_ordenadas]
     bars = ax.bar(tickers, scores, color=colores_barras, width=0.45)
 
@@ -154,95 +153,3 @@ def generar_resumen_ia(candidatas):
                 return response.text
         except Exception:
             continue
-            
-    return "Se detectan anomalías de volumen con compresión de precio, anticipando una inminente resolución alcista por absorción de oferta institucional."
-
-# ---------------------------------------------------------
-# ESCÁNER PRINCIPAL CON DETECCIÓN DE ANOMALÍAS OCULTAS
-# ---------------------------------------------------------
-print("🚀 Ejecutando Radar Pre-Explosión con Detector de Movimientos Ocultos...")
-
-exchange = ccxt.binance({
-    'enableRateLimit': True,
-    'options': {'defaultType': 'spot', 'fetchMarkets': ['spot']},
-    'urls': {'api': {'public': 'https://data-api.binance.vision/api/v3', 'spot': 'https://data-api.binance.vision/api/v3'}}
-})
-
-tickers = exchange.fetch_tickers()
-total_pares_analizados = len(tickers)
-
-candidatas_radar = []
-
-for symbol, data in tickers.items():
-    if not symbol.endswith('/USDT'):
-        continue
-        
-    price_change_24h = data['percentage'] if data['percentage'] is not None else 0
-    vol_24h = data['quoteVolume'] if data['quoteVolume'] is not None else 0
-    last_price = data['last'] if data['last'] is not None else 0
-    
-    if vol_24h > 40000 and last_price > 0:
-        try:
-            ohlcv = exchange.fetch_ohlcv(symbol, timeframe='1h', limit=24)
-            df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-            
-            vol_actual_1h = df['volume'].iloc[-1]
-            promedio_vol_24h = df['volume'].mean()
-            
-            if promedio_vol_24h > 0:
-                ratio_volumen = round(vol_actual_1h / promedio_vol_24h, 2)
-                ticker_limpio = symbol.split('/')[0]
-                
-                # CONDICIÓN CLAVE DE ANOMALÍA OCULTA:
-                # Si el volumen en 1H explota (>= 3.0x) pero el precio diario está en rojo o planchado (-3% a +3%)
-                # significa que hay acumulación oculta de ballenas antes de la subida brusca.
-                es_anomalia_oculta = (ratio_volumen >= 3.0) and (-3.0 <= price_change_24h <= 3.0)
-                
-                # Criterio de inclusión amplio para no perdernos ningún movimiento brusco potencial
-                if ratio_volumen >= 2.0 and -8.0 <= price_change_24h <= 20.0:
-                    # Multiplicamos el score si es anomalía oculta para que encabece el ranking
-                    multiplicador = 2.5 if es_anomalia_oculta else 1.0
-                    score = round(ratio_volumen * (abs(price_change_24h) + 2.0) * multiplicador, 2)
-                    
-                    metricas_futuros = obtener_datos_futuros_y_social(ticker_limpio)
-                    
-                    etiqueta_graf = f"🚨 {ticker_limpio}" if es_anomalia_oculta else ticker_limpio
-                    
-                    candidatas_radar.append({
-                        'symbol': symbol,
-                        'ticker': ticker_limpio,
-                        'price': last_price,
-                        'price_change': round(price_change_24h, 2),
-                        'ratio_volumen': ratio_volumen,
-                        'alerta_anomalia': es_anomalia_oculta,
-                        'etiqueta_grafico': etiqueta_graf,
-                        'metricas_futuros': metricas_futuros,
-                        'score': score
-                    })
-        except Exception:
-            continue
-
-# Ordenar por score (las anomalías ocultas con mayor volumen tendrán prioridad absoluta arriba)
-top_candidatas = sorted(candidatas_radar, key=lambda x: x['score'], reverse=True)[:7]
-
-if top_candidatas:
-    generar_grafico_estilo_exacto(top_candidatas)
-    resumen_ia = generar_resumen_ia(top_candidatas)
-    
-    mensaje_telegram = "🧠 **RADAR TÁCTICO DE INTELIGENCIA DE MERCADO**\n"
-    mensaje_telegram += "🚀 **ALERTA DE PRE-EXPLOSIÓN & ACUMULACIÓN OCULTA**\n"
-    mensaje_telegram += f"🔍 *Pares analizados en Binance:* `{total_pares_analizados}`\n\n"
-    mensaje_telegram += f"💡 **Dictamen de Anomalías (IA):**\n{resumen_ia}\n\n"
-    mensaje_telegram += "─────────────────────────\n"
-    
-    for coin in top_candidatas:
-        precio_fmt = formatear_precio(coin['price'])
-        barras = obtener_barras_fuerza(coin['ratio_volumen'])
-        url_netlify = f"{NETLIFY_BASE_URL}/?coin={coin['ticker']}"
-        url_binance = f"https://www.binance.com/es/trade/{coin['ticker']}_USDT?type=spot"
-        mf = coin['metricas_futuros']
-        
-        # Etiqueta visual distintiva si detecta acumulación oculta anticipada
-        prefijo_alerta = "🚨 **[ANOMALÍA OCULTA / ACUMULACIÓN DIP]**\n   " if coin['alerta_anomalia'] else ""
-        
-        mensaje
