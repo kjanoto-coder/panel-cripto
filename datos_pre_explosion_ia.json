@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-16T05:11:16.085361",
+    "timestamp": "2026-10-16T05:40:15.985760",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -46,20 +46,6 @@
             }
         },
         {
-            "symbol": "KNC/USDT",
-            "ticker": "KNC",
-            "price": 0.129,
-            "price_change": 4.71,
-            "ratio_volumen": 2.04,
-            "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 KNC",
-            "score": 12.05,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
-                "confluencia_tf": "\u26a1 Estructura 1D Favorable"
-            }
-        },
-        {
             "symbol": "FIO/USDT",
             "ticker": "FIO",
             "price": 0.00094,
@@ -71,6 +57,20 @@
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+            }
+        },
+        {
+            "symbol": "LUNC/USDT",
+            "ticker": "LUNC",
+            "price": 4.856e-05,
+            "price_change": 4.34,
+            "ratio_volumen": 2.01,
+            "fase": "AMARILLO",
+            "etiqueta_grafico": "\ud83d\udfe1 LUNC",
+            "score": 11.14,
+            "metricas_avanzadas": {
+                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
+                "confluencia_tf": "\u26a1 Estructura 1D Favorable"
             }
         },
         {
