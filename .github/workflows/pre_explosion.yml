@@ -28,8 +28,8 @@ jobs:
 
       - name: Ejecutar Bot de Pre-Explosión
         env:
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          CHAT_ID: ${{ secrets.CHAT_ID }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           TOPIC_ID_PRE_EXPLOSION: ${{ secrets.TOPIC_ID_PRE_EXPLOSION }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python bot_pre_explosion.py
