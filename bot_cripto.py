@@ -8,10 +8,10 @@ from datetime import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 
-# --- CONFIGURACIÓN DE VARIABLES DE ENTORNO CORREGIDAS ---
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "").strip()
-TELEGRAM_TOPIC_ID = os.getenv("TOPIC_ID_TACTICO", "").strip()
+# --- CONFIGURACIÓN DE VARIABLES DE ENTORNO BLINDADAS ---
+TELEGRAM_BOT_TOKEN = (os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("TELEGRAM_TOKEN") or "").strip()
+TELEGRAM_CHAT_ID = (os.getenv("TELEGRAM_CHAT_ID") or os.getenv("CHAT_ID") or "").strip()
+TELEGRAM_TOPIC_ID = (os.getenv("TELEGRAM_MESSAGE_THREAD_ID") or os.getenv("TOPIC_ID_TACTICO") or "").strip()
 BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
 
 # Lista negra ampliada para descartar tokens basura o deslistados de Binance Spot
@@ -278,60 +278,4 @@ def enviar_foto_con_detalle_telegram(image_path, caption_text):
             
         return res
 
-def procesar_y_enviar_bloque_unificado(num_bloque, titulo_bloque, icono, lista_items, color_grafico, filename_grafico, tipo_bloque=""):
-    if not lista_items:
-        return
-    
-    print(f"Generando Bloque {num_bloque}/5: {titulo_bloque}...")
-    generar_grafico_tema(lista_items, f"{icono} {titulo_bloque.upper()} • Ranking 24h", color_grafico, filename_grafico)
-    
-    titulo_seguro = html.escape(titulo_bloque.upper())
-    caption = f"🧠 <b>CENTRAL DE INTELIGENCIA DE MERCADO ({num_bloque}/5)</b>\n"
-    caption += f"{icono} <b>{num_bloque}. {titulo_seguro} (Detalle)</b>\n\n"
-    
-    for item in lista_items:
-        sim = item['symbol'].replace('USDT', '')
-        precio = item['lastPrice_f']
-        precio_str = formatear_precio(precio)
-        cambio = item['priceChangePercent_f']
-        high = item['highPrice_f']
-        low = item['lowPrice_f']
-        
-        barra = generar_barra_progreso(cambio, tipo_bloque=tipo_bloque)
-        unique_id = int(time.time() * 1000) + random.randint(1, 99999)
-        
-        url_ia = f"{BASE_URL_NETLIFY}/?coin={sim}&price={precio}&change={cambio}&high={high}&low={low}&v={sim}_{unique_id}"
-        url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
-        
-        cambio_fmt = f"+{cambio:.1f}%" if cambio >= 0 else f"{cambio:.1f}%"
-        
-        if tipo_bloque == "silenciosa":
-            vol_rel = item.get('factor_vol', 1.0)
-            tag_iman = " 🔥 [Imán Alcista]" if item.get('iman_alcista', False) else ""
-            caption += (
-                f"• <b>{sim}</b> | {precio_str} | {barra} | {cambio_fmt}{tag_iman}\n"
-                f"  🧠 <i>[Vol. Relativo x{vol_rel:.1f}]</i>\n"
-                f"  └ <a href=\"{html.escape(url_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n"
-            )
-        else:
-            caption += (
-                f"• <b>{sim}</b> | {precio_str} | {barra} | {cambio_fmt}\n"
-                f"  └ <a href=\"{html.escape(url_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n"
-            )
-    
-    enviar_foto_con_detalle_telegram(filename_grafico, caption)
-    time.sleep(3)
-
-if __name__ == "__main__":
-    print("Iniciando envío de bloques con sistema de rotación y motor quirúrgico...")
-    datos = obtener_datos_binance()
-    if datos:
-        ganadoras, acumulacion_24h, acumulacion_silenciosa, perdedoras, favoritas = preparar_datos(datos)
-        
-        procesar_y_enviar_bloque_unificado(1, "TOP 7 GANADORAS", "🚀", ganadoras, "#00c853", "grafico_ganadoras.png")
-        procesar_y_enviar_bloque_unificado(2, "TOP 7 ACUMULACIÓN 24H (< $1 USD)", "💎", acumulacion_24h, "#ffab00", "grafico_acumulacion_24h.png", tipo_bloque="acumulacion_24h")
-        procesar_y_enviar_bloque_unificado(3, "TOP 7 ACUMULACIÓN SILENCIOSA (< $1)", "🕵️‍♂️", acumulacion_silenciosa, "#00bcd4", "grafico_silenciosa.png", tipo_bloque="silenciosa")
-        procesar_y_enviar_bloque_unificado(4, "TOP 7 PERDEDORAS", "📉", perdedoras, "#f6465d", "grafico_perdedoras.png")
-        procesar_y_enviar_bloque_unificado(5, "TUS 5 FAVORITAS", "⭐", favoritas, "#3861fb", "grafico_favoritas.png")
-        
-        print("¡Los 5 bloques actualizados se enviaron correctamente!")
+def procesar_y_enviar_bloque_unificado(num_bloque, titulo_bloque, icono, lista_items,
