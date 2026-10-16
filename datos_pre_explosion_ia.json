@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-16T15:43:12.768006",
+    "timestamp": "2026-10-16T16:12:13.997459",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -46,28 +46,28 @@
             }
         },
         {
-            "symbol": "DODO/USDT",
-            "ticker": "DODO",
-            "price": 0.0217,
-            "price_change": 4.83,
-            "ratio_volumen": 2.04,
+            "symbol": "FIO/USDT",
+            "ticker": "FIO",
+            "price": 0.00094,
+            "price_change": -4.08,
+            "ratio_volumen": 2.11,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 DODO",
-            "score": 12.3,
+            "etiqueta_grafico": "\ud83d\udfe1 FIO",
+            "score": 11.15,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
-                "confluencia_tf": "\ud83d\ude80 Confluencia Total (1H + 4H + 1D Alcista)"
+                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
             }
         },
         {
-            "symbol": "SMCIB/USDT",
-            "ticker": "SMCIB",
-            "price": 32.62,
-            "price_change": -4.45,
-            "ratio_volumen": 2.03,
+            "symbol": "BNCB/USDT",
+            "ticker": "BNCB",
+            "price": 4.56,
+            "price_change": -4.0,
+            "ratio_volumen": 2.05,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 SMCIB",
-            "score": 11.47,
+            "etiqueta_grafico": "\ud83d\udfe1 BNCB",
+            "score": 10.66,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
