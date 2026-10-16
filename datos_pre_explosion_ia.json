@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-16T06:49:42.642516",
+    "timestamp": "2026-10-16T07:29:41.695447",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -32,14 +32,14 @@
             }
         },
         {
-            "symbol": "EDEN/USDT",
-            "ticker": "EDEN",
-            "price": 0.06001,
-            "price_change": 4.99,
-            "ratio_volumen": 2.5,
+            "symbol": "ANKR/USDT",
+            "ticker": "ANKR",
+            "price": 0.00447,
+            "price_change": 4.68,
+            "ratio_volumen": 2.42,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 EDEN",
-            "score": 15.46,
+            "etiqueta_grafico": "\ud83d\udfe1 ANKR",
+            "score": 14.24,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\u26a1 Estructura 1D Favorable"
@@ -60,14 +60,14 @@
             }
         },
         {
-            "symbol": "UMA/USDT",
-            "ticker": "UMA",
-            "price": 0.396,
-            "price_change": 4.76,
-            "ratio_volumen": 2.11,
+            "symbol": "ATOM/USDT",
+            "ticker": "ATOM",
+            "price": 1.763,
+            "price_change": 4.82,
+            "ratio_volumen": 2.09,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 UMA",
-            "score": 12.58,
+            "etiqueta_grafico": "\ud83d\udfe1 ATOM",
+            "score": 12.57,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\u26a1 Estructura 1D Favorable"
