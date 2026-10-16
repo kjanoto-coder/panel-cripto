@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-16T03:08:55.053660",
+    "timestamp": "2026-10-16T03:41:08.345287",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -48,12 +48,12 @@
         {
             "symbol": "ORCLB/USDT",
             "ticker": "ORCLB",
-            "price": 134.31,
-            "price_change": 4.7,
-            "ratio_volumen": 1.9,
+            "price": 134.03,
+            "price_change": 4.5,
+            "ratio_volumen": 2.21,
             "fase": "AMARILLO",
             "etiqueta_grafico": "\ud83d\udfe1 ORCLB",
-            "score": 11.21,
+            "score": 12.59,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\u26a1 Estructura 1D Favorable"
