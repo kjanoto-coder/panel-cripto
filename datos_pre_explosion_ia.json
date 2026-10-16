@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-16T05:40:15.985760",
+    "timestamp": "2026-10-16T06:10:00.526580",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -60,17 +60,17 @@
             }
         },
         {
-            "symbol": "LUNC/USDT",
-            "ticker": "LUNC",
-            "price": 4.856e-05,
-            "price_change": 4.34,
-            "ratio_volumen": 2.01,
+            "symbol": "COCOS/USDT",
+            "ticker": "COCOS",
+            "price": 1.7546,
+            "price_change": 3.44,
+            "ratio_volumen": 2.16,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 LUNC",
-            "score": 11.14,
+            "etiqueta_grafico": "\ud83d\udfe1 COCOS",
+            "score": 10.03,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
-                "confluencia_tf": "\u26a1 Estructura 1D Favorable"
+                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
             }
         },
         {
