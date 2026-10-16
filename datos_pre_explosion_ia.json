@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-16T02:40:39.617973",
+    "timestamp": "2026-10-16T03:08:55.053660",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -46,6 +46,20 @@
             }
         },
         {
+            "symbol": "ORCLB/USDT",
+            "ticker": "ORCLB",
+            "price": 134.31,
+            "price_change": 4.7,
+            "ratio_volumen": 1.9,
+            "fase": "AMARILLO",
+            "etiqueta_grafico": "\ud83d\udfe1 ORCLB",
+            "score": 11.21,
+            "metricas_avanzadas": {
+                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
+                "confluencia_tf": "\u26a1 Estructura 1D Favorable"
+            }
+        },
+        {
             "symbol": "FIO/USDT",
             "ticker": "FIO",
             "price": 0.00094,
@@ -57,20 +71,6 @@
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
-            }
-        },
-        {
-            "symbol": "HUMA/USDT",
-            "ticker": "HUMA",
-            "price": 0.03299,
-            "price_change": 3.22,
-            "ratio_volumen": 2.38,
-            "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 HUMA",
-            "score": 10.53,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
-                "confluencia_tf": "\u26a1 Estructura 1D Favorable"
             }
         },
         {
