@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-16T17:11:43.055025",
+    "timestamp": "2026-10-16T17:39:50.949408",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -46,28 +46,28 @@
             }
         },
         {
-            "symbol": "BBB/USDT",
-            "ticker": "BBB",
-            "price": 8.14,
-            "price_change": -4.24,
-            "ratio_volumen": 2.12,
+            "symbol": "SOXSB/USDT",
+            "ticker": "SOXSB",
+            "price": 47.34,
+            "price_change": 4.99,
+            "ratio_volumen": 2.09,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 BBB",
-            "score": 11.52,
+            "etiqueta_grafico": "\ud83d\udfe1 SOXSB",
+            "score": 12.94,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+                "confluencia_tf": "\u26a1 Estructura 1D Favorable"
             }
         },
         {
-            "symbol": "FIO/USDT",
-            "ticker": "FIO",
-            "price": 0.00094,
-            "price_change": -4.08,
-            "ratio_volumen": 2.11,
+            "symbol": "IOST/USDT",
+            "ticker": "IOST",
+            "price": 0.000777,
+            "price_change": -3.72,
+            "ratio_volumen": 2.38,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 FIO",
-            "score": 11.15,
+            "etiqueta_grafico": "\ud83d\udfe1 IOST",
+            "score": 11.7,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
