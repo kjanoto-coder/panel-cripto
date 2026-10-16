@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-16T12:09:42.205925",
+    "timestamp": "2026-10-16T12:50:42.381164",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -32,45 +32,45 @@
             }
         },
         {
-            "symbol": "MDT/USDT",
-            "ticker": "MDT",
-            "price": 0.00403,
-            "price_change": -4.5,
-            "ratio_volumen": 2.48,
+            "symbol": "IMX/USDT",
+            "ticker": "IMX",
+            "price": 0.1654,
+            "price_change": 4.62,
+            "ratio_volumen": 2.54,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 MDT",
-            "score": 14.14,
+            "etiqueta_grafico": "\ud83d\udfe1 IMX",
+            "score": 14.78,
+            "metricas_avanzadas": {
+                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
+                "confluencia_tf": "\u26a1 Estructura 1D Favorable"
+            }
+        },
+        {
+            "symbol": "EUL/USDT",
+            "ticker": "EUL",
+            "price": 1.248,
+            "price_change": 4.87,
+            "ratio_volumen": 2.43,
+            "fase": "AMARILLO",
+            "etiqueta_grafico": "\ud83d\udfe1 EUL",
+            "score": 14.76,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
             }
         },
         {
-            "symbol": "FIO/USDT",
-            "ticker": "FIO",
-            "price": 0.00094,
-            "price_change": -4.08,
-            "ratio_volumen": 2.11,
+            "symbol": "SKY/USDT",
+            "ticker": "SKY",
+            "price": 0.07263,
+            "price_change": 4.58,
+            "ratio_volumen": 2.52,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 FIO",
-            "score": 11.15,
+            "etiqueta_grafico": "\ud83d\udfe1 SKY",
+            "score": 14.56,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
-            }
-        },
-        {
-            "symbol": "COCOS/USDT",
-            "ticker": "COCOS",
-            "price": 1.7546,
-            "price_change": 3.44,
-            "ratio_volumen": 2.16,
-            "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 COCOS",
-            "score": 10.03,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+                "confluencia_tf": "\u26a1 Estructura 1D Favorable"
             }
         },
         {
