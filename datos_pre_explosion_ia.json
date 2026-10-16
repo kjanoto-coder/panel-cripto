@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-16T16:12:13.997459",
+    "timestamp": "2026-10-16T16:41:10.488342",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -32,6 +32,20 @@
             }
         },
         {
+            "symbol": "GTC/USDT",
+            "ticker": "GTC",
+            "price": 0.20568,
+            "price_change": 4.51,
+            "ratio_volumen": 2.49,
+            "fase": "AMARILLO",
+            "etiqueta_grafico": "\ud83d\udfe1 GTC",
+            "score": 14.22,
+            "metricas_avanzadas": {
+                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
+                "confluencia_tf": "\u26a1 Estructura 1D Favorable"
+            }
+        },
+        {
             "symbol": "MDT/USDT",
             "ticker": "MDT",
             "price": 0.00403,
@@ -54,20 +68,6 @@
             "fase": "AMARILLO",
             "etiqueta_grafico": "\ud83d\udfe1 FIO",
             "score": 11.15,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
-            }
-        },
-        {
-            "symbol": "BNCB/USDT",
-            "ticker": "BNCB",
-            "price": 4.56,
-            "price_change": -4.0,
-            "ratio_volumen": 2.05,
-            "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 BNCB",
-            "score": 10.66,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
