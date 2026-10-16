@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-16T15:12:36.000866",
+    "timestamp": "2026-10-16T15:43:12.768006",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -46,28 +46,28 @@
             }
         },
         {
-            "symbol": "FIO/USDT",
-            "ticker": "FIO",
-            "price": 0.00094,
-            "price_change": -4.08,
-            "ratio_volumen": 2.11,
+            "symbol": "DODO/USDT",
+            "ticker": "DODO",
+            "price": 0.0217,
+            "price_change": 4.83,
+            "ratio_volumen": 2.04,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 FIO",
-            "score": 11.15,
+            "etiqueta_grafico": "\ud83d\udfe1 DODO",
+            "score": 12.3,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+                "confluencia_tf": "\ud83d\ude80 Confluencia Total (1H + 4H + 1D Alcista)"
             }
         },
         {
-            "symbol": "COCOS/USDT",
-            "ticker": "COCOS",
-            "price": 1.7546,
-            "price_change": 3.44,
-            "ratio_volumen": 2.16,
+            "symbol": "SMCIB/USDT",
+            "ticker": "SMCIB",
+            "price": 32.62,
+            "price_change": -4.45,
+            "ratio_volumen": 2.03,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 COCOS",
-            "score": 10.03,
+            "etiqueta_grafico": "\ud83d\udfe1 SMCIB",
+            "score": 11.47,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
