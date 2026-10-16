@@ -8,13 +8,14 @@ from datetime import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
-TELEGRAM_CHAT_ID = os.getenv("CHAT_ID")
-TELEGRAM_TOPIC_ID = os.getenv("TOPIC_ID_TACTICO")
+# --- CONFIGURACIÓN DE VARIABLES DE ENTORNO CORREGIDAS ---
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "").strip()
+TELEGRAM_TOPIC_ID = os.getenv("TOPIC_ID_TACTICO", "").strip()
 BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
 
-# Lista negra de tokens basura, deslistados o especulativos
-LISTA_NEGRA = ['PNTUSDT', 'VGXUSDT', 'BNCUSDT', 'PENGUUSDT', 'ASTERUSDT']
+# Lista negra ampliada para descartar tokens basura o deslistados de Binance Spot
+LISTA_NEGRA = ['PNTUSDT', 'VGXUSDT', 'BNCUSDT', 'PENGUUSDT', 'ASTERUSDT', 'WTCUSDT', 'PHBUSDT', 'NFPUSDT', 'BETAUSDT', 'VIBUSDT', 'PYRUSDT', 'ACAUSDT']
 
 ARCHIVO_MEMORIA = "ultimas_perlas.json"
 
@@ -118,7 +119,10 @@ def preparar_datos(tickers):
                 t['quoteVolume_f'] = float(t.get('quoteVolume', 0))
                 t['highPrice_f'] = float(t.get('highPrice', 0))
                 t['lowPrice_f'] = float(t.get('lowPrice', 0))
-                usdt_pairs.append(t)
+                
+                # Filtro adicional de liquidez real en Spot (Mínimo $100.000 USDT)
+                if t['quoteVolume_f'] >= 100000:
+                    usdt_pairs.append(t)
             except (ValueError, TypeError):
                 continue
 
@@ -133,7 +137,6 @@ def preparar_datos(tickers):
     historial_previo = cargar_memoria_perlas()
     simbolos_bloqueados = [item for reporte in historial_previo for item in reporte]
     
-    # Filtrar candidatos base con el filtro de enfriamiento y rango de compresión
     silenciosa_pool_fresca = [
         t for t in usdt_pairs 
         if t['lastPrice_f'] < 1.0 
@@ -159,7 +162,6 @@ def preparar_datos(tickers):
         
         es_iman, pct_shorts = obtener_mapa_calor_liquidaciones(symbol)
         
-        # Aplicamos el filtro quirúrgico: anomalía de volumen o imán alcista
         if factor_vol_relativo >= 1.2 or es_iman:
             t['factor_vol'] = factor_vol_relativo
             t['iman_alcista'] = es_iman
@@ -168,7 +170,6 @@ def preparar_datos(tickers):
         if len(perlas_quirurgicas) >= 7:
             break
             
-    # Si faltan candidatos por exigencia del motor quirúrgico, completamos con la piscina fresca
     if len(perlas_quirurgicas) < 7:
         for t in silenciosa_pool_fresca:
             if t not in perlas_quirurgicas:
@@ -178,7 +179,6 @@ def preparar_datos(tickers):
             if len(perlas_quirurgicas) >= 7:
                 break
 
-    # Si aún tras todo esto faltan por el bloqueo de memoria, relajamos la memoria de forma segura
     if len(perlas_quirurgicas) < 7:
         silenciosa_pool_respaldo = [
             t for t in usdt_pairs 
@@ -191,7 +191,6 @@ def preparar_datos(tickers):
         
     acumulacion_silenciosa = sorted(perlas_quirurgicas, key=lambda x: x['quoteVolume_f'], reverse=True)[:7]
     
-    # Actualizar memoria con las nuevas perlas seleccionadas
     nuevos_simbolos = [t['symbol'] for t in acumulacion_silenciosa]
     historial_previo.append(nuevos_simbolos)
     guardar_memoria_perlas(historial_previo)
@@ -248,17 +247,35 @@ def generar_grafico_tema(lista_items, titulo_grafico, color_barra, filename):
     return filename
 
 def enviar_foto_con_detalle_telegram(image_path, caption_text):
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        print("⚠️ Error: FALTA TELEGRAM_BOT_TOKEN o TELEGRAM_CHAT_ID en las variables de entorno.")
+        return None
+
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
+    
+    payload = {
+        "chat_id": TELEGRAM_CHAT_ID, 
+        "caption": caption_text, 
+        "parse_mode": "HTML"
+    }
+    
+    # Conversión limpia del Thread ID
+    if TELEGRAM_TOPIC_ID:
+        try:
+            payload["message_thread_id"] = int(TELEGRAM_TOPIC_ID)
+        except ValueError:
+            print(f"⚠️ Warning: TELEGRAM_TOPIC_ID no es un entero válido: {TELEGRAM_TOPIC_ID}")
+
     with open(image_path, 'rb') as photo:
-        payload = {
-            "chat_id": TELEGRAM_CHAT_ID, 
-            "caption": caption_text, 
-            "parse_mode": "HTML"
-        }
-        if TELEGRAM_TOPIC_ID:
-            payload["message_thread_id"] = TELEGRAM_TOPIC_ID
         files = {"photo": photo}
         res = requests.post(url, data=payload, files=files)
+        
+        resultado = res.json()
+        if resultado.get("ok"):
+            print("✅ Bloque enviado exitosamente a Telegram.")
+        else:
+            print(f"⚠️ Error de entrega en Telegram: {resultado}")
+            
         return res
 
 def procesar_y_enviar_bloque_unificado(num_bloque, titulo_bloque, icono, lista_items, color_grafico, filename_grafico, tipo_bloque=""):
