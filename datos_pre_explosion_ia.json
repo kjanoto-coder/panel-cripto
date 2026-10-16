@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-16T04:40:32.972027",
+    "timestamp": "2026-10-16T05:11:16.085361",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -46,14 +46,14 @@
             }
         },
         {
-            "symbol": "TST/USDT",
-            "ticker": "TST",
-            "price": 0.01585,
-            "price_change": 4.62,
-            "ratio_volumen": 2.23,
+            "symbol": "KNC/USDT",
+            "ticker": "KNC",
+            "price": 0.129,
+            "price_change": 4.71,
+            "ratio_volumen": 2.04,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 TST",
-            "score": 12.98,
+            "etiqueta_grafico": "\ud83d\udfe1 KNC",
+            "score": 12.05,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\u26a1 Estructura 1D Favorable"
