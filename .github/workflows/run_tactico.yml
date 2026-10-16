@@ -23,8 +23,8 @@ jobs:
 
       - name: Ejecutar Cazador Táctico
         env:
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          CHAT_ID: ${{ secrets.CHAT_ID }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           TOPIC_ID_TACTICO: ${{ secrets.TOPIC_ID_TACTICO }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
