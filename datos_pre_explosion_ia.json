@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-16T21:09:27.258088",
+    "timestamp": "2026-10-16T21:38:20.390912",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -32,6 +32,20 @@
             }
         },
         {
+            "symbol": "MRVLB/USDT",
+            "ticker": "MRVLB",
+            "price": 228.87,
+            "price_change": -4.99,
+            "ratio_volumen": 2.56,
+            "fase": "AMARILLO",
+            "etiqueta_grafico": "\ud83d\udfe1 MRVLB",
+            "score": 15.86,
+            "metricas_avanzadas": {
+                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
+                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+            }
+        },
+        {
             "symbol": "MDT/USDT",
             "ticker": "MDT",
             "price": 0.00403,
@@ -46,28 +60,14 @@
             }
         },
         {
-            "symbol": "HOODB/USDT",
-            "ticker": "HOODB",
-            "price": 99.21,
-            "price_change": -4.03,
-            "ratio_volumen": 2.37,
+            "symbol": "COINB/USDT",
+            "ticker": "COINB",
+            "price": 173.78,
+            "price_change": -4.78,
+            "ratio_volumen": 2.21,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 HOODB",
-            "score": 12.4,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
-            }
-        },
-        {
-            "symbol": "FIO/USDT",
-            "ticker": "FIO",
-            "price": 0.00094,
-            "price_change": -4.08,
-            "ratio_volumen": 2.11,
-            "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 FIO",
-            "score": 11.15,
+            "etiqueta_grafico": "\ud83d\udfe1 COINB",
+            "score": 13.22,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
