@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-17T06:06:01.389449",
+    "timestamp": "2026-10-17T06:44:34.089090",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -46,28 +46,28 @@
             }
         },
         {
-            "symbol": "FIO/USDT",
-            "ticker": "FIO",
-            "price": 0.00094,
-            "price_change": -4.08,
-            "ratio_volumen": 2.11,
+            "symbol": "GENIUS/USDT",
+            "ticker": "GENIUS",
+            "price": 0.2999,
+            "price_change": -4.73,
+            "ratio_volumen": 2.14,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 FIO",
-            "score": 11.15,
+            "etiqueta_grafico": "\ud83d\udfe1 GENIUS",
+            "score": 12.7,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
             }
         },
         {
-            "symbol": "AXL/USDT",
-            "ticker": "AXL",
-            "price": 0.0575,
-            "price_change": 3.23,
-            "ratio_volumen": 2.43,
+            "symbol": "KMNO/USDT",
+            "ticker": "KMNO",
+            "price": 0.0412,
+            "price_change": 4.89,
+            "ratio_volumen": 1.9,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 AXL",
-            "score": 10.77,
+            "etiqueta_grafico": "\ud83d\udfe1 KMNO",
+            "score": 11.57,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\u26a1 Estructura 1D Favorable"
