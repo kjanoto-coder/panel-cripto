@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-17T03:07:50.969420",
+    "timestamp": "2026-10-17T03:37:24.940736",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -60,14 +60,14 @@
             }
         },
         {
-            "symbol": "COCOS/USDT",
-            "ticker": "COCOS",
-            "price": 1.7546,
-            "price_change": 3.44,
-            "ratio_volumen": 2.16,
+            "symbol": "FF/USDT",
+            "ticker": "FF",
+            "price": 0.10619,
+            "price_change": -2.85,
+            "ratio_volumen": 2.55,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 COCOS",
-            "score": 10.03,
+            "etiqueta_grafico": "\ud83d\udfe1 FF",
+            "score": 10.31,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
