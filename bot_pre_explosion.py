@@ -163,7 +163,7 @@ def generar_resumen_ia(candidatas):
     {lista_texto}
 
     Escribe un dictamen contundente y directo de máximo 4 líneas. 
-    Señala cuál de estas monedas tiene la mayor probabilidad de convertirse en la ganadora explosiva de las próximas horas basándote en su compresión y volumen.
+    Señala cuál de estas monedas tiene la mayor probabilidad de convertirse en la ganadora explosiva das próximas horas basándote en su compresión y volumen.
     """
     for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
         try:
@@ -175,7 +175,7 @@ def generar_resumen_ia(candidatas):
     return "Máxima atención a los activos en fase Roja y Amarilla: la acumulación silenciosa detectada anticipa el próximo movimiento explosivo del día."
 
 # ---------------------------------------------------------
-# FUNCIONES DE ENVÍO ROBUSTO A TELEGRAM (CON REINTENTO AL CHAT PRINCIPAL)
+# FUNCIONES DE ENVÍO ROBUSTO A TELEGRAM
 # ---------------------------------------------------------
 def enviar_foto_telegram(url_base, payload_base, image_path):
     with open(image_path, 'rb') as foto:
@@ -235,7 +235,6 @@ try:
             continue
         ticker_limpio = symbol.split('/')[0]
         
-        # Filtro de rotación si ya salió en el reporte inmediato anterior
         if ticker_limpio in historial_excluidos:
             continue
         
@@ -254,7 +253,6 @@ try:
                 if promedio_vol_24h > 0:
                     ratio_volumen = round(vol_actual_1h / promedio_vol_24h, 2)
                     
-                    # REGLAS RECTIFICADAS PARA GARANTIZAR LAS 3 FASES
                     if ratio_volumen >= 2.6:
                         fase = "ROJO"
                         etiqueta_graf = f"🚨 {ticker_limpio}"
@@ -291,6 +289,29 @@ try:
             except Exception:
                 continue
 
-    # ORDENAR CADA GRUPO POR SCORE
     candidatas_rojas = sorted(candidatas_rojas, key=lambda x: x['score'], reverse=True)
-    candidatas_amarillas = sorted(candidatas_amarillas, key=lambda x:
+    candidatas_amarillas = sorted(candidatas_amarillas, key=lambda x: x['score'], reverse=True)
+    candidatas_verdes = sorted(candidatas_verdes, key=lambda x: x['score'], reverse=True)
+
+    top_candidatas = []
+    top_candidatas.extend(candidatas_rojas[:2])
+    top_candidatas.extend(candidatas_amarillas[:3])
+    top_candidatas.extend(candidatas_verdes[:2])
+
+    if len(top_candidatas) < 7:
+        restantes = [c for c in (candidatas_rojas + candidatas_amarillas + candidatas_verdes) if c not in top_candidatas]
+        restantes_ordenados = sorted(restantes, key=lambda x: x['score'], reverse=True)
+        top_candidatas.extend(restantes_ordenados[:(7 - len(top_candidatas))])
+
+    top_candidatas = top_candidatas[:7]
+    print(f"📊 Selección balanceada lista (Rojos: {len([c for c in top_candidatas if c['fase']=='ROJO'])}, Amarillos: {len([c for c in top_candidatas if c['fase']=='AMARILLO'])}, Verdes: {len([c for c in top_candidatas if c['fase']=='VERDE'])})")
+
+    if top_candidatas:
+        nuevos_tickers_historial = [c['ticker'] for c in top_candidatas]
+        guardar_historial_reciente(nuevos_tickers_historial)
+
+        generar_grafico_termometro(top_candidatas)
+        resumen_ia = generar_resumen_ia(top_candidatas)
+        
+        mensaje_telegram = "🧠 **RADAR TÁCTICO • TERMÓMETRO BALANCEADO 3-FASES**\n"
+        mensaje_telegram +=
