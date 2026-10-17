@@ -219,6 +219,9 @@ try:
         'enableRateLimit': True,
         'options': {'defaultType': 'spot'}
     })
+    
+    # Redirección de API pública para omitir restricción de IP geográfica en GitHub Actions
+    exchange_spot.urls['api']['public'] = 'https://data-api.binance.vision/api/v3'
 
     tickers_spot = exchange_spot.fetch_tickers()
     total_pares_analizados = len(tickers_spot)
@@ -239,7 +242,7 @@ try:
         
         price_change_24h = data['percentage'] if data['percentage'] is not None else 0
         vol_24h = data['quoteVolume'] if data['quoteVolume'] is not None else 0
-        last_price = data['last'] if data['last'] is not loss else 0
+        last_price = data['last'] if data['last'] is not None else 0
         
         if vol_24h > 25000 and last_price > 0:
             try:
