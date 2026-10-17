@@ -1,7 +1,6 @@
 import os
 import json
 import requests
-import ccxt
 import pandas as pd
 import matplotlib.pyplot as plt
 from google import genai
@@ -58,39 +57,49 @@ def formatear_precio(precio):
 def obtener_score(item):
     return item.get('score', 0)
 
-def analizar_multi_temporalidad_y_liquidaciones(exchange_spot, symbol, ticker):
+def obtener_ohlcv_binance(symbol, interval='1h', limit=12):
+    try:
+        url = f"https://data-api.binance.vision/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}"
+        res = requests.get(url, timeout=5).json()
+        if isinstance(res, list):
+            df = pd.DataFrame(res, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'close_time', 'qav', 'num_trades', 'taker_base_vol', 'taker_quote_vol', 'ignore'])
+            for col in ['open', 'high', 'low', 'close', 'volume']:
+                df[col] = df[col].astype(float)
+            return df
+    except Exception:
+        pass
+    return None
+
+def analizar_multi_temporalidad_y_liquidaciones(symbol, ticker):
     metricas = {
         "zona_liq": "🛡️ Zonas Estables",
         "confluencia_tf": "⏳ Alineación 1H/4H en Curso"
     }
     try:
-        ohlcv_4h = exchange_spot.fetch_ohlcv(symbol, timeframe='4h', limit=6)
-        df_4h = pd.DataFrame(ohlcv_4h, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+        df_4h = obtener_ohlcv_binance(symbol, interval='4h', limit=6)
+        df_1d = obtener_ohlcv_binance(symbol, interval='1d', limit=3)
         
-        ohlcv_1d = exchange_spot.fetch_ohlcv(symbol, timeframe='1d', limit=3)
-        df_1d = pd.DataFrame(ohlcv_1d, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-        
-        vol_4h_reciente = df_4h['volume'].iloc[-1]
-        media_4h = df_4h['volume'].mean()
-        tendencia_1d_alcista = df_1d['close'].iloc[-1] > df_1d['open'].iloc[-1]
-        
-        if media_4h > 0 and (vol_4h_reciente / media_4h) >= 1.4 and tendencia_1d_alcista:
-            metricas["confluencia_tf"] = "🚀 Confluencia Total (1H + 4H + 1D Alcista)"
-        elif tendencia_1d_alcista:
-            metricas["confluencia_tf"] = "⚡ Estructura 1D Favorable"
-        else:
-            metricas["confluencia_tf"] = "💤 Acumulación en Soporte"
-
-        # Análisis basado en velas spot para evitar bloqueos geográficos de futuros (fapi)
-        high_price = float(df_4h['high'].max())
-        last_price = float(df_4h['close'].iloc[-1])
-        
-        if last_price > 0:
-            distancia_top = round(((high_price - last_price) / last_price) * 100, 2)
-            if distancia_top <= 1.5:
-                metricas["zona_liq"] = "🔥 Presión en Máximos de Rango (<1.5%)"
+        if df_4h is not None and len(df_4h) > 0 and df_1d is not None and len(df_1d) > 0:
+            vol_4h_reciente = df_4h['volume'].iloc[-1]
+            media_4h = df_4h['volume'].mean()
+            tendencia_1d_alcista = df_1d['close'].iloc[-1] > df_1d['open'].iloc[-1]
+            
+            if media_4h > 0 and (vol_4h_reciente / media_4h) >= 1.4 and tendencia_1d_alcista:
+                metricas["confluencia_tf"] = "🚀 Confluencia Total (1H + 4H + 1D Alcista)"
+            elif tendencia_1d_alcista:
+                metricas["confluencia_tf"] = "⚡ Estructura 1D Favorable"
             else:
-                metricas["zona_liq"] = "🛡️ Zona de Acumulación Limpia"
+                metricas["confluencia_tf"] = "💤 Acumulación en Soporte"
+
+            high_price = float(df_4h['high'].max())
+            last_price = float(df_4h['close'].iloc[-1])
+            
+            if last_price > 0:
+                distancia_top = round(((high_price - last_price) / last_price) * 100, 2)
+                if distancia_top <= 1.5:
+                    metricas["zona_liq"] = "🔥 Presión en Máximos de Rango (<1.5%)"
+                else:
+                    metricas["zona_liq"] = "🛡️ Zona de Acumulación Limpia"
     except Exception:
         pass
     return metricas
@@ -212,80 +221,77 @@ def enviar_mensaje_telegram(url_base, payload_base):
 # ESCÁNER CON SELECCIÓN BALANCEADA OBLIGATORIA
 # ---------------------------------------------------------
 try:
-    exchange_spot = ccxt.binance({
-        'enableRateLimit': True,
-        'options': {'defaultType': 'spot'}
-    })
+    url_tickers = "https://data-api.binance.vision/api/v3/ticker/24hr"
+    res_tickers = requests.get(url_tickers, timeout=10).json()
     
-    exchange_spot.urls['api']['public'] = 'https://data-api.binance.vision/api/v3'
+    if not isinstance(res_tickers, list):
+        raise Exception("No se pudieron obtener los tickers de Binance Vision.")
 
-    tickers_spot = exchange_spot.fetch_tickers()
-    total_pares_analizados = len(tickers_spot)
-    
+    total_pares_analizados = len(res_tickers)
     historial_excluidos = cargar_historial_reciente()
 
     candidatas_rojas = []
     candidatas_amarillas = []
     candidatas_verdes = []
 
-    for symbol, data in tickers_spot.items():
-        if not symbol.endswith('/USDT'):
+    for item in res_tickers:
+        symbol = item.get('symbol', '')
+        if not symbol.endswith('USDT'):
             continue
-        ticker_limpio = symbol.split('/')[0]
+        ticker_limpio = symbol[:-4]
         
         if ticker_limpio in historial_excluidos:
             continue
         
-        price_change_24h = data['percentage'] if data['percentage'] is not None else 0
-        vol_24h = data['quoteVolume'] if data['quoteVolume'] is not None else 0
-        last_price = data['last'] if data['last'] is not None else 0
-        
-        if vol_24h > 25000 and last_price > 0:
-            try:
-                ohlcv = exchange_spot.fetch_ohlcv(symbol, timeframe='1h', limit=12)
-                df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-                
-                vol_actual_1h = df['volume'].iloc[-1]
-                promedio_vol_24h = df['volume'].mean()
-                
-                if promedio_vol_24h > 0:
-                    ratio_volumen = round(vol_actual_1h / promedio_vol_24h, 2)
+        try:
+            price_change_24h = float(item.get('priceChangePercent', 0))
+            vol_24h = float(item.get('quoteVolume', 0))
+            last_price = float(item.get('lastPrice', 0))
+            
+            if vol_24h > 25000 and last_price > 0:
+                df_1h = obtener_ohlcv_binance(symbol, interval='1h', limit=12)
+                if df_1h is not None and len(df_1h) > 0:
+                    vol_actual_1h = df_1h['volume'].iloc[-1]
+                    promedio_vol_24h = df_1h['volume'].mean()
                     
-                    if ratio_volumen >= 2.6:
-                        fase = "ROJO"
-                        etiqueta_graf = f"🚨 {ticker_limpio}"
-                    elif ratio_volumen >= 1.7 and -5.0 <= price_change_24h <= 5.0:
-                        fase = "AMARILLO"
-                        etiqueta_graf = f"🟡 {ticker_limpio}"
-                    elif ratio_volumen >= 1.2:
-                        fase = "VERDE"
-                        etiqueta_graf = ticker_limpio
-                    else:
-                        continue
-                    
-                    score = round(ratio_volumen * (abs(price_change_24h) + 1.2), 2)
-                    metricas_avanzadas = analizar_multi_temporalidad_y_liquidaciones(exchange_spot, symbol, ticker_limpio)
-                    
-                    item_coin = {
-                        'symbol': symbol,
-                        'ticker': ticker_limpio,
-                        'price': last_price,
-                        'price_change': round(price_change_24h, 2),
-                        'ratio_volumen': ratio_volumen,
-                        'fase': fase,
-                        'etiqueta_grafico': etiqueta_graf,
-                        'score': score,
-                        'metricas_avanzadas': metricas_avanzadas
-                    }
-                    
-                    if fase == "ROJO":
-                        candidatas_rojas.append(item_coin)
-                    elif fase == "AMARILLO":
-                        candidatas_amarillas.append(item_coin)
-                    else:
-                        candidatas_verdes.append(item_coin)
-            except Exception:
-                continue
+                    if promedio_vol_24h > 0:
+                        ratio_volumen = round(vol_actual_1h / promedio_vol_24h, 2)
+                        
+                        if ratio_volumen >= 2.6:
+                            fase = "ROJO"
+                            etiqueta_graf = f"🚨 {ticker_limpio}"
+                        elif ratio_volumen >= 1.7 and -5.0 <= price_change_24h <= 5.0:
+                            fase = "AMARILLO"
+                            etiqueta_graf = f"🟡 {ticker_limpio}"
+                        elif ratio_volumen >= 1.2:
+                            fase = "VERDE"
+                            etiqueta_graf = ticker_limpio
+                        else:
+                            continue
+                        
+                        score = round(ratio_volumen * (abs(price_change_24h) + 1.2), 2)
+                        metricas_avanzadas = analizar_multi_temporalidad_y_liquidaciones(symbol, ticker_limpio)
+                        
+                        item_coin = {
+                            'symbol': symbol,
+                            'ticker': ticker_limpio,
+                            'price': last_price,
+                            'price_change': round(price_change_24h, 2),
+                            'ratio_volumen': ratio_volumen,
+                            'fase': fase,
+                            'etiqueta_grafico': etiqueta_graf,
+                            'score': score,
+                            'metricas_avanzadas': metricas_avanzadas
+                        }
+                        
+                        if fase == "ROJO":
+                            candidatas_rojas.append(item_coin)
+                        elif fase == "AMARILLO":
+                            candidatas_amarillas.append(item_coin)
+                        else:
+                            candidatas_verdes.append(item_coin)
+        except Exception:
+            continue
 
     candidatas_rojas = sorted(candidatas_rojas, key=obtener_score, reverse=True)
     candidatas_amarillas = sorted(candidatas_amarillas, key=obtener_score, reverse=True)
