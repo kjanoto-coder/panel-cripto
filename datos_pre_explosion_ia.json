@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-17T08:14:15.320069",
+    "timestamp": "2026-10-17T08:41:47.848809",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -18,17 +18,17 @@
             }
         },
         {
-            "symbol": "QUICK/USDT",
-            "ticker": "QUICK",
-            "price": 0.00917,
-            "price_change": 39.57,
-            "ratio_volumen": 4.16,
+            "symbol": "FORTH/USDT",
+            "ticker": "FORTH",
+            "price": 0.237,
+            "price_change": -19.93,
+            "ratio_volumen": 6.84,
             "fase": "ROJO",
-            "etiqueta_grafico": "\ud83d\udea8 QUICK",
-            "score": 169.62,
+            "etiqueta_grafico": "\ud83d\udea8 FORTH",
+            "score": 144.54,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
-                "confluencia_tf": "\ud83d\ude80 Confluencia Total (1H + 4H + 1D Alcista)"
+                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
             }
         },
         {
@@ -46,28 +46,28 @@
             }
         },
         {
-            "symbol": "FIO/USDT",
-            "ticker": "FIO",
-            "price": 0.00094,
-            "price_change": -4.08,
-            "ratio_volumen": 2.11,
+            "symbol": "MASK/USDT",
+            "ticker": "MASK",
+            "price": 0.417,
+            "price_change": -4.14,
+            "ratio_volumen": 2.26,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 FIO",
-            "score": 11.15,
+            "etiqueta_grafico": "\ud83d\udfe1 MASK",
+            "score": 12.06,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
             }
         },
         {
-            "symbol": "ID/USDT",
-            "ticker": "ID",
-            "price": 0.0326,
-            "price_change": -3.83,
-            "ratio_volumen": 2.16,
+            "symbol": "GENIUS/USDT",
+            "ticker": "GENIUS",
+            "price": 0.2997,
+            "price_change": -3.32,
+            "ratio_volumen": 2.48,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 ID",
-            "score": 10.88,
+            "etiqueta_grafico": "\ud83d\udfe1 GENIUS",
+            "score": 11.22,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
