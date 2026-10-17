@@ -9,10 +9,10 @@ import squarify
 from google import genai
 
 # ---------------------------------------------------------
-# CONFIGURACIÓN DE CREDENCIALES Y RUTAS
+# CONFIGURACIÓN DE CREDENCIALES Y RUTAS (COMPATIBILIDAD TOTAL)
 # ---------------------------------------------------------
-TELEGRAM_BOT_TOKEN = (os.getenv("TELEGRAM_TOKEN") or os.getenv("TELEGRAM_BOT_TOKEN") or "").strip()
-TELEGRAM_CHAT_ID = (os.getenv("CHAT_ID") or os.getenv("TELEGRAM_CHAT_ID") or "").strip()
+TELEGRAM_BOT_TOKEN = (os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("TELEGRAM_TOKEN") or "").strip()
+TELEGRAM_CHAT_ID = (os.getenv("TELEGRAM_CHAT_ID") or os.getenv("CHAT_ID") or "").strip()
 MESSAGE_THREAD_ID = (os.getenv("TOPIC_ID_SENTINEL_MACRO") or os.getenv("TELEGRAM_MESSAGE_THREAD_ID") or "").strip()
 GEMINI_API_KEY = (os.getenv("GEMINI_API_KEY") or "").strip()
 
@@ -20,7 +20,7 @@ HISTORIAL_FILE = "historial_noticias.json"
 ESTADO_PREVIO_FILE = "datos_sentinel_macro.json"
 
 # ---------------------------------------------------------
-# MEMORIA Y COMPARATIVA DE GIROS (DE ROJO A VERDE O VICEVERSA)
+# MEMORIA Y COMPARATIVA DE GIROS
 # ---------------------------------------------------------
 def cargar_estado_previo():
     if os.path.exists(ESTADO_PREVIO_FILE):
@@ -58,7 +58,7 @@ def obtener_sesion_actual_mercado():
         return "🌎 SESIÓN EE. UU. (Wall Street / S&P 500)"
 
 # ---------------------------------------------------------
-# 1. MAPA DE CALOR PROFESIONAL DE S&P 500 (WALL STREET)
+# 1. MAPA DE CALOR DE S&P 500 (WALL STREET)
 # ---------------------------------------------------------
 def obtener_datos_wall_street_treemap():
     acciones = {
@@ -104,7 +104,7 @@ def generar_treemap_wall_street(df):
     plt.close()
 
 # ---------------------------------------------------------
-# 2. MAPA DE CALOR PROFESIONAL DE CRIPTO (BINANCE)
+# 2. MAPA DE CALOR DE CRIPTO (BINANCE)
 # ---------------------------------------------------------
 def obtener_datos_cripto_treemap():
     criptos = [
@@ -196,4 +196,158 @@ def analizar_wall_street_ia(df_ws, sesion, estado_previo):
 
 def analizar_cripto_ia(df_cripto, sesion, estado_previo):
     if not GEMINI_API_KEY: 
-        return "📊 Diagnóstico: Mercado buscando estabilización.\n🚨
+        return "📊 Diagnóstico: Mercado buscando estabilización.\n🚨 Alerta: Monitoreando flujos de liquidez."
+    
+    try:
+        client = genai.Client(api_key=GEMINI_API_KEY)
+        
+        detalle_actual = {r['ticker']: r['var'] for _, r in df_cripto.iterrows()}
+        prev_cripto = estado_previo.get("cripto", {})
+        
+        giros = []
+        for t, val_act in detalle_actual.items():
+            val_prev = prev_cripto.get(t, val_act)
+            if val_prev < 0 and val_act > 0:
+                giros.append(f"{t} giró de ROJO ({val_prev}%) a VERDE (+{val_act}%)")
+            elif val_prev > 0 and val_act < 0:
+                giros.append(f"{t} giró de VERDE (+{val_prev}%) a ROJO ({val_act}%)")
+
+        texto_giros = ", ".join(giros) if giros else "Sin giros drásticos en los últimos minutos."
+        datos_txt = ", ".join([f"{r['ticker']}: {r['var']}%" for _, r in df_cripto.iterrows()])
+
+        prompt = f"""
+        Actúa como un analista cuantitativo de criptomonedas.
+        Sesión: {sesion}.
+        Estado de Binance: {datos_txt}.
+        Giros de polaridad detectados: {texto_giros}.
+
+        MANTÉN EXACTAMENTE ESTE FORMATO DE DOS LÍNEAS DIRECTAS:
+        📊 Diagnóstico: [Explica en 1 o 2 frases cortas la evolución de la vela diaria desde el inicio y qué monedas absorben volumen]
+        🚨 Alerta: [Da una alerta clara sobre la dirección proyectada para los próximos días (Alcista/Bajista) destacando giros de rojo a verde]
+        """
+        for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
+            try:
+                res = client.models.generate_content(model=mod, contents=prompt)
+                if res and res.text: return res.text.strip()
+            except: continue
+    except Exception as e:
+        print(f"Error analizando Cripto con Gemini: {e}")
+        
+    return "📊 Diagnóstico: Mercado buscando estabilización.\n🚨 Alerta: Monitoreando flujos de liquidez."
+
+# ---------------------------------------------------------
+# FUNCIONES DE ENVÍO ROBUSTO A TELEGRAM
+# ---------------------------------------------------------
+def enviar_foto_telegram(url_base, payload_base, image_path):
+    with open(image_path, 'rb') as f:
+        res = requests.post(f"{url_base}/sendPhoto", data=payload_base, files={'photo': f})
+        resultado = res.json()
+        if not resultado.get("ok") and "message thread not found" in str(resultado.get("description", "")):
+            print("⚠️ Hilo no encontrado para la foto. Reintentando al chat principal...")
+            payload_copia = payload_base.copy()
+            payload_copia.pop("message_thread_id", None)
+            f.seek(0)
+            res = requests.post(f"{url_base}/sendPhoto", data=payload_copia, files={'photo': f})
+            resultado = res.json()
+        if resultado.get("ok"):
+            print("✅ Foto enviada a Telegram.")
+        else:
+            print(f"⚠️ Error enviando foto: {resultado}")
+
+def enviar_mensaje_telegram(url_base, payload_base):
+    res = requests.post(f"{url_base}/sendMessage", json=payload_base)
+    resultado = res.json()
+    if not resultado.get("ok") and "message thread not found" in str(resultado.get("description", "")):
+        print("⚠️ Hilo no encontrado para el mensaje. Reintentando al chat principal...")
+        payload_copia = payload_base.copy()
+        payload_copia.pop("message_thread_id", None)
+        res = requests.post(f"{url_base}/sendMessage", json=payload_copia)
+        resultado = res.json()
+    if resultado.get("ok"):
+        print("✅ Mensaje enviado a Telegram.")
+    else:
+        print(f"⚠️ Error enviando mensaje: {resultado}")
+
+# ---------------------------------------------------------
+# 4. EJECUCIÓN Y ENVÍO
+# ---------------------------------------------------------
+if __name__ == "__main__":
+    print("🌐 Ejecutando Sentinel Macro...")
+
+    sesion_actual = obtener_sesion_actual_mercado()
+    estado_previo = cargar_estado_previo()
+
+    # 1. Wall Street
+    df_ws = obtener_datos_wall_street_treemap()
+    generar_treemap_wall_street(df_ws)
+    causas_ws = analizar_wall_street_ia(df_ws, sesion_actual, estado_previo)
+
+    msg_ws = f"🏛️ **SENTINEL MACRO — 1. S&P 500 & TRADFI**\n"
+    msg_ws += f"🕒 **Sesión:** 🌎 `{sesion_actual}`\n\n"
+    msg_ws += f"{causas_ws}\n"
+
+    # 2. Cripto
+    df_cripto = obtener_datos_cripto_treemap()
+    generar_treemap_cripto(df_cripto)
+    causas_cripto = analizar_cripto_ia(df_cripto, sesion_actual, estado_previo)
+
+    msg_cripto = f"🪙 **SENTINEL MACRO — 2. BINANCE CRIPTO MARKET**\n"
+    msg_cripto += f"🕒 **Sesión:** 🌎 `{sesion_actual}`\n\n"
+    msg_cripto += f"{causas_cripto}\n"
+
+    dict_ws_save = {r['ticker']: r['var'] for _, r in df_ws.iterrows()}
+    dict_cripto_save = {r['ticker']: r['var'] for _, r in df_cripto.iterrows()}
+    guardar_estado_actual(dict_ws_save, dict_cripto_save)
+
+    if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
+        url_base = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
+        thread_id = None
+        if MESSAGE_THREAD_ID:
+            try:
+                thread_id = int(MESSAGE_THREAD_ID)
+            except ValueError:
+                pass
+
+        teclado_ws = {
+            "inline_keyboard": [[
+                {"text": "📊 Ver Mapa Interactivo S&P 500 (Investing)", "url": "https://es.investing.com/markets/heatmap"}
+            ]]
+        }
+
+        teclado_cripto = {
+            "inline_keyboard": [[
+                {"text": "🪙 Ver Mapa Interactivo Binance Futures", "url": "https://www.binance.com/es-AR/futures/crypto-heatmap"}
+            ]]
+        }
+
+        # Enviar S&P 500
+        p_f1 = {'chat_id': TELEGRAM_CHAT_ID, 'caption': f"🗺️ **Mapa de Calor — S&P 500 ({sesion_actual})**", 'parse_mode': 'Markdown'}
+        if thread_id: p_f1['message_thread_id'] = thread_id
+        enviar_foto_telegram(url_base, p_f1, 'heatmap_wall_street.png')
+
+        p_m1 = {
+            'chat_id': TELEGRAM_CHAT_ID, 
+            'text': msg_ws, 
+            'parse_mode': 'Markdown',
+            'reply_markup': teclado_ws
+        }
+        if thread_id: p_m1['message_thread_id'] = thread_id
+        enviar_mensaje_telegram(url_base, p_m1)
+
+        # Enviar Cripto
+        p_f2 = {'chat_id': TELEGRAM_CHAT_ID, 'caption': f"🗺️ **Mapa de Calor — Cripto ({sesion_actual})**", 'parse_mode': 'Markdown'}
+        if thread_id: p_f2['message_thread_id'] = thread_id
+        enviar_foto_telegram(url_base, p_f2, 'heatmap_cripto.png')
+
+        p_m2 = {
+            'chat_id': TELEGRAM_CHAT_ID, 
+            'text': msg_cripto, 
+            'parse_mode': 'Markdown',
+            'reply_markup': teclado_cripto
+        }
+        if thread_id: p_m2['message_thread_id'] = thread_id
+        enviar_mensaje_telegram(url_base, p_m2)
+
+        print("✅ Ejecución completada exitosamente.")
+    else:
+        print("⚠️ No se pudo enviar a Telegram: Faltan credenciales.")
