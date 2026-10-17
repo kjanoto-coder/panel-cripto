@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-17T22:20:39.696290",
+    "timestamp": "2026-10-17T22:48:26.768792",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -32,14 +32,14 @@
             }
         },
         {
-            "symbol": "MDT/USDT",
-            "ticker": "MDT",
-            "price": 0.00403,
-            "price_change": -4.5,
-            "ratio_volumen": 2.48,
+            "symbol": "MUUB/USDT",
+            "ticker": "MUUB",
+            "price": 22.91,
+            "price_change": -4.98,
+            "ratio_volumen": 2.55,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 MDT",
-            "score": 14.14,
+            "etiqueta_grafico": "\ud83d\udfe1 MUUB",
+            "score": 15.75,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
@@ -48,26 +48,26 @@
         {
             "symbol": "RONIN/USDT",
             "ticker": "RONIN",
-            "price": 0.0593,
-            "price_change": -4.97,
-            "ratio_volumen": 2.26,
+            "price": 0.0596,
+            "price_change": -4.79,
+            "ratio_volumen": 2.42,
             "fase": "AMARILLO",
             "etiqueta_grafico": "\ud83d\udfe1 RONIN",
-            "score": 13.94,
+            "score": 14.5,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
             }
         },
         {
-            "symbol": "FIO/USDT",
-            "ticker": "FIO",
-            "price": 0.00094,
-            "price_change": -4.08,
-            "ratio_volumen": 2.11,
+            "symbol": "MDT/USDT",
+            "ticker": "MDT",
+            "price": 0.00403,
+            "price_change": -4.5,
+            "ratio_volumen": 2.48,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 FIO",
-            "score": 11.15,
+            "etiqueta_grafico": "\ud83d\udfe1 MDT",
+            "score": 14.14,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
