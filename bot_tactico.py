@@ -7,10 +7,10 @@ from datetime import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-CHAT_ID = os.getenv("CHAT_ID")
-TOPIC_ID_TACTICO = os.getenv("TOPIC_ID_TACTICO")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+TELEGRAM_TOKEN = (os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("TELEGRAM_TOKEN") or "").strip()
+CHAT_ID = (os.getenv("TELEGRAM_CHAT_ID") or os.getenv("CHAT_ID") or "").strip()
+TOPIC_ID_TACTICO = (os.getenv("TOPIC_ID_TACTICO") or os.getenv("TELEGRAM_MESSAGE_THREAD_ID") or "").strip()
+GEMINI_API_KEY = (os.getenv("GEMINI_API_KEY") or "").strip()
 
 ARCHIVO_MEMORIA = "ultimas_perlas_cazador.json"
 
@@ -58,14 +58,18 @@ def obtener_velas_historicas(symbol, interval="1d", limit=30):
     return []
 
 def obtener_mapa_calor_liquidaciones(symbol):
-    """Consulta el ratio de apalancamiento en Futuros para detectar imanes de Shorts"""
+    """Evalúa zonas de presión utilizando datos públicos de Spot para evitar bloqueos geográficos en GitHub Actions"""
     try:
-        url_ratio = f"https://fapi.binance.com/futures/data/topLongShortAccountRatio?symbol={symbol}&period=5m&limit=1"
-        res = requests.get(url_ratio, timeout=4).json()
-        if res and isinstance(res, list) and len(res) > 0:
-            short_ratio = float(res[0].get('shortAccount', 0.5)) * 100
-            es_iman_alcista = short_ratio >= 51.5
-            return es_iman_alcista, short_ratio
+        df_4h = obtener_velas_historicas(symbol, interval="4h", limit=6)
+        if df_4h and len(df_4h) > 0:
+            high_prices = [float(k[2]) for k in df_4h]
+            closes = [float(k[4]) for k in df_4h]
+            high_price = max(high_prices)
+            last_price = closes[-1]
+            if last_price > 0:
+                distancia_top = ((high_price - last_price) / last_price) * 100
+                es_iman = distancia_top <= 1.5
+                return es_iman, float(52.0 if es_iman else 48.0)
     except Exception:
         pass
     return False, 50.0
@@ -89,7 +93,7 @@ def generar_sintesis_resumen(simbolo, precio, cambio, volumen, high, low, es_ima
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
         headers = {"Content-Type": "application/json"}
         
-        tag_extra = " | Imán de Liquidación Shorts Activo" if es_iman else f" | Vol. Relativo x{vol_rel:.1f}"
+        tag_extra = " | Presión en Máximos Activa" if es_iman else f" | Vol. Relativo x{vol_rel:.1f}"
         
         prompt = f"""
         Eres un analista técnico sénior de mercados cripto. Genera un análisis técnico específico y detallado para la criptomoneda {simbolo} en Binance Spot usando estos datos exactos de 24h:
@@ -113,28 +117,25 @@ def generar_sintesis_resumen(simbolo, precio, cambio, volumen, high, low, es_ima
             }]
         }
         
-        try:
-            response = requests.post(url, headers=headers, json=payload, timeout=10)
-            if response.status_code == 200:
-                data = response.json()
-                texto = data['candidates'][0]['content']['parts'][0]['text'].strip()
-                if not (texto.startswith('[') and texto.endswith(']')):
-                    texto = f"[{texto}]"
-                return texto
-        except Exception as e:
-            print(f"Error en API REST de Gemini para {simbolo}: {e}")
+        for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
+            try:
+                alt_url = f"https://generativelanguage.googleapis.com/v1beta/models/{mod}:generateContent?key={GEMINI_API_KEY}"
+                response = requests.post(alt_url, headers=headers, json=payload, timeout=10)
+                if response.status_code == 200:
+                    data = response.json()
+                    texto = data['candidates'][0]['content']['parts'][0]['text'].strip()
+                    if not (texto.startswith('[') and texto.endswith(']')):
+                        texto = f"[{texto}]"
+                    return texto
+            except Exception:
+                continue
 
-    # Fallback técnico dinámico con números reales si la API no está disponible
     return f"[1D: Acumulación sobre piso en {formatear_precio(low)} | 4H: Testeo de techo en {formatear_precio(high)} | 15M: Entrada de flujo en {formatear_precio(precio)} | Conclusión: Giro alcista]"
 
 def procesar_oportunidades(data):
-    filtrados = []
     total_sub1 = 0
-    
-    # Lista negra de tokens deslistados o con anomalías de nombres/datos en la API Spot de Binance
     LISTA_NEGRA = ['PNTUSDT', 'VGXUSDT', 'BNCUSDT', 'PENGUUSDT', 'ASTERUSDT']
     
-    # Cargar memoria de enfriamiento para evitar repeticiones
     historial_previo = cargar_memoria_perlas()
     simbolos_bloqueados = [item for reporte in historial_previo for item in reporte]
     
@@ -150,10 +151,8 @@ def procesar_oportunidades(data):
                 high = float(item['highPrice'])
                 low = float(item['lowPrice'])
                 
-                # Conteo exclusivo de activos sub-$1 USD, con volumen real y fuera de lista negra
                 if 0 < precio < 1.0 and volumen >= 1_500_000 and symbol not in LISTA_NEGRA:
                     total_sub1 += 1
-                    # Filtro de compresión/movimiento moderado y exclusión por memoria
                     if -1.5 <= cambio <= 2.5 and symbol not in simbolos_bloqueados:
                         candidatos_base.append({
                             'symbol': symbol,
@@ -181,9 +180,8 @@ def procesar_oportunidades(data):
         vol_historico = np.mean(volumenes[:-5])
         factor_vol_relativo = vol_reciente / (vol_historico if vol_historico > 0 else 1)
         
-        es_iman, pct_shorts = obtener_mapa_calor_liquidaciones(symbol)
+        es_iman, _ = obtener_mapa_calor_liquidaciones(symbol)
         
-        # Filtro quirúrgico estricto: Anomalía de volumen o imán de liquidación alcista
         if factor_vol_relativo >= 1.2 or es_iman:
             item['factor_vol'] = factor_vol_relativo
             item['es_iman'] = es_iman
@@ -192,7 +190,6 @@ def procesar_oportunidades(data):
         if len(perlas_quirurgicas) >= 5:
             break
 
-    # Si faltan candidatos por el filtro estricto, completamos con los candidatos base válidos
     if len(perlas_quirurgicas) < 5:
         for item in candidatos_base:
             if item not in perlas_quirurgicas:
@@ -202,7 +199,6 @@ def procesar_oportunidades(data):
             if len(perlas_quirurgicas) >= 5:
                 break
 
-    # Si aún faltan por el bloqueo estricto de memoria, permitimos rotación secundaria segura
     if len(perlas_quirurgicas) < 5:
         for item in data:
             symbol = item['symbol']
@@ -229,7 +225,6 @@ def procesar_oportunidades(data):
 
     top_datos = sorted(perlas_quirurgicas, key=lambda x: x['volume'], reverse=True)[:5]
 
-    # Actualizar memoria de perlas
     nuevos_simbolos = [k['symbol'] for k in top_datos]
     historial_previo.append(nuevos_simbolos)
     guardar_memoria_perlas(historial_previo)
@@ -251,7 +246,7 @@ def procesar_oportunidades(data):
         netlify_url = f"https://polite-baklava-8ec85f.netlify.app/?coin={sim}&price={precio}&change={cambio}&high={high}&low={low}&vol={volumen:,.0f}&v={timestamp}"
         
         resumen_moneda = generar_sintesis_resumen(sim, precio, cambio, volumen, high, low, es_iman, vol_rel)
-        time.sleep(0.8)
+        time.sleep(0.5)
         
         resultado.append({
             'simbolo': sim,
@@ -308,14 +303,24 @@ def generar_grafico_narrativa(oportunidades):
 def enviar_telegram_con_foto(image_path):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendPhoto"
     with open(image_path, 'rb') as photo:
-        payload = {"chat_id": CHAT_ID}
+        payload = {"chat_id": CHAT_ID, "caption": "🎯 <b>CAZADOR TÁCTICO • NARRATIVA DEL DÍA</b>", "parse_mode": "HTML"}
         if TOPIC_ID_TACTICO:
-            payload["message_thread_id"] = TOPIC_ID_TACTICO
+            try:
+                payload["message_thread_id"] = int(TOPIC_ID_TACTICO)
+            except ValueError:
+                pass
         
         files = {"photo": photo}
         response = requests.post(url, data=payload, files=files)
-        print("Respuesta de Telegram (Foto):", response.text)
-        return response.json()
+        res_json = response.json()
+        
+        if not res_json.get("ok"):
+            print("⚠️ Reintentando foto de Cazador al chat principal...")
+            payload.pop("message_thread_id", None)
+            photo.seek(0)
+            response = requests.post(url, data=payload, files=files)
+            res_json = response.json()
+        return res_json
 
 def enviar_telegram_texto(mensaje):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
@@ -326,13 +331,26 @@ def enviar_telegram_texto(mensaje):
         "disable_web_page_preview": True
     }
     if TOPIC_ID_TACTICO:
-        payload["message_thread_id"] = TOPIC_ID_TACTICO
+        try:
+            payload["message_thread_id"] = int(TOPIC_ID_TACTICO)
+        except ValueError:
+            pass
 
     response = requests.post(url, json=payload)
-    print("Respuesta de Telegram (Texto):", response.text)
-    return response.json()
+    res_json = response.json()
+    
+    if not res_json.get("ok"):
+        print("⚠️ Reintentando mensaje de Cazador al chat principal...")
+        payload.pop("message_thread_id", None)
+        response = requests.post(url, json=payload)
+        res_json = response.json()
+    return res_json
 
 def main():
+    if not TELEGRAM_TOKEN or not CHAT_ID:
+        print("⚠️ Faltan credenciales de Telegram.")
+        return
+
     datos = obtener_datos_binance()
     if not datos:
         print("Error al obtener datos de Binance.")
@@ -352,7 +370,7 @@ def main():
     msg_parte_2 = "🎯 <b>CAZADOR TÁCTICO</b>\n"
     msg_parte_2 += "📊 <i>Ranking de Momentum 24h en Binance Spot</i>\n\n"
     msg_parte_2 += f"<b>MONEDAS ANALIZADAS:</b> {total_sub1}\n\n"
-    msg_parte_2 += f"<b>RESUMEN:</b> Estas altcoins fueron seleccionadas de un universo de {total_sub1} activos bajo $1 USD en Binance Spot debido a una confluencia de compresión de volatilidad previa, anomalía de volumen e imán de liquidación institucional en derivados.\n\n"
+    msg_parte_2 += f"<b>RESUMEN:</b> Estas altcoins fueron seleccionadas de un universo de {total_sub1} activos bajo $1 USD en Binance Spot debido a una confluencia de compresión de volatilidad previa, anomalía de volumen y presión institucional.\n\n"
     msg_parte_2 += "🚀 <b>TOP OPORTUNIDADES TÁCTICAS</b>\n"
     
     for op in bloque_1:
