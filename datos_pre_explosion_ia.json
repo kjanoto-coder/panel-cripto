@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-17T12:02:33.930889",
+    "timestamp": "2026-10-17T12:26:18.035089",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -32,6 +32,20 @@
             }
         },
         {
+            "symbol": "VET/USDT",
+            "ticker": "VET",
+            "price": 0.006825,
+            "price_change": -4.76,
+            "ratio_volumen": 2.38,
+            "fase": "AMARILLO",
+            "etiqueta_grafico": "\ud83d\udfe1 VET",
+            "score": 14.18,
+            "metricas_avanzadas": {
+                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
+                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+            }
+        },
+        {
             "symbol": "MDT/USDT",
             "ticker": "MDT",
             "price": 0.00403,
@@ -46,28 +60,14 @@
             }
         },
         {
-            "symbol": "FIO/USDT",
-            "ticker": "FIO",
-            "price": 0.00094,
-            "price_change": -4.08,
-            "ratio_volumen": 2.11,
+            "symbol": "JUP/USDT",
+            "ticker": "JUP",
+            "price": 0.2981,
+            "price_change": -4.58,
+            "ratio_volumen": 2.34,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 FIO",
-            "score": 11.15,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
-            }
-        },
-        {
-            "symbol": "COCOS/USDT",
-            "ticker": "COCOS",
-            "price": 1.7546,
-            "price_change": 3.44,
-            "ratio_volumen": 2.16,
-            "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 COCOS",
-            "score": 10.03,
+            "etiqueta_grafico": "\ud83d\udfe1 JUP",
+            "score": 13.52,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
