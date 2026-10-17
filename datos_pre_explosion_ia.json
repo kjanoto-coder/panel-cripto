@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-17T10:37:41.646437",
+    "timestamp": "2026-10-17T11:04:08.465142",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -46,28 +46,28 @@
             }
         },
         {
-            "symbol": "COOKIE/USDT",
-            "ticker": "COOKIE",
-            "price": 0.00985,
-            "price_change": -4.83,
-            "ratio_volumen": 2.19,
+            "symbol": "FIO/USDT",
+            "ticker": "FIO",
+            "price": 0.00094,
+            "price_change": -4.08,
+            "ratio_volumen": 2.11,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 COOKIE",
-            "score": 13.21,
+            "etiqueta_grafico": "\ud83d\udfe1 FIO",
+            "score": 11.15,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
             }
         },
         {
-            "symbol": "BIO/USDT",
-            "ticker": "BIO",
-            "price": 0.02479,
-            "price_change": -4.91,
-            "ratio_volumen": 2.14,
+            "symbol": "COCOS/USDT",
+            "ticker": "COCOS",
+            "price": 1.7546,
+            "price_change": 3.44,
+            "ratio_volumen": 2.16,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 BIO",
-            "score": 13.08,
+            "etiqueta_grafico": "\ud83d\udfe1 COCOS",
+            "score": 10.03,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
