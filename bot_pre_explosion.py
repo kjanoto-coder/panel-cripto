@@ -173,28 +173,49 @@ def generar_resumen_ia(candidatas):
 
 def enviar_foto_telegram(url_base, payload_base, image_path):
     with open(image_path, 'rb') as foto:
-        res = requests.post(f"{url_base}/sendPhoto", data=payload_base, files={'photo': foto}, timeout=30)
-        resultado = res.json()
+        try:
+            res = requests.post(f"{url_base}/sendPhoto", data=payload_base, files={'photo': foto}, timeout=30)
+            resultado = res.json()
+        except Exception:
+            resultado = {"ok": False}
         
-        if not resultado.get("ok") and "message thread not found" in str(resultado.get("description", "")):
-            print("⚠️ Hilo de Telegram no encontrado para la foto. Reintentando al chat principal...")
+        if not resultado.get("ok"):
+            print("⚠️ Reintentando foto al chat principal...")
             payload_copia = payload_base.copy()
             payload_copia.pop("message_thread_id", None)
             foto.seek(0)
-            res = requests.post(f"{url_base}/sendPhoto", data=payload_copia, files={'photo': foto}, timeout=30)
-            resultado = res.json()
-            
+            try:
+                res = requests.post(f"{url_base}/sendPhoto", data=payload_copia, files={'photo': foto}, timeout=30)
+                resultado = res.json()
+            except Exception:
+                pass
         if resultado.get("ok"):
-            print("✅ Foto enviada a Telegram.")
-        else:
-            print(f"⚠️ Error enviando foto a Telegram: {resultado}")
+            print("✅ Foto enviada.")
 
 def enviar_mensaje_telegram(url_base, payload_base):
-    res = requests.post(f"{url_base}/sendMessage", json=payload_base, timeout=20)
-    resultado = res.json()
+    try:
+        res = requests.post(f"{url_base}/sendMessage", json=payload_base, timeout=20)
+        resultado = res.json()
+    except Exception:
+        resultado = {"ok": False}
     
-    if not resultado.get("ok") and "message thread not found" in str(resultado.get("description", "")):
-        print("⚠️ Hilo de Telegram no encontrado para el mensaje. Reintentando al chat principal...")
+    if not resultado.get("ok"):
+        print("⚠️ Reintentando mensaje al chat principal...")
         payload_copia = payload_base.copy()
         payload_copia.pop("message_thread_id", None)
-        res = requests.post(f"{url_base}/sendMessage", json=payload_copia, timeout=20
+        try:
+            res = requests.post(f"{url_base}/sendMessage", json=payload_copia, timeout=20)
+            resultado = res.json()
+        except Exception:
+            pass
+    if resultado.get("ok"):
+        print("✅ Mensaje enviado.")
+
+# ---------------------------------------------------------
+# ESCÁNER CON SELECCIÓN BALANCEADA OBLIGATORIA
+# ---------------------------------------------------------
+try:
+    exchange_spot = ccxt.binance({
+        'enableRateLimit': True,
+        'options': {'defaultType': 'spot', 'fetchMarkets': ['spot']},
+        'urls': {'api': {'public': 'https://data-api.binance.vision/api/v3', 'spot': '
