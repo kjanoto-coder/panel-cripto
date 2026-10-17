@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-17T17:35:26.032776",
+    "timestamp": "2026-10-17T18:00:32.006325",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -46,14 +46,14 @@
             }
         },
         {
-            "symbol": "0G/USDT",
-            "ticker": "0G",
-            "price": 0.2355,
-            "price_change": -3.88,
-            "ratio_volumen": 2.39,
+            "symbol": "CHR/USDT",
+            "ticker": "CHR",
+            "price": 0.01905,
+            "price_change": -3.64,
+            "ratio_volumen": 2.37,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 0G",
-            "score": 12.14,
+            "etiqueta_grafico": "\ud83d\udfe1 CHR",
+            "score": 11.48,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
