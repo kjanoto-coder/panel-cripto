@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-17T15:35:59.989953",
+    "timestamp": "2026-10-17T16:03:53.165125",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -46,28 +46,28 @@
             }
         },
         {
-            "symbol": "BEB/USDT",
-            "ticker": "BEB",
-            "price": 219.77,
-            "price_change": -4.36,
-            "ratio_volumen": 2.21,
+            "symbol": "FIO/USDT",
+            "ticker": "FIO",
+            "price": 0.00094,
+            "price_change": -4.08,
+            "ratio_volumen": 2.11,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 BEB",
-            "score": 12.29,
+            "etiqueta_grafico": "\ud83d\udfe1 FIO",
+            "score": 11.15,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
             }
         },
         {
-            "symbol": "KERNEL/USDT",
-            "ticker": "KERNEL",
-            "price": 0.042,
-            "price_change": -4.11,
-            "ratio_volumen": 2.27,
+            "symbol": "COCOS/USDT",
+            "ticker": "COCOS",
+            "price": 1.7546,
+            "price_change": 3.44,
+            "ratio_volumen": 2.16,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 KERNEL",
-            "score": 12.05,
+            "etiqueta_grafico": "\ud83d\udfe1 COCOS",
+            "score": 10.03,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
