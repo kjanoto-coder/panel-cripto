@@ -1,45 +1,41 @@
-import os
-import requests
+name: Dashboard Cripto Auto-Update
 
-# Configuración de Telegram limpiando posibles espacios vacíos
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "-1003937091631").strip()
-TELEGRAM_THREAD_ID = os.getenv("TELEGRAM_MESSAGE_THREAD_ID", "2711").strip()
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
 
-def enviar_reporte_telegram(mensaje):
-    if not TELEGRAM_BOT_TOKEN:
-        print("⚠️ No se encontró el TELEGRAM_BOT_TOKEN en las variables de entorno.")
-        return
+permissions:
+  contents: write
 
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": TELEGRAM_CHAT_ID,
-        "message_thread_id": int(TELEGRAM_THREAD_ID) if TELEGRAM_THREAD_ID else None,
-        "text": mensaje,
-        "parse_mode": "Markdown"
-    }
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repositorio
+        uses: actions/checkout@v3
 
-    try:
-        response = requests.post(url, json=payload)
-        resultado = response.json()
-        if resultado.get("ok"):
-            print("✅ Reporte publicado en Telegram correctamente.")
-        else:
-            print(f"⚠️ Respuesta de Telegram: {resultado}")
-    except Exception as e:
-        print(f"❌ Error al conectar con la API de Telegram: {e}")
+      - name: Configurar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
 
-def main():
-    print("🔹 Base de datos del ecosistema actualizada.")
-    
-    # Mensaje de prueba / reporte para el bot
-    mensaje = (
-        "🚀 **Actualización del Ecosistema Cripto**\n\n"
-        "📊 El panel y la auditoría web se han sincronizado correctamente.\n"
-        "🌐 Ya puedes ver los cambios reflejados en línea."
-    )
-    
-    enviar_reporte_telegram(mensaje)
+      - name: Instalar dependencias
+        run: |
+          pip install requests pandas numpy matplotlib
 
-if __name__ == "__main__":
-    main()
+      - name: Ejecutar Bot Cripto
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TOPIC_ID_TACTICO: ${{ secrets.TOPIC_ID_TACTICO }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python bot_cripto.py
+
+      - name: Guardar Cambios en GitHub
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add ultimas_perlas.json || true
+          git commit -m "Auto-update: Memoria de perlas y dashboard" || true
+          git push || true
