@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-17T05:37:51.356920",
+    "timestamp": "2026-10-17T06:06:01.389449",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -46,20 +46,6 @@
             }
         },
         {
-            "symbol": "MANTRA/USDT",
-            "ticker": "MANTRA",
-            "price": 0.00401,
-            "price_change": -4.3,
-            "ratio_volumen": 2.5,
-            "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 MANTRA",
-            "score": 13.74,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
-            }
-        },
-        {
             "symbol": "FIO/USDT",
             "ticker": "FIO",
             "price": 0.00094,
@@ -71,6 +57,20 @@
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+            }
+        },
+        {
+            "symbol": "AXL/USDT",
+            "ticker": "AXL",
+            "price": 0.0575,
+            "price_change": 3.23,
+            "ratio_volumen": 2.43,
+            "fase": "AMARILLO",
+            "etiqueta_grafico": "\ud83d\udfe1 AXL",
+            "score": 10.77,
+            "metricas_avanzadas": {
+                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
+                "confluencia_tf": "\u26a1 Estructura 1D Favorable"
             }
         },
         {
