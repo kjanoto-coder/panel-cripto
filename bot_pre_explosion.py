@@ -81,19 +81,16 @@ def analizar_multi_temporalidad_y_liquidaciones(exchange_spot, symbol, ticker):
         else:
             metricas["confluencia_tf"] = "💤 Acumulación en Soporte"
 
-        url_fapi = f"https://fapi.binance.com/fapi/v1/ticker/24hr?symbol={ticker}USDT"
-        res_fapi = requests.get(url_fapi, timeout=3).json()
+        # Análisis basado en velas spot para evitar bloqueos geográficos de futuros (fapi)
+        high_price = float(df_4h['high'].max())
+        last_price = float(df_4h['close'].iloc[-1])
         
-        if isinstance(res_fapi, dict) and 'highPrice' in res_fapi:
-            high_price = float(res_fapi.get('highPrice', 0))
-            last_price = float(res_fapi.get('lastPrice', 1))
-            
-            if last_price > 0:
-                distancia_top = round(((high_price - last_price) / last_price) * 100, 2)
-                if distancia_top <= 1.5:
-                    metricas["zona_liq"] = "🔥 Clúster de Shorts listo para Liquidación (<1.5%)"
-                else:
-                    metricas["zona_liq"] = "🛡️ Limpieza previa a impulso"
+        if last_price > 0:
+            distancia_top = round(((high_price - last_price) / last_price) * 100, 2)
+            if distancia_top <= 1.5:
+                metricas["zona_liq"] = "🔥 Presión en Máximos de Rango (<1.5%)"
+            else:
+                metricas["zona_liq"] = "🛡️ Zona de Acumulación Limpia"
     except Exception:
         pass
     return metricas
@@ -220,7 +217,6 @@ try:
         'options': {'defaultType': 'spot'}
     })
     
-    # Redirección de API pública para omitir restricción de IP geográfica en GitHub Actions
     exchange_spot.urls['api']['public'] = 'https://data-api.binance.vision/api/v3'
 
     tickers_spot = exchange_spot.fetch_tickers()
