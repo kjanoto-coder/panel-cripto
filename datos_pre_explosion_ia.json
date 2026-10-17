@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-17T20:39:40.760800",
+    "timestamp": "2026-10-17T21:04:26.589190",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -60,14 +60,14 @@
             }
         },
         {
-            "symbol": "CTK/USDT",
-            "ticker": "CTK",
-            "price": 0.1159,
-            "price_change": -4.61,
-            "ratio_volumen": 1.91,
+            "symbol": "COCOS/USDT",
+            "ticker": "COCOS",
+            "price": 1.7546,
+            "price_change": 3.44,
+            "ratio_volumen": 2.16,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 CTK",
-            "score": 11.1,
+            "etiqueta_grafico": "\ud83d\udfe1 COCOS",
+            "score": 10.03,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
