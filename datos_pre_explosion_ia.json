@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-17T13:02:16.207072",
+    "timestamp": "2026-10-17T13:26:40.508461",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -46,28 +46,28 @@
             }
         },
         {
-            "symbol": "FIO/USDT",
-            "ticker": "FIO",
-            "price": 0.00094,
-            "price_change": -4.08,
-            "ratio_volumen": 2.11,
+            "symbol": "CRMB/USDT",
+            "ticker": "CRMB",
+            "price": 239.32,
+            "price_change": -4.87,
+            "ratio_volumen": 2.13,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 FIO",
-            "score": 11.15,
+            "etiqueta_grafico": "\ud83d\udfe1 CRMB",
+            "score": 12.93,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
             }
         },
         {
-            "symbol": "ENJ/USDT",
-            "ticker": "ENJ",
-            "price": 0.02868,
-            "price_change": -4.62,
-            "ratio_volumen": 1.83,
+            "symbol": "W/USDT",
+            "ticker": "W",
+            "price": 0.01389,
+            "price_change": -4.47,
+            "ratio_volumen": 2.19,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 ENJ",
-            "score": 10.66,
+            "etiqueta_grafico": "\ud83d\udfe1 W",
+            "score": 12.42,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
