@@ -11,10 +11,10 @@ from google import genai
 # ---------------------------------------------------------
 # CONFIGURACIÓN DE CREDENCIALES Y RUTAS
 # ---------------------------------------------------------
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
-TELEGRAM_CHAT_ID = os.getenv("CHAT_ID")
-MESSAGE_THREAD_ID = os.getenv("TOPIC_ID_SENTINEL_MACRO")  # Topic 2489 (Sentimiento Mercado)
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+TELEGRAM_BOT_TOKEN = (os.getenv("TELEGRAM_TOKEN") or os.getenv("TELEGRAM_BOT_TOKEN") or "").strip()
+TELEGRAM_CHAT_ID = (os.getenv("CHAT_ID") or os.getenv("TELEGRAM_CHAT_ID") or "").strip()
+MESSAGE_THREAD_ID = (os.getenv("TOPIC_ID_SENTINEL_MACRO") or os.getenv("TELEGRAM_MESSAGE_THREAD_ID") or "").strip()
+GEMINI_API_KEY = (os.getenv("GEMINI_API_KEY") or "").strip()
 
 HISTORIAL_FILE = "historial_noticias.json"
 ESTADO_PREVIO_FILE = "datos_sentinel_macro.json"
@@ -37,8 +37,11 @@ def guardar_estado_actual(datos_ws, datos_cripto):
         "wall_street": datos_ws,
         "cripto": datos_cripto
     }
-    with open(ESTADO_PREVIO_FILE, "w") as f:
-        json.dump(estado, f, indent=4)
+    try:
+        with open(ESTADO_PREVIO_FILE, "w") as f:
+            json.dump(estado, f, indent=4)
+    except Exception as e:
+        print(f"Error guardando estado previo: {e}")
 
 # ---------------------------------------------------------
 # DETECCIÓN DE SESIÓN GLOBAL
@@ -148,158 +151,49 @@ def generar_treemap_cripto(df):
     plt.close()
 
 # ---------------------------------------------------------
-# 3. GENERACIÓN DE DIAGNÓSTICO Y ALERTA (CONSERVANDO FORMATO EXACTO)
+# 3. GENERACIÓN DE DIAGNÓSTICO Y ALERTA DE IA
 # ---------------------------------------------------------
 def analizar_wall_street_ia(df_ws, sesion, estado_previo):
     if not GEMINI_API_KEY: 
         return "📊 Diagnóstico: Renta variable operando con volatilidad moderada.\n🚨 Alerta: Mantener cautela en posiciones apalancadas."
     
-    client = genai.Client(api_key=GEMINI_API_KEY)
-    
-    detalle_actual = {r['ticker']: r['var'] for _, r in df_ws.iterrows()}
-    prev_ws = estado_previo.get("wall_street", {})
-    
-    giros = []
-    for t, val_act in detalle_actual.items():
-        val_prev = prev_ws.get(t, val_act)
-        if val_prev < 0 and val_act > 0:
-            giros.append(f"{t} cambió de rojo ({val_prev}%) a verde (+{val_act}%)")
-        elif val_prev > 0 and val_act < 0:
-            giros.append(f"{t} cambió de verde (+{val_prev}%) a rojo ({val_act}%)")
+    try:
+        client = genai.Client(api_key=GEMINI_API_KEY)
+        
+        detalle_actual = {r['ticker']: r['var'] for _, r in df_ws.iterrows()}
+        prev_ws = estado_previo.get("wall_street", {})
+        
+        giros = []
+        for t, val_act in detalle_actual.items():
+            val_prev = prev_ws.get(t, val_act)
+            if val_prev < 0 and val_act > 0:
+                giros.append(f"{t} cambió de rojo ({val_prev}%) a verde (+{val_act}%)")
+            elif val_prev > 0 and val_act < 0:
+                giros.append(f"{t} cambió de verde (+{val_prev}%) a rojo ({val_act}%)")
 
-    texto_giros = ", ".join(giros) if giros else "Sin cambios drásticos respecto al reporte anterior."
-    datos_txt = ", ".join([f"{r['ticker']}: {r['var']}%" for _, r in df_ws.iterrows()])
+        texto_giros = ", ".join(giros) if giros else "Sin cambios drásticos respecto al reporte anterior."
+        datos_txt = ", ".join([f"{r['ticker']}: {r['var']}%" for _, r in df_ws.iterrows()])
 
-    prompt = f"""
-    Actúa como un estratega macroeconómico de Wall Street.
-    Sesión: {sesion}.
-    Variaciones del S&P 500: {datos_txt}.
-    Giros recientes detectados: {texto_giros}.
+        prompt = f"""
+        Actúa como un estratega macroeconómico de Wall Street.
+        Sesión: {sesion}.
+        Variaciones del S&P 500: {datos_txt}.
+        Giros recientes detectados: {texto_giros}.
 
-    MANTÉN EXACTAMENTE ESTE FORMATO DE DOS LÍNEAS DIRECTAS:
-    📊 Diagnóstico: [Explica en 1 o 2 frases cortas cómo transcurrió el día desde la apertura y qué sector impulsa la sesión]
-    🚨 Alerta: [Proporciona un aviso claro de si el mercado apunta a SUBIR o BAJAR en los próximos días y si hubo giro de rojo a verde o viceversa]
-    """
-    for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
-        try:
-            res = client.models.generate_content(model=mod, contents=prompt)
-            if res and res.text: return res.text.strip()
-        except: continue
+        MANTÉN EXACTAMENTE ESTE FORMATO DE DOS LÍNEAS DIRECTAS:
+        📊 Diagnóstico: [Explica en 1 o 2 frases cortas cómo transcurrió el día desde la apertura y qué sector impulsa la sesión]
+        🚨 Alerta: [Proporciona un aviso claro de si el mercado apunta a SUBIR o BAJAR en los próximos días y si hubo giro de rojo a verde o viceversa]
+        """
+        for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
+            try:
+                res = client.models.generate_content(model=mod, contents=prompt)
+                if res and res.text: return res.text.strip()
+            except: continue
+    except Exception as e:
+        print(f"Error analizando Wall Street con Gemini: {e}")
+        
     return "📊 Diagnóstico: Renta variable operando con volatilidad moderada.\n🚨 Alerta: Mantener cautela en posiciones apalancadas."
 
 def analizar_cripto_ia(df_cripto, sesion, estado_previo):
     if not GEMINI_API_KEY: 
-        return "📊 Diagnóstico: Mercado buscando estabilización.\n🚨 Alerta: Monitoreando flujos de liquidez."
-    
-    client = genai.Client(api_key=GEMINI_API_KEY)
-    
-    detalle_actual = {r['ticker']: r['var'] for _, r in df_cripto.iterrows()}
-    prev_cripto = estado_previo.get("cripto", {})
-    
-    giros = []
-    for t, val_act in detalle_actual.items():
-        val_prev = prev_cripto.get(t, val_act)
-        if val_prev < 0 and val_act > 0:
-            giros.append(f"{t} giró de ROJO ({val_prev}%) a VERDE (+{val_act}%)")
-        elif val_prev > 0 and val_act < 0:
-            giros.append(f"{t} giró de VERDE (+{val_prev}%) a ROJO ({val_act}%)")
-
-    texto_giros = ", ".join(giros) if giros else "Sin giros drásticos en los últimos minutos."
-    datos_txt = ", ".join([f"{r['ticker']}: {r['var']}%" for _, r in df_cripto.iterrows()])
-
-    prompt = f"""
-    Actúa como un analista cuantitativo de criptomonedas.
-    Sesión: {sesion}.
-    Estado de Binance: {datos_txt}.
-    Giros de polaridad detectados: {texto_giros}.
-
-    MANTÉN EXACTAMENTE ESTE FORMATO DE DOS LÍNEAS DIRECTAS:
-    📊 Diagnóstico: [Explica en 1 o 2 frases cortas la evolución de la vela diaria desde el inicio y qué monedas absorben volumen]
-    🚨 Alerta: [Da una alerta clara sobre la dirección proyectada para los próximos días (Alcista/Bajista) destacando giros de rojo a verde]
-    """
-    for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
-        try:
-            res = client.models.generate_content(model=mod, contents=prompt)
-            if res and res.text: return res.text.strip()
-        except: continue
-    return "📊 Diagnóstico: Mercado buscando estabilización.\n🚨 Alerta: Monitoreando flujos de liquidez."
-
-# ---------------------------------------------------------
-# 4. EJECUCIÓN Y ENVÍO A TELEGRAM (CONFORMATO IDÉNTICO)
-# ---------------------------------------------------------
-print("🌐 Ejecutando Sentinel Macro...")
-
-sesion_actual = obtener_sesion_actual_mercado()
-estado_previo = cargar_estado_previo()
-
-# --- 1. S&P 500 / WALL STREET ---
-df_ws = obtener_datos_wall_street_treemap()
-generar_treemap_wall_street(df_ws)
-causas_ws = analizar_wall_street_ia(df_ws, sesion_actual, estado_previo)
-
-msg_ws = f"🏛️ **SENTINEL MACRO — 1. S&P 500 & TRADFI**\n"
-msg_ws += f"🕒 **Sesión:** 🌎 `{sesion_actual}`\n\n"
-msg_ws += f"{causas_ws}\n"
-
-# --- 2. CRIPTO / BINANCE ---
-df_cripto = obtener_datos_cripto_treemap()
-generar_treemap_cripto(df_cripto)
-causas_cripto = analizar_cripto_ia(df_cripto, sesion_actual, estado_previo)
-
-msg_cripto = f"🪙 **SENTINEL MACRO — 2. BINANCE CRIPTO MARKET**\n"
-msg_cripto += f"🕒 **Sesión:** 🌎 `{sesion_actual}`\n\n"
-msg_cripto += f"{causas_cripto}\n"
-
-# Guardar estado para la comparativa histórica del siguiente ciclo
-dict_ws_save = {r['ticker']: r['var'] for _, r in df_ws.iterrows()}
-dict_cripto_save = {r['ticker']: r['var'] for _, r in df_cripto.iterrows()}
-guardar_estado_actual(dict_ws_save, dict_cripto_save)
-
-# --- ENVÍO A TELEGRAM ---
-if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
-    url_base = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
-    thread_id = int(MESSAGE_THREAD_ID) if MESSAGE_THREAD_ID else None
-
-    teclado_ws = {
-        "inline_keyboard": [[
-            {"text": "📊 Ver Mapa Interactivo S&P 500 (Investing)", "url": "https://es.investing.com/markets/heatmap"}
-        ]]
-    }
-
-    teclado_cripto = {
-        "inline_keyboard": [[
-            {"text": "🪙 Ver Mapa Interactivo Binance Futures", "url": "https://www.binance.com/es-AR/futures/crypto-heatmap"}
-        ]]
-    }
-
-    # 1. Enviar S&P 500
-    with open('heatmap_wall_street.png', 'rb') as f1:
-        p_f1 = {'chat_id': TELEGRAM_CHAT_ID, 'caption': f"🗺️ **Mapa de Calor — S&P 500 ({sesion_actual})**", 'parse_mode': 'Markdown'}
-        if thread_id: p_f1['message_thread_id'] = thread_id
-        requests.post(f"{url_base}/sendPhoto", data=p_f1, files={'photo': f1})
-
-    p_m1 = {
-        'chat_id': TELEGRAM_CHAT_ID, 
-        'text': msg_ws, 
-        'parse_mode': 'Markdown',
-        'reply_markup': teclado_ws
-    }
-    if thread_id: p_m1['message_thread_id'] = thread_id
-    requests.post(f"{url_base}/sendMessage", json=p_m1)
-
-    # 2. Enviar Cripto
-    with open('heatmap_cripto.png', 'rb') as f2:
-        p_f2 = {'chat_id': TELEGRAM_CHAT_ID, 'caption': f"🗺️ **Mapa de Calor — Cripto ({sesion_actual})**", 'parse_mode': 'Markdown'}
-        if thread_id: p_f2['message_thread_id'] = thread_id
-        requests.post(f"{url_base}/sendPhoto", data=p_f2, files={'photo': f2})
-
-    p_m2 = {
-        'chat_id': TELEGRAM_CHAT_ID, 
-        'text': msg_cripto, 
-        'parse_mode': 'Markdown',
-        'reply_markup': teclado_cripto
-    }
-    if thread_id: p_m2['message_thread_id'] = thread_id
-    requests.post(f"{url_base}/sendMessage", json=p_m2)
-
-    print("✅ Mensajes enviados manteniendo exactamente el diseño actual.")
+        return "📊 Diagnóstico: Mercado buscando estabilización.\n🚨
