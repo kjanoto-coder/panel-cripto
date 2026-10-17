@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-17T13:26:40.508461",
+    "timestamp": "2026-10-17T13:54:30.224814",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -32,6 +32,34 @@
             }
         },
         {
+            "symbol": "SUSHI/USDT",
+            "ticker": "SUSHI",
+            "price": 0.2198,
+            "price_change": -4.77,
+            "ratio_volumen": 2.57,
+            "fase": "AMARILLO",
+            "etiqueta_grafico": "\ud83d\udfe1 SUSHI",
+            "score": 15.33,
+            "metricas_avanzadas": {
+                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
+                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+            }
+        },
+        {
+            "symbol": "RENDER/USDT",
+            "ticker": "RENDER",
+            "price": 1.871,
+            "price_change": -4.59,
+            "ratio_volumen": 2.45,
+            "fase": "AMARILLO",
+            "etiqueta_grafico": "\ud83d\udfe1 RENDER",
+            "score": 14.18,
+            "metricas_avanzadas": {
+                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
+                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+            }
+        },
+        {
             "symbol": "MDT/USDT",
             "ticker": "MDT",
             "price": 0.00403,
@@ -40,34 +68,6 @@
             "fase": "AMARILLO",
             "etiqueta_grafico": "\ud83d\udfe1 MDT",
             "score": 14.14,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
-            }
-        },
-        {
-            "symbol": "CRMB/USDT",
-            "ticker": "CRMB",
-            "price": 239.32,
-            "price_change": -4.87,
-            "ratio_volumen": 2.13,
-            "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 CRMB",
-            "score": 12.93,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
-            }
-        },
-        {
-            "symbol": "W/USDT",
-            "ticker": "W",
-            "price": 0.01389,
-            "price_change": -4.47,
-            "ratio_volumen": 2.19,
-            "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 W",
-            "score": 12.42,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zonas Estables",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
