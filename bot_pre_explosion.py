@@ -217,5 +217,171 @@ def enviar_mensaje_telegram(url_base, payload_base):
 try:
     exchange_spot = ccxt.binance({
         'enableRateLimit': True,
-        'options': {'defaultType': 'spot', 'fetchMarkets': ['spot']},
-        'urls': {'api': {'public': 'https://data-api.binance.vision/api/v3', 'spot': '
+        'options': {'defaultType': 'spot'}
+    })
+
+    tickers_spot = exchange_spot.fetch_tickers()
+    total_pares_analizados = len(tickers_spot)
+    
+    historial_excluidos = cargar_historial_reciente()
+
+    candidatas_rojas = []
+    candidatas_amarillas = []
+    candidatas_verdes = []
+
+    for symbol, data in tickers_spot.items():
+        if not symbol.endswith('/USDT'):
+            continue
+        ticker_limpio = symbol.split('/')[0]
+        
+        if ticker_limpio in historial_excluidos:
+            continue
+        
+        price_change_24h = data['percentage'] if data['percentage'] is not None else 0
+        vol_24h = data['quoteVolume'] if data['quoteVolume'] is not None else 0
+        last_price = data['last'] if data['last'] is not None else 0
+        
+        if vol_24h > 25000 and last_price > 0:
+            try:
+                ohlcv = exchange_spot.fetch_ohlcv(symbol, timeframe='1h', limit=12)
+                df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+                
+                vol_actual_1h = df['volume'].iloc[-1]
+                promedio_vol_24h = df['volume'].mean()
+                
+                if promedio_vol_24h > 0:
+                    ratio_volumen = round(vol_actual_1h / promedio_vol_24h, 2)
+                    
+                    if ratio_volumen >= 2.6:
+                        fase = "ROJO"
+                        etiqueta_graf = f"🚨 {ticker_limpio}"
+                    elif ratio_volumen >= 1.7 and -5.0 <= price_change_24h <= 5.0:
+                        fase = "AMARILLO"
+                        etiqueta_graf = f"🟡 {ticker_limpio}"
+                    elif ratio_volumen >= 1.2:
+                        fase = "VERDE"
+                        etiqueta_graf = ticker_limpio
+                    else:
+                        continue
+                    
+                    score = round(ratio_volumen * (abs(price_change_24h) + 1.2), 2)
+                    metricas_avanzadas = analizar_multi_temporalidad_y_liquidaciones(exchange_spot, symbol, ticker_limpio)
+                    
+                    item_coin = {
+                        'symbol': symbol,
+                        'ticker': ticker_limpio,
+                        'price': last_price,
+                        'price_change': round(price_change_24h, 2),
+                        'ratio_volumen': ratio_volumen,
+                        'fase': fase,
+                        'etiqueta_grafico': etiqueta_graf,
+                        'score': score,
+                        'metricas_avanzadas': metricas_avanzadas
+                    }
+                    
+                    if fase == "ROJO":
+                        candidatas_rojas.append(item_coin)
+                    elif fase == "AMARILLO":
+                        candidatas_amarillas.append(item_coin)
+                    else:
+                        candidatas_verdes.append(item_coin)
+            except Exception:
+                continue
+
+    candidatas_rojas = sorted(candidatas_rojas, key=obtener_score, reverse=True)
+    candidatas_amarillas = sorted(candidatas_amarillas, key=obtener_score, reverse=True)
+    candidatas_verdes = sorted(candidatas_verdes, key=obtener_score, reverse=True)
+
+    top_candidatas = []
+    top_candidatas.extend(candidatas_rojas[:2])
+    top_candidatas.extend(candidatas_amarillas[:3])
+    top_candidatas.extend(candidatas_verdes[:2])
+
+    if len(top_candidatas) < 7:
+        restantes = [c for c in (candidatas_rojas + candidatas_amarillas + candidatas_verdes) if c not in top_candidatas]
+        restantes_ordenados = sorted(restantes, key=obtener_score, reverse=True)
+        top_candidatas.extend(restantes_ordenados[:(7 - len(top_candidatas))])
+
+    top_candidatas = top_candidatas[:7]
+    print(f"📊 Selección balanceada lista (Rojos: {len([c for c in top_candidatas if c['fase']=='ROJO'])}, Amarillos: {len([c for c in top_candidatas if c['fase']=='AMARILLO'])}, Verdes: {len([c for c in top_candidatas if c['fase']=='VERDE'])})")
+
+    if top_candidatas:
+        nuevos_tickers_historial = [c['ticker'] for c in top_candidatas]
+        guardar_historial_reciente(nuevos_tickers_historial)
+
+        generar_grafico_termometro(top_candidatas)
+        resumen_ia = generar_resumen_ia(top_candidatas)
+        
+        mensaje_telegram = "🧠 **RADAR TÁCTICO • TERMÓMETRO BALANCEADO 3-FASES**\n"
+        mensaje_telegram += "🚀 **ANTICIPACIÓN DE GANADORAS (ROJO / AMARILLO / VERDE)**\n"
+        mensaje_telegram += f"🔍 *Pares analizados:* `{total_pares_analizados}`\n\n"
+        mensaje_telegram += f"💡 **Dictamen de Anticipación (IA):**\n{resumen_ia}\n\n"
+        mensaje_telegram += "─────────────────────────\n"
+        
+        for coin in top_candidatas:
+            precio_fmt = formatear_precio(coin['price'])
+            barras = obtener_barras_fuerza(coin['ratio_volumen'])
+            url_netlify = f"{NETLIFY_BASE_URL}/?coin={coin['ticker']}"
+            url_binance = f"https://www.binance.com/es/trade/{coin['ticker']}_USDT?type=spot"
+            ma = coin['metricas_avanzadas']
+            
+            if coin['fase'] == "ROJO":
+                icono_fase = "🔴 **[ROJO: Explosión Inminente]**"
+            elif coin['fase'] == "AMARILLO":
+                icono_fase = "🟡 **[AMARILLO: Acumulación / Rango]**"
+            else:
+                icono_fase = "🟢 **[VERDE: Vigilancia Inicial]**"
+            
+            mensaje_telegram += (
+                f"{icono_fase}\n"
+                f"• **{coin['ticker']}** | `{precio_fmt}` | {barras} | `+{coin['price_change']}%`\n"
+                f"   ├ ⏳ **Estructura (1H/4H/1D):** `{ma['confluencia_tf']}`\n"
+                f"   ├ 🗺️ **Zonas de Presión:** `{ma['zona_liq']}`\n"
+                f"   └ 📊 [Detalle IA]({url_netlify}) | 🔶 [Binance]({url_binance}) | Vol 1H: `{coin['ratio_volumen']}x` | Score: `{coin['score']}`\n\n"
+            )
+
+        if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
+            url_base = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
+            
+            thread_id = None
+            if MESSAGE_THREAD_ID:
+                try:
+                    thread_id = int(MESSAGE_THREAD_ID)
+                except ValueError:
+                    pass
+
+            payload_foto = {
+                'chat_id': TELEGRAM_CHAT_ID,
+                'caption': "🌡️ **Termómetro Táctico — 3 Fases de Anticipación (Hoy)**",
+                'parse_mode': 'Markdown'
+            }
+            if thread_id:
+                payload_foto['message_thread_id'] = thread_id
+            
+            enviar_foto_telegram(url_base, payload_foto, 'grafico_pre_explosion.png')
+
+            payload_msg = {
+                'chat_id': TELEGRAM_CHAT_ID,
+                'text': mensaje_telegram,
+                'parse_mode': 'Markdown',
+                'disable_web_page_preview': True
+            }
+            if thread_id:
+                payload_msg['message_thread_id'] = thread_id
+                
+            enviar_mensaje_telegram(url_base, payload_msg)
+        else:
+            print("⚠️ No se pudo enviar a Telegram: Faltan credenciales.")
+
+except Exception as e:
+    print(f"❌ Error crítico: {str(e)}")
+    raise e
+
+estructura_ia = {
+    "timestamp": pd.Timestamp.now().isoformat(),
+    "bot_origen": "Radar Termómetro Balanceado 3 Fases",
+    "total_analizados": total_pares_analizados if 'total_pares_analizados' in locals() else 0,
+    "top_candidatas": top_candidatas if 'top_candidatas' in locals() else []
+}
+with open("datos_pre_explosion_ia.json", "w") as f:
+    json.dump(estructura_ia, f, indent=4)
