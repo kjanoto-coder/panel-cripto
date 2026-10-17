@@ -256,13 +256,21 @@ def enviar_foto_con_detalle_telegram(image_path, caption_text):
         try:
             payload["message_thread_id"] = int(TELEGRAM_TOPIC_ID)
         except ValueError:
-            print(f"⚠️ Warning: TELEGRAM_TOPIC_ID no es un entero válido: {TELEGRAM_TOPIC_ID}")
+            pass
 
     with open(image_path, 'rb') as photo:
         files = {"photo": photo}
         res = requests.post(url, data=payload, files=files)
-        
         resultado = res.json()
+        
+        # Corrección automática si el hilo no existe: reintentar al chat principal
+        if not resultado.get("ok") and "message thread not found" in str(resultado.get("description", "")):
+            print("⚠️ Hilo de Telegram no encontrado. Reintentando envío al chat principal...")
+            payload.pop("message_thread_id", None)
+            photo.seek(0)
+            res = requests.post(url, data=payload, files={"photo": photo})
+            resultado = res.json()
+
         if resultado.get("ok"):
             print("✅ Bloque enviado exitosamente a Telegram.")
         else:
