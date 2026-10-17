@@ -1,9 +1,9 @@
 name: Bot Dashboard y Auditoría Web
 
 on:
-  workflow_dispatch: # Permite ejecutarlo manualmente desde GitHub Actions
+  workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *' # Se ejecuta automáticamente cada 6 horas
+    - cron: '0 */6 * * *'
 
 jobs:
   actualizar-web:
@@ -21,13 +21,13 @@ jobs:
       - name: Instalar dependencias
         run: |
           python -m pip install --upgrade pip
-          pip install requests
+          pip install requests google-generativeai
 
       - name: Ejecutar Bot Dashboard
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          TELEGRAM_MESSAGE_THREAD_ID: ${{ secrets.TELEGRAM_MESSAGE_THREAD_ID }}
+          TELEGRAM_MESSAGE_THREAD_ID: ${{ secrets.TOPIC_ID_TACTICO }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python bot_dashboard.py
 
