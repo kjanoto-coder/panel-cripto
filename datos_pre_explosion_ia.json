@@ -1,22 +1,8 @@
 {
-    "timestamp": "2026-10-18T14:03:43.433426",
+    "timestamp": "2026-10-18T14:23:59.105286",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
-        {
-            "symbol": "QKCUSDT",
-            "ticker": "QKC",
-            "price": 0.00273,
-            "price_change": 16.47,
-            "ratio_volumen": 11.65,
-            "fase": "ROJO",
-            "etiqueta_grafico": "\ud83d\udea8 QKC",
-            "score": 205.83,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udd25 Presi\u00f3n en M\u00e1ximos de Rango (<1.5%)",
-                "confluencia_tf": "\ud83d\ude80 Confluencia Total (1H + 4H + 1D Alcista)"
-            }
-        },
         {
             "symbol": "PHBUSDT",
             "ticker": "PHB",
@@ -26,6 +12,20 @@
             "fase": "ROJO",
             "etiqueta_grafico": "\ud83d\udea8 PHB",
             "score": 195.11,
+            "metricas_avanzadas": {
+                "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
+                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+            }
+        },
+        {
+            "symbol": "FORTHUSDT",
+            "ticker": "FORTH",
+            "price": 0.237,
+            "price_change": -19.93,
+            "ratio_volumen": 6.84,
+            "fase": "ROJO",
+            "etiqueta_grafico": "\ud83d\udea8 FORTH",
+            "score": 144.54,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
@@ -46,28 +46,28 @@
             }
         },
         {
-            "symbol": "PUNDIXUSDT",
-            "ticker": "PUNDIX",
-            "price": 0.097,
-            "price_change": -4.43,
-            "ratio_volumen": 2.5,
+            "symbol": "FLOWUSDT",
+            "ticker": "FLOW",
+            "price": 0.02955,
+            "price_change": -4.74,
+            "ratio_volumen": 2.26,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 PUNDIX",
-            "score": 14.08,
+            "etiqueta_grafico": "\ud83d\udfe1 FLOW",
+            "score": 13.42,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
             }
         },
         {
-            "symbol": "BANDUSDT",
-            "ticker": "BAND",
-            "price": 0.2198,
-            "price_change": -4.85,
-            "ratio_volumen": 2.22,
+            "symbol": "MEUSDT",
+            "ticker": "ME",
+            "price": 0.05923,
+            "price_change": -4.68,
+            "ratio_volumen": 2.23,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 BAND",
-            "score": 13.43,
+            "etiqueta_grafico": "\ud83d\udfe1 ME",
+            "score": 13.12,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
