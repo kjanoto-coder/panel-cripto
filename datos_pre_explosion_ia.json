@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-18T02:01:32.153939",
+    "timestamp": "2026-10-18T02:24:29.754377",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -46,6 +46,20 @@
             }
         },
         {
+            "symbol": "JOEUSDT",
+            "ticker": "JOE",
+            "price": 0.0322,
+            "price_change": -4.45,
+            "ratio_volumen": 2.28,
+            "fase": "AMARILLO",
+            "etiqueta_grafico": "\ud83d\udfe1 JOE",
+            "score": 12.88,
+            "metricas_avanzadas": {
+                "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
+                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+            }
+        },
+        {
             "symbol": "FIOUSDT",
             "ticker": "FIO",
             "price": 0.00094,
@@ -54,20 +68,6 @@
             "fase": "AMARILLO",
             "etiqueta_grafico": "\ud83d\udfe1 FIO",
             "score": 11.15,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
-            }
-        },
-        {
-            "symbol": "KAITOUSDT",
-            "ticker": "KAITO",
-            "price": 0.2835,
-            "price_change": -3.54,
-            "ratio_volumen": 2.17,
-            "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 KAITO",
-            "score": 10.28,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
