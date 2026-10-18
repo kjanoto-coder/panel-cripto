@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-18T17:41:03.971207",
+    "timestamp": "2026-10-18T18:09:04.419474",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -46,31 +46,31 @@
             }
         },
         {
-            "symbol": "KATUSDT",
-            "ticker": "KAT",
-            "price": 0.00379,
-            "price_change": -4.53,
-            "ratio_volumen": 2.33,
+            "symbol": "NEOUSDT",
+            "ticker": "NEO",
+            "price": 2.163,
+            "price_change": -4.63,
+            "ratio_volumen": 2.35,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 KAT",
-            "score": 13.36,
+            "etiqueta_grafico": "\ud83d\udfe1 NEO",
+            "score": 13.7,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
             }
         },
         {
-            "symbol": "MANTAUSDT",
-            "ticker": "MANTA",
-            "price": 0.06487,
-            "price_change": -4.73,
-            "ratio_volumen": 2.02,
+            "symbol": "NXPCUSDT",
+            "ticker": "NXPC",
+            "price": 0.1712,
+            "price_change": 3.82,
+            "ratio_volumen": 2.59,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 MANTA",
-            "score": 11.98,
+            "etiqueta_grafico": "\ud83d\udfe1 NXPC",
+            "score": 13.0,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+                "confluencia_tf": "\ud83d\ude80 Confluencia Total (1H + 4H + 1D Alcista)"
             }
         },
         {
