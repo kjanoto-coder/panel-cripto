@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-18T14:23:59.105286",
+    "timestamp": "2026-10-18T14:51:23.328219",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -32,42 +32,42 @@
             }
         },
         {
-            "symbol": "MDTUSDT",
-            "ticker": "MDT",
-            "price": 0.00403,
-            "price_change": -4.5,
-            "ratio_volumen": 2.48,
+            "symbol": "CYBERUSDT",
+            "ticker": "CYBER",
+            "price": 0.307,
+            "price_change": -4.95,
+            "ratio_volumen": 2.44,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 MDT",
-            "score": 14.14,
+            "etiqueta_grafico": "\ud83d\udfe1 CYBER",
+            "score": 15.02,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
             }
         },
         {
-            "symbol": "FLOWUSDT",
-            "ticker": "FLOW",
-            "price": 0.02955,
-            "price_change": -4.74,
-            "ratio_volumen": 2.26,
+            "symbol": "BELUSDT",
+            "ticker": "BEL",
+            "price": 0.1063,
+            "price_change": -4.66,
+            "ratio_volumen": 2.56,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 FLOW",
-            "score": 13.42,
+            "etiqueta_grafico": "\ud83d\udfe1 BEL",
+            "score": 15.01,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
             }
         },
         {
-            "symbol": "MEUSDT",
-            "ticker": "ME",
-            "price": 0.05923,
-            "price_change": -4.68,
-            "ratio_volumen": 2.23,
+            "symbol": "RIFUSDT",
+            "ticker": "RIF",
+            "price": 0.0751,
+            "price_change": -4.82,
+            "ratio_volumen": 2.49,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 ME",
-            "score": 13.12,
+            "etiqueta_grafico": "\ud83d\udfe1 RIF",
+            "score": 14.98,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
