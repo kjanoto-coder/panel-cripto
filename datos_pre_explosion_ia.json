@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-18T17:10:55.001928",
+    "timestamp": "2026-10-18T17:41:03.971207",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -46,28 +46,28 @@
             }
         },
         {
-            "symbol": "FIOUSDT",
-            "ticker": "FIO",
-            "price": 0.00094,
-            "price_change": -4.08,
-            "ratio_volumen": 2.11,
+            "symbol": "KATUSDT",
+            "ticker": "KAT",
+            "price": 0.00379,
+            "price_change": -4.53,
+            "ratio_volumen": 2.33,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 FIO",
-            "score": 11.15,
+            "etiqueta_grafico": "\ud83d\udfe1 KAT",
+            "score": 13.36,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
             }
         },
         {
-            "symbol": "COCOSUSDT",
-            "ticker": "COCOS",
-            "price": 1.7546,
-            "price_change": 3.44,
-            "ratio_volumen": 2.16,
+            "symbol": "MANTAUSDT",
+            "ticker": "MANTA",
+            "price": 0.06487,
+            "price_change": -4.73,
+            "ratio_volumen": 2.02,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 COCOS",
-            "score": 10.03,
+            "etiqueta_grafico": "\ud83d\udfe1 MANTA",
+            "score": 11.98,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
