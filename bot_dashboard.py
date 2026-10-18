@@ -13,6 +13,9 @@ TELEGRAM_CHAT_ID = (os.getenv("TELEGRAM_CHAT_ID") or os.getenv("CHAT_ID") or "")
 MESSAGE_THREAD_ID = (os.getenv("TOPIC_ID_CENTRAL") or os.getenv("TELEGRAM_MESSAGE_THREAD_ID") or "").strip()
 GEMINI_API_KEY = (os.getenv("GEMINI_API_KEY") or "").strip()
 
+# URL de tu página en Netlify
+URL_NETLIFY = "https://musical-entremet-ebb9ad.netlify.app"
+
 ARCHIVO_PRE_EXPLOSION = "datos_pre_explosion_ia.json"
 ARCHIVO_TACTICO = "ultimas_perlas_cazador.json"
 ECOSYSTEM_FILE = "database_ecosistema.json"
@@ -97,7 +100,7 @@ def guardar_base_netlify(datos_mercado, pre_data, tactico_data, dictamen_ia):
             "fase": c.get('fase', 'VERDE')
         } for c in raw_pre[:6]]
 
-        # 4. Convertidas en Ganadoras (activos con volumen institucional destacado posterior al top 7)
+        # 4. Convertidas en Ganadoras (volumen institucional destacado posterior al top 7)
         top_volumen = sorted(
             mercado_valido,
             key=lambda x: float(x.get('quoteVolume', 0)),
@@ -125,16 +128,30 @@ def guardar_base_netlify(datos_mercado, pre_data, tactico_data, dictamen_ia):
     except Exception as e:
         print(f"⚠️ Error generando base web: {e}")
 
-def enviar_telegram(texto):
+def enviar_telegram_con_boton(texto):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         return
         
     url_base = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
+    
+    # Crear el botón en línea con enlace directo a la página de Netlify
+    reply_markup = {
+        "inline_keyboard": [
+            [
+                {
+                    "text": "🌐 Abrir Panel Netlify",
+                    "url": URL_NETLIFY
+                }
+            ]
+        ]
+    }
+    
     payload = {
         'chat_id': TELEGRAM_CHAT_ID,
         'text': texto,
         'parse_mode': 'Markdown',
-        'disable_web_page_preview': True
+        'disable_web_page_preview': True,
+        'reply_markup': reply_markup
     }
     
     if MESSAGE_THREAD_ID:
@@ -170,10 +187,10 @@ def main():
     msg += f"🕒 *Sincronización:* `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`\n\n"
     msg += f"💡 **Dictamen Maestro (IA):**\n{dictamen_ia}\n\n"
     msg += "─────────────────────────\n"
-    msg += "🌐 *Netlify:* Tarjetas 1 (Ganadoras 7), 2 (Cazador Táctico), 3 (Pre-Explosión) y 4 (Convertidas) actualizadas."
+    msg += "🌐 *Panel Web:* Tarjetas 1 (Ganadoras 7), 2 (Cazador Táctico), 3 (Pre-Explosión) y 4 (Convertidas) sincronizadas."
     
-    enviar_telegram(msg)
-    print("✅ Proceso completado y enviado a Telegram.")
+    enviar_telegram_con_boton(msg)
+    print("✅ Proceso completado y enviado a Telegram con botón de enlace.")
 
 if __name__ == "__main__":
     main()
