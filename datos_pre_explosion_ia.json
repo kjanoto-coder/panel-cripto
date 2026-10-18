@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-18T06:14:34.827496",
+    "timestamp": "2026-10-18T06:51:56.950494",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -46,6 +46,20 @@
             }
         },
         {
+            "symbol": "BBUSDT",
+            "ticker": "BB",
+            "price": 0.00805,
+            "price_change": -4.85,
+            "ratio_volumen": 1.89,
+            "fase": "AMARILLO",
+            "etiqueta_grafico": "\ud83d\udfe1 BB",
+            "score": 11.43,
+            "metricas_avanzadas": {
+                "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
+                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+            }
+        },
+        {
             "symbol": "FIOUSDT",
             "ticker": "FIO",
             "price": 0.00094,
@@ -54,20 +68,6 @@
             "fase": "AMARILLO",
             "etiqueta_grafico": "\ud83d\udfe1 FIO",
             "score": 11.15,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
-            }
-        },
-        {
-            "symbol": "PROMUSDT",
-            "ticker": "PROM",
-            "price": 4.57,
-            "price_change": -4.27,
-            "ratio_volumen": 1.87,
-            "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 PROM",
-            "score": 10.23,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
