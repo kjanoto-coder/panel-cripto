@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-17T23:54:58.465402",
+    "timestamp": "2026-10-18T00:18:23.483698",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -60,17 +60,17 @@
             }
         },
         {
-            "symbol": "VELODROMEUSDT",
-            "ticker": "VELODROME",
-            "price": 0.03697,
-            "price_change": -4.15,
-            "ratio_volumen": 1.92,
+            "symbol": "BREVUSDT",
+            "ticker": "BREV",
+            "price": 0.0738,
+            "price_change": -3.91,
+            "ratio_volumen": 2.05,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 VELODROME",
-            "score": 10.27,
+            "etiqueta_grafico": "\ud83d\udfe1 BREV",
+            "score": 10.47,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+                "confluencia_tf": "\u26a1 Estructura 1D Favorable"
             }
         },
         {
