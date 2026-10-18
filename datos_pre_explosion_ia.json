@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-18T19:45:58.216723",
+    "timestamp": "2026-10-18T20:08:44.676048",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -32,27 +32,13 @@
             }
         },
         {
-            "symbol": "LQTYUSDT",
-            "ticker": "LQTY",
-            "price": 0.1869,
-            "price_change": -4.5,
-            "ratio_volumen": 2.53,
+            "symbol": "DOGEUSDT",
+            "ticker": "DOGE",
+            "price": 0.07633,
+            "price_change": -4.71,
+            "ratio_volumen": 2.42,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 LQTY",
-            "score": 14.41,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
-            }
-        },
-        {
-            "symbol": "FLOKIUSDT",
-            "ticker": "FLOKI",
-            "price": 2.267e-05,
-            "price_change": -4.91,
-            "ratio_volumen": 2.34,
-            "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 FLOKI",
+            "etiqueta_grafico": "\ud83d\udfe1 DOGE",
             "score": 14.29,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
@@ -68,6 +54,20 @@
             "fase": "AMARILLO",
             "etiqueta_grafico": "\ud83d\udfe1 MDT",
             "score": 14.14,
+            "metricas_avanzadas": {
+                "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
+                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+            }
+        },
+        {
+            "symbol": "LINKUSDT",
+            "ticker": "LINK",
+            "price": 11.569,
+            "price_change": -4.23,
+            "ratio_volumen": 2.11,
+            "fase": "AMARILLO",
+            "etiqueta_grafico": "\ud83d\udfe1 LINK",
+            "score": 11.46,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
