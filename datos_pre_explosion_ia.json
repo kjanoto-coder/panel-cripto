@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-18T03:23:16.045117",
+    "timestamp": "2026-10-18T04:06:51.212806",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -60,14 +60,14 @@
             }
         },
         {
-            "symbol": "ASTRUSDT",
-            "ticker": "ASTR",
-            "price": 0.006045,
-            "price_change": -3.45,
-            "ratio_volumen": 2.27,
+            "symbol": "LAYERUSDT",
+            "ticker": "LAYER",
+            "price": 0.0654,
+            "price_change": -3.82,
+            "ratio_volumen": 2.06,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 ASTR",
-            "score": 10.56,
+            "etiqueta_grafico": "\ud83d\udfe1 LAYER",
+            "score": 10.35,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
