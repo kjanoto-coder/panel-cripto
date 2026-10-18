@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-18T06:51:56.950494",
+    "timestamp": "2026-10-18T07:24:06.125348",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -46,14 +46,14 @@
             }
         },
         {
-            "symbol": "BBUSDT",
-            "ticker": "BB",
-            "price": 0.00805,
-            "price_change": -4.85,
-            "ratio_volumen": 1.89,
+            "symbol": "BEAMXUSDT",
+            "ticker": "BEAMX",
+            "price": 0.002821,
+            "price_change": -3.65,
+            "ratio_volumen": 2.31,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 BB",
-            "score": 11.43,
+            "etiqueta_grafico": "\ud83d\udfe1 BEAMX",
+            "score": 11.21,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
