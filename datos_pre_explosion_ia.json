@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-18T20:23:58.212898",
+    "timestamp": "2026-10-18T20:44:53.897980",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -32,6 +32,20 @@
             }
         },
         {
+            "symbol": "MVLLBUSDT",
+            "ticker": "MVLLB",
+            "price": 24.66,
+            "price_change": -4.57,
+            "ratio_volumen": 2.46,
+            "fase": "AMARILLO",
+            "etiqueta_grafico": "\ud83d\udfe1 MVLLB",
+            "score": 14.19,
+            "metricas_avanzadas": {
+                "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
+                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+            }
+        },
+        {
             "symbol": "MDTUSDT",
             "ticker": "MDT",
             "price": 0.00403,
@@ -46,28 +60,14 @@
             }
         },
         {
-            "symbol": "FIOUSDT",
-            "ticker": "FIO",
-            "price": 0.00094,
-            "price_change": -4.08,
-            "ratio_volumen": 2.11,
-            "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 FIO",
-            "score": 11.15,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
-            }
-        },
-        {
             "symbol": "ETCUSDT",
             "ticker": "ETC",
             "price": 7.48,
-            "price_change": -4.71,
-            "ratio_volumen": 1.81,
+            "price_change": -4.59,
+            "ratio_volumen": 2.32,
             "fase": "AMARILLO",
             "etiqueta_grafico": "\ud83d\udfe1 ETC",
-            "score": 10.7,
+            "score": 13.44,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
