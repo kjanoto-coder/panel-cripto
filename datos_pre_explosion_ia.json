@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-18T08:23:44.017243",
+    "timestamp": "2026-10-18T08:48:53.115287",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -46,28 +46,28 @@
             }
         },
         {
-            "symbol": "CTSIUSDT",
-            "ticker": "CTSI",
-            "price": 0.0307,
-            "price_change": -4.03,
-            "ratio_volumen": 2.27,
+            "symbol": "BELUSDT",
+            "ticker": "BEL",
+            "price": 0.1083,
+            "price_change": -3.73,
+            "ratio_volumen": 2.59,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 CTSI",
-            "score": 11.88,
+            "etiqueta_grafico": "\ud83d\udfe1 BEL",
+            "score": 12.78,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
             }
         },
         {
-            "symbol": "FIOUSDT",
-            "ticker": "FIO",
-            "price": 0.00094,
-            "price_change": -4.08,
-            "ratio_volumen": 2.11,
+            "symbol": "AXSUSDT",
+            "ticker": "AXS",
+            "price": 1.016,
+            "price_change": -3.7,
+            "ratio_volumen": 2.36,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 FIO",
-            "score": 11.15,
+            "etiqueta_grafico": "\ud83d\udfe1 AXS",
+            "score": 11.56,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
