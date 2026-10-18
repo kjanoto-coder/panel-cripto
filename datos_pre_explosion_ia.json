@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-18T15:11:46.147805",
+    "timestamp": "2026-10-18T15:44:40.188243",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -18,14 +18,28 @@
             }
         },
         {
-            "symbol": "FORTHUSDT",
-            "ticker": "FORTH",
-            "price": 0.237,
-            "price_change": -19.93,
-            "ratio_volumen": 6.84,
+            "symbol": "QKCUSDT",
+            "ticker": "QKC",
+            "price": 0.003105,
+            "price_change": 31.62,
+            "ratio_volumen": 5.07,
             "fase": "ROJO",
-            "etiqueta_grafico": "\ud83d\udea8 FORTH",
-            "score": 144.54,
+            "etiqueta_grafico": "\ud83d\udea8 QKC",
+            "score": 166.42,
+            "metricas_avanzadas": {
+                "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
+                "confluencia_tf": "\ud83d\ude80 Confluencia Total (1H + 4H + 1D Alcista)"
+            }
+        },
+        {
+            "symbol": "TREEUSDT",
+            "ticker": "TREE",
+            "price": 0.0363,
+            "price_change": -4.72,
+            "ratio_volumen": 2.43,
+            "fase": "AMARILLO",
+            "etiqueta_grafico": "\ud83d\udfe1 TREE",
+            "score": 14.4,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
@@ -46,28 +60,14 @@
             }
         },
         {
-            "symbol": "FIOUSDT",
-            "ticker": "FIO",
-            "price": 0.00094,
-            "price_change": -4.08,
-            "ratio_volumen": 2.11,
+            "symbol": "RIFUSDT",
+            "ticker": "RIF",
+            "price": 0.0745,
+            "price_change": -4.97,
+            "ratio_volumen": 2.22,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 FIO",
-            "score": 11.15,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
-            }
-        },
-        {
-            "symbol": "COCOSUSDT",
-            "ticker": "COCOS",
-            "price": 1.7546,
-            "price_change": 3.44,
-            "ratio_volumen": 2.16,
-            "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 COCOS",
-            "score": 10.03,
+            "etiqueta_grafico": "\ud83d\udfe1 RIF",
+            "score": 13.71,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
