@@ -13,18 +13,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repositorio
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Configurar Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
       - name: Instalar dependencias
         run: |
-          pip install requests pandas numpy matplotlib
+          pip install requests pandas numpy matplotlib google-genai
 
-      - name: Ejecutar Bot Cripto
+      - name: Ejecutar Bot Cripto / Dashboard
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN || secrets.TELEGRAM_BOT_TOKEN }}
@@ -39,6 +39,6 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add ultimas_perlas.json || true
-          git commit -m "Auto-update: Memoria de perlas y dashboard" || true
+          git add database_ecosistema.json ultimas_perlas.json || true
+          git commit -m "Auto-update: Sincronización del Dashboard y Auditoría" || true
           git push || true
