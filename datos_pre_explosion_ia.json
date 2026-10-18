@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-18T22:42:26.646378",
+    "timestamp": "2026-10-18T23:09:45.452745",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -46,6 +46,20 @@
             }
         },
         {
+            "symbol": "DRAMBUSDT",
+            "ticker": "DRAMB",
+            "price": 46.83,
+            "price_change": 3.86,
+            "ratio_volumen": 2.48,
+            "fase": "AMARILLO",
+            "etiqueta_grafico": "\ud83d\udfe1 DRAMB",
+            "score": 12.55,
+            "metricas_avanzadas": {
+                "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
+                "confluencia_tf": "\ud83d\ude80 Confluencia Total (1H + 4H + 1D Alcista)"
+            }
+        },
+        {
             "symbol": "FIOUSDT",
             "ticker": "FIO",
             "price": 0.00094,
@@ -54,20 +68,6 @@
             "fase": "AMARILLO",
             "etiqueta_grafico": "\ud83d\udfe1 FIO",
             "score": 11.15,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
-            }
-        },
-        {
-            "symbol": "DIAUSDT",
-            "ticker": "DIA",
-            "price": 0.1543,
-            "price_change": -4.81,
-            "ratio_volumen": 1.75,
-            "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 DIA",
-            "score": 10.52,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
