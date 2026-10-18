@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-18T00:18:23.483698",
+    "timestamp": "2026-10-18T02:01:32.153939",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -60,17 +60,17 @@
             }
         },
         {
-            "symbol": "BREVUSDT",
-            "ticker": "BREV",
-            "price": 0.0738,
-            "price_change": -3.91,
-            "ratio_volumen": 2.05,
+            "symbol": "KAITOUSDT",
+            "ticker": "KAITO",
+            "price": 0.2835,
+            "price_change": -3.54,
+            "ratio_volumen": 2.17,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 BREV",
-            "score": 10.47,
+            "etiqueta_grafico": "\ud83d\udfe1 KAITO",
+            "score": 10.28,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
-                "confluencia_tf": "\u26a1 Estructura 1D Favorable"
+                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
             }
         },
         {
