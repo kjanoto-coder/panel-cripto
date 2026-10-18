@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-18T22:12:18.453423",
+    "timestamp": "2026-10-18T22:42:26.646378",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -60,14 +60,14 @@
             }
         },
         {
-            "symbol": "COCOSUSDT",
-            "ticker": "COCOS",
-            "price": 1.7546,
-            "price_change": 3.44,
-            "ratio_volumen": 2.16,
+            "symbol": "DIAUSDT",
+            "ticker": "DIA",
+            "price": 0.1543,
+            "price_change": -4.81,
+            "ratio_volumen": 1.75,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 COCOS",
-            "score": 10.03,
+            "etiqueta_grafico": "\ud83d\udfe1 DIA",
+            "score": 10.52,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
