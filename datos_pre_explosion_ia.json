@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-18T23:09:45.452745",
+    "timestamp": "2026-10-18T23:24:12.470287",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -46,20 +46,6 @@
             }
         },
         {
-            "symbol": "DRAMBUSDT",
-            "ticker": "DRAMB",
-            "price": 46.83,
-            "price_change": 3.86,
-            "ratio_volumen": 2.48,
-            "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 DRAMB",
-            "score": 12.55,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
-                "confluencia_tf": "\ud83d\ude80 Confluencia Total (1H + 4H + 1D Alcista)"
-            }
-        },
-        {
             "symbol": "FIOUSDT",
             "ticker": "FIO",
             "price": 0.00094,
@@ -71,6 +57,20 @@
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+            }
+        },
+        {
+            "symbol": "AXTIBUSDT",
+            "ticker": "AXTIB",
+            "price": 51.35,
+            "price_change": 3.61,
+            "ratio_volumen": 2.21,
+            "fase": "AMARILLO",
+            "etiqueta_grafico": "\ud83d\udfe1 AXTIB",
+            "score": 10.63,
+            "metricas_avanzadas": {
+                "zona_liq": "\ud83d\udd25 Presi\u00f3n en M\u00e1ximos de Rango (<1.5%)",
+                "confluencia_tf": "\ud83d\ude80 Confluencia Total (1H + 4H + 1D Alcista)"
             }
         },
         {
