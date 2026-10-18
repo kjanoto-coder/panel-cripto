@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-18T11:44:12.358147",
+    "timestamp": "2026-10-18T12:10:28.219973",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -32,20 +32,6 @@
             }
         },
         {
-            "symbol": "XVGUSDT",
-            "ticker": "XVG",
-            "price": 0.002502,
-            "price_change": -4.87,
-            "ratio_volumen": 2.34,
-            "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 XVG",
-            "score": 14.2,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
-            }
-        },
-        {
             "symbol": "MDTUSDT",
             "ticker": "MDT",
             "price": 0.00403,
@@ -60,14 +46,28 @@
             }
         },
         {
-            "symbol": "SOMIUSDT",
-            "ticker": "SOMI",
-            "price": 0.1907,
-            "price_change": -4.12,
-            "ratio_volumen": 2.55,
+            "symbol": "FIOUSDT",
+            "ticker": "FIO",
+            "price": 0.00094,
+            "price_change": -4.08,
+            "ratio_volumen": 2.11,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 SOMI",
-            "score": 13.57,
+            "etiqueta_grafico": "\ud83d\udfe1 FIO",
+            "score": 11.15,
+            "metricas_avanzadas": {
+                "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
+                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+            }
+        },
+        {
+            "symbol": "COCOSUSDT",
+            "ticker": "COCOS",
+            "price": 1.7546,
+            "price_change": 3.44,
+            "ratio_volumen": 2.16,
+            "fase": "AMARILLO",
+            "etiqueta_grafico": "\ud83d\udfe1 COCOS",
+            "score": 10.03,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
