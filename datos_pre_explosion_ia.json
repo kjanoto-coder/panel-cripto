@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-19T00:06:00.279152",
+    "timestamp": "2026-10-19T00:27:28.753012",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -46,6 +46,20 @@
             }
         },
         {
+            "symbol": "ALTUSDT",
+            "ticker": "ALT",
+            "price": 0.00904,
+            "price_change": 3.91,
+            "ratio_volumen": 2.23,
+            "fase": "AMARILLO",
+            "etiqueta_grafico": "\ud83d\udfe1 ALT",
+            "score": 11.39,
+            "metricas_avanzadas": {
+                "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
+                "confluencia_tf": "\u26a1 Estructura 1D Favorable"
+            }
+        },
+        {
             "symbol": "FIOUSDT",
             "ticker": "FIO",
             "price": 0.00094,
@@ -57,20 +71,6 @@
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
-            }
-        },
-        {
-            "symbol": "AXTIBUSDT",
-            "ticker": "AXTIB",
-            "price": 51.88,
-            "price_change": 4.09,
-            "ratio_volumen": 1.91,
-            "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 AXTIB",
-            "score": 10.11,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udd25 Presi\u00f3n en M\u00e1ximos de Rango (<1.5%)",
-                "confluencia_tf": "\u26a1 Estructura 1D Favorable"
             }
         },
         {
