@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-19T08:16:52.249790",
+    "timestamp": "2026-10-19T08:57:23.598877",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -48,12 +48,12 @@
         {
             "symbol": "MRVLBUSDT",
             "ticker": "MRVLB",
-            "price": 235.52,
-            "price_change": 4.63,
-            "ratio_volumen": 1.93,
+            "price": 235.85,
+            "price_change": 4.52,
+            "ratio_volumen": 2.21,
             "fase": "AMARILLO",
             "etiqueta_grafico": "\ud83d\udfe1 MRVLB",
-            "score": 11.26,
+            "score": 12.64,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udd25 Presi\u00f3n en M\u00e1ximos de Rango (<1.5%)",
                 "confluencia_tf": "\u26a1 Estructura 1D Favorable"
