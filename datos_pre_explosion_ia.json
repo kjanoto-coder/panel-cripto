@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-19T11:52:40.100728",
+    "timestamp": "2026-10-19T12:19:24.447692",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -46,28 +46,28 @@
             }
         },
         {
-            "symbol": "LITEBUSDT",
-            "ticker": "LITEB",
-            "price": 855.9,
-            "price_change": 4.85,
-            "ratio_volumen": 2.0,
+            "symbol": "REZUSDT",
+            "ticker": "REZ",
+            "price": 0.003298,
+            "price_change": -4.49,
+            "ratio_volumen": 2.23,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 LITEB",
-            "score": 12.1,
+            "etiqueta_grafico": "\ud83d\udfe1 REZ",
+            "score": 12.69,
             "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udd25 Presi\u00f3n en M\u00e1ximos de Rango (<1.5%)",
-                "confluencia_tf": "\ud83d\ude80 Confluencia Total (1H + 4H + 1D Alcista)"
+                "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
+                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
             }
         },
         {
-            "symbol": "FIOUSDT",
-            "ticker": "FIO",
-            "price": 0.00094,
-            "price_change": -4.08,
-            "ratio_volumen": 2.11,
+            "symbol": "RIFUSDT",
+            "ticker": "RIF",
+            "price": 0.074,
+            "price_change": -3.77,
+            "ratio_volumen": 2.35,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 FIO",
-            "score": 11.15,
+            "etiqueta_grafico": "\ud83d\udfe1 RIF",
+            "score": 11.68,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
