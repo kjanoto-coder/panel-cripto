@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-19T22:27:56.845288",
+    "timestamp": "2026-10-19T23:02:03.674866",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -60,14 +60,14 @@
             }
         },
         {
-            "symbol": "COCOSUSDT",
-            "ticker": "COCOS",
-            "price": 1.7546,
-            "price_change": 3.44,
-            "ratio_volumen": 2.16,
+            "symbol": "MAGICUSDT",
+            "ticker": "MAGIC",
+            "price": 0.0949,
+            "price_change": -3.06,
+            "ratio_volumen": 2.42,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 COCOS",
-            "score": 10.03,
+            "etiqueta_grafico": "\ud83d\udfe1 MAGIC",
+            "score": 10.32,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
