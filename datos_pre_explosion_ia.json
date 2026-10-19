@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-19T02:20:47.571950",
+    "timestamp": "2026-10-19T02:48:11.748312",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -46,6 +46,20 @@
             }
         },
         {
+            "symbol": "HPEBUSDT",
+            "ticker": "HPEB",
+            "price": 56.44,
+            "price_change": 3.67,
+            "ratio_volumen": 2.35,
+            "fase": "AMARILLO",
+            "etiqueta_grafico": "\ud83d\udfe1 HPEB",
+            "score": 11.45,
+            "metricas_avanzadas": {
+                "zona_liq": "\ud83d\udd25 Presi\u00f3n en M\u00e1ximos de Rango (<1.5%)",
+                "confluencia_tf": "\ud83d\ude80 Confluencia Total (1H + 4H + 1D Alcista)"
+            }
+        },
+        {
             "symbol": "FIOUSDT",
             "ticker": "FIO",
             "price": 0.00094,
@@ -57,20 +71,6 @@
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
-            }
-        },
-        {
-            "symbol": "HPEBUSDT",
-            "ticker": "HPEB",
-            "price": 56.46,
-            "price_change": 3.46,
-            "ratio_volumen": 2.16,
-            "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 HPEB",
-            "score": 10.07,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udd25 Presi\u00f3n en M\u00e1ximos de Rango (<1.5%)",
-                "confluencia_tf": "\ud83d\ude80 Confluencia Total (1H + 4H + 1D Alcista)"
             }
         },
         {
