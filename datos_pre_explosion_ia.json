@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-19T20:05:57.078947",
+    "timestamp": "2026-10-19T20:33:44.475314",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -46,6 +46,20 @@
             }
         },
         {
+            "symbol": "ACMUSDT",
+            "ticker": "ACM",
+            "price": 0.255,
+            "price_change": -4.49,
+            "ratio_volumen": 2.12,
+            "fase": "AMARILLO",
+            "etiqueta_grafico": "\ud83d\udfe1 ACM",
+            "score": 12.07,
+            "metricas_avanzadas": {
+                "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
+                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+            }
+        },
+        {
             "symbol": "FIOUSDT",
             "ticker": "FIO",
             "price": 0.00094,
@@ -57,20 +71,6 @@
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
-            }
-        },
-        {
-            "symbol": "ONTUSDT",
-            "ticker": "ONT",
-            "price": 0.05209,
-            "price_change": 4.39,
-            "ratio_volumen": 1.83,
-            "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 ONT",
-            "score": 10.23,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udd25 Presi\u00f3n en M\u00e1ximos de Rango (<1.5%)",
-                "confluencia_tf": "\ud83d\ude80 Confluencia Total (1H + 4H + 1D Alcista)"
             }
         },
         {
