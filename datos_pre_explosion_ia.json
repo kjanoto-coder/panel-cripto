@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-19T13:02:43.151227",
+    "timestamp": "2026-10-19T13:45:04.866366",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -46,17 +46,17 @@
             }
         },
         {
-            "symbol": "RIFUSDT",
-            "ticker": "RIF",
-            "price": 0.0739,
-            "price_change": -3.52,
-            "ratio_volumen": 2.42,
+            "symbol": "AAOIBUSDT",
+            "ticker": "AAOIB",
+            "price": 77.92,
+            "price_change": 4.79,
+            "ratio_volumen": 2.17,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 RIF",
-            "score": 11.43,
+            "etiqueta_grafico": "\ud83d\udfe1 AAOIB",
+            "score": 12.99,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+                "confluencia_tf": "\u26a1 Estructura 1D Favorable"
             }
         },
         {
