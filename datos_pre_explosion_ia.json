@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-19T12:19:24.447692",
+    "timestamp": "2026-10-19T13:02:43.151227",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -46,28 +46,28 @@
             }
         },
         {
-            "symbol": "REZUSDT",
-            "ticker": "REZ",
-            "price": 0.003298,
-            "price_change": -4.49,
-            "ratio_volumen": 2.23,
+            "symbol": "RIFUSDT",
+            "ticker": "RIF",
+            "price": 0.0739,
+            "price_change": -3.52,
+            "ratio_volumen": 2.42,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 REZ",
-            "score": 12.69,
+            "etiqueta_grafico": "\ud83d\udfe1 RIF",
+            "score": 11.43,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
             }
         },
         {
-            "symbol": "RIFUSDT",
-            "ticker": "RIF",
-            "price": 0.074,
-            "price_change": -3.77,
-            "ratio_volumen": 2.35,
+            "symbol": "FIOUSDT",
+            "ticker": "FIO",
+            "price": 0.00094,
+            "price_change": -4.08,
+            "ratio_volumen": 2.11,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 RIF",
-            "score": 11.68,
+            "etiqueta_grafico": "\ud83d\udfe1 FIO",
+            "score": 11.15,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
