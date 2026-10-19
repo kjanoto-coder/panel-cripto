@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-19T20:33:44.475314",
+    "timestamp": "2026-10-19T21:08:18.168008",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -46,17 +46,17 @@
             }
         },
         {
-            "symbol": "ACMUSDT",
-            "ticker": "ACM",
-            "price": 0.255,
-            "price_change": -4.49,
-            "ratio_volumen": 2.12,
+            "symbol": "1000SATSUSDT",
+            "ticker": "1000SATS",
+            "price": 1.025e-05,
+            "price_change": 3.96,
+            "ratio_volumen": 2.2,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 ACM",
-            "score": 12.07,
+            "etiqueta_grafico": "\ud83d\udfe1 1000SATS",
+            "score": 11.34,
             "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+                "zona_liq": "\ud83d\udd25 Presi\u00f3n en M\u00e1ximos de Rango (<1.5%)",
+                "confluencia_tf": "\u26a1 Estructura 1D Favorable"
             }
         },
         {
