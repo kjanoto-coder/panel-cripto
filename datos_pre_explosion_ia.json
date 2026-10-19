@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-19T01:48:35.573390",
+    "timestamp": "2026-10-19T02:20:47.571950",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -60,14 +60,14 @@
             }
         },
         {
-            "symbol": "PLTRBUSDT",
-            "ticker": "PLTRB",
-            "price": 189.66,
-            "price_change": 2.99,
-            "ratio_volumen": 2.57,
+            "symbol": "HPEBUSDT",
+            "ticker": "HPEB",
+            "price": 56.46,
+            "price_change": 3.46,
+            "ratio_volumen": 2.16,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 PLTRB",
-            "score": 10.77,
+            "etiqueta_grafico": "\ud83d\udfe1 HPEB",
+            "score": 10.07,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udd25 Presi\u00f3n en M\u00e1ximos de Rango (<1.5%)",
                 "confluencia_tf": "\ud83d\ude80 Confluencia Total (1H + 4H + 1D Alcista)"
