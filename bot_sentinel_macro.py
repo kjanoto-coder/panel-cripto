@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup
 from google import genai
 
 # ---------------------------------------------------------
-# CONFIGURACIÓN DE CREDENCIALES Y RUTAS (COMPATIBILIDAD TOTAL)
+# CONFIGURACIÓN DE CREDENCIALES Y RUTAS
 # ---------------------------------------------------------
 TELEGRAM_BOT_TOKEN = (os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("TELEGRAM_TOKEN") or "").strip()
 TELEGRAM_CHAT_ID = (os.getenv("TELEGRAM_CHAT_ID") or os.getenv("CHAT_ID") or "").strip()
@@ -44,9 +44,6 @@ def guardar_estado_actual(datos_ws, datos_cripto):
     except Exception as e:
         print(f"Error guardando estado previo: {e}")
 
-# ---------------------------------------------------------
-# MEMORIA DE NOTICIAS
-# ---------------------------------------------------------
 def cargar_historial_noticias():
     if os.path.exists(HISTORIAL_NOTICIAS_FILE):
         try:
@@ -63,9 +60,6 @@ def guardar_historial_noticias(historial):
     except Exception as e:
         print(f"⚠️ Error guardando historial de noticias: {e}")
 
-# ---------------------------------------------------------
-# DETECCIÓN DE SESIÓN GLOBAL
-# ---------------------------------------------------------
 def obtener_sesion_actual_mercado():
     hora_actual = datetime.datetime.now().hour
     if 20 <= hora_actual or hora_actual < 4:
@@ -229,7 +223,6 @@ def analizar_wall_street_ia(df_ws, sesion, estado_previo):
     
     try:
         client = genai.Client(api_key=GEMINI_API_KEY)
-        
         detalle_actual = {r['ticker']: r['var'] for _, r in df_ws.iterrows()}
         prev_ws = estado_previo.get("wall_street", {})
         
@@ -237,17 +230,159 @@ def analizar_wall_street_ia(df_ws, sesion, estado_previo):
         for t, val_act in detalle_actual.items():
             val_prev = prev_ws.get(t, val_act)
             if val_prev < 0 and val_act > 0:
-                giros.append(f"{t} cambió de rojo ({val_prev}%) a verde (+{val_act}%)")
+                giros.append(f"{t} cambió de rojo a verde (+{val_act}%)")
             elif val_prev > 0 and val_act < 0:
-                giros.append(f"{t} cambió de verde (+{val_prev}%) a rojo ({val_act}%)")
+                giros.append(f"{t} cambió de verde a rojo ({val_act}%)")
 
-        texto_giros = ", ".join(giros) if giros else "Sin cambios drásticos respecto al reporte anterior."
+        texto_giros = ", ".join(giros) if giros else "Sin cambios drásticos."
         datos_txt = ", ".join([f"{r['ticker']}: {r['var']}%" for _, r in df_ws.iterrows()])
 
-        prompt = f"""
-        Actúa como un estratega macroeconómico de Wall Street.
-        Sesión: {sesion}.
-        Variaciones del S&P 500: {datos_txt}.
-        Giros recientes detectados: {texto_giros}.
+        prompt = "Actúa como estratega macro de Wall Street. Sesión: " + sesion + ". Datos S&P 500: " + datos_txt + ". Giros: " + texto_giros + ". Devuelve estrictamente dos líneas con formato: 📊 Diagnóstico: [texto corto] y 🚨 Alerta: [texto corto]."
 
-        MANTÉN EXACTAMENTE ESTE FORMATO DE DOS LÍNE
+        for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
+            try:
+                res = client.models.generate_content(model=mod, contents=prompt)
+                if res and res.text:
+                    return res.text.strip()
+            except Exception:
+                continue
+    except Exception as e:
+        print(f"Error analizando Wall Street con Gemini: {e}")
+        
+    return "📊 Diagnóstico: Renta variable operando con volatilidad moderada.\n🚨 Alerta: Mantener cautela en posiciones apalancadas."
+
+def analizar_cripto_ia(df_cripto, sesion, estado_previo):
+    if not GEMINI_API_KEY: 
+        return "📊 Diagnóstico: Mercado buscando estabilización.\n🚨 Alerta: Monitoreando flujos de liquidez."
+    
+    try:
+        client = genai.Client(api_key=GEMINI_API_KEY)
+        detalle_actual = {r['ticker']: r['var'] for _, r in df_cripto.iterrows()}
+        prev_cripto = estado_previo.get("cripto", {})
+        
+        giros = []
+        for t, val_act in detalle_actual.items():
+            val_prev = prev_cripto.get(t, val_act)
+            if val_prev < 0 and val_act > 0:
+                giros.append(f"{t} giró a verde (+{val_act}%)")
+            elif val_prev > 0 and val_act < 0:
+                giros.append(f"{t} giró a rojo ({val_act}%)")
+
+        texto_giros = ", ".join(giros) if giros else "Sin giros drásticos."
+        datos_txt = ", ".join([f"{r['ticker']}: {r['var']}%" for _, r in df_cripto.iterrows()])
+
+        prompt = "Actúa como analista cuantitativo crypto. Sesión: " + sesion + ". Binance: " + datos_txt + ". Giros: " + texto_giros + ". Devuelve estrictamente dos líneas con formato: 📊 Diagnóstico: [texto corto] y 🚨 Alerta: [texto corto]."
+
+        for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
+            try:
+                res = client.models.generate_content(model=mod, contents=prompt)
+                if res and res.text:
+                    return res.text.strip()
+            except Exception:
+                continue
+    except Exception as e:
+        print(f"Error analizando Cripto con Gemini: {e}")
+        
+    return "📊 Diagnóstico: Mercado buscando estabilización.\n🚨 Alerta: Monitoreando flujos de liquidez."
+
+# ---------------------------------------------------------
+# FUNCIONES DE ENVÍO ROBUSTO A TELEGRAM
+# ---------------------------------------------------------
+def enviar_foto_telegram(url_base, payload_base, image_path):
+    try:
+        with open(image_path, 'rb') as f:
+            res = requests.post(f"{url_base}/sendPhoto", data=payload_base, files={'photo': f})
+            resultado = res.json()
+            if not resultado.get("ok") and "message thread not found" in str(resultado.get("description", "")):
+                payload_copia = payload_base.copy()
+                payload_copia.pop("message_thread_id", None)
+                f.seek(0)
+                res = requests.post(f"{url_base}/sendPhoto", data=payload_copia, files={'photo': f})
+    except Exception as e:
+        print(f"⚠️ Error al enviar foto: {e}")
+
+def enviar_mensaje_telegram(url_base, payload_base):
+    try:
+        res = requests.post(f"{url_base}/sendMessage", json=payload_base)
+        resultado = res.json()
+        if not resultado.get("ok") and "message thread not found" in str(resultado.get("description", "")):
+            payload_copia = payload_base.copy()
+            payload_copia.pop("message_thread_id", None)
+            res = requests.post(f"{url_base}/sendMessage", json=payload_copia)
+    except Exception as e:
+        print(f"⚠️ Error al enviar mensaje: {e}")
+
+# ---------------------------------------------------------
+# 5. EJECUCIÓN Y ENVÍO
+# ---------------------------------------------------------
+if __name__ == "__main__":
+    print("🌐 Ejecutando Sentinel Macro...")
+
+    sesion_actual = obtener_sesion_actual_mercado()
+    estado_previo = cargar_estado_previo()
+
+    df_ws = obtener_datos_wall_street_treemap()
+    generar_treemap_wall_street(df_ws)
+    causas_ws = analizar_wall_street_ia(df_ws, sesion_actual, estado_previo)
+
+    msg_ws = f"🏛️ **SENTINEL MACRO — 1. S&P 500 & TRADFI**\n🕒 **Sesión:** 🌎 `{sesion_actual}`\n\n{causas_ws}\n"
+
+    df_cripto = obtener_datos_cripto_treemap()
+    generar_treemap_cripto(df_cripto)
+    causas_cripto = analizar_cripto_ia(df_cripto, sesion_actual, estado_previo)
+
+    msg_cripto = f"🪙 **SENTINEL MACRO — 2. BINANCE CRIPTO MARKET**\n🕒 **Sesión:** 🌎 `{sesion_actual}`\n\n{causas_cripto}\n"
+
+    dict_ws_save = {r['ticker']: r['var'] for _, r in df_ws.iterrows()}
+    dict_cripto_save = {r['ticker']: r['var'] for _, r in df_cripto.iterrows()}
+    guardar_estado_actual(dict_ws_save, dict_cripto_save)
+
+    if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
+        url_base = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
+        thread_id = None
+        if MESSAGE_THREAD_ID:
+            try:
+                thread_id = int(MESSAGE_THREAD_ID)
+            except ValueError:
+                pass
+
+        teclado_ws = {"inline_keyboard": [[{"text": "📊 Ver Mapa Interactivo S&P 500 (Investing)", "url": "https://es.investing.com/markets/heatmap"}]]}
+        teclado_cripto = {"inline_keyboard": [[{"text": "🪙 Ver Mapa Interactivo Binance Futures", "url": "https://www.binance.com/es-AR/futures/crypto-heatmap"}]]}
+
+        p_f1 = {'chat_id': TELEGRAM_CHAT_ID, 'caption': f"🗺️ **Mapa de Calor — S&P 500 ({sesion_actual})**", 'parse_mode': 'Markdown'}
+        if thread_id: p_f1['message_thread_id'] = thread_id
+        enviar_foto_telegram(url_base, p_f1, 'heatmap_wall_street.png')
+
+        p_m1 = {'chat_id': TELEGRAM_CHAT_ID, 'text': msg_ws, 'parse_mode': 'Markdown', 'reply_markup': teclado_ws}
+        if thread_id: p_m1['message_thread_id'] = thread_id
+        enviar_mensaje_telegram(url_base, p_m1)
+
+        p_f2 = {'chat_id': TELEGRAM_CHAT_ID, 'caption': f"🗺️ **Mapa de Calor — Cripto ({sesion_actual})**", 'parse_mode': 'Markdown'}
+        if thread_id: p_f2['message_thread_id'] = thread_id
+        enviar_foto_telegram(url_base, p_f2, 'heatmap_cripto.png')
+
+        p_m2 = {'chat_id': TELEGRAM_CHAT_ID, 'text': msg_cripto, 'parse_mode': 'Markdown', 'reply_markup': teclado_cripto}
+        if thread_id: p_m2['message_thread_id'] = thread_id
+        enviar_mensaje_telegram(url_base, p_m2)
+
+        # ---------------------------------------------------------
+        # ENVÍO DE NOTICIAS DE TRADINGVIEW CRIPTO
+        # ---------------------------------------------------------
+        print("📰 Procesando noticias de TradingView...")
+        historial_noticias = cargar_historial_noticias()
+        noticias_tv = obtener_noticias_tradingview()
+        noticias_enviadas = 0
+
+        for noticia in reversed(noticias_tv):
+            noticia_id = noticia['titular'].lower().strip()
+            if noticia_id not in historial_noticias:
+                msg_noticia = f"📰 **SENTINEL NOTICIAS — TRADINGVIEW CRIPTO**\n"
+                msg_noticia += f"🌐 *Fuente: {noticia['fuente']}*\n\n"
+                msg_noticia += f"⚡ **{noticia['titular']}**\n\n"
+                msg_noticia += f"🔗 [Leer noticia completa en TradingView]({noticia['enlace']})"
+
+                p_news = {
+                    'chat_id': TELEGRAM_CHAT_ID,
+                    'text': msg_noticia,
+                    'parse_mode': 'Markdown',
+                    'disable_web_page_preview': False
