@@ -42,7 +42,7 @@ def guardar_estado_actual(datos_ws, datos_cripto):
         with open(ESTADO_PREVIO_FILE, "w", encoding="utf-8") as f:
             json.dump(estado, f, indent=4)
     except Exception as e:
-        print(f"Error guardando estado previo: {e}")
+        print("Error guardando estado previo: " + str(e))
 
 def cargar_historial_noticias():
     if os.path.exists(HISTORIAL_NOTICIAS_FILE):
@@ -58,7 +58,7 @@ def guardar_historial_noticias(historial):
         with open(HISTORIAL_NOTICIAS_FILE, "w", encoding="utf-8") as f:
             json.dump(historial[-100:], f, ensure_ascii=False, indent=2)
     except Exception as e:
-        print(f"⚠️ Error guardando historial de noticias: {e}")
+        print("⚠️ Error guardando historial de noticias: " + str(e))
 
 def obtener_sesion_actual_mercado():
     hora_actual = datetime.datetime.now().hour
@@ -165,7 +165,7 @@ def generar_treemap_cripto(df):
     plt.close()
 
 # ---------------------------------------------------------
-# 3. EXTRAER NOTICIAS DE TRADINGVIEW / CRIPTO
+# 3. EXTRAER NOTICIAS DE TRADINGVIEW / COINTELEGRAPH
 # ---------------------------------------------------------
 def obtener_noticias_tradingview():
     noticias = []
@@ -174,43 +174,43 @@ def obtener_noticias_tradingview():
         "Accept-Language": "es-ES,es;q=0.9"
     }
 
-    url_tv = "https://es.tradingview.com/markets/cryptocurrencies/news/"
+    # Fuente 1: RSS de Cointelegraph
     try:
-        res = requests.get(url_tv, headers=headers, timeout=12)
-        if res.status_code == 200:
-            soup = BeautifulSoup(res.text, 'html.parser')
-            articulos = soup.find_all('a', class_=lambda c: c and 'title' in str(c).lower())
-            
-            for art in articulos[:10]:
-                titular = art.get_text().strip()
-                href = art.get('href', '')
-                enlace = "https://es.tradingview.com" + href if href.startswith('/') else href
-                
-                if titular and len(titular) > 15:
+        res_rss = requests.get("https://es.cointelegraph.com/rss", headers=headers, timeout=10)
+        if res_rss.status_code == 200:
+            soup_rss = BeautifulSoup(res_rss.content, features="xml")
+            for item in soup_rss.find_all('item')[:5]:
+                titular = item.title.text.strip() if item.title else ""
+                enlace = item.link.text.strip() if item.link else ""
+                if titular and enlace:
                     noticias.append({
                         'titular': titular,
                         'enlace': enlace,
-                        'fuente': 'TradingView Cripto'
+                        'fuente': 'Cointelegraph / TradingView'
                     })
     except Exception as e:
-        print(f"⚠️ Error al raspar TradingView: {e}")
+        print("⚠️ Error obteniendo RSS: " + str(e))
 
+    # Fuente 2: TradingView Directo
     if len(noticias) < 3:
         try:
-            res_rss = requests.get("https://es.cointelegraph.com/rss", headers=headers, timeout=12)
-            if res_rss.status_code == 200:
-                soup_rss = BeautifulSoup(res_rss.content, features="xml")
-                for item in soup_rss.find_all('item')[:8]:
-                    titular = item.title.text.strip() if item.title else ""
-                    enlace = item.link.text.strip() if item.link else ""
-                    if titular and enlace:
+            url_tv = "https://es.tradingview.com/markets/cryptocurrencies/news/"
+            res = requests.get(url_tv, headers=headers, timeout=10)
+            if res.status_code == 200:
+                soup = BeautifulSoup(res.text, 'html.parser')
+                articulos = soup.find_all('a', class_=lambda c: c and 'title' in str(c).lower())
+                for art in articulos[:5]:
+                    titular = art.get_text().strip()
+                    href = art.get('href', '')
+                    enlace = "https://es.tradingview.com" + href if href.startswith('/') else href
+                    if titular and len(titular) > 15:
                         noticias.append({
                             'titular': titular,
                             'enlace': enlace,
-                            'fuente': 'TradingView / Cointelegraph'
+                            'fuente': 'TradingView Cripto'
                         })
         except Exception as e:
-            print(f"⚠️ Error en RSS de respaldo: {e}")
+            print("⚠️ Error raspando TradingView: " + str(e))
 
     return noticias
 
@@ -261,7 +261,7 @@ def analizar_wall_street_ia(df_ws, sesion, estado_previo):
             except Exception:
                 continue
     except Exception as e:
-        print(f"Error analizando Wall Street con Gemini: {e}")
+        print("Error analizando Wall Street con Gemini: " + str(e))
         
     return "📊 Diagnóstico: Renta variable operando con volatilidad moderada.\n🚨 Alerta: Mantener cautela en posiciones apalancadas."
 
@@ -309,7 +309,7 @@ def analizar_cripto_ia(df_cripto, sesion, estado_previo):
             except Exception:
                 continue
     except Exception as e:
-        print(f"Error analizando Cripto con Gemini: {e}")
+        print("Error analizando Cripto con Gemini: " + str(e))
         
     return "📊 Diagnóstico: Mercado buscando estabilización.\n🚨 Alerta: Monitoreando flujos de liquidez."
 
@@ -327,7 +327,7 @@ def enviar_foto_telegram(url_base, payload_base, image_path):
                 f.seek(0)
                 res = requests.post(url_base + "/sendPhoto", data=payload_copia, files={'photo': f})
     except Exception as e:
-        print(f"⚠️ Error al enviar foto: {e}")
+        print("⚠️ Error al enviar foto: " + str(e))
 
 def enviar_mensaje_telegram(url_base, payload_base):
     try:
@@ -338,7 +338,7 @@ def enviar_mensaje_telegram(url_base, payload_base):
             payload_copia.pop("message_thread_id", None)
             res = requests.post(url_base + "/sendMessage", json=payload_copia)
     except Exception as e:
-        print(f"⚠️ Error al enviar mensaje: {e}")
+        print("⚠️ Error al enviar mensaje: " + str(e))
 
 # ---------------------------------------------------------
 # 5. EJECUCIÓN Y ENVÍO
@@ -349,16 +349,16 @@ if __name__ == "__main__":
     sesion_actual = obtener_sesion_actual_mercado()
     estado_previo = cargar_estado_previo()
 
+    # 1. S&P 500
     df_ws = obtener_datos_wall_street_treemap()
     generar_treemap_wall_street(df_ws)
     causas_ws = analizar_wall_street_ia(df_ws, sesion_actual, estado_previo)
-
     msg_ws = "🏛️ **SENTINEL MACRO — 1. S&P 500 & TRADFI**\n🕒 **Sesión:** 🌎 `" + sesion_actual + "`\n\n" + causas_ws + "\n"
 
+    # 2. Cripto Market
     df_cripto = obtener_datos_cripto_treemap()
     generar_treemap_cripto(df_cripto)
     causas_cripto = analizar_cripto_ia(df_cripto, sesion_actual, estado_previo)
-
     msg_cripto = "🪙 **SENTINEL MACRO — 2. BINANCE CRIPTO MARKET**\n🕒 **Sesión:** 🌎 `" + sesion_actual + "`\n\n" + causas_cripto + "\n"
 
     dict_ws_save = {}
@@ -383,6 +383,7 @@ if __name__ == "__main__":
         teclado_ws = {"inline_keyboard": [[{"text": "📊 Ver Mapa Interactivo S&P 500 (Investing)", "url": "https://es.investing.com/markets/heatmap"}]]}
         teclado_cripto = {"inline_keyboard": [[{"text": "🪙 Ver Mapa Interactivo Binance Futures", "url": "https://www.binance.com/es-AR/futures/crypto-heatmap"}]]}
 
+        # Enviar S&P 500
         p_f1 = {'chat_id': TELEGRAM_CHAT_ID, 'caption': "🗺️ **Mapa de Calor — S&P 500 (" + sesion_actual + ")**", 'parse_mode': 'Markdown'}
         if thread_id: 
             p_f1['message_thread_id'] = thread_id
@@ -393,6 +394,7 @@ if __name__ == "__main__":
             p_m1['message_thread_id'] = thread_id
         enviar_mensaje_telegram(url_base, p_m1)
 
+        # Enviar Cripto
         p_f2 = {'chat_id': TELEGRAM_CHAT_ID, 'caption': "🗺️ **Mapa de Calor — Cripto (" + sesion_actual + ")**", 'parse_mode': 'Markdown'}
         if thread_id: 
             p_f2['message_thread_id'] = thread_id
@@ -404,37 +406,28 @@ if __name__ == "__main__":
         enviar_mensaje_telegram(url_base, p_m2)
 
         # ---------------------------------------------------------
-        # ENVÍO DE NOTICIAS DE TRADINGVIEW CRIPTO
+        # 3. BLOQUE DE NOTICIAS CRIPTO DESTACADAS
         # ---------------------------------------------------------
-        print("📰 Procesando noticias de TradingView...")
-        historial_noticias = cargar_historial_noticias()
+        print("📰 Procesando titulares de noticias...")
         noticias_tv = obtener_noticias_tradingview()
-        noticias_enviadas = 0
 
-        for noticia in reversed(noticias_tv):
-            noticia_id = noticia['titular'].lower().strip()
-            if noticia_id not in historial_noticias:
-                msg_noticia = "📰 **SENTINEL NOTICIAS — TRADINGVIEW CRIPTO**\n"
-                msg_noticia += "🌐 *Fuente: " + noticia['fuente'] + "*\n\n"
-                msg_noticia += "⚡ **" + noticia['titular'] + "**\n\n"
-                msg_noticia += "🔗 [Leer noticia completa en TradingView](" + noticia['enlace'] + ")"
+        if noticias_tv:
+            msg_noticias = "📰 **SENTINEL NOTICIAS — TRADINGVIEW & MARKET HEADLINES**\n\n"
+            for idx, noticia in enumerate(noticias_tv[:3], 1):
+                msg_noticias += str(idx) + ". ⚡ **" + noticia['titular'] + "**\n"
+                msg_noticias += "🔗 [Leer en " + noticia['fuente'] + "](" + noticia['enlace'] + ")\n\n"
 
-                p_news = {
-                    'chat_id': TELEGRAM_CHAT_ID,
-                    'text': msg_noticia,
-                    'parse_mode': 'Markdown',
-                    'disable_web_page_preview': False
-                }
-                if thread_id: 
-                    p_news['message_thread_id'] = thread_id
+            p_news = {
+                'chat_id': TELEGRAM_CHAT_ID,
+                'text': msg_noticias,
+                'parse_mode': 'Markdown',
+                'disable_web_page_preview': True
+            }
+            if thread_id: 
+                p_news['message_thread_id'] = thread_id
 
-                enviar_mensaje_telegram(url_base, p_news)
-                historial_noticias.append(noticia_id)
-                noticias_enviadas += 1
-
-        if noticias_enviadas > 0:
-            guardar_historial_noticias(historial_noticias)
-            print("✅ Se enviaron " + str(noticias_enviadas) + " noticias nuevas a Telegram.")
+            enviar_mensaje_telegram(url_base, p_news)
+            print("✅ Bloque de Noticias enviado con éxito a Telegram.")
 
         print("✅ Ejecución completada exitosamente.")
     else:
