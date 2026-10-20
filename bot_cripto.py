@@ -33,7 +33,6 @@ def guardar_memoria_perlas(historial_reportes):
         print(f"Error guardando memoria: {e}")
 
 def crear_sesion_binance():
-    """Crea una sesión HTTP con headers de navegador real para evitar bloqueos"""
     session = requests.Session()
     session.headers.update({
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -42,7 +41,6 @@ def crear_sesion_binance():
     return session
 
 def obtener_simbolos_spot_activos(session):
-    """Obtiene únicamente los pares USDT habilitados para Spot TRADING activo en Binance"""
     urls = [
         "https://api.binance.com/api/v3/exchangeInfo",
         "https://data-api.binance.vision/api/v3/exchangeInfo"
@@ -50,20 +48,18 @@ def obtener_simbolos_spot_activos(session):
     
     for url in urls:
         try:
-            print(f"Obteniendo catálogo oficial Spot desde: {url} ...")
             res = session.get(url, timeout=12)
             if res.status_code == 200:
                 data = res.json()
                 simbolos_activos = set()
                 for s in data.get('symbols', []):
-                    # Solo tokens con negociación Spot activa y par base USDT
                     if (s.get('status') == 'TRADING' and 
                         s.get('isSpotTradingAllowed', True) and 
                         s.get('quoteAsset') == 'USDT'):
                         simbolos_activos.add(s.get('symbol'))
                 
                 if len(simbolos_activos) > 0:
-                    print(f"✅ Se validaron {len(simbolos_activos)} pares USDT activos y negociables en Binance Spot.")
+                    print(f"✅ Catálogo Spot validado: {len(simbolos_activos)} pares USDT activos.")
                     return simbolos_activos
         except Exception as e:
             print(f"⚠️ Error al obtener catálogo desde {url}: {e}")
@@ -72,14 +68,12 @@ def obtener_simbolos_spot_activos(session):
     return set()
 
 def obtener_datos_binance(session):
-    """Obtiene el ticker de 24 horas en vivo"""
     urls = [
         "https://api.binance.com/api/v3/ticker/24hr",
         "https://data-api.binance.vision/api/v3/ticker/24hr"
     ]
     
     for url in urls:
-        print(f"Conectando con Binance en vivo: {url} ...")
         try:
             response = session.get(url, timeout=15)
             if response.status_code == 200:
@@ -90,7 +84,7 @@ def obtener_datos_binance(session):
         except Exception as e:
             print(f"⚠️ Error conectando a {url}: {e}")
             
-    print("❌ Error crítico: No se obtuvo respuesta de los tickers de Binance.")
+    print("❌ Error crítico: No se obtuvo respuesta de Binance.")
     return []
 
 def formatear_precio(precio):
@@ -125,15 +119,14 @@ def generar_barra_progreso(cambio, tipo_bloque=""):
         return "🟥🟥🟥🟥🟥"
 
 def preparar_datos(tickers, simbolos_activos):
-    usdt_pairs = []
-    # Monedas estables que no deben competir en el ranking de altcoins
+    usdt_pairs_todos = {}
+    usdt_pairs_filtrados = []
     EXCLUIDOS = ['USDT', 'USDC', 'FDUSD', 'DAI', 'TUSD', 'USDP', 'EUR', 'BUSD']
     
     for t in tickers:
         symbol = t.get('symbol', '')
         base_name = symbol.replace('USDT', '')
         
-        # VALIDACIÓN RIGUROSA: El token DEBE ser un par Spot TRADING activo confirmado en exchangeInfo
         if (symbol in simbolos_activos and 
             base_name not in EXCLUIDOS and 
             not any(x in symbol for x in ['UP', 'DOWN', 'BULL', 'BEAR'])):
@@ -144,17 +137,20 @@ def preparar_datos(tickers, simbolos_activos):
                 t['highPrice_f'] = float(t.get('highPrice', 0))
                 t['lowPrice_f'] = float(t.get('lowPrice', 0))
                 
-                # REGLA OFICIAL BINANCE WEB: Volumen diario >= 1,000,000 USDT para aparecer en la tabla principal
+                # Almacenar en el mapa general
+                usdt_pairs_todos[symbol] = t
+                
+                # Regla de volumen para tablas públicas de Binance Web
                 if t['quoteVolume_f'] >= 1_000_000 and t['lastPrice_f'] > 0:
-                    usdt_pairs.append(t)
+                    usdt_pairs_filtrados.append(t)
             except (ValueError, TypeError):
                 continue
 
     # 1. TOP 7 GANADORAS
-    ganadoras = sorted(usdt_pairs, key=lambda x: x['priceChangePercent_f'], reverse=True)[:7]
+    ganadoras = sorted(usdt_pairs_filtrados, key=lambda x: x['priceChangePercent_f'], reverse=True)[:7]
     
-    # 2. TOP 7 ACUMULACIÓN 24H (Monedas de bajo valor < $1.00)
-    acumulacion_pool_24h = [t for t in usdt_pairs if t['lastPrice_f'] < 1.0]
+    # 2. TOP 7 ACUMULACIÓN 24H
+    acumulacion_pool_24h = [t for t in usdt_pairs_filtrados if t['lastPrice_f'] < 1.0]
     acumulacion_24h = sorted(acumulacion_pool_24h, key=lambda x: x['quoteVolume_f'], reverse=True)[:7]
     
     # 3. TOP 7 ACUMULACIÓN SILENCIOSA
@@ -162,7 +158,7 @@ def preparar_datos(tickers, simbolos_activos):
     simbolos_bloqueados = [item for reporte in historial_previo for item in reporte]
     
     candidatas_silenciosas = []
-    for t in usdt_pairs:
+    for t in usdt_pairs_filtrados:
         if (t['lastPrice_f'] < 1.00 and 
             -2.5 <= t['priceChangePercent_f'] <= 2.5 and 
             t['quoteVolume_f'] >= 1_000_000 and 
@@ -187,17 +183,17 @@ def preparar_datos(tickers, simbolos_activos):
     historial_previo.append(nuevos_simbolos)
     guardar_memoria_perlas(historial_previo)
     
-    # 4. TOP 7 PERDEDORAS (Sincronizadas 100% con la web de Binance)
-    perdedoras_pool = [t for t in usdt_pairs if t['priceChangePercent_f'] < 0]
+    # 4. TOP 7 PERDEDORAS
+    perdedoras_pool = [t for t in usdt_pairs_filtrados if t['priceChangePercent_f'] < 0]
     perdedoras = sorted(perdedoras_pool, key=lambda x: x['priceChangePercent_f'])[:7]
     
-    # 5. TUS 5 FAVORITAS
+    # 5. TUS 5 FAVORITAS (Búsqueda directa garantizada sin importar su volumen)
     favoritas_simbolos = ['QI', 'TUT', 'NEIRO', 'LUNC', 'BANK']
     favoritas = []
     for sim in favoritas_simbolos:
-        match = next((t for t in usdt_pairs if t['symbol'] == f"{sim}USDT"), None)
-        if match:
-            favoritas.append(match)
+        sym_key = f"{sim}USDT"
+        if sym_key in usdt_pairs_todos:
+            favoritas.append(usdt_pairs_todos[sym_key])
             
     return ganadoras, acumulacion_24h, acumulacion_silenciosa, perdedoras, favoritas
 
@@ -330,22 +326,12 @@ if __name__ == "__main__":
     if datos and len(datos) > 0 and len(simbolos_activos) > 0:
         ganadoras, acumulacion_24h, acumulacion_silenciosa, perdedoras, favoritas = preparar_datos(datos, simbolos_activos)
         
-        print("\n================ CORROBORACIÓN DE MERCADO REAL ================")
-        print("🚀 TOP GANADORAS EN VIVO:")
-        for g in ganadoras[:3]:
-            print(f"   - {g['symbol']}: {g['priceChangePercent_f']}% (Vol: ${g['quoteVolume_f']:,.0f})")
-            
-        print("📉 TOP PERDEDORAS EN VIVO:")
-        for p in perdedoras[:3]:
-            print(f"   - {p['symbol']}: {p['priceChangePercent_f']}% (Vol: ${p['quoteVolume_f']:,.0f})")
-        print("===============================================================\n")
-        
         procesar_y_enviar_bloque_unificado(1, "TOP 7 GANADORAS", "🚀", ganadoras, "#00c853", "grafico_ganadoras.png")
         procesar_y_enviar_bloque_unificado(2, "TOP 7 ACUMULACION 24H", "💎", acumulacion_24h, "#ffab00", "grafico_acumulacion_24h.png", tipo_bloque="acumulacion_24h")
         procesar_y_enviar_bloque_unificado(3, "TOP 7 ACUMULACION SILENCIOSA", "🕵️‍♂️", acumulacion_silenciosa, "#00bcd4", "grafico_silenciosa.png", tipo_bloque="silenciosa")
         procesar_y_enviar_bloque_unificado(4, "TOP 7 PERDEDORAS", "📉", perdedoras, "#f6465d", "grafico_perdedoras.png")
         procesar_y_enviar_bloque_unificado(5, "TUS 5 FAVORITAS", "⭐", favoritas, "#3861fb", "grafico_favoritas.png")
         
-        print("🎉 ¡Los reportes reales de Binance se enviaron correctamente a Telegram!")
+        print("🎉 ¡Los 5 bloques reales se enviaron correctamente a Telegram!")
     else:
         print("❌ ERROR CRÍTICO: No se pudieron obtener los datos de Binance.")
