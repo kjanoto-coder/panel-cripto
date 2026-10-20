@@ -14,8 +14,12 @@ TELEGRAM_CHAT_ID = (os.getenv("TELEGRAM_CHAT_ID") or os.getenv("CHAT_ID") or "")
 TELEGRAM_TOPIC_ID = (os.getenv("TOPIC_ID_CENTRAL") or "1").strip()
 BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
 
-# Lista negra ampliada para descartar tokens basura o deslistados de Binance Spot
-LISTA_NEGRA = ['PNTUSDT', 'VGXUSDT', 'BNCUSDT', 'PENGUUSDT', 'ASTERUSDT', 'WTCUSDT', 'PHBUSDT', 'NFPUSDT', 'BETAUSDT', 'VIBUSDT', 'PYRUSDT', 'ACAUSDT']
+# Lista negra estricta para excluir tokens fantasma, deslistados o anomalías de la API
+LISTA_NEGRA = [
+    'CREAMUSDT', 'PNTUSDT', 'VGXUSDT', 'BNCUSDT', 'PENGUUSDT', 'ASTERUSDT', 
+    'WTCUSDT', 'PHBUSDT', 'NFPUSDT', 'BETAUSDT', 'VIBUSDT', 'PYRUSDT', 'ACAUSDT',
+    'EPICUSDT', 'SOPHUSDT', 'KORUBUSDT', 'QNTBUSDT', 'DJTBUSDT' # Añadidos para filtrar anomalías externas detectadas
+]
 
 ARCHIVO_MEMORIA = "ultimas_perlas.json"
 
@@ -39,8 +43,8 @@ def guardar_memoria_perlas(historial_reportes):
 
 def obtener_datos_binance():
     urls = [
-        "https://data-api.binance.vision/api/v3/ticker/24hr",
-        "https://api.binance.com/api/v3/ticker/24hr"
+        "https://api.binance.com/api/v3/ticker/24hr",
+        "https://data-api.binance.vision/api/v3/ticker/24hr"
     ]
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
@@ -62,14 +66,14 @@ def obtener_datos_binance():
     return []
 
 def obtener_velas_historicas(symbol, interval="1d", limit=30):
-    url = f"https://data-api.binance.vision/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}"
+    url = f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}"
     try:
         response = requests.get(url, timeout=8)
         if response.status_code == 200:
             return response.json()
     except Exception:
         try:
-            url_alt = f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}"
+            url_alt = f"https://data-api.binance.vision/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}"
             response = requests.get(url_alt, timeout=8)
             if response.status_code == 200:
                 return response.json()
@@ -139,7 +143,8 @@ def preparar_datos(tickers):
                 t['highPrice_f'] = float(t.get('highPrice', 0))
                 t['lowPrice_f'] = float(t.get('lowPrice', 0))
                 
-                if t['quoteVolume_f'] >= 100000:
+                # Filtros de volumen real y exclusión de monedas con cambios anormales ficticios (> 200% o precios sospechosos)
+                if t['quoteVolume_f'] >= 500_000 and t['lastPrice_f'] > 0 and abs(t['priceChangePercent_f']) < 150:
                     usdt_pairs.append(t)
             except (ValueError, TypeError):
                 continue
@@ -156,7 +161,7 @@ def preparar_datos(tickers):
         t for t in usdt_pairs 
         if t['lastPrice_f'] < 1.0 
         and -1.5 <= t['priceChangePercent_f'] <= 1.8
-        and t['quoteVolume_f'] >= 1_500_000
+        and t['quoteVolume_f'] >= 2_000_000
         and t['symbol'] not in simbolos_bloqueados
     ]
     
@@ -199,7 +204,7 @@ def preparar_datos(tickers):
             t for t in usdt_pairs 
             if t['lastPrice_f'] < 1.0 
             and -2.0 <= t['priceChangePercent_f'] <= 2.0
-            and t['quoteVolume_f'] >= 1_000_000
+            and t['quoteVolume_f'] >= 1_500_000
             and t not in perlas_quirurgicas
         ]
         perlas_quirurgicas.extend(sorted(silenciosa_pool_respaldo, key=lambda x: x['quoteVolume_f'], reverse=True)[:7 - len(perlas_quirurgicas)])
