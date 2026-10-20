@@ -26,7 +26,7 @@ ESTADO_PREVIO_FILE = "datos_sentinel_macro.json"
 def cargar_estado_previo():
     if os.path.exists(ESTADO_PREVIO_FILE):
         try:
-            with open(ESTADO_PREVIO_FILE, "r") as f:
+            with open(ESTADO_PREVIO_FILE, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
             return {}
@@ -39,7 +39,7 @@ def guardar_estado_actual(datos_ws, datos_cripto):
         "cripto": datos_cripto
     }
     try:
-        with open(ESTADO_PREVIO_FILE, "w") as f:
+        with open(ESTADO_PREVIO_FILE, "w", encoding="utf-8") as f:
             json.dump(estado, f, indent=4)
     except Exception as e:
         print(f"Error guardando estado previo: {e}")
@@ -50,7 +50,7 @@ def guardar_estado_actual(datos_ws, datos_cripto):
 def cargar_historial_noticias():
     if os.path.exists(HISTORIAL_NOTICIAS_FILE):
         try:
-            with open(HISTORIAL_NOTICIAS_FILE, 'r', encoding='utf-8') as f:
+            with open(HISTORIAL_NOTICIAS_FILE, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
             pass
@@ -58,7 +58,7 @@ def cargar_historial_noticias():
 
 def guardar_historial_noticias(historial):
     try:
-        with open(HISTORIAL_NOTICIAS_FILE, 'w', encoding='utf-8') as f:
+        with open(HISTORIAL_NOTICIAS_FILE, "w", encoding="utf-8") as f:
             json.dump(historial[-100:], f, ensure_ascii=False, indent=2)
     except Exception as e:
         print(f"⚠️ Error guardando historial de noticias: {e}")
@@ -145,125 +145,3 @@ def obtener_datos_cripto_treemap():
                 var = round(float(item['priceChangePercent']), 2)
                 datos.append({"ticker": ticker_clean, "vol": vol, "var": var})
     except Exception:
-        pass
-        
-    if not datos:
-        datos = [{"ticker": "BTC", "vol": 100, "var": -1.5}, {"ticker": "ETH", "vol": 60, "var": -2.8}]
-        
-    return pd.DataFrame(datos)
-
-def generar_treemap_cripto(df):
-    fig, ax = plt.subplots(figsize=(12, 7), facecolor='#0b0e14')
-    ax.set_facecolor('#0b0e14')
-
-    sizes = df['vol']
-    labels = [f"{row['ticker']}\n{row['var']}%" for _, row in df.iterrows()]
-    colors = ['#00796b' if v >= 2 else ('#26a69a' if v >= 0 else ('#e53935' if v <= -2 else '#c62828')) for v in df['var']]
-
-    squarify.plot(sizes=sizes, label=labels, color=colors, alpha=0.95,
-                  pad=True, edgecolor="#0b0e14", linewidth=2,
-                  text_kwargs={'color':'white', 'fontsize':9, 'weight':'bold'}, ax=ax)
-
-    plt.title("MAPA DE CALOR PROFESIONAL — BINANCE CRIPTO MARKET", color='#FFD700', fontsize=13, fontweight='bold', pad=15)
-    plt.axis('off')
-    plt.tight_layout()
-    plt.savefig('heatmap_cripto.png', dpi=300, facecolor=fig.get_facecolor(), edgecolor='none')
-    plt.close()
-
-# ---------------------------------------------------------
-# 3. EXTRAER NOTICIAS DE TRADINGVIEW / CRIPTO
-# ---------------------------------------------------------
-def obtener_noticias_tradingview():
-    noticias = []
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept-Language": "es-ES,es;q=0.9"
-    }
-
-    url_tv = "https://es.tradingview.com/markets/cryptocurrencies/news/"
-    try:
-        res = requests.get(url_tv, headers=headers, timeout=12)
-        if res.status_code == 200:
-            soup = BeautifulSoup(res.text, 'html.parser')
-            articulos = soup.find_all('a', class_=lambda c: c and 'title' in str(c).lower())
-            
-            for art in articulos[:10]:
-                titular = art.get_text().strip()
-                href = art.get('href', '')
-                enlace = f"https://es.tradingview.com{href}" if href.startswith('/') else href
-                
-                if titular and len(titular) > 15:
-                    noticias.append({
-                        'titular': titular,
-                        'enlace': enlace,
-                        'fuente': 'TradingView Cripto'
-                    })
-    except Exception as e:
-        print(f"⚠️ Error al raspar TradingView: {e}")
-
-    # RSS de respaldo si la web estática cambia
-    if len(noticias) < 3:
-        try:
-            res_rss = requests.get("https://es.cointelegraph.com/rss", headers=headers, timeout=12)
-            if res_rss.status_code == 200:
-                soup_rss = BeautifulSoup(res_rss.content, features="xml")
-                for item in soup_rss.find_all('item')[:8]:
-                    titular = item.title.text.strip() if item.title else ""
-                    enlace = item.link.text.strip() if item.link else ""
-                    if titular and enlace:
-                        noticias.append({
-                            'titular': titular,
-                            'enlace': enlace,
-                            'fuente': 'TradingView / Cointelegraph'
-                        })
-        except Exception as e:
-            print(f"⚠️ Error en RSS de respaldo: {e}")
-
-    return noticias
-
-# ---------------------------------------------------------
-# 4. GENERACIÓN DE DIAGNÓSTICO Y ALERTA DE IA
-# ---------------------------------------------------------
-def analizar_wall_street_ia(df_ws, sesion, estado_previo):
-    if not GEMINI_API_KEY: 
-        return "📊 Diagnóstico: Renta variable operando con volatilidad moderada.\n🚨 Alerta: Mantener cautela en posiciones apalancadas."
-    
-    try:
-        client = genai.Client(api_key=GEMINI_API_KEY)
-        
-        detalle_actual = {r['ticker']: r['var'] for _, r in df_ws.iterrows()}
-        prev_ws = estado_previo.get("wall_street", {})
-        
-        giros = []
-        for t, val_act in detalle_actual.items():
-            val_prev = prev_ws.get(t, val_act)
-            if val_prev < 0 and val_act > 0:
-                giros.append(f"{t} cambió de rojo ({val_prev}%) a verde (+{val_act}%)")
-            elif val_prev > 0 and val_act < 0:
-                giros.append(f"{t} cambió de verde (+{val_prev}%) a rojo ({val_act}%)")
-
-        texto_giros = ", ".join(giros) if giros else "Sin cambios drásticos respecto al reporte anterior."
-        datos_txt = ", ".join([f"{r['ticker']}: {r['var']}%" for _, r in df_ws.iterrows()])
-
-        prompt = f"""
-        Actúa como un estratega macroeconómico de Wall Street.
-        Sesión: {sesion}.
-        Variaciones del S&P 500: {datos_txt}.
-        Giros recientes detectados: {texto_giros}.
-
-        MANTÉN EXACTAMENTE ESTE FORMATO DE DOS LÍNEAS DIRECTAS:
-        📊 Diagnóstico: [Explica en 1 o 2 frases cortas cómo transcurrió el día desde la apertura y qué sector impulsa la sesión]
-        🚨 Alerta: [Proporciona un aviso claro de si el mercado apunta a SUBIR o BAJAR en los próximos días y si hubo giro de rojo a verde o viceversa]
-        """
-        for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
-            try:
-                res = client.models.generate_content(model=mod, contents=prompt)
-                if res and res.text: return res.text.strip()
-            except: continue
-    except Exception as e:
-        print(f"Error analizando Wall Street con Gemini: {e}")
-        
-    return "📊 Diagnóstico: Renta variable operando con volatilidad moderada.\n🚨 Alerta: Mantener cautela en posiciones apalancadas."
-
-def analizar_cripto_ia(df_cripto, sesion, estado_previo):
-    if
