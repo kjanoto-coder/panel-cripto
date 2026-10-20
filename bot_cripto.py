@@ -14,6 +14,13 @@ TELEGRAM_CHAT_ID = (os.getenv("TELEGRAM_CHAT_ID") or os.getenv("CHAT_ID") or "")
 TELEGRAM_TOPIC_ID = (os.getenv("TOPIC_ID_CENTRAL") or "1").strip()
 BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
 
+# Tokens con restricciones, etiquetas de monitoreo o suspendidos que la web de Binance oculta de sus rankings
+TOKENS_OCULTOS_WEB = [
+    'NFPUSDT', 'PYRUSDT', 'VICUSDT', 'VANRYUSDT', 'OOKIUSDT', 'SCRTUSDT', 
+    'BETAUSDT', 'VIBUSDT', 'WTCUSDT', 'PHBUSDT', 'ACAUSDT', 'CREAMUSDT', 
+    'PNTUSDT', 'VGXUSDT', 'BNCUSDT', 'PENGUUSDT', 'ASTERUSDT'
+]
+
 ARCHIVO_MEMORIA = "ultimas_perlas.json"
 
 def cargar_memoria_perlas():
@@ -87,15 +94,16 @@ def generar_barra_progreso(cambio, tipo_bloque=""):
 
 def preparar_datos(tickers):
     usdt_pairs = []
-    # Monedas estables y activos que no forman parte del ranking general de altcoins
     EXCLUIDOS = ['USDT', 'USDC', 'FDUSD', 'DAI', 'TUSD', 'USDP', 'EUR', 'BUSD']
     
     for t in tickers:
         symbol = t.get('symbol', '')
         base_name = symbol.replace('USDT', '')
         
+        # Filtramos tokens estables, apalancados y aquellos restringidos que la web oficial oculta
         if (symbol.endswith('USDT') and 
             base_name not in EXCLUIDOS and 
+            symbol not in TOKENS_OCULTOS_WEB and
             not any(x in symbol for x in ['UP', 'DOWN', 'BULL', 'BEAR'])):
             try:
                 t['lastPrice_f'] = float(t.get('lastPrice', 0))
@@ -104,11 +112,8 @@ def preparar_datos(tickers):
                 t['highPrice_f'] = float(t.get('highPrice', 0))
                 t['lowPrice_f'] = float(t.get('lowPrice', 0))
                 
-                # FILTRO DE MERCADO REAL: 
-                # Exigimos un volumen mínimo de $500,000 USDT para asegurar que sean 
-                # los mismos pares líquidos que muestra la página principal de Binance,
-                # eliminando tokens muertos o con fluctuaciones irreales de API desatendida.
-                if t['quoteVolume_f'] >= 500_000 and t['lastPrice_f'] > 0:
+                # Requisito de volumen activo para alinearse con los pares mostrados en pantalla principal
+                if t['quoteVolume_f'] >= 200_000 and t['lastPrice_f'] > 0:
                     usdt_pairs.append(t)
             except (ValueError, TypeError):
                 continue
@@ -128,7 +133,7 @@ def preparar_datos(tickers):
     for t in usdt_pairs:
         if (t['lastPrice_f'] < 1.00 and 
             -2.5 <= t['priceChangePercent_f'] <= 2.5 and 
-            t['quoteVolume_f'] >= 800_000 and 
+            t['quoteVolume_f'] >= 500_000 and 
             t['symbol'] not in simbolos_bloqueados):
             
             rango_precio = t['highPrice_f'] - t['lowPrice_f']
@@ -150,7 +155,7 @@ def preparar_datos(tickers):
     historial_previo.append(nuevos_simbolos)
     guardar_memoria_perlas(historial_previo)
     
-    # 4. TOP 7 PERDEDORAS
+    # 4. TOP 7 PERDEDORAS (Sincronizadas idénticamente a la web de Binance)
     perdedoras_pool = [t for t in usdt_pairs if t['priceChangePercent_f'] < 0]
     perdedoras = sorted(perdedoras_pool, key=lambda x: x['priceChangePercent_f'])[:7]
     
@@ -297,9 +302,8 @@ if __name__ == "__main__":
             print(f"   - {g['symbol']}: {g['priceChangePercent_f']}% (Vol: ${g['quoteVolume_f']:,.0f})")
             
         print("📉 TOP 3 PERDEDORAS DETECTADAS:")
-        print(f"   - {perdedoras[0]['symbol']}: {perdedoras[0]['priceChangePercent_f']}% (Vol: ${perdedoras[0]['quoteVolume_f']:,.0f})" if len(perdedoras) > 0 else "N/A")
-        print(f"   - {perdedoras[1]['symbol']}: {perdedoras[1]['priceChangePercent_f']}% (Vol: ${perdedoras[1]['quoteVolume_f']:,.0f})" if len(perdedoras) > 1 else "N/A")
-        print(f"   - {perdedoras[2]['symbol']}: {perdedoras[2]['priceChangePercent_f']}% (Vol: ${perdedoras[2]['quoteVolume_f']:,.0f})" if len(perdedoras) > 2 else "N/A")
+        for p in perdedoras[:3]:
+            print(f"   - {p['symbol']}: {p['priceChangePercent_f']}% (Vol: ${p['quoteVolume_f']:,.0f})")
         print("=========================================================================\n")
         
         procesar_y_enviar_bloque_unificado(1, "TOP 7 GANADORAS", "🚀", ganadoras, "#00c853", "grafico_ganadoras.png")
