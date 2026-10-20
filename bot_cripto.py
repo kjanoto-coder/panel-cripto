@@ -33,7 +33,6 @@ def guardar_memoria_perlas(historial_reportes):
         print(f"Error guardando memoria: {e}")
 
 def obtener_datos_binance():
-    """Consume el feed oficial del mercado Spot de Binance tal cual lo muestra su web pública"""
     urls = [
         "https://api.binance.com/api/v3/ticker/24hr",
         "https://data-api.binance.vision/api/v3/ticker/24hr"
@@ -88,14 +87,13 @@ def generar_barra_progreso(cambio, tipo_bloque=""):
 
 def preparar_datos(tickers):
     usdt_pairs = []
-    # Stablecoins y activos base que no entran en el ranking general de altcoins
+    # Monedas estables y activos que no forman parte del ranking general de altcoins
     EXCLUIDOS = ['USDT', 'USDC', 'FDUSD', 'DAI', 'TUSD', 'USDP', 'EUR', 'BUSD']
     
     for t in tickers:
         symbol = t.get('symbol', '')
         base_name = symbol.replace('USDT', '')
         
-        # Tomamos todos los pares USDT limpios del mercado general (sin apalancados artificiales)
         if (symbol.endswith('USDT') and 
             base_name not in EXCLUIDOS and 
             not any(x in symbol for x in ['UP', 'DOWN', 'BULL', 'BEAR'])):
@@ -106,20 +104,23 @@ def preparar_datos(tickers):
                 t['highPrice_f'] = float(t.get('highPrice', 0))
                 t['lowPrice_f'] = float(t.get('lowPrice', 0))
                 
-                # Sin filtros de volumen restrictivos: dejamos pasar toda la data real del mercado general
-                if t['lastPrice_f'] > 0:
+                # FILTRO DE MERCADO REAL: 
+                # Exigimos un volumen mínimo de $500,000 USDT para asegurar que sean 
+                # los mismos pares líquidos que muestra la página principal de Binance,
+                # eliminando tokens muertos o con fluctuaciones irreales de API desatendida.
+                if t['quoteVolume_f'] >= 500_000 and t['lastPrice_f'] > 0:
                     usdt_pairs.append(t)
             except (ValueError, TypeError):
                 continue
 
-    # 1. TOP 7 GANADORAS (Exactamente las de mayor porcentaje positivo en el mercado general)
+    # 1. TOP 7 GANADORAS
     ganadoras = sorted(usdt_pairs, key=lambda x: x['priceChangePercent_f'], reverse=True)[:7]
     
-    # 2. TOP 7 ACUMULACIÓN 24H (Monedas de bajo valor < $1.00 ordenadas por volumen general)
+    # 2. TOP 7 ACUMULACIÓN 24H (Bajo valor < $1.00)
     acumulacion_pool_24h = [t for t in usdt_pairs if t['lastPrice_f'] < 1.0]
     acumulacion_24h = sorted(acumulacion_pool_24h, key=lambda x: x['quoteVolume_f'], reverse=True)[:7]
     
-    # 3. TOP 7 ACUMULACIÓN SILENCIOSA (Motor interno de compresión)
+    # 3. TOP 7 ACUMULACIÓN SILENCIOSA
     historial_previo = cargar_memoria_perlas()
     simbolos_bloqueados = [item for reporte in historial_previo for item in reporte]
     
@@ -127,7 +128,7 @@ def preparar_datos(tickers):
     for t in usdt_pairs:
         if (t['lastPrice_f'] < 1.00 and 
             -2.5 <= t['priceChangePercent_f'] <= 2.5 and 
-            t['quoteVolume_f'] >= 500_000 and 
+            t['quoteVolume_f'] >= 800_000 and 
             t['symbol'] not in simbolos_bloqueados):
             
             rango_precio = t['highPrice_f'] - t['lowPrice_f']
@@ -149,7 +150,7 @@ def preparar_datos(tickers):
     historial_previo.append(nuevos_simbolos)
     guardar_memoria_perlas(historial_previo)
     
-    # 4. TOP 7 PERDEDORAS (Exactamente las de mayor porcentaje negativo general del mercado)
+    # 4. TOP 7 PERDEDORAS
     perdedoras_pool = [t for t in usdt_pairs if t['priceChangePercent_f'] < 0]
     perdedoras = sorted(perdedoras_pool, key=lambda x: x['priceChangePercent_f'])[:7]
     
@@ -283,11 +284,23 @@ def procesar_y_enviar_bloque_unificado(num_bloque, titulo_bloque, icono, lista_i
     time.sleep(3)
 
 if __name__ == "__main__":
-    print("🚀 INICIANDO SCRIPT DE MERCADO GENERAL EN VIVO...")
+    print("🚀 INICIANDO SCRIPT DE CORROBORACIÓN DE MERCADO (EN VIVO)...")
     
     datos = obtener_datos_binance()
     if datos and len(datos) > 0:
         ganadoras, acumulacion_24h, acumulacion_silenciosa, perdedoras, favoritas = preparar_datos(datos)
+        
+        # --- BLOQUE DE DIAGNÓSTICO EN VIVO (Visible en los logs de GitHub Actions cada 15 min) ---
+        print("\n================ CORROBORACIÓN DE MERCADO (BINANCE WEB) ================")
+        print("🚀 TOP 3 GANADORAS DETECTADAS:")
+        for g in ganadoras[:3]:
+            print(f"   - {g['symbol']}: {g['priceChangePercent_f']}% (Vol: ${g['quoteVolume_f']:,.0f})")
+            
+        print("📉 TOP 3 PERDEDORAS DETECTADAS:")
+        print(f"   - {perdedoras[0]['symbol']}: {perdedoras[0]['priceChangePercent_f']}% (Vol: ${perdedoras[0]['quoteVolume_f']:,.0f})" if len(perdedoras) > 0 else "N/A")
+        print(f"   - {perdedoras[1]['symbol']}: {perdedoras[1]['priceChangePercent_f']}% (Vol: ${perdedoras[1]['quoteVolume_f']:,.0f})" if len(perdedoras) > 1 else "N/A")
+        print(f"   - {perdedoras[2]['symbol']}: {perdedoras[2]['priceChangePercent_f']}% (Vol: ${perdedoras[2]['quoteVolume_f']:,.0f})" if len(perdedoras) > 2 else "N/A")
+        print("=========================================================================\n")
         
         procesar_y_enviar_bloque_unificado(1, "TOP 7 GANADORAS", "🚀", ganadoras, "#00c853", "grafico_ganadoras.png")
         procesar_y_enviar_bloque_unificado(2, "TOP 7 ACUMULACION 24H", "💎", acumulacion_24h, "#ffab00", "grafico_acumulacion_24h.png", tipo_bloque="acumulacion_24h")
@@ -295,6 +308,6 @@ if __name__ == "__main__":
         procesar_y_enviar_bloque_unificado(4, "TOP 7 PERDEDORAS", "📉", perdedoras, "#f6465d", "grafico_perdedoras.png")
         procesar_y_enviar_bloque_unificado(5, "TUS 5 FAVORITAS", "⭐", favoritas, "#3861fb", "grafico_favoritas.png")
         
-        print("🎉 ¡Los bloques de mercado general se enviaron correctamente a Telegram!")
+        print("🎉 ¡Los reportes reales de mercado se enviaron correctamente a Telegram!")
     else:
-        print("❌ ERROR CRÍTICO: No se pudieron obtener los datos de mercado.")
+        print("❌ ERROR CRÍTICO: No se pudieron obtener los datos en vivo.")
