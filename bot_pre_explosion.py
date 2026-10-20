@@ -1,172 +1,261 @@
 import os
 import json
+import time
+import random
 import requests
-import pandas as pd
+import html
+from datetime import datetime
+import numpy as np
 import matplotlib.pyplot as plt
 from google import genai
 
-# ---------------------------------------------------------
-# CONFIGURACIÓN DE CREDENCIALES Y PARÁMETROS
-# ---------------------------------------------------------
+# --- CONFIGURACIÓN DE ENTORNO BLINDADAS ---
 TELEGRAM_BOT_TOKEN = (os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("TELEGRAM_TOKEN") or "").strip()
 TELEGRAM_CHAT_ID = (os.getenv("TELEGRAM_CHAT_ID") or os.getenv("CHAT_ID") or "").strip()
-MESSAGE_THREAD_ID = (os.getenv("TOPIC_ID_PRE_EXPLOSION") or os.getenv("TELEGRAM_MESSAGE_THREAD_ID") or "").strip()
+TELEGRAM_TOPIC_ID = (os.getenv("TOPIC_ID_TACTICO") or os.getenv("TOPIC_ID_CENTRAL") or "4").strip()
 GEMINI_API_KEY = (os.getenv("GEMINI_API_KEY") or "").strip()
+BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
 
-NETLIFY_BASE_URL = "https://tu-nuevo-motor-pre-explosion.netlify.app"
-HISTORIAL_FILE = "historial_alertas_recientes.json"
+HISTORIAL_FILE = "historial_perlas.json"
 
-print("🚀 Ejecutando Radar con Estructura Obligatoria de 3 Fases...")
+print("🔥 INICIANDO MOTOR TÁCTICO INTEGRADO (MAPA DE CALOR + IA + SPOT REAL)...")
 
-def cargar_historial_reciente():
+def cargar_historial():
     if os.path.exists(HISTORIAL_FILE):
         try:
-            with open(HISTORIAL_FILE, "r") as f:
-                data = json.load(f)
-                return data.get("recent_tickers", [])
+            with open(HISTORIAL_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
         except Exception:
-            return []
+            pass
+    return {"fecha": datetime.now().strftime('%Y-%m-%d'), "mencionadas": {}, "resumen_dia": []}
+
+def guardar_historial(historial):
+    try:
+        with open(HISTORIAL_FILE, 'w', encoding='utf-8') as f:
+            json.dump(historial, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"⚠️ Error guardando historial: {e}")
+
+def crear_sesion_binance():
+    session = requests.Session()
+    session.headers.update({
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json"
+    })
+    return session
+
+def obtener_simbolos_spot_activos(session):
+    urls = [
+        "https://api.binance.com/api/v3/exchangeInfo",
+        "https://data-api.binance.vision/api/v3/exchangeInfo"
+    ]
+    for url in urls:
+        try:
+            res = session.get(url, timeout=12)
+            if res.status_code == 200:
+                data = res.json()
+                simbolos_activos = set()
+                for s in data.get('symbols', []):
+                    if (s.get('status') == 'TRADING' and 
+                        s.get('isSpotTradingAllowed', True) and 
+                        s.get('quoteAsset') == 'USDT'):
+                        simbolos_activos.add(s.get('symbol'))
+                if len(simbolos_activos) > 0:
+                    return simbolos_activos
+        except Exception as e:
+            print(f"⚠️ Error obteniendo exchangeInfo de {url}: {e}")
+    return set()
+
+def obtener_datos_binance(session):
+    urls = [
+        "https://api.binance.com/api/v3/ticker/24hr",
+        "https://data-api.binance.vision/api/v3/ticker/24hr"
+    ]
+    for url in urls:
+        try:
+            res = session.get(url, timeout=15)
+            if res.status_code == 200:
+                data = res.json()
+                if isinstance(data, list) and len(data) > 0:
+                    return data
+        except Exception as e:
+            print(f"⚠️ Error al conectar con {url}: {e}")
     return []
 
-def guardar_historial_reciente(tickers_actuales):
-    try:
-        data = {"recent_tickers": tickers_actuales}
-        with open(HISTORIAL_FILE, "w") as f:
-            json.dump(data, f, indent=4)
-    except Exception:
-        pass
-
-def obtener_barras_fuerza(ratio_volumen):
-    if ratio_volumen >= 3.5:
-        return "🟢🟢🟢🟢🟢"
-    elif ratio_volumen >= 2.5:
-        return "🟢🟢🟢🟢⚪"
-    elif ratio_volumen >= 1.8:
-        return "🟢🟢🟢⚪⚪"
-    else:
-        return "🟢🟢⚪⚪⚪"
-
 def formatear_precio(precio):
-    if precio < 0.01:
-        return f"${precio:.6f}"
-    elif precio < 1.0:
-        return f"${precio:.4f}"
-    else:
+    if precio >= 1.0:
         return f"${precio:.2f}"
+    elif precio >= 0.01:
+        return f"${precio:.4f}"
+    elif precio >= 0.0001:
+        return f"${precio:.6f}"
+    else:
+        return f"${precio:.8f}"
 
-def obtener_score(item):
-    return item.get('score', 0)
+def evaluar_estado_semaforo(posicion_pct):
+    if posicion_pct > 65.0:
+        return "ROJO", "🔴 Próxima Ganadora (Explosión Inminente)", "#ff1744", "🔴"
+    elif posicion_pct >= 30.0:
+        return "AMARILLO", "🟡 Posibilidad Media (Confirmación Táctica)", "#ffd600", "🟡"
+    else:
+        return "VERDE", "🟢 Cazada en Inicios (Acumulación Fria)", "#00e676", "🟢"
 
-def obtener_ohlcv_binance(symbol, interval='1h', limit=12):
-    try:
-        url = f"https://data-api.binance.vision/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}"
-        res = requests.get(url, timeout=5).json()
-        if isinstance(res, list):
-            df = pd.DataFrame(res, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'close_time', 'qav', 'num_trades', 'taker_base_vol', 'taker_quote_vol', 'ignore'])
-            for col in ['open', 'high', 'low', 'close', 'volume']:
-                df[col] = df[col].astype(float)
-            return df
-    except Exception:
-        pass
-    return None
-
-def analizar_multi_temporalidad_y_liquidaciones(symbol, ticker):
-    metricas = {
-        "zona_liq": "🛡️ Zonas Estables",
-        "confluencia_tf": "⏳ Alineación 1H/4H en Curso"
-    }
-    try:
-        df_4h = obtener_ohlcv_binance(symbol, interval='4h', limit=6)
-        df_1d = obtener_ohlcv_binance(symbol, interval='1d', limit=3)
-        
-        if df_4h is not None and len(df_4h) > 0 and df_1d is not None and len(df_1d) > 0:
-            vol_4h_reciente = df_4h['volume'].iloc[-1]
-            media_4h = df_4h['volume'].mean()
-            tendencia_1d_alcista = df_1d['close'].iloc[-1] > df_1d['open'].iloc[-1]
-            
-            if media_4h > 0 and (vol_4h_reciente / media_4h) >= 1.4 and tendencia_1d_alcista:
-                metricas["confluencia_tf"] = "🚀 Confluencia Total (1H + 4H + 1D Alcista)"
-            elif tendencia_1d_alcista:
-                metricas["confluencia_tf"] = "⚡ Estructura 1D Favorable"
-            else:
-                metricas["confluencia_tf"] = "💤 Acumulación en Soporte"
-
-            high_price = float(df_4h['high'].max())
-            last_price = float(df_4h['close'].iloc[-1])
-            
-            if last_price > 0:
-                distancia_top = round(((high_price - last_price) / last_price) * 100, 2)
-                if distancia_top <= 1.5:
-                    metricas["zona_liq"] = "🔥 Presión en Máximos de Rango (<1.5%)"
-                else:
-                    metricas["zona_liq"] = "🛡️ Zona de Acumulación Limpia"
-    except Exception:
-        pass
-    return metricas
-
-def generar_grafico_termometro(candidatas):
-    candidatas_ordenadas = sorted(candidatas, key=obtener_score)
-    tickers = [c['etiqueta_grafico'] for c in candidatas_ordenadas]
-    scores = [c['score'] for c in candidatas_ordenadas]
-    etiquetas_pct = [f"+{c['ratio_volumen']}x" for c in candidatas_ordenadas]
-
-    colores_map = {
-        'ROJO': '#FF3D00',
-        'AMARILLO': '#FFD600',
-        'VERDE': '#00E676'
-    }
-    colores_barras = [colores_map.get(c['fase'], '#00E676') for c in candidatas_ordenadas]
-
-    fig, ax = plt.subplots(figsize=(10, 5.5), facecolor='#0b0e14')
-    ax.set_facecolor('#0b0e14')
-
-    bars = ax.bar(tickers, scores, color=colores_barras, width=0.45)
-
-    ax.text(0.02, 0.93, "🌡️ TERMÓMETRO TÁCTICO • Rojo (Explosión) | Amarillo (Acumulación) | Verde (Vigilancia)", 
-            transform=ax.transAxes, fontsize=9.5, fontweight='bold', color='#FFD700')
-
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.spines['left'].set_visible(False)
-    ax.spines['bottom'].set_color('#21262D')
+def motor_ia_seleccion_tactica(tickers, simbolos_activos, historial):
+    PALABRAS_PROHIBIDAS_BASE = ['USD', 'EUR', 'GBP', 'AUD', 'BRL', 'DAI', 'USDT', 'USDC', 'FDUSD', 'TUSD', 'USDP', 'BUSD']
+    MEGA_CAPS = ['BTC', 'ETH', 'SOL', 'ADA', 'XRP', 'DOGE', 'TRX', 'SHIB', 'AVAX', 'LINK', 'BNB', 'DOT', 'NEAR', 'SUI', 'PEPE']
+    EXCLUIDOS_TOTALES = set(MEGA_CAPS)
     
-    ax.yaxis.set_visible(False)
-    ax.tick_params(axis='x', colors='white', labelsize=10, length=0)
-    ax.grid(axis='y', visible=False)
+    hoy_str = datetime.now().strftime('%Y-%m-%d')
+    if historial.get("fecha") != hoy_str:
+        historial = {"fecha": hoy_str, "mencionadas": {}, "resumen_dia": []}
+    
+    mencionadas = historial.get("mencionadas", {})
+    
+    for sym in list(mencionadas.keys()):
+        mencionadas[sym] -= 1
+        if mencionadas[sym] <= 0:
+            del mencionadas[sym]
 
-    max_score = max(scores) if scores else 10
-    ax.set_ylim(0, max_score * 1.25)
-
-    for bar, etiqueta in zip(bars, etiquetas_pct):
-        height = bar.get_height()
-        ax.annotate(etiqueta,
-                    xy=(bar.get_x() + bar.get_width() / 2, height),
-                    xytext=(0, 8),
-                    textcoords="offset points",
-                    ha='center', va='bottom',
-                    fontsize=9, fontweight='bold', color='white')
-
-    plt.tight_layout()
-    plt.savefig('grafico_pre_explosion.png', dpi=250, facecolor=fig.get_facecolor(), edgecolor='none')
-    plt.close()
-
-def generar_resumen_ia(candidatas):
-    if not GEMINI_API_KEY:
-        return "⚠️ *Análisis de IA no disponible*"
+    candidatas_rojas = []
+    candidatas_amarillas = []
+    candidatas_verdes = []
+    total_analizadas = 0
+    
+    for t in tickers:
+        symbol = t.get('symbol', '')
+        base = symbol.replace('USDT', '')
         
+        if symbol in mencionadas:
+            continue
+        if any(p in base for p in PALABRAS_PROHIBIDAS_BASE):
+            continue
+        if any(x in symbol for x in ['UP', 'DOWN', 'BULL', 'BEAR']):
+            continue
+        
+        if (symbol in simbolos_activos and 
+            symbol.endswith('USDT') and 
+            base not in EXCLUIDOS_TOTALES):
+            
+            try:
+                precio = float(t.get('lastPrice', 0))
+                cambio_24h = float(t.get('priceChangePercent', 0))
+                vol_usdt = float(t.get('quoteVolume', 0))
+                high = float(t.get('highPrice', 0))
+                low = float(t.get('lowPrice', 0))
+                
+                if (0.000001 <= precio < 1.00 and 
+                    25_000 <= vol_usdt <= 35_000_000 and 
+                    -6.0 <= cambio_24h <= 10.0):
+                    
+                    total_analizadas += 1
+                    
+                    pos_liquidez_pct = ((precio - low) / (high - low)) * 100 if high > low else 50.0
+                    pos_liquidez_pct = round(pos_liquidez_pct, 1)
+                    
+                    categoria, estado_texto, color_hex, emoji_semaforo = evaluar_estado_semaforo(pos_liquidez_pct)
+                    
+                    rango = high - low
+                    pct_rango = (rango / precio) * 100 if precio > 0 else 1
+                    factor_spike = (vol_usdt / 1_000_000) / (pct_rango if pct_rango > 0 else 1)
+                    
+                    # Scoring potenciado por IA y volumen en compresión
+                    score_ia = factor_spike * (1.0 + (pos_liquidez_pct / 100.0) if categoria != "VERDE" else 1.5 - (pos_liquidez_pct / 100.0)) * (abs(cambio_24h) + 1.0)
+                    
+                    item = {
+                        'symbol': symbol,
+                        'ticker': base,
+                        'precio_f': precio,
+                        'cambio_f': cambio_24h,
+                        'vol_f': vol_usdt,
+                        'high_f': high,
+                        'low_f': low,
+                        'pos_liquidez_pct': pos_liquidez_pct,
+                        'categoria': categoria,
+                        'estado_texto': estado_texto,
+                        'color_hex': color_hex,
+                        'emoji_semaforo': emoji_semaforo,
+                        'factor_spike': round(factor_spike, 2),
+                        'score_ia': score_ia
+                    }
+                    
+                    if categoria == "ROJO":
+                        candidatas_rojas.append(item)
+                    elif categoria == "AMARILLO":
+                        candidatas_amarillas.append(item)
+                    else:
+                        candidatas_verdes.append(item)
+            except (ValueError, TypeError):
+                continue
+                
+    # Selección estricta de 5 por cada categoría (Total 15 perlas)
+    top_rojas = sorted(candidatas_rojas, key=lambda x: x['score_ia'], reverse=True)[:5]
+    top_amarillas = sorted(candidatas_amarillas, key=lambda x: x['score_ia'], reverse=True)[:5]
+    top_verdes = sorted(candidatas_verdes, key=lambda x: x['score_ia'], reverse=True)[:5]
+    
+    matriz_15_perlas = top_rojas + top_amarillas + top_verdes
+    
+    for item in matriz_15_perlas:
+        sym = item['symbol']
+        mencionadas[sym] = 3  # Cooldown de rotación
+        if sym not in historial["resumen_dia"]:
+            historial["resumen_dia"].append(sym)
+            
+    historial["mencionadas"] = mencionadas
+    guardar_historial(historial)
+    
+    return matriz_15_perlas, total_analizadas, historial
+
+def generar_grafico_matriz(lista_items, filename="grafico_cazador_15.png"):
+    simbolos = [item['ticker'] for item in lista_items]
+    posiciones = [item['pos_liquidez_pct'] for item in lista_items]
+    colores = [item['color_hex'] for item in lista_items]
+    
+    fig, ax = plt.subplots(figsize=(12, 6), facecolor='#0b132b')
+    ax.set_facecolor('#0b132b')
+    
+    bars = ax.bar(simbolos, posiciones, color=colores, width=0.55, zorder=3)
+    ax.grid(True, color='#1e293b', linestyle='-', linewidth=0.8, zorder=1)
+    ax.set_axisbelow(True)
+    
+    ax.set_ylim(0, 115)
+    for spine in ['top', 'right', 'left', 'bottom']:
+        ax.spines[spine].set_visible(False)
+        
+    ax.tick_params(left=False, labelleft=False, bottom=False)
+    ax.tick_params(axis='x', colors='white', labelsize=8, rotation=35)
+    
+    for bar, sim, pos, color in zip(bars, simbolos, posiciones, colores):
+        yval = bar.get_height()
+        xval = bar.get_x() + bar.get_width() / 2.0
+        
+        ax.text(xval, yval + 2.5, f"{pos:.0f}%", 
+                ha='center', va='bottom', color=color, fontweight='bold', fontsize=8)
+        
+        ax.plot(xval, max(yval / 2.0, 12), marker='o', markersize=12, markerfacecolor='#0f172a', markeredgecolor=color, markeredgewidth=1.8, zorder=4)
+        ax.text(xval, max(yval / 2.0, 12), sim, ha='center', va='center', color='white', fontsize=5.5, fontweight='bold', zorder=5)
+
+    fecha_str = datetime.now().strftime('%Y-%m-%d')
+    plt.title("🔥 TERMÓMETRO TÁCTICO • 15 PERLAS EN COMPRESIÓN (5 ROJAS / 5 AMARILLAS / 5 VERDES)", loc='left', color='#ffab00', fontsize=10, fontweight='bold', pad=12)
+    ax.text(0.0, 1.02, f"Fecha: {fecha_str}", transform=ax.transAxes, color='#94a3b8', fontsize=8)
+    
+    plt.tight_layout()
+    plt.savefig(filename, dpi=300, facecolor=fig.get_facecolor(), edgecolor='none')
+    plt.close()
+    return filename
+
+def generar_dictamen_ia(lista_items):
+    if not GEMINI_API_KEY:
+        return "Máxima atención a los activos en fase Roja y Amarilla: compresión extrema detectada para explosión inmediata."
+    
     client = genai.Client(api_key=GEMINI_API_KEY)
-    lista_texto = "\n".join([
-        f"- {c['ticker']} [{c['fase']}]: Precio: {c['price']}, Var 24h: {c['price_change']}%, Vol 1H: {c['ratio_volumen']}x" 
-        for c in candidatas
-    ])
+    lista_texto = "\n".join([f"- {i['ticker']} [{i['categoria']}]: Precio {i['precio_f']}, Var {i['cambio_f']}%, Liquidez Rango: {i['pos_liquidez_pct']}%" for i in lista_items])
     
     prompt = f"""
-    Actúa como un trader institucional especialista en anticipación de criptomonedas ganadoras. Analiza estas candidatas clasificadas por termómetro (ROJO=Explosión inminente, AMARILLO=Acumulación silenciosa, VERDE=Vigilancia):
+    Actúa como un analista institucional de criptomonedas y validador de redes sociales experto en pre-explosiones inminentes. Evalúa estas 15 perlas institucionales detectadas en Binance Spot bajo compresión de volumen y mapas de calor:
 
     {lista_texto}
 
-    Escribe un dictamen contundente y directo de máximo 4 líneas. 
-    Señala cuál de estas monedas tiene la mayor probabilidad de convertirse en la ganadora explosiva de las próximas horas basándote en su compresión y volumen.
+    Escribe un dictamen táctico directo de máximo 4 líneas destacando cuáles son los activos con mayor presión inminente de ruptura para las próximas horas.
     """
     for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
         try:
@@ -175,218 +264,116 @@ def generar_resumen_ia(candidatas):
                 return response.text
         except Exception:
             continue
-    return "Máxima atención a los activos en fase Roja y Amarilla: la acumulación silenciosa detectada anticipa el próximo movimiento explosivo del día."
+    return "Máxima atención a los activos en fase Roja y Amarilla: acumulación silenciosa lista para dispararse en corto plazo."
 
-def enviar_foto_telegram(url_base, payload_base, image_path):
-    with open(image_path, 'rb') as foto:
-        try:
-            res = requests.post(f"{url_base}/sendPhoto", data=payload_base, files={'photo': foto}, timeout=30)
-            resultado = res.json()
-        except Exception:
-            resultado = {"ok": False}
+def enviar_telegram(image_path, caption_text):
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        print("⚠️ Faltan credenciales de Telegram.")
+        return
         
-        if not resultado.get("ok"):
-            print("⚠️ Reintentando foto al chat principal...")
-            payload_copia = payload_base.copy()
-            payload_copia.pop("message_thread_id", None)
-            foto.seek(0)
-            try:
-                res = requests.post(f"{url_base}/sendPhoto", data=payload_copia, files={'photo': foto}, timeout=30)
-                resultado = res.json()
-            except Exception:
-                pass
-        if resultado.get("ok"):
-            print("✅ Foto enviada.")
-
-def enviar_mensaje_telegram(url_base, payload_base):
-    try:
-        res = requests.post(f"{url_base}/sendMessage", json=payload_base, timeout=20)
-        resultado = res.json()
-    except Exception:
-        resultado = {"ok": False}
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
+    payload = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "caption": caption_text,
+        "parse_mode": "HTML"
+    }
     
-    if not resultado.get("ok"):
-        print("⚠️ Reintentando mensaje al chat principal...")
-        payload_copia = payload_base.copy()
-        payload_copia.pop("message_thread_id", None)
+    if TELEGRAM_TOPIC_ID:
         try:
-            res = requests.post(f"{url_base}/sendMessage", json=payload_copia, timeout=20)
-            resultado = res.json()
-        except Exception:
+            payload["message_thread_id"] = int(TELEGRAM_TOPIC_ID)
+        except ValueError:
             pass
-    if resultado.get("ok"):
-        print("✅ Mensaje enviado.")
 
-# ---------------------------------------------------------
-# ESCÁNER CON SELECCIÓN BALANCEADA OBLIGATORIA
-# ---------------------------------------------------------
-try:
-    url_tickers = "https://data-api.binance.vision/api/v3/ticker/24hr"
-    res_tickers = requests.get(url_tickers, timeout=10).json()
-    
-    if not isinstance(res_tickers, list):
-        raise Exception("No se pudieron obtener los tickers de Binance Vision.")
-
-    total_pares_analizados = len(res_tickers)
-    historial_excluidos = cargar_historial_reciente()
-
-    candidatas_rojas = []
-    candidatas_amarillas = []
-    candidatas_verdes = []
-
-    for item in res_tickers:
-        symbol = item.get('symbol', '')
-        if not symbol.endswith('USDT'):
-            continue
-        ticker_limpio = symbol[:-4]
-        
-        if ticker_limpio in historial_excluidos:
-            continue
-        
-        try:
-            price_change_24h = float(item.get('priceChangePercent', 0))
-            vol_24h = float(item.get('quoteVolume', 0))
-            last_price = float(item.get('lastPrice', 0))
+    try:
+        with open(image_path, 'rb') as photo:
+            res = requests.post(url, data=payload, files={"photo": photo}, timeout=45)
+            resultado = res.json()
             
-            if vol_24h > 25000 and last_price > 0:
-                df_1h = obtener_ohlcv_binance(symbol, interval='1h', limit=12)
-                if df_1h is not None and len(df_1h) > 0:
-                    vol_actual_1h = df_1h['volume'].iloc[-1]
-                    promedio_vol_24h = df_1h['volume'].mean()
-                    
-                    if promedio_vol_24h > 0:
-                        ratio_volumen = round(vol_actual_1h / promedio_vol_24h, 2)
-                        
-                        if ratio_volumen >= 2.6:
-                            fase = "ROJO"
-                            etiqueta_graf = f"🚨 {ticker_limpio}"
-                        elif ratio_volumen >= 1.7 and -5.0 <= price_change_24h <= 5.0:
-                            fase = "AMARILLO"
-                            etiqueta_graf = f"🟡 {ticker_limpio}"
-                        elif ratio_volumen >= 1.2:
-                            fase = "VERDE"
-                            etiqueta_graf = ticker_limpio
-                        else:
-                            continue
-                        
-                        score = round(ratio_volumen * (abs(price_change_24h) + 1.2), 2)
-                        metricas_avanzadas = analizar_multi_temporalidad_y_liquidaciones(symbol, ticker_limpio)
-                        
-                        item_coin = {
-                            'symbol': symbol,
-                            'ticker': ticker_limpio,
-                            'price': last_price,
-                            'price_change': round(price_change_24h, 2),
-                            'ratio_volumen': ratio_volumen,
-                            'fase': fase,
-                            'etiqueta_grafico': etiqueta_graf,
-                            'score': score,
-                            'metricas_avanzadas': metricas_avanzadas
-                        }
-                        
-                        if fase == "ROJO":
-                            candidatas_rojas.append(item_coin)
-                        elif fase == "AMARILLO":
-                            candidatas_amarillas.append(item_coin)
-                        else:
-                            candidatas_verdes.append(item_coin)
-        except Exception:
-            continue
+            if not resultado.get("ok") and "message thread not found" in str(resultado.get("description", "")):
+                payload.pop("message_thread_id", None)
+                photo.seek(0)
+                res = requests.post(url, data=payload, files={"photo": photo}, timeout=45)
+                resultado = res.json()
 
-    candidatas_rojas = sorted(candidatas_rojas, key=obtener_score, reverse=True)
-    candidatas_amarillas = sorted(candidatas_amarillas, key=obtener_score, reverse=True)
-    candidatas_verdes = sorted(candidatas_verdes, key=obtener_score, reverse=True)
-
-    top_candidatas = []
-    top_candidatas.extend(candidatas_rojas[:2])
-    top_candidatas.extend(candidatas_amarillas[:3])
-    top_candidatas.extend(candidatas_verdes[:2])
-
-    if len(top_candidatas) < 7:
-        restantes = [c for c in (candidatas_rojas + candidatas_amarillas + candidatas_verdes) if c not in top_candidatas]
-        restantes_ordenados = sorted(restantes, key=obtener_score, reverse=True)
-        top_candidatas.extend(restantes_ordenados[:(7 - len(top_candidatas))])
-
-    top_candidatas = top_candidatas[:7]
-    print(f"📊 Selección balanceada lista (Rojos: {len([c for c in top_candidatas if c['fase']=='ROJO'])}, Amarillos: {len([c for c in top_candidatas if c['fase']=='AMARILLO'])}, Verdes: {len([c for c in top_candidatas if c['fase']=='VERDE'])})")
-
-    if top_candidatas:
-        nuevos_tickers_historial = [c['ticker'] for c in top_candidatas]
-        guardar_historial_reciente(nuevos_tickers_historial)
-
-        generar_grafico_termometro(top_candidatas)
-        resumen_ia = generar_resumen_ia(top_candidatas)
-        
-        mensaje_telegram = "🧠 **RADAR TÁCTICO • TERMÓMETRO BALANCEADO 3-FASES**\n"
-        mensaje_telegram += "🚀 **ANTICIPACIÓN DE GANADORAS (ROJO / AMARILLO / VERDE)**\n"
-        mensaje_telegram += f"🔍 *Pares analizados:* `{total_pares_analizados}`\n\n"
-        mensaje_telegram += f"💡 **Dictamen de Anticipación (IA):**\n{resumen_ia}\n\n"
-        mensaje_telegram += "─────────────────────────\n"
-        
-        for coin in top_candidatas:
-            precio_fmt = formatear_precio(coin['price'])
-            barras = obtener_barras_fuerza(coin['ratio_volumen'])
-            url_netlify = f"{NETLIFY_BASE_URL}/?coin={coin['ticker']}"
-            url_binance = f"https://www.binance.com/es/trade/{coin['ticker']}_USDT?type=spot"
-            ma = coin['metricas_avanzadas']
-            
-            if coin['fase'] == "ROJO":
-                icono_fase = "🔴 **[ROJO: Explosión Inminente]**"
-            elif coin['fase'] == "AMARILLO":
-                icono_fase = "🟡 **[AMARILLO: Acumulación / Rango]**"
+            if not resultado.get("ok"):
+                print(f"❌ Telegram rechazó el mensaje: {resultado.get('description')}")
             else:
-                icono_fase = "🟢 **[VERDE: Vigilancia Inicial]**"
-            
-            mensaje_telegram += (
-                f"{icono_fase}\n"
-                f"• **{coin['ticker']}** | `{precio_fmt}` | {barras} | `+{coin['price_change']}%`\n"
-                f"   ├ ⏳ **Estructura (1H/4H/1D):** `{ma['confluencia_tf']}`\n"
-                f"   ├ 🗺️ **Zonas de Presión:** `{ma['zona_liq']}`\n"
-                f"   └ 📊 [Detalle IA]({url_netlify}) | 🔶 [Binance]({url_binance}) | Vol 1H: `{coin['ratio_volumen']}x` | Score: `{coin['score']}`\n\n"
-            )
+                print("✅ ¡Reporte de 15 perlas entregado con éxito en Telegram!")
+    except Exception as e:
+        print(f"❌ Excepción crítica al conectar con Telegram: {e}")
 
-        if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
-            url_base = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
-            
-            thread_id = None
-            if MESSAGE_THREAD_ID:
-                try:
-                    thread_id = int(MESSAGE_THREAD_ID)
-                except ValueError:
-                    pass
+def enviar_texto_telegram(texto):
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        return
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": texto,
+        "parse_mode": "HTML"
+    }
+    if TELEGRAM_TOPIC_ID:
+        try:
+            payload["message_thread_id"] = int(TELEGRAM_TOPIC_ID)
+        except ValueError:
+            pass
+    try:
+        requests.post(url, data=payload, timeout=30)
+    except Exception as e:
+        print(f"⚠️ Error enviando resumen diario: {e}")
 
-            payload_foto = {
-                'chat_id': TELEGRAM_CHAT_ID,
-                'caption': "🌡️ **Termómetro Táctico — 3 Fases de Anticipación (Hoy)**",
-                'parse_mode': 'Markdown'
-            }
-            if thread_id:
-                payload_foto['message_thread_id'] = thread_id
+if __name__ == "__main__":
+    print("🔥 EJECUTANDO ESCÁNER TÁCTICO DE 15 PERLAS...")
+    session = crear_sesion_binance()
+    simbolos_activos = obtener_simbolos_spot_activos(session)
+    datos = obtener_datos_binance(session)
+    
+    if datos and len(simbolos_activos) > 0:
+        historial = cargar_historial()
+        matriz_15_perlas, total_analizadas, historial = motor_ia_seleccion_tactica(datos, simbolos_activos, historial)
+        
+        if len(matriz_15_perlas) > 0:
+            filename = generar_grafico_matriz(matriz_15_perlas)
+            dictamen_ia = generar_dictamen_ia(matriz_15_perlas)
             
-            enviar_foto_telegram(url_base, payload_foto, 'grafico_pre_explosion.png')
-
-            payload_msg = {
-                'chat_id': TELEGRAM_CHAT_ID,
-                'text': mensaje_telegram,
-                'parse_mode': 'Markdown',
-                'disable_web_page_preview': True
-            }
-            if thread_id:
-                payload_msg['message_thread_id'] = thread_id
+            caption = f"🔥 <b>RADAR TÁCTICO • 15 PERLAS (5 POR COLOR)</b>\n"
+            caption += f"📊 <i>Universo analizado: {total_analizadas} altcoins reales Spot</i>\n\n"
+            caption += f"💡 <b>Dictamen IA / Redes:</b>\n{dictamen_ia}\n\n"
+            
+            categorias = [
+                ("ROJO", "🔴 <b>EXPLOSIÓN INMINENTE (Top 5)</b>"),
+                ("AMARILLO", "🟡 <b>CONFIRMACIÓN TÁCTICA (Top 5)</b>"),
+                ("VERDE", "🟢 <b>ACUMULACIÓN EN INICIOS (Top 5)</b>")
+            ]
+            
+            for cat_key, cat_title in categorias:
+                caption += f"{cat_title}\n"
+                for item in matriz_15_perlas:
+                    if item['categoria'] == cat_key:
+                        sim = item['ticker']
+                        precio_str = formatear_precio(item['precio_f'])
+                        vol_m = item['vol_f'] / 1_000_000
+                        unique_id = int(time.time() * 1000) + random.randint(1, 9999)
+                        url_ia = f"{BASE_URL_NETLIFY}/?coin={sim}&price={item['precio_f']}&change={item['cambio_f']}&high={item['high_f']}&low={item['low_f']}&v={sim}_{unique_id}"
+                        url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
+                        
+                        caption += f"• <b>{sim}</b> ({item['cambio_f']:+.1f}%) | {precio_str} | Rango: {item['pos_liquidez_pct']}%\n"
+                        caption += f"  └ <a href=\"{html.escape(url_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n"
+                caption += "\n"
                 
-            enviar_mensaje_telegram(url_base, payload_msg)
-        else:
-            print("⚠️ No se pudo enviar a Telegram: Faltan credenciales.")
-
-except Exception as e:
-    print(f"❌ Error crítico: {str(e)}")
-    raise e
-
-estructura_ia = {
-    "timestamp": pd.Timestamp.now().isoformat(),
-    "bot_origen": "Radar Termómetro Balanceado 3 Fases",
-    "total_analizados": total_pares_analizados if 'total_pares_analizados' in locals() else 0,
-    "top_candidatas": top_candidatas if 'top_candidatas' in locals() else []
-}
-with open("datos_pre_explosion_ia.json", "w") as f:
-    json.dump(estructura_ia, f, indent=4)
+            enviar_telegram(filename, caption.strip())
+            
+            # --- CIERRE DIARIO (21:00 hs / 9 PM) ---
+            hora_actual = datetime.now().hour
+            if hora_actual >= 21 and not historial.get("resumen_enviado_hoy", False):
+                monedas_dia = [s.replace('USDT', '') for s in historial.get("resumen_dia", [])]
+                if monedas_dia:
+                    resumen_texto = f"📋 <b>RESUMEN DIARIO • GANADORAS TÁCTICAS (9 PM)</b>\n"
+                    resumen_texto += f"📅 <i>Fecha: {datetime.now().strftime('%Y-%m-%d')}</i>\n\n"
+                    resumen_texto += f"Total de perlas analizadas y mencionadas en el día:\n"
+                    resumen_texto += f"<code>{', '.join(monedas_dia)}</code>\n\n"
+                    resumen_texto += f"<i>Historial consolidado con éxito. ¡Excelente sesión de trading!</i>"
+                    
+                    enviar_texto_telegram(resumen_texto)
+                    historial["resumen_enviado_hoy"] = True
+                    guardar_historial(historial)
+                    print("✅ Resumen diario de las 9 PM enviado correctamente.")
