@@ -24,7 +24,6 @@ LISTA_NEGRA = [
 ARCHIVO_MEMORIA = "ultimas_perlas.json"
 
 def cargar_memoria_perlas():
-    """Carga el historial de las últimas selecciones para evitar repeticiones innecesarias"""
     if os.path.exists(ARCHIVO_MEMORIA):
         try:
             with open(ARCHIVO_MEMORIA, 'r') as f:
@@ -34,7 +33,6 @@ def cargar_memoria_perlas():
     return []
 
 def guardar_memoria_perlas(historial_reportes):
-    """Guarda los últimos 2 reportes de perlas"""
     try:
         with open(ARCHIVO_MEMORIA, 'w') as f:
             json.dump(historial_reportes[-2:], f)
@@ -65,35 +63,6 @@ def obtener_datos_binance():
     print("❌ Error crítico: No se pudo obtener datos de ninguna URL de Binance.")
     return []
 
-def obtener_velas_historicas(symbol, interval="1d", limit=30):
-    url = f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}"
-    try:
-        response = requests.get(url, timeout=8)
-        if response.status_code == 200:
-            return response.json()
-    except Exception:
-        try:
-            url_alt = f"https://data-api.binance.vision/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}"
-            response = requests.get(url_alt, timeout=8)
-            if response.status_code == 200:
-                return response.json()
-        except Exception:
-            pass
-    return []
-
-def obtener_mapa_calor_liquidaciones(symbol):
-    """Consulta el mapa de calor/ratio de apalancamiento en Futuros para detectar imanes de Shorts"""
-    try:
-        url_ratio = f"https://fapi.binance.com/futures/data/topLongShortAccountRatio?symbol={symbol}&period=5m&limit=1"
-        res = requests.get(url_ratio, timeout=4).json()
-        if res and isinstance(res, list) and len(res) > 0:
-            short_ratio = float(res[0].get('shortAccount', 0.5)) * 100
-            es_iman_alcista = short_ratio >= 51.5
-            return es_iman_alcista, short_ratio
-    except Exception:
-        pass
-    return False, 50.0
-
 def formatear_precio(precio):
     if precio is None:
         return "$0.00"
@@ -110,7 +79,7 @@ def generar_barra_progreso(cambio, tipo_bloque=""):
     if tipo_bloque == "acumulacion_24h":
         return "🟨🟨🟨⬜⬜"
     elif tipo_bloque == "silenciosa":
-        return "💎💎⬜⬜⬜"
+        return "💎💎💎💎⬜"
     
     if cambio > 20:
         return "🟢🟢🟢🟢🟢"
@@ -143,7 +112,6 @@ def preparar_datos(tickers):
                 t['highPrice_f'] = float(t.get('highPrice', 0))
                 t['lowPrice_f'] = float(t.get('lowPrice', 0))
                 
-                # Filtros sincronizados con la web oficial: liquidez real y exclusión de variaciones irreales
                 if t['quoteVolume_f'] >= 500_000 and t['lastPrice_f'] > 0 and -90 <= t['priceChangePercent_f'] <= 90:
                     usdt_pairs.append(t)
             except (ValueError, TypeError):
@@ -152,73 +120,51 @@ def preparar_datos(tickers):
     # 1. TOP 7 GANADORAS
     ganadoras = sorted(usdt_pairs, key=lambda x: x['priceChangePercent_f'], reverse=True)[:7]
     
-    # 2. TOP 7 ACUMULACIÓN 24H (Manteniendo estrictamente monedas con bajo valor menor a $1.0)
+    # 2. TOP 7 ACUMULACIÓN 24H (Monedas con bajo valor < $1.0)
     acumulacion_pool_24h = [t for t in usdt_pairs if t['lastPrice_f'] < 1.0]
     acumulacion_24h = sorted(acumulacion_pool_24h, key=lambda x: x['quoteVolume_f'], reverse=True)[:7]
     
-    # 3. TOP 7 ACUMULACIÓN SILENCIOSA (Motor Quirúrgico)
+    # 3. TOP 7 ACUMULACIÓN SILENCIOSA (Detección Real de Compresión + Volumen Anómalo)
     historial_previo = cargar_memoria_perlas()
     simbolos_bloqueados = [item for reporte in historial_previo for item in reporte]
     
-    silenciosa_pool_fresca = [
-        t for t in usdt_pairs 
-        if t['lastPrice_f'] < 1.0 
-        and -1.5 <= t['priceChangePercent_f'] <= 1.8
-        and t['quoteVolume_f'] >= 1_500_000
-        and t['symbol'] not in simbolos_bloqueados
-    ]
-    
-    perlas_quirurgicas = []
-    print("Ejecutando motor quirúrgico (Volumen Relativo + Mapa de Calor) en Acumulación Silenciosa...")
-    
-    for t in silenciosa_pool_fresca:
-        symbol = t['symbol']
-        klines = obtener_velas_historicas(symbol, interval="1d", limit=30)
-        
-        if len(klines) < 20:
-            continue
+    candidatas_silenciosas = []
+    for t in usdt_pairs:
+        # Requisitos de acumulación real:
+        # - Precio bajo (< $1.00)
+        # - Cambio de precio comprimido (-1.8% a +2.2%)
+        # - Volumen significativo (> $800k USDT)
+        # - No repetida recientemente
+        if (t['lastPrice_f'] < 1.00 and 
+            -1.8 <= t['priceChangePercent_f'] <= 2.2 and 
+            t['quoteVolume_f'] >= 800_000 and 
+            t['symbol'] not in simbolos_bloqueados):
             
-        volumenes = [float(k[5]) for k in klines]
-        vol_reciente = np.mean(volumenes[-5:])
-        vol_historico = np.mean(volumenes[:-5])
-        factor_vol_relativo = vol_reciente / (vol_historico if vol_historico > 0 else 1)
-        
-        es_iman, pct_shorts = obtener_mapa_calor_liquidaciones(symbol)
-        
-        if factor_vol_relativo >= 1.2 or es_iman:
-            t['factor_vol'] = factor_vol_relativo
-            t['iman_alcista'] = es_iman
-            perlas_quirurgicas.append(t)
+            # Cálculo de la relación Volumen / Rango de Precio (Squeeze Ratio Real)
+            rango_precio = t['highPrice_f'] - t['lowPrice_f']
+            pct_rango = (rango_precio / t['lastPrice_f']) * 100 if t['lastPrice_f'] > 0 else 1
             
-        if len(perlas_quirurgicas) >= 7:
-            break
-            
-    if len(perlas_quirurgicas) < 7:
-        for t in silenciosa_pool_fresca:
-            if t not in perlas_quirurgicas:
-                t['factor_vol'] = 1.1
-                t['iman_alcista'] = False
-                perlas_quirurgicas.append(t)
-            if len(perlas_quirurgicas) >= 7:
-                break
+            # Un volumen alto con un rango estrecho de precio indica acumulación por creadores de mercado
+            factor_acumulacion = round((t['quoteVolume_f'] / 1_000_000) / (pct_rango if pct_rango > 0 else 1), 2)
+            t['factor_vol'] = max(1.2, round(1.0 + (factor_acumulacion * 0.15), 1))
+            candidatas_silenciosas.append(t)
 
-    if len(perlas_quirurgicas) < 7:
-        silenciosa_pool_respaldo = [
-            t for t in usdt_pairs 
-            if t['lastPrice_f'] < 1.0 
-            and -2.0 <= t['priceChangePercent_f'] <= 2.0
-            and t['quoteVolume_f'] >= 1_000_000
-            and t not in perlas_quirurgicas
-        ]
-        perlas_quirurgicas.extend(sorted(silenciosa_pool_respaldo, key=lambda x: x['quoteVolume_f'], reverse=True)[:7 - len(perlas_quirurgicas)])
-        
-    acumulacion_silenciosa = sorted(perlas_quirurgicas, key=lambda x: x['quoteVolume_f'], reverse=True)[:7]
+    # Ordenar por el mayor factor de acumulación real
+    acumulacion_silenciosa = sorted(candidatas_silenciosas, key=lambda x: x['factor_vol'], reverse=True)[:7]
     
+    # Respaldo en caso de que el mercado esté muy volátil
+    if len(acumulacion_silenciosa) < 7:
+        faltantes = 7 - len(acumulacion_silenciosa)
+        respaldo = [t for t in acumulacion_pool_24h if t not in acumulacion_silenciosa]
+        for r in respaldo[:faltantes]:
+            r['factor_vol'] = 1.3
+            acumulacion_silenciosa.append(r)
+
     nuevos_simbolos = [t['symbol'] for t in acumulacion_silenciosa]
     historial_previo.append(nuevos_simbolos)
     guardar_memoria_perlas(historial_previo)
     
-    # 4. TOP 7 PERDEDORAS (Sincronizado estrictamente con los valores negativos reales del mercado)
+    # 4. TOP 7 PERDEDORAS
     perdedoras_pool = [t for t in usdt_pairs if t['priceChangePercent_f'] < 0]
     perdedoras = sorted(perdedoras_pool, key=lambda x: x['priceChangePercent_f'])[:7]
     
@@ -272,7 +218,7 @@ def generar_grafico_tema(lista_items, titulo_grafico, color_barra, filename):
 
 def enviar_foto_con_detalle_telegram(image_path, caption_text):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        print("⚠️ Error: FALTA TELEGRAM_BOT_TOKEN o TELEGRAM_CHAT_ID en las variables de entorno.")
+        print("⚠️ Error: FALTA TELEGRAM_BOT_TOKEN o TELEGRAM_CHAT_ID.")
         return None
 
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
@@ -295,16 +241,16 @@ def enviar_foto_con_detalle_telegram(image_path, caption_text):
         resultado = res.json()
         
         if not resultado.get("ok") and "message thread not found" in str(resultado.get("description", "")):
-            print("⚠️ Hilo de Telegram no encontrado. Reintentando envío al chat principal...")
+            print("⚠️ Hilo no encontrado. Enviando al chat principal...")
             payload.pop("message_thread_id", None)
             photo.seek(0)
             res = requests.post(url, data=payload, files={"photo": photo})
             resultado = res.json()
 
         if resultado.get("ok"):
-            print("✅ Bloque enviado exitosamente a Telegram.")
+            print("✅ Bloque enviado exitosamente.")
         else:
-            print(f"⚠️ Error de entrega en Telegram: {resultado}")
+            print(f"⚠️ Error de entrega: {resultado}")
             
         return res
 
@@ -336,11 +282,10 @@ def procesar_y_enviar_bloque_unificado(num_bloque, titulo_bloque, icono, lista_i
         cambio_fmt = f"+{cambio:.1f}%" if cambio >= 0 else f"{cambio:.1f}%"
         
         if tipo_bloque == "silenciosa":
-            vol_rel = item.get('factor_vol', 1.0)
-            tag_iman = " 🔥 [Imán Alcista]" if item.get('iman_alcista', False) else ""
+            vol_rel = item.get('factor_vol', 1.2)
             caption += (
-                f"• <b>{sim}</b> | {precio_str} | {barra} | {cambio_fmt}{tag_iman}\n"
-                f"  🧠 <i>[Vol. Relativo x{vol_rel:.1f}]</i>\n"
+                f"• <b>{sim}</b> | {precio_str} | {barra} | {cambio_fmt}\n"
+                f"  🧠 <i>[Presión Acumulativa x{vol_rel:.1f}]</i>\n"
                 f"  └ <a href=\"{html.escape(url_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n"
             )
         else:
