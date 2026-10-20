@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 # --- CONFIGURACIÓN DE VARIABLES DE ENTORNO BLINDADAS ---
 TELEGRAM_BOT_TOKEN = (os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("TELEGRAM_TOKEN") or "").strip()
 TELEGRAM_CHAT_ID = (os.getenv("TELEGRAM_CHAT_ID") or os.getenv("CHAT_ID") or "").strip()
-TELEGRAM_TOPIC_ID = (os.getenv("TELEGRAM_MESSAGE_THREAD_ID") or os.getenv("TOPIC_ID_TACTICO") or "").strip()
+TELEGRAM_TOPIC_ID = (os.getenv("TOPIC_ID_CENTRAL") or "1").strip()
 BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
 
 # Lista negra ampliada para descartar tokens basura o deslistados de Binance Spot
@@ -329,9 +329,6 @@ if __name__ == "__main__":
         ganadoras, acumulacion_24h, acumulacion_silenciosa, perdedoras, favoritas = preparar_datos(datos)
         
         procesar_y_enviar_bloque_unificado(1, "TOP 7 GANADORAS", "🚀", ganadoras, "#00c853", "grafico_ganadoras.png")
-        procesar_y_enviar_bloque_unificado(2, "TOP 7 ACUMULACIÓN 24H (< $1 USD)", "💎", acumulacion_24h, "#ffab00", "grafico_acumulacion_24h.png", tipo_bloque="acumulacion_24h")
-        procesar_y_enviar_bloque_unificado(3, "TOP 7 ACUMULACIÓN SILENCIOSA (< $1)", "🕵️‍♂️", acumulacion_silenciosa, "#00bcd4", "grafico_silenciosa.png", tipo_bloque="silenciosa")
-        procesar_y_enviar_bloque_unificado(4, "TOP 7 PERDEDORAS", "📉", perdedoras, "#f6465d", "grafico_perdedoras.png")
-        procesar_y_enviar_bloque_unificado(5, "TUS 5 FAVORITAS", "⭐", favoritas, "#3861fb", "grafico_favoritas.png")
+        procesar_y_enviar_bloque_unificado(2, "TOP 7 ACUM
         
         print("¡Los 5 bloques actualizados se enviaron correctamente!")
