@@ -32,27 +32,8 @@ def guardar_memoria_perlas(historial_reportes):
     except Exception as e:
         print(f"Error guardando memoria: {e}")
 
-def obtener_simbolos_spot_activos():
-    """Obtiene únicamente los símbolos USDT que se negocian activamente en Binance Spot (TRADING)"""
-    url = "https://api.binance.com/api/v3/exchangeInfo"
-    headers = {"User-Agent": "Mozilla/5.0"}
-    simbolos_activos = set()
-    try:
-        res = requests.get(url, headers=headers, timeout=15)
-        if res.status_code == 200:
-            data = res.json()
-            for s in data.get('symbols', []):
-                # Filtro estricto: Solo mercados Spot habilitados y en estado TRADING
-                if (s.get('status') == 'TRADING' and 
-                    s.get('isSpotTradingAllowed', True) and 
-                    s.get('quoteAsset') == 'USDT'):
-                    simbolos_activos.add(s.get('symbol'))
-            print(f"✅ Se validaron {len(simbolos_activos)} pares USDT Spot en negociación activa.")
-    except Exception as e:
-        print(f"⚠️ Error obteniendo exchangeInfo: {e}")
-    return simbolos_activos
-
 def obtener_datos_binance():
+    """Consume el feed oficial del mercado Spot de Binance tal cual lo muestra su web pública"""
     urls = [
         "https://api.binance.com/api/v3/ticker/24hr",
         "https://data-api.binance.vision/api/v3/ticker/24hr"
@@ -105,19 +86,17 @@ def generar_barra_progreso(cambio, tipo_bloque=""):
     else:
         return "🟥🟥🟥🟥🟥"
 
-def preparar_datos(tickers, simbolos_activos):
+def preparar_datos(tickers):
     usdt_pairs = []
-    EXCLUIDOS = ['FDUSD', 'USDT', 'USDC', 'DAI', 'TUSD', 'USDP', 'EUR', 'BUSD', 'DOGE', 'TRX', 'SHIB', 'WLD', 'SOL', 'BTC', 'ETH', 'ADA', 'ONDO']
+    # Stablecoins y activos base que no entran en el ranking general de altcoins
+    EXCLUIDOS = ['USDT', 'USDC', 'FDUSD', 'DAI', 'TUSD', 'USDP', 'EUR', 'BUSD']
     
     for t in tickers:
         symbol = t.get('symbol', '')
         base_name = symbol.replace('USDT', '')
         
-        # EL FILTRO CLAVE: El símbolo DEBE pertenecer a los pares TRADING activos de Spot
-        es_spot_activo = len(simbolos_activos) == 0 or (symbol in simbolos_activos)
-        
-        if (es_spot_activo and 
-            symbol.endswith('USDT') and 
+        # Tomamos todos los pares USDT limpios del mercado general (sin apalancados artificiales)
+        if (symbol.endswith('USDT') and 
             base_name not in EXCLUIDOS and 
             not any(x in symbol for x in ['UP', 'DOWN', 'BULL', 'BEAR'])):
             try:
@@ -127,28 +106,28 @@ def preparar_datos(tickers, simbolos_activos):
                 t['highPrice_f'] = float(t.get('highPrice', 0))
                 t['lowPrice_f'] = float(t.get('lowPrice', 0))
                 
-                # Se exige un volumen mínimo razonable ($200k) para descartar mercados sin liquidez real
-                if t['quoteVolume_f'] >= 200_000 and t['lastPrice_f'] > 0:
+                # Sin filtros de volumen restrictivos: dejamos pasar toda la data real del mercado general
+                if t['lastPrice_f'] > 0:
                     usdt_pairs.append(t)
             except (ValueError, TypeError):
                 continue
 
-    # 1. TOP 7 GANADORAS
+    # 1. TOP 7 GANADORAS (Exactamente las de mayor porcentaje positivo en el mercado general)
     ganadoras = sorted(usdt_pairs, key=lambda x: x['priceChangePercent_f'], reverse=True)[:7]
     
-    # 2. TOP 7 ACUMULACIÓN 24H (Bajo valor < $1.00)
+    # 2. TOP 7 ACUMULACIÓN 24H (Monedas de bajo valor < $1.00 ordenadas por volumen general)
     acumulacion_pool_24h = [t for t in usdt_pairs if t['lastPrice_f'] < 1.0]
     acumulacion_24h = sorted(acumulacion_pool_24h, key=lambda x: x['quoteVolume_f'], reverse=True)[:7]
     
-    # 3. TOP 7 ACUMULACIÓN SILENCIOSA
+    # 3. TOP 7 ACUMULACIÓN SILENCIOSA (Motor interno de compresión)
     historial_previo = cargar_memoria_perlas()
     simbolos_bloqueados = [item for reporte in historial_previo for item in reporte]
     
     candidatas_silenciosas = []
     for t in usdt_pairs:
         if (t['lastPrice_f'] < 1.00 and 
-            -2.0 <= t['priceChangePercent_f'] <= 2.5 and 
-            t['quoteVolume_f'] >= 800_000 and 
+            -2.5 <= t['priceChangePercent_f'] <= 2.5 and 
+            t['quoteVolume_f'] >= 500_000 and 
             t['symbol'] not in simbolos_bloqueados):
             
             rango_precio = t['highPrice_f'] - t['lowPrice_f']
@@ -170,7 +149,7 @@ def preparar_datos(tickers, simbolos_activos):
     historial_previo.append(nuevos_simbolos)
     guardar_memoria_perlas(historial_previo)
     
-    # 4. TOP 7 PERDEDORAS (Reales y activas en Binance Spot)
+    # 4. TOP 7 PERDEDORAS (Exactamente las de mayor porcentaje negativo general del mercado)
     perdedoras_pool = [t for t in usdt_pairs if t['priceChangePercent_f'] < 0]
     perdedoras = sorted(perdedoras_pool, key=lambda x: x['priceChangePercent_f'])[:7]
     
@@ -304,13 +283,11 @@ def procesar_y_enviar_bloque_unificado(num_bloque, titulo_bloque, icono, lista_i
     time.sleep(3)
 
 if __name__ == "__main__":
-    print("🚀 INICIANDO SCRIPT DE ALERTAS CRIPTO EN VIVO...")
+    print("🚀 INICIANDO SCRIPT DE MERCADO GENERAL EN VIVO...")
     
-    simbolos_activos = obtener_simbolos_spot_activos()
     datos = obtener_datos_binance()
-    
     if datos and len(datos) > 0:
-        ganadoras, acumulacion_24h, acumulacion_silenciosa, perdedoras, favoritas = preparar_datos(datos, simbolos_activos)
+        ganadoras, acumulacion_24h, acumulacion_silenciosa, perdedoras, favoritas = preparar_datos(datos)
         
         procesar_y_enviar_bloque_unificado(1, "TOP 7 GANADORAS", "🚀", ganadoras, "#00c853", "grafico_ganadoras.png")
         procesar_y_enviar_bloque_unificado(2, "TOP 7 ACUMULACION 24H", "💎", acumulacion_24h, "#ffab00", "grafico_acumulacion_24h.png", tipo_bloque="acumulacion_24h")
@@ -318,6 +295,6 @@ if __name__ == "__main__":
         procesar_y_enviar_bloque_unificado(4, "TOP 7 PERDEDORAS", "📉", perdedoras, "#f6465d", "grafico_perdedoras.png")
         procesar_y_enviar_bloque_unificado(5, "TUS 5 FAVORITAS", "⭐", favoritas, "#3861fb", "grafico_favoritas.png")
         
-        print("🎉 ¡Los 5 bloques con datos Spot oficiales se enviaron a Telegram!")
+        print("🎉 ¡Los bloques de mercado general se enviaron correctamente a Telegram!")
     else:
-        print("❌ ERROR CRÍTICO: No se pudieron obtener los datos de mercado en vivo de Binance.")
+        print("❌ ERROR CRÍTICO: No se pudieron obtener los datos de mercado.")
