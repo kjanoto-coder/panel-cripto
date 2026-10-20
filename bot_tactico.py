@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 TELEGRAM_TOKEN = (os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("TELEGRAM_TOKEN") or "").strip()
 CHAT_ID = (os.getenv("TELEGRAM_CHAT_ID") or os.getenv("CHAT_ID") or "").strip()
-TOPIC_ID_TACTICO = (os.getenv("TOPIC_ID_TACTICO") or os.getenv("TELEGRAM_MESSAGE_THREAD_ID") or "").strip()
+TOPIC_ID_TACTICO = (os.getenv("TOPIC_ID_TACTICO") or "4").strip()
 GEMINI_API_KEY = (os.getenv("GEMINI_API_KEY") or "").strip()
 
 ARCHIVO_MEMORIA = "ultimas_perlas_cazador.json"
@@ -90,7 +90,6 @@ def generar_sintesis_resumen(simbolo, precio, cambio, volumen, high, low, es_ima
     Genera un análisis técnico detallado, específico e independiente utilizando la API REST de Gemini.
     """
     if GEMINI_API_KEY:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
         headers = {"Content-Type": "application/json"}
         
         tag_extra = " | Presión en Máximos Activa" if es_iman else f" | Vol. Relativo x{vol_rel:.1f}"
