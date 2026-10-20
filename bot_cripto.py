@@ -38,14 +38,28 @@ def guardar_memoria_perlas(historial_reportes):
         print(f"Error guardando memoria: {e}")
 
 def obtener_datos_binance():
-    url = "https://data-api.binance.vision/api/v3/ticker/24hr"
-    print("Conectando con la API de Binance...")
-    try:
-        response = requests.get(url, timeout=15)
-        response.raise_for_status()
-        return response.json()
-    except Exception as e:
-        raise e
+    urls = [
+        "https://data-api.binance.vision/api/v3/ticker/24hr",
+        "https://api.binance.com/api/v3/ticker/24hr"
+    ]
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+    }
+    
+    for url in urls:
+        print(f"Conectando con Binance a través de: {url} ...")
+        try:
+            response = requests.get(url, headers=headers, timeout=15)
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, list) and len(data) > 0:
+                    print(f"✅ ¡Conexión exitosa! Se obtuvieron {len(data)} tickers.")
+                    return data
+        except Exception as e:
+            print(f"⚠️ Falló la conexión con {url}: {e}")
+            
+    print("❌ Error crítico: No se pudo obtener datos de ninguna URL de Binance.")
+    return []
 
 def obtener_velas_historicas(symbol, interval="1d", limit=30):
     url = f"https://data-api.binance.vision/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}"
@@ -54,7 +68,13 @@ def obtener_velas_historicas(symbol, interval="1d", limit=30):
         if response.status_code == 200:
             return response.json()
     except Exception:
-        pass
+        try:
+            url_alt = f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}"
+            response = requests.get(url_alt, timeout=8)
+            if response.status_code == 200:
+                return response.json()
+        except Exception:
+            pass
     return []
 
 def obtener_mapa_calor_liquidaciones(symbol):
@@ -211,3 +231,128 @@ def generar_grafico_tema(lista_items, titulo_grafico, color_barra, filename):
     
     bars = ax.bar(simbolos, cambios, color=color_barra, width=0.5, zorder=3)
     ax.grid(True, color='#1e293b', linestyle='-', linewidth=0.8, zorder=1)
+    ax.set_axisbelow(True)
+    
+    for spine in ['top', 'right', 'left', 'bottom']:
+        ax.spines[spine].set_visible(False)
+        
+    ax.tick_params(left=False, labelleft=False, bottom=False)
+    ax.tick_params(axis='x', colors='white', labelsize=10)
+    
+    for bar, sim, cambio in zip(bars, simbolos, cambios):
+        yval = bar.get_height()
+        xval = bar.get_x() + bar.get_width() / 2.0
+        offset = 2.5 if yval >= 0 else -5.5
+        
+        ax.text(xval, yval + offset, f"+{cambio:.1f}%" if cambio >= 0 else f"{cambio:.1f}%", 
+                ha='center', va='bottom' if yval >= 0 else 'top', color=color_barra, fontweight='bold', fontsize=10)
+        
+        ax.plot(xval, yval + (1.2 if yval >= 0 else -1.2), marker='o', markersize=18, markerfacecolor='#0f172a', markeredgecolor=color_barra, markeredgewidth=1.5, zorder=4)
+        ax.text(xval, yval + (1.2 if yval >= 0 else -1.2), sim, ha='center', va='center', color='white', fontsize=7, fontweight='bold', zorder=5)
+
+    fecha_str = datetime.now().strftime('%Y-%m-%d')
+    plt.title(titulo_grafico, loc='left', color='#ffab00', fontsize=12, fontweight='bold', pad=12)
+    ax.text(0.0, 1.02, f"Fecha: {fecha_str}", transform=ax.transAxes, color='#94a3b8', fontsize=8)
+    
+    plt.tight_layout()
+    plt.savefig(filename, dpi=300, facecolor=fig.get_facecolor(), edgecolor='none')
+    plt.close()
+    return filename
+
+def enviar_foto_con_detalle_telegram(image_path, caption_text):
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        print("⚠️ Error: FALTA TELEGRAM_BOT_TOKEN o TELEGRAM_CHAT_ID en las variables de entorno.")
+        return None
+
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
+    
+    payload = {
+        "chat_id": TELEGRAM_CHAT_ID, 
+        "caption": caption_text, 
+        "parse_mode": "HTML"
+    }
+    
+    if TELEGRAM_TOPIC_ID:
+        try:
+            payload["message_thread_id"] = int(TELEGRAM_TOPIC_ID)
+        except ValueError:
+            pass
+
+    with open(image_path, 'rb') as photo:
+        files = {"photo": photo}
+        res = requests.post(url, data=payload, files=files)
+        resultado = res.json()
+        
+        if not resultado.get("ok") and "message thread not found" in str(resultado.get("description", "")):
+            print("⚠️ Hilo de Telegram no encontrado. Reintentando envío al chat principal...")
+            payload.pop("message_thread_id", None)
+            photo.seek(0)
+            res = requests.post(url, data=payload, files={"photo": photo})
+            resultado = res.json()
+
+        if resultado.get("ok"):
+            print("✅ Bloque enviado exitosamente a Telegram.")
+        else:
+            print(f"⚠️ Error de entrega en Telegram: {resultado}")
+            
+        return res
+
+def procesar_y_enviar_bloque_unificado(num_bloque, titulo_bloque, icono, lista_items, color_grafico, filename_grafico, tipo_bloque=""):
+    if not lista_items:
+        return
+    
+    print(f"Generando Bloque {num_bloque}/5: {titulo_bloque}...")
+    generar_grafico_tema(lista_items, f"{icono} {titulo_bloque.upper()} • Ranking 24h", color_grafico, filename_grafico)
+    
+    titulo_seguro = html.escape(titulo_bloque.upper())
+    caption = f"🧠 <b>CENTRAL DE INTELIGENCIA DE MERCADO ({num_bloque}/5)</b>\n"
+    caption += f"{icono} <b>{num_bloque}. {titulo_seguro} (Detalle)</b>\n\n"
+    
+    for item in lista_items:
+        sim = item['symbol'].replace('USDT', '')
+        precio = item['lastPrice_f']
+        precio_str = formatear_precio(precio)
+        cambio = item['priceChangePercent_f']
+        high = item['highPrice_f']
+        low = item['lowPrice_f']
+        
+        barra = generar_barra_progreso(cambio, tipo_bloque=tipo_bloque)
+        unique_id = int(time.time() * 1000) + random.randint(1, 99999)
+        
+        url_ia = f"{BASE_URL_NETLIFY}/?coin={sim}&price={precio}&change={cambio}&high={high}&low={low}&v={sim}_{unique_id}"
+        url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
+        
+        cambio_fmt = f"+{cambio:.1f}%" if cambio >= 0 else f"{cambio:.1f}%"
+        
+        if tipo_bloque == "silenciosa":
+            vol_rel = item.get('factor_vol', 1.0)
+            tag_iman = " 🔥 [Imán Alcista]" if item.get('iman_alcista', False) else ""
+            caption += (
+                f"• <b>{sim}</b> | {precio_str} | {barra} | {cambio_fmt}{tag_iman}\n"
+                f"  🧠 <i>[Vol. Relativo x{vol_rel:.1f}]</i>\n"
+                f"  └ <a href=\"{html.escape(url_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n"
+            )
+        else:
+            caption += (
+                f"• <b>{sim}</b> | {precio_str} | {barra} | {cambio_fmt}\n"
+                f"  └ <a href=\"{html.escape(url_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n"
+            )
+    
+    enviar_foto_con_detalle_telegram(filename_grafico, caption)
+    time.sleep(3)
+
+if __name__ == "__main__":
+    print("🚀 INICIANDO SCRIPT DE ALERTAS CRIPTO...")
+    datos = obtener_datos_binance()
+    if datos and len(datos) > 0:
+        ganadoras, acumulacion_24h, acumulacion_silenciosa, perdedoras, favoritas = preparar_datos(datos)
+        
+        procesar_y_enviar_bloque_unificado(1, "TOP 7 GANADORAS", "🚀", ganadoras, "#00c853", "grafico_ganadoras.png")
+        procesar_y_enviar_bloque_unificado(2, "TOP 7 ACUMULACION 24H", "💎", acumulacion_24h, "#ffab00", "grafico_acumulacion_24h.png", tipo_bloque="acumulacion_24h")
+        procesar_y_enviar_bloque_unificado(3, "TOP 7 ACUMULACION SILENCIOSA", "🕵️‍♂️", acumulacion_silenciosa, "#00bcd4", "grafico_silenciosa.png", tipo_bloque="silenciosa")
+        procesar_y_enviar_bloque_unificado(4, "TOP 7 PERDEDORAS", "📉", perdedoras, "#f6465d", "grafico_perdedoras.png")
+        procesar_y_enviar_bloque_unificado(5, "TUS 5 FAVORITAS", "⭐", favoritas, "#3861fb", "grafico_favoritas.png")
+        
+        print("🎉 ¡Los 5 bloques actualizados se enviaron correctamente a Telegram!")
+    else:
+        print("❌ ERROR CRÍTICO: La lista de datos de Binance llegó vacía o no se pudo conectar.")
