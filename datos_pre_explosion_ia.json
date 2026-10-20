@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-20T06:17:08.277697",
+    "timestamp": "2026-10-20T06:56:51.955601",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -46,31 +46,31 @@
             }
         },
         {
-            "symbol": "FIOUSDT",
-            "ticker": "FIO",
-            "price": 0.00094,
-            "price_change": -4.08,
-            "ratio_volumen": 2.11,
+            "symbol": "BLURUSDT",
+            "ticker": "BLUR",
+            "price": 0.0094,
+            "price_change": -4.18,
+            "ratio_volumen": 2.56,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 FIO",
-            "score": 11.15,
+            "etiqueta_grafico": "\ud83d\udfe1 BLUR",
+            "score": 13.77,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+                "confluencia_tf": "\u26a1 Estructura 1D Favorable"
             }
         },
         {
-            "symbol": "COCOSUSDT",
-            "ticker": "COCOS",
-            "price": 1.7546,
-            "price_change": 3.44,
-            "ratio_volumen": 2.16,
+            "symbol": "TIAUSDT",
+            "ticker": "TIA",
+            "price": 0.6361,
+            "price_change": 4.48,
+            "ratio_volumen": 2.28,
             "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 COCOS",
-            "score": 10.03,
+            "etiqueta_grafico": "\ud83d\udfe1 TIA",
+            "score": 12.96,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+                "confluencia_tf": "\u26a1 Estructura 1D Favorable"
             }
         },
         {
