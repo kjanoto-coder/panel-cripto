@@ -104,7 +104,7 @@ def generar_treemap_wall_street(df):
     ax.set_facecolor('#0b0e14')
 
     sizes = df['weight']
-    labels = [f"{row['ticker']}\n{row['var']}%" for _, row in df.iterrows()]
+    labels = [row['ticker'] + "\n" + str(row['var']) + "%" for _, row in df.iterrows()]
     colors = ['#00796b' if v >= 2 else ('#26a69a' if v >= 0 else ('#e53935' if v <= -2 else '#c62828')) for v in df['var']]
 
     squarify.plot(sizes=sizes, label=labels, color=colors, alpha=0.95,
@@ -151,7 +151,7 @@ def generar_treemap_cripto(df):
     ax.set_facecolor('#0b0e14')
 
     sizes = df['vol']
-    labels = [f"{row['ticker']}\n{row['var']}%" for _, row in df.iterrows()]
+    labels = [row['ticker'] + "\n" + str(row['var']) + "%" for _, row in df.iterrows()]
     colors = ['#00796b' if v >= 2 else ('#26a69a' if v >= 0 else ('#e53935' if v <= -2 else '#c62828')) for v in df['var']]
 
     squarify.plot(sizes=sizes, label=labels, color=colors, alpha=0.95,
@@ -184,7 +184,7 @@ def obtener_noticias_tradingview():
             for art in articulos[:10]:
                 titular = art.get_text().strip()
                 href = art.get('href', '')
-                enlace = f"https://es.tradingview.com{href}" if href.startswith('/') else href
+                enlace = "https://es.tradingview.com" + href if href.startswith('/') else href
                 
                 if titular and len(titular) > 15:
                     noticias.append({
@@ -230,12 +230,12 @@ def analizar_wall_street_ia(df_ws, sesion, estado_previo):
         for t, val_act in detalle_actual.items():
             val_prev = prev_ws.get(t, val_act)
             if val_prev < 0 and val_act > 0:
-                giros.append(f"{t} cambió de rojo a verde (+{val_act}%)")
+                giros.append(t + " cambió de rojo a verde (+" + str(val_act) + "%)")
             elif val_prev > 0 and val_act < 0:
-                giros.append(f"{t} cambió de verde a rojo ({val_act}%)")
+                giros.append(t + " cambió de verde a rojo (" + str(val_act) + "%)")
 
         texto_giros = ", ".join(giros) if giros else "Sin cambios drásticos."
-        datos_txt = ", ".join([f"{r['ticker']}: {r['var']}%" for _, r in df_ws.iterrows()])
+        datos_txt = ", ".join([r['ticker'] + ": " + str(r['var']) + "%" for _, r in df_ws.iterrows()])
 
         prompt = "Actúa como estratega macro de Wall Street. Sesión: " + sesion + ". Datos S&P 500: " + datos_txt + ". Giros: " + texto_giros + ". Devuelve estrictamente dos líneas con formato: 📊 Diagnóstico: [texto corto] y 🚨 Alerta: [texto corto]."
 
@@ -264,65 +264,11 @@ def analizar_cripto_ia(df_cripto, sesion, estado_previo):
         for t, val_act in detalle_actual.items():
             val_prev = prev_cripto.get(t, val_act)
             if val_prev < 0 and val_act > 0:
-                giros.append(f"{t} giró a verde (+{val_act}%)")
+                giros.append(t + " giró a verde (+" + str(val_act) + "%)")
             elif val_prev > 0 and val_act < 0:
-                giros.append(f"{t} giró a rojo ({val_act}%)")
+                giros.append(t + " giró a rojo (" + str(val_act) + "%)")
 
         texto_giros = ", ".join(giros) if giros else "Sin giros drásticos."
-        datos_txt = ", ".join([f"{r['ticker']}: {r['var']}%" for _, r in df_cripto.iterrows()])
+        datos_txt = ", ".join([r['ticker'] + ": " + str(r['var']) + "%" for _, r in df_cripto.iterrows()])
 
-        prompt = "Actúa como analista cuantitativo crypto. Sesión: " + sesion + ". Binance: " + datos_txt + ". Giros: " + texto_giros + ". Devuelve estrictamente dos líneas con formato: 📊 Diagnóstico: [texto corto] y 🚨 Alerta: [texto corto]."
-
-        for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
-            try:
-                res = client.models.generate_content(model=mod, contents=prompt)
-                if res and res.text:
-                    return res.text.strip()
-            except Exception:
-                continue
-    except Exception as e:
-        print(f"Error analizando Cripto con Gemini: {e}")
-        
-    return "📊 Diagnóstico: Mercado buscando estabilización.\n🚨 Alerta: Monitoreando flujos de liquidez."
-
-# ---------------------------------------------------------
-# FUNCIONES DE ENVÍO ROBUSTO A TELEGRAM
-# ---------------------------------------------------------
-def enviar_foto_telegram(url_base, payload_base, image_path):
-    try:
-        with open(image_path, 'rb') as f:
-            res = requests.post(f"{url_base}/sendPhoto", data=payload_base, files={'photo': f})
-            resultado = res.json()
-            if not resultado.get("ok") and "message thread not found" in str(resultado.get("description", "")):
-                payload_copia = payload_base.copy()
-                payload_copia.pop("message_thread_id", None)
-                f.seek(0)
-                res = requests.post(f"{url_base}/sendPhoto", data=payload_copia, files={'photo': f})
-    except Exception as e:
-        print(f"⚠️ Error al enviar foto: {e}")
-
-def enviar_mensaje_telegram(url_base, payload_base):
-    try:
-        res = requests.post(f"{url_base}/sendMessage", json=payload_base)
-        resultado = res.json()
-        if not resultado.get("ok") and "message thread not found" in str(resultado.get("description", "")):
-            payload_copia = payload_base.copy()
-            payload_copia.pop("message_thread_id", None)
-            res = requests.post(f"{url_base}/sendMessage", json=payload_copia)
-    except Exception as e:
-        print(f"⚠️ Error al enviar mensaje: {e}")
-
-# ---------------------------------------------------------
-# 5. EJECUCIÓN Y ENVÍO
-# ---------------------------------------------------------
-if __name__ == "__main__":
-    print("🌐 Ejecutando Sentinel Macro...")
-
-    sesion_actual = obtener_sesion_actual_mercado()
-    estado_previo = cargar_estado_previo()
-
-    df_ws = obtener_datos_wall_street_treemap()
-    generar_treemap_wall_street(df_ws)
-    causas_ws = analizar_wall_street_ia(df_ws, sesion_actual, estado_previo)
-
-    msg_ws = f"🏛️ **SENTINEL MACRO — 1. S&P 500 & TRADFI**\n🕒 **Sesión:** 🌎 `{sesion_actual}`\n\n{causas
+        prompt = "Actúa como analista cuantitativo crypto. Sesión: " + sesion + ". Binance: " + datos_txt + ". Giros: " + texto_giros + ". Devuelve estrictamente dos líneas con formato: 📊 Diagnóstico: [texto corto] y 🚨 Al
