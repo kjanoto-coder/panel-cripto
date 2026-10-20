@@ -14,8 +14,9 @@ TELEGRAM_CHAT_ID = (os.getenv("TELEGRAM_CHAT_ID") or os.getenv("CHAT_ID") or "")
 TELEGRAM_TOPIC_ID = (os.getenv("TOPIC_ID_CENTRAL") or "1").strip()
 BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
 
-# Tokens con restricciones, etiquetas de monitoreo o suspendidos que la web de Binance oculta de sus rankings
+# Tokens bajo etiquetas de monitoreo o restricciones que la web oficial de Binance oculta de los rankings principales
 TOKENS_OCULTOS_WEB = [
+    'ATAUSDT', 'SXPUSDT', 'DEGOUSDT', 'BURGERUSDT', 'FIROUSDT', 'VITEUSDT',
     'NFPUSDT', 'PYRUSDT', 'VICUSDT', 'VANRYUSDT', 'OOKIUSDT', 'SCRTUSDT', 
     'BETAUSDT', 'VIBUSDT', 'WTCUSDT', 'PHBUSDT', 'ACAUSDT', 'CREAMUSDT', 
     'PNTUSDT', 'VGXUSDT', 'BNCUSDT', 'PENGUUSDT', 'ASTERUSDT'
@@ -100,7 +101,6 @@ def preparar_datos(tickers):
         symbol = t.get('symbol', '')
         base_name = symbol.replace('USDT', '')
         
-        # Filtramos tokens estables, apalancados y aquellos restringidos que la web oficial oculta
         if (symbol.endswith('USDT') and 
             base_name not in EXCLUIDOS and 
             symbol not in TOKENS_OCULTOS_WEB and
@@ -112,7 +112,7 @@ def preparar_datos(tickers):
                 t['highPrice_f'] = float(t.get('highPrice', 0))
                 t['lowPrice_f'] = float(t.get('lowPrice', 0))
                 
-                # Requisito de volumen activo para alinearse con los pares mostrados en pantalla principal
+                # Volumen mínimo activo para alinearse con la pantalla principal web
                 if t['quoteVolume_f'] >= 200_000 and t['lastPrice_f'] > 0:
                     usdt_pairs.append(t)
             except (ValueError, TypeError):
@@ -155,7 +155,7 @@ def preparar_datos(tickers):
     historial_previo.append(nuevos_simbolos)
     guardar_memoria_perlas(historial_previo)
     
-    # 4. TOP 7 PERDEDORAS (Sincronizadas idénticamente a la web de Binance)
+    # 4. TOP 7 PERDEDORAS (Exactas a la web oficial de Binance)
     perdedoras_pool = [t for t in usdt_pairs if t['priceChangePercent_f'] < 0]
     perdedoras = sorted(perdedoras_pool, key=lambda x: x['priceChangePercent_f'])[:7]
     
@@ -295,7 +295,6 @@ if __name__ == "__main__":
     if datos and len(datos) > 0:
         ganadoras, acumulacion_24h, acumulacion_silenciosa, perdedoras, favoritas = preparar_datos(datos)
         
-        # --- BLOQUE DE DIAGNÓSTICO EN VIVO (Visible en los logs de GitHub Actions cada 15 min) ---
         print("\n================ CORROBORACIÓN DE MERCADO (BINANCE WEB) ================")
         print("🚀 TOP 3 GANADORAS DETECTADAS:")
         for g in ganadoras[:3]:
