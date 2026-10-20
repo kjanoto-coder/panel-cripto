@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-20T05:20:40.015778",
+    "timestamp": "2026-10-20T05:46:59.119964",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -62,12 +62,12 @@
         {
             "symbol": "BEBUSDT",
             "ticker": "BEB",
-            "price": 221.7,
-            "price_change": -4.49,
-            "ratio_volumen": 1.78,
+            "price": 221.38,
+            "price_change": -4.41,
+            "ratio_volumen": 1.97,
             "fase": "AMARILLO",
             "etiqueta_grafico": "\ud83d\udfe1 BEB",
-            "score": 10.12,
+            "score": 11.04,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
