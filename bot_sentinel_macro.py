@@ -223,7 +223,10 @@ def analizar_wall_street_ia(df_ws, sesion, estado_previo):
     
     try:
         client = genai.Client(api_key=GEMINI_API_KEY)
-        detalle_actual = {r['ticker']: r['var'] for _, r in df_ws.iterrows()}
+        detalle_actual = {}
+        for _, r in df_ws.iterrows():
+            detalle_actual[r['ticker']] = r['var']
+
         prev_ws = estado_previo.get("wall_street", {})
         
         giros = []
@@ -235,7 +238,11 @@ def analizar_wall_street_ia(df_ws, sesion, estado_previo):
                 giros.append(t + " cambió de verde a rojo (" + str(val_act) + "%)")
 
         texto_giros = ", ".join(giros) if giros else "Sin cambios drásticos."
-        datos_txt = ", ".join([r['ticker'] + ": " + str(r['var']) + "%" for _, r in df_ws.iterrows()])
+        
+        partes_txt = []
+        for _, r in df_ws.iterrows():
+            partes_txt.append(r['ticker'] + ": " + str(r['var']) + "%")
+        datos_txt = ", ".join(partes_txt)
 
         prompt = (
             "Actúa como estratega macro de Wall Street. "
@@ -264,7 +271,10 @@ def analizar_cripto_ia(df_cripto, sesion, estado_previo):
     
     try:
         client = genai.Client(api_key=GEMINI_API_KEY)
-        detalle_actual = {r['ticker']: r['var'] for _, r in df_cripto.iterrows()}
+        detalle_actual = {}
+        for _, r in df_cripto.iterrows():
+            detalle_actual[r['ticker']] = r['var']
+
         prev_cripto = estado_previo.get("cripto", {})
         
         giros = []
@@ -276,7 +286,11 @@ def analizar_cripto_ia(df_cripto, sesion, estado_previo):
                 giros.append(t + " giró a rojo (" + str(val_act) + "%)")
 
         texto_giros = ", ".join(giros) if giros else "Sin giros drásticos."
-        datos_txt = ", ".join([r['ticker'] + ": " + str(r['var']) + "%" for _, r in df_cripto.iterrows()])
+        
+        partes_txt = []
+        for _, r in df_cripto.iterrows():
+            partes_txt.append(r['ticker'] + ": " + str(r['var']) + "%")
+        datos_txt = ", ".join(partes_txt)
 
         prompt = (
             "Actúa como analista cuantitativo crypto. "
@@ -347,6 +361,81 @@ if __name__ == "__main__":
 
     msg_cripto = "🪙 **SENTINEL MACRO — 2. BINANCE CRIPTO MARKET**\n🕒 **Sesión:** 🌎 `" + sesion_actual + "`\n\n" + causas_cripto + "\n"
 
-    dict_ws_save = {r['ticker']: r['var'] for _, r in df_ws.iterrows()}
-    dict_cripto_save = {r['ticker']: r['var'] for _, r in df_cripto.iterrows()}
-    guardar_estado_actual(dict_ws_save,
+    dict_ws_save = {}
+    for _, r in df_ws.iterrows():
+        dict_ws_save[r['ticker']] = r['var']
+
+    dict_cripto_save = {}
+    for _, r in df_cripto.iterrows():
+        dict_cripto_save[r['ticker']] = r['var']
+
+    guardar_estado_actual(dict_ws_save, dict_cripto_save)
+
+    if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
+        url_base = "https://api.telegram.org/bot" + TELEGRAM_BOT_TOKEN
+        thread_id = None
+        if MESSAGE_THREAD_ID:
+            try:
+                thread_id = int(MESSAGE_THREAD_ID)
+            except ValueError:
+                pass
+
+        teclado_ws = {"inline_keyboard": [[{"text": "📊 Ver Mapa Interactivo S&P 500 (Investing)", "url": "https://es.investing.com/markets/heatmap"}]]}
+        teclado_cripto = {"inline_keyboard": [[{"text": "🪙 Ver Mapa Interactivo Binance Futures", "url": "https://www.binance.com/es-AR/futures/crypto-heatmap"}]]}
+
+        p_f1 = {'chat_id': TELEGRAM_CHAT_ID, 'caption': "🗺️ **Mapa de Calor — S&P 500 (" + sesion_actual + ")**", 'parse_mode': 'Markdown'}
+        if thread_id: 
+            p_f1['message_thread_id'] = thread_id
+        enviar_foto_telegram(url_base, p_f1, 'heatmap_wall_street.png')
+
+        p_m1 = {'chat_id': TELEGRAM_CHAT_ID, 'text': msg_ws, 'parse_mode': 'Markdown', 'reply_markup': teclado_ws}
+        if thread_id: 
+            p_m1['message_thread_id'] = thread_id
+        enviar_mensaje_telegram(url_base, p_m1)
+
+        p_f2 = {'chat_id': TELEGRAM_CHAT_ID, 'caption': "🗺️ **Mapa de Calor — Cripto (" + sesion_actual + ")**", 'parse_mode': 'Markdown'}
+        if thread_id: 
+            p_f2['message_thread_id'] = thread_id
+        enviar_foto_telegram(url_base, p_f2, 'heatmap_cripto.png')
+
+        p_m2 = {'chat_id': TELEGRAM_CHAT_ID, 'text': msg_cripto, 'parse_mode': 'Markdown', 'reply_markup': teclado_cripto}
+        if thread_id: 
+            p_m2['message_thread_id'] = thread_id
+        enviar_mensaje_telegram(url_base, p_m2)
+
+        # ---------------------------------------------------------
+        # ENVÍO DE NOTICIAS DE TRADINGVIEW CRIPTO
+        # ---------------------------------------------------------
+        print("📰 Procesando noticias de TradingView...")
+        historial_noticias = cargar_historial_noticias()
+        noticias_tv = obtener_noticias_tradingview()
+        noticias_enviadas = 0
+
+        for noticia in reversed(noticias_tv):
+            noticia_id = noticia['titular'].lower().strip()
+            if noticia_id not in historial_noticias:
+                msg_noticia = "📰 **SENTINEL NOTICIAS — TRADINGVIEW CRIPTO**\n"
+                msg_noticia += "🌐 *Fuente: " + noticia['fuente'] + "*\n\n"
+                msg_noticia += "⚡ **" + noticia['titular'] + "**\n\n"
+                msg_noticia += "🔗 [Leer noticia completa en TradingView](" + noticia['enlace'] + ")"
+
+                p_news = {
+                    'chat_id': TELEGRAM_CHAT_ID,
+                    'text': msg_noticia,
+                    'parse_mode': 'Markdown',
+                    'disable_web_page_preview': False
+                }
+                if thread_id: 
+                    p_news['message_thread_id'] = thread_id
+
+                enviar_mensaje_telegram(url_base, p_news)
+                historial_noticias.append(noticia_id)
+                noticias_enviadas += 1
+
+        if noticias_enviadas > 0:
+            guardar_historial_noticias(historial_noticias)
+            print("✅ Se enviaron " + str(noticias_enviadas) + " noticias nuevas a Telegram.")
+
+        print("✅ Ejecución completada exitosamente.")
+    else:
+        print("⚠️ No se pudo enviar a Telegram: Faltan credenciales.")
