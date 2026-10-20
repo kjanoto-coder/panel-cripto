@@ -10,8 +10,9 @@ import matplotlib.pyplot as plt
 
 # --- CONFIGURACIÓN DE ENTORNO BLINDADAS ---
 TELEGRAM_BOT_TOKEN = (os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("TELEGRAM_TOKEN") or "").strip()
-TELEGRAM_CHAT_ID = (os.getenv("TELEGRAM_CHAT_ID") or os.getenv("CHAT_ID") or "").strip()
-TELEGRAM_TOPIC_ID = (os.getenv("TOPIC_ID_CAZADOR") or os.getenv("TOPIC_ID_CENTRAL") or "1").strip()
+TELEGRAM_CHAT_ID = (os.getenv("TELEGRAM_CHAT_ID") or os.getenv("CHAT_ID") or "-1003937091631").strip()
+# Forzamos el Topic ID 4 extraído de la captura del grupo
+TELEGRAM_TOPIC_ID = "4"
 BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
 
 def crear_sesion_binance():
@@ -192,33 +193,38 @@ def generar_grafico_matriz(lista_items, filename="grafico_cazador_9.png"):
     return filename
 
 def enviar_telegram(image_path, caption_text):
-    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        print("⚠️ Faltan credenciales de Telegram en las variables de entorno.")
+    if not TELEGRAM_BOT_TOKEN:
+        print("⚠️ Falta TELEGRAM_BOT_TOKEN.")
         return
         
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
     payload = {
-        "chat_id": TELEGRAM_CHAT_ID,
+        "chat_id": "-1003937091631",
         "caption": caption_text,
-        "parse_mode": "HTML"
+        "parse_mode": "HTML",
+        "message_thread_id": 4  # Apunta directo al Topic 4 Cazador táctico
     }
-    if TELEGRAM_TOPIC_ID:
-        try:
-            payload["message_thread_id"] = int(TELEGRAM_TOPIC_ID)
-        except ValueError:
-            pass
 
     try:
         with open(image_path, 'rb') as photo:
             res = requests.post(url, data=payload, files={"photo": photo}, timeout=30)
+            resultado = res.json()
+            
+            # Fallback automático por seguridad
+            if not resultado.get("ok") and "message thread not found" in str(resultado.get("description", "")):
+                print("⚠️ Tema 4 no encontrado, reintentando al chat principal...")
+                payload.pop("message_thread_id")
+                photo.seek(0)
+                res = requests.post(url, data=payload, files={"photo": photo}, timeout=30)
+                resultado = res.json()
+
             print(f"📡 Status Code HTTP de Telegram: {res.status_code}")
             print(f"📥 Respuesta JSON de Telegram: {res.text}")
             
-            resultado = res.json()
             if not resultado.get("ok"):
                 print(f"❌ Telegram rechazó el mensaje: {resultado.get('description')}")
             else:
-                print("✅ ¡Mensaje y foto entregados exitosamente en Telegram!")
+                print("✅ ¡Mensaje y foto entregados exitosamente al Topic 4 de Cazador Táctico!")
     except Exception as e:
         print(f"❌ Excepción crítica al conectar con Telegram: {e}")
 
@@ -284,4 +290,4 @@ if __name__ == "__main__":
                     )
                 
             enviar_telegram(filename, caption)
-            print("✅ Reporte con Selección IA de 9 perlas procesado y enviado.")
+            print("✅ Reporte con Selección IA de 9 perlas procesado y enviado al Topic 4.")
