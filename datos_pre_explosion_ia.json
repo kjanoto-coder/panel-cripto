@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-10-20T11:47:24.701232",
+    "timestamp": "2026-10-20T12:20:07.273601",
     "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
     "total_analizados": 3732,
     "top_candidatas": [
@@ -46,20 +46,6 @@
             }
         },
         {
-            "symbol": "MVLLBUSDT",
-            "ticker": "MVLLB",
-            "price": 26.52,
-            "price_change": -4.64,
-            "ratio_volumen": 2.17,
-            "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 MVLLB",
-            "score": 12.67,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
-            }
-        },
-        {
             "symbol": "FIOUSDT",
             "ticker": "FIO",
             "price": 0.00094,
@@ -68,6 +54,20 @@
             "fase": "AMARILLO",
             "etiqueta_grafico": "\ud83d\udfe1 FIO",
             "score": 11.15,
+            "metricas_avanzadas": {
+                "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
+                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
+            }
+        },
+        {
+            "symbol": "COCOSUSDT",
+            "ticker": "COCOS",
+            "price": 1.7546,
+            "price_change": 3.44,
+            "ratio_volumen": 2.16,
+            "fase": "AMARILLO",
+            "etiqueta_grafico": "\ud83d\udfe1 COCOS",
+            "score": 10.03,
             "metricas_avanzadas": {
                 "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
                 "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
