@@ -10,7 +10,7 @@ except ImportError:
 
 TELEGRAM_BOT_TOKEN = (os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("TELEGRAM_TOKEN") or "").strip()
 TELEGRAM_CHAT_ID = (os.getenv("TELEGRAM_CHAT_ID") or os.getenv("CHAT_ID") or "").strip()
-MESSAGE_THREAD_ID = (os.getenv("TOPIC_ID_CENTRAL") or os.getenv("TELEGRAM_MESSAGE_THREAD_ID") or "").strip()
+MESSAGE_THREAD_ID = (os.getenv("TOPIC_ID_CENTRAL") or "1").strip()
 GEMINI_API_KEY = (os.getenv("GEMINI_API_KEY") or "").strip()
 
 # URL de tu página en Netlify
@@ -164,33 +164,6 @@ def enviar_telegram_con_boton(texto):
         res = requests.post(f"{url_base}/sendMessage", json=payload, timeout=20)
         resultado = res.json()
     except Exception:
-        resultado = {"ok": False}
-        
-    if not resultado.get("ok"):
-        payload.pop("message_thread_id", None)
-        try:
-            requests.post(f"{url_base}/sendMessage", json=payload, timeout=20)
-        except Exception:
-            pass
-
-def main():
-    datos_binance = obtener_datos_binance()
-    pre_data = cargar_json(ARCHIVO_PRE_EXPLOSION)
-    tactico_data = cargar_json(ARCHIVO_TACTICO)
-    
-    dictamen_ia = generar_dictamen_ia(pre_data, tactico_data)
-    
-    if datos_binance:
-        guardar_base_netlify(datos_binance, pre_data, tactico_data, dictamen_ia)
-        
-    msg = "🏛️ **CENTRAL WEB • 4 BLOQUES UNIFICADOS ACTUALIZADOS**\n"
-    msg += f"🕒 *Sincronización:* `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`\n\n"
-    msg += f"💡 **Dictamen Maestro (IA):**\n{dictamen_ia}\n\n"
-    msg += "─────────────────────────\n"
-    msg += "🌐 *Panel Web:* Tarjetas 1 (Ganadoras 7), 2 (Cazador Táctico), 3 (Pre-Explosión) y 4 (Convertidas) sincronizadas."
-    
-    enviar_telegram_con_boton(msg)
-    print("✅ Proceso completado y enviado a Telegram con botón de enlace.")
 
 if __name__ == "__main__":
     main()
