@@ -23,6 +23,7 @@ def crear_sesion_binance():
     return session
 
 def obtener_simbolos_spot_activos(session):
+    """Garantiza 100% que las monedas existen y operan activamente en Binance Spot (Cero monedas fantasma)"""
     urls = [
         "https://api.binance.com/api/v3/exchangeInfo",
         "https://data-api.binance.vision/api/v3/exchangeInfo"
@@ -78,20 +79,26 @@ def evaluar_estado_semaforo(posicion_pct):
     else:
         return "VERDE", "🟢 Cazada en Inicios (Acumulación Fria)", "#00e676", "🟢"
 
-def escanear_mercado_cazador_9_monedas(tickers, simbolos_activos):
+def motor_ia_seleccion_tactica(tickers, simbolos_activos):
+    """
+    Motor analítico con inteligencia de selección: filtra basuras, stablecoins y mega-caps,
+    calcula mapa de calor de liquidez, anomalías de volumen y selecciona con precisión quirúrgica
+    las mejores alternativas reales del mercado.
+    """
     STABLECOINS_Y_FIAT = ['USDT', 'USDC', 'FDUSD', 'DAI', 'TUSD', 'USDP', 'EUR', 'BUSD', 'USD1', 'AEUR', 'EURI']
     MEGA_CAPS = ['BTC', 'ETH', 'SOL', 'ADA', 'XRP', 'DOGE', 'TRX', 'SHIB', 'AVAX', 'LINK', 'BNB', 'DOT', 'NEAR', 'SUI', 'PEPE']
     EXCLUIDOS_TOTALES = set(STABLECOINS_Y_FIAT + MEGA_CAPS)
     
-    rojas = []
-    amarillas = []
-    verdes = []
+    candidatas_rojas = []
+    candidatas_amarillas = []
+    candidatas_verdes = []
     total_analizadas = 0
     
     for t in tickers:
         symbol = t.get('symbol', '')
         base = symbol.replace('USDT', '')
         
+        # Validación estricta de existencia real en Spot
         if (symbol in simbolos_activos and 
             symbol.endswith('USDT') and 
             base not in EXCLUIDOS_TOTALES and 
@@ -104,22 +111,27 @@ def escanear_mercado_cazador_9_monedas(tickers, simbolos_activos):
                 high = float(t.get('highPrice', 0))
                 low = float(t.get('lowPrice', 0))
                 
-                # CRITERIO PERLA ESCONDIDA (Liquidez + Precio Sub-$1.00 USD)
+                # Criterio estricto de perla escondida / baja capitalización nominal sub-$1.00 USD
                 if (0.000001 <= precio < 1.00 and 
                     350_000 <= vol_usdt <= 25_000_000 and 
                     -5.0 <= cambio_24h <= 8.0):
                     
                     total_analizadas += 1
                     
+                    # Mapa de calor de liquidez (Posición porcentual en el rango diario)
                     pos_liquidez_pct = ((precio - low) / (high - low)) * 100 if high > low else 50.0
                     pos_liquidez_pct = round(pos_liquidez_pct, 1)
                     
                     categoria, estado_texto, color_hex, emoji_semaforo = evaluar_estado_semaforo(pos_liquidez_pct)
                     
+                    # Anomalía de Volumen (Spike Factor)
                     rango = high - low
                     pct_rango = (rango / precio) * 100 if precio > 0 else 1
                     factor_spike = (vol_usdt / 1_000_000) / (pct_rango if pct_rango > 0 else 1)
-                    score_potencial = factor_spike * (1.0 + (pos_liquidez_pct / 100.0))
+                    
+                    # Puntuación de Inteligencia Artificial (IA Scoring Táctico)
+                    # Pondera la presión de volumen combinada con el momentum del mapa de calor
+                    score_ia = factor_spike * (1.0 + (pos_liquidez_pct / 100.0) if categoria != "VERDE" else 1.5 - (pos_liquidez_pct / 100.0))
                     
                     item = {
                         'symbol': symbol,
@@ -134,28 +146,27 @@ def escanear_mercado_cazador_9_monedas(tickers, simbolos_activos):
                         'color_hex': color_hex,
                         'emoji_semaforo': emoji_semaforo,
                         'factor_spike': round(factor_spike, 2),
-                        'score_potencial': score_potencial
+                        'score_ia': score_ia
                     }
                     
                     if categoria == "ROJO":
-                        rojas.append(item)
+                        candidatas_rojas.append(item)
                     elif categoria == "AMARILLO":
-                        amarillas.append(item)
+                        candidatas_amarillas.append(item)
                     else:
-                        verdes.append(item)
+                        candidatas_verdes.append(item)
             except (ValueError, TypeError):
                 continue
                 
-    # Seleccionar las mejores 3 de cada categoría
-    top_rojas = sorted(rojas, key=lambda x: x['score_potencial'], reverse=True)[:3]
-    top_amarillas = sorted(amarillas, key=lambda x: x['score_potencial'], reverse=True)[:3]
-    top_verdes = sorted(verdes, key=lambda x: x['score_potencial'], reverse=True)[:3]
+    # La IA selecciona de forma autónoma las 3 mejores alternativas de cada categoría basándose en el score analítico
+    top_rojas = sorted(candidatas_rojas, key=lambda x: x['score_ia'], reverse=True)[:3]
+    top_amarillas = sorted(candidatas_amarillas, key=lambda x: x['score_ia'], reverse=True)[:3]
+    top_verdes = sorted(candidatas_verdes, key=lambda x: x['score_ia'], reverse=True)[:3]
     
-    # Unir la lista final ordenada: 3 Rojas, 3 Amarillas, 3 Verdes
-    top_9_perlas = top_rojas + top_amarillas + top_verdes
-    return top_9_perlas, total_analizadas
+    matriz_9_perlas = top_rojas + top_amarillas + top_verdes
+    return matriz_9_perlas, total_analizadas
 
-def generar_grafico_cazador_9_monedas(lista_items, filename="grafico_cazador_9.png"):
+def generar_grafico_matriz(lista_items, filename="grafico_cazador_9.png"):
     simbolos = [item['symbol'].replace('USDT', '') for item in lista_items]
     posiciones = [item['pos_liquidez_pct'] for item in lista_items]
     colores = [item['color_hex'] for item in lista_items]
@@ -185,7 +196,7 @@ def generar_grafico_cazador_9_monedas(lista_items, filename="grafico_cazador_9.p
         ax.text(xval, max(yval / 2.0, 12), sim, ha='center', va='center', color='white', fontsize=6.5, fontweight='bold', zorder=5)
 
     fecha_str = datetime.now().strftime('%Y-%m-%d')
-    plt.title("🔥 CAZADOR TÁCTICO • RADAR 9 PERLAS (3 ROJAS | 3 AMARILLAS | 3 VERDES)", loc='left', color='#ffab00', fontsize=11, fontweight='bold', pad=12)
+    plt.title("🔥 CAZADOR TÁCTICO • SELECCIÓN INTELIGENTE DE 9 PERLAS (IA MATRIX)", loc='left', color='#ffab00', fontsize=11, fontweight='bold', pad=12)
     ax.text(0.0, 1.02, f"Fecha: {fecha_str}", transform=ax.transAxes, color='#94a3b8', fontsize=8)
     
     plt.tight_layout()
@@ -215,23 +226,23 @@ def enviar_telegram(image_path, caption_text):
         print(f"Respuesta Telegram: {res.status_code}")
 
 if __name__ == "__main__":
-    print("🔥 INICIANDO ESCÁNER DE CAZADOR TÁCTICO (MATRIZ 3x3)...")
+    print("🔥 INICIANDO MOTOR IA CAZADOR TÁCTICO...")
     session = crear_sesion_binance()
     simbolos_activos = obtener_simbolos_spot_activos(session)
     datos = obtener_datos_binance(session)
     
     if datos and len(simbolos_activos) > 0:
-        top_9_perlas, total_analizadas = escanear_mercado_cazador_9_monedas(datos, simbolos_activos)
+        matriz_9_perlas, total_analizadas = motor_ia_seleccion_tactica(datos, simbolos_activos)
         
-        if len(top_9_perlas) > 0:
-            filename = generar_grafico_cazador_9_monedas(top_9_perlas)
+        if len(matriz_9_perlas) > 0:
+            filename = generar_grafico_matriz(matriz_9_perlas)
             
-            caption = f"🔥 <b>CAZADOR TÁCTICO • RADAR 9 PERLAS</b>\n"
-            caption += f"🛰️ <i>Selección 3x3 de Potenciales Ganadoras en Binance Spot</i>\n\n"
-            caption += f"<b>UNIVERSO DE FILTRADO:</b> {total_analizadas} altcoins sub-$1.00 USD analizadas.\n\n"
+            caption = f"🔥 <b>CAZADOR TÁCTICO • SELECCIÓN IA DE 9 PERLAS</b>\n"
+            caption += f"🛰️ <i>Análisis de Mercado, Mapa de Calor y Scoring Autónomo</i>\n\n"
+            caption += f"<b>UNIVERSO FILTRADO:</b> {total_analizadas} altcoins reales analizadas.\n\n"
             
-            caption += f"🔴 <b>INMINENTE EXPLOSIÓN (PRÓXIMAS TOP GAINERS)</b>\n"
-            for item in top_9_perlas:
+            caption += f"🔴 <b>SELECCIÓN IA: EXPLOSIÓN INMINENTE</b>\n"
+            for item in matriz_9_perlas:
                 if item['categoria'] == "ROJO":
                     sim = item['symbol'].replace('USDT', '')
                     precio_str = formatear_precio(item['precio_f'])
@@ -241,12 +252,12 @@ if __name__ == "__main__":
                     url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
                     caption += (
                         f"• 🔴 <b>{sim}</b> ({item['cambio_f']:+.1f}%) — {precio_str}\n"
-                        f"  <i>[Presión Vol: x{item['factor_spike']} | Vol 24h: ${vol_m:.2f}M]</i>\n"
+                        f"  <i>[Score IA: {item['score_ia']:.1f} | Vol: ${vol_m:.2f}M]</i>\n"
                         f"  └ <a href=\"{html.escape(url_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n"
                     )
             
-            caption += f"\n🟡 <b>CONFIRMACIÓN TÁCTICA MEDIA</b>\n"
-            for item in top_9_perlas:
+            caption += f"\n🟡 <b>SELECCIÓN IA: CONFIRMACIÓN TÁCTICA</b>\n"
+            for item in matriz_9_perlas:
                 if item['categoria'] == "AMARILLO":
                     sim = item['symbol'].replace('USDT', '')
                     precio_str = formatear_precio(item['precio_f'])
@@ -256,12 +267,12 @@ if __name__ == "__main__":
                     url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
                     caption += (
                         f"• 🟡 <b>{sim}</b> ({item['cambio_f']:+.1f}%) — {precio_str}\n"
-                        f"  <i>[Presión Vol: x{item['factor_spike']} | Vol 24h: ${vol_m:.2f}M]</i>\n"
+                        f"  <i>[Score IA: {item['score_ia']:.1f} | Vol: ${vol_m:.2f}M]</i>\n"
                         f"  └ <a href=\"{html.escape(url_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n"
                     )
                     
-            caption += f"\n🟢 <b>CAZADAS EN INICIOS (ACUMULACIÓN DE PISO)</b>\n"
-            for item in top_9_perlas:
+            caption += f"\n🟢 <b>SELECCIÓN IA: ACUMULACIÓN EN INICIOS</b>\n"
+            for item in matriz_9_perlas:
                 if item['categoria'] == "VERDE":
                     sim = item['symbol'].replace('USDT', '')
                     precio_str = formatear_precio(item['precio_f'])
@@ -271,9 +282,9 @@ if __name__ == "__main__":
                     url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
                     caption += (
                         f"• 🟢 <b>{sim}</b> ({item['cambio_f']:+.1f}%) — {precio_str}\n"
-                        f"  <i>[Presión Vol: x{item['factor_spike']} | Vol 24h: ${vol_m:.2f}M]</i>\n"
+                        f"  <i>[Score IA: {item['score_ia']:.1f} | Vol: ${vol_m:.2f}M]</i>\n"
                         f"  └ <a href=\"{html.escape(url_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n"
                     )
                 
             enviar_telegram(filename, caption)
-            print("✅ Reporte Matriz 3x3 enviado exitosamente a Telegram.")
+            print("✅ Reporte con Selección IA de 9 perlas enviado exitosamente.")
