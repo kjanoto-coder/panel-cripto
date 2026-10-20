@@ -192,3 +192,80 @@ def generar_grafico_matriz(lista_items, filename="grafico_cazador_9.png"):
     return filename
 
 def enviar_telegram(image_path, caption_text):
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        print("⚠️ Faltan credenciales de Telegram en las variables de entorno.")
+        return
+        
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
+    payload = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "caption": caption_text,
+        "parse_mode": "HTML"
+    }
+    
+    if TELEGRAM_TOPIC_ID:
+        try:
+            payload["message_thread_id"] = int(TELEGRAM_TOPIC_ID)
+        except ValueError:
+            pass
+
+    try:
+        with open(image_path, 'rb') as photo:
+            res = requests.post(url, data=payload, files={"photo": photo}, timeout=30)
+            resultado = res.json()
+            
+            if not resultado.get("ok") and "message thread not found" in str(resultado.get("description", "")):
+                print("⚠️ Hilo específico no encontrado. Reintentando al chat principal...")
+                payload.pop("message_thread_id", None)
+                photo.seek(0)
+                res = requests.post(url, data=payload, files={"photo": photo}, timeout=30)
+                resultado = res.json()
+
+            print(f"📡 Status Code HTTP de Telegram: {res.status_code}")
+            print(f"📥 Respuesta JSON de Telegram: {res.text}")
+            
+            if not resultado.get("ok"):
+                print(f"❌ Telegram rechazó el mensaje: {resultado.get('description')}")
+            else:
+                print("✅ ¡Mensaje y foto entregados exitosamente al Topic de Cazador Táctico!")
+    except Exception as e:
+        print(f"❌ Excepción crítica al conectar con Telegram: {e}")
+
+if __name__ == "__main__":
+    print("🔥 INICIANDO MOTOR IA CAZADOR TÁCTICO...")
+    session = crear_sesion_binance()
+    simbolos_activos = obtener_simbolos_spot_activos(session)
+    datos = obtener_datos_binance(session)
+    
+    if datos and len(simbolos_activos) > 0:
+        matriz_9_perlas, total_analizadas = motor_ia_seleccion_tactica(datos, simbolos_activos)
+        
+        if len(matriz_9_perlas) > 0:
+            filename = generar_grafico_matriz(matriz_9_perlas)
+            
+            caption = f"🔥 <b>CAZADOR TÁCTICO • SELECCIÓN IA (9 PERLAS)</b>\n"
+            caption += f"📊 <i>Universo analizado: {total_analizadas} altcoins</i>\n\n"
+            
+            categorias = [
+                ("ROJO", "🔴 <b>EXPLOSIÓN INMINENTE</b>"),
+                ("AMARILLO", "🟡 <b>CONFIRMACIÓN TÁCTICA</b>"),
+                ("VERDE", "🟢 <b>ACUMULACIÓN EN INICIOS</b>")
+            ]
+            
+            for cat_key, cat_title in categorias:
+                caption += f"{cat_title}\n"
+                for item in matriz_9_perlas:
+                    if item['categoria'] == cat_key:
+                        sim = item['symbol'].replace('USDT', '')
+                        precio_str = formatear_precio(item['precio_f'])
+                        vol_m = item['vol_f'] / 1_000_000
+                        unique_id = int(time.time() * 1000) + random.randint(1, 9999)
+                        url_ia = f"{BASE_URL_NETLIFY}/?coin={sim}&price={item['precio_f']}&change={item['cambio_f']}&high={item['high_f']}&low={item['low_f']}&v={sim}_{unique_id}"
+                        url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
+                        
+                        caption += f"• <b>{sim}</b> ({item['cambio_f']:+.1f}%) | {precio_str} | Vol: ${vol_m:.1f}M\n"
+                        caption += f"  └ <a href=\"{html.escape(url_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n"
+                caption += "\n"
+                
+            enviar_telegram(filename, caption.strip())
+            print("✅ Reporte con Selección IA de 9 perlas procesado y enviado.")
