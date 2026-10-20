@@ -18,7 +18,7 @@ BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
 LISTA_NEGRA = [
     'CREAMUSDT', 'PNTUSDT', 'VGXUSDT', 'BNCUSDT', 'PENGUUSDT', 'ASTERUSDT', 
     'WTCUSDT', 'PHBUSDT', 'NFPUSDT', 'BETAUSDT', 'VIBUSDT', 'PYRUSDT', 'ACAUSDT',
-    'EPICUSDT', 'SOPHUSDT', 'KORUBUSDT', 'QNTBUSDT', 'DJTBUSDT' # Añadidos para filtrar anomalías externas detectadas
+    'EPICUSDT', 'SOPHUSDT', 'KORUBUSDT', 'QNTBUSDT', 'DJTBUSDT'
 ]
 
 ARCHIVO_MEMORIA = "ultimas_perlas.json"
@@ -143,17 +143,20 @@ def preparar_datos(tickers):
                 t['highPrice_f'] = float(t.get('highPrice', 0))
                 t['lowPrice_f'] = float(t.get('lowPrice', 0))
                 
-                # Filtros de volumen real y exclusión de monedas con cambios anormales ficticios (> 200% o precios sospechosos)
-                if t['quoteVolume_f'] >= 500_000 and t['lastPrice_f'] > 0 and abs(t['priceChangePercent_f']) < 150:
+                # Filtros sincronizados con la web oficial: liquidez real y exclusión de variaciones irreales
+                if t['quoteVolume_f'] >= 500_000 and t['lastPrice_f'] > 0 and -90 <= t['priceChangePercent_f'] <= 90:
                     usdt_pairs.append(t)
             except (ValueError, TypeError):
                 continue
 
+    # 1. TOP 7 GANADORAS
     ganadoras = sorted(usdt_pairs, key=lambda x: x['priceChangePercent_f'], reverse=True)[:7]
     
+    # 2. TOP 7 ACUMULACIÓN 24H (Manteniendo estrictamente monedas con bajo valor menor a $1.0)
     acumulacion_pool_24h = [t for t in usdt_pairs if t['lastPrice_f'] < 1.0]
     acumulacion_24h = sorted(acumulacion_pool_24h, key=lambda x: x['quoteVolume_f'], reverse=True)[:7]
     
+    # 3. TOP 7 ACUMULACIÓN SILENCIOSA (Motor Quirúrgico)
     historial_previo = cargar_memoria_perlas()
     simbolos_bloqueados = [item for reporte in historial_previo for item in reporte]
     
@@ -161,7 +164,7 @@ def preparar_datos(tickers):
         t for t in usdt_pairs 
         if t['lastPrice_f'] < 1.0 
         and -1.5 <= t['priceChangePercent_f'] <= 1.8
-        and t['quoteVolume_f'] >= 2_000_000
+        and t['quoteVolume_f'] >= 1_500_000
         and t['symbol'] not in simbolos_bloqueados
     ]
     
@@ -204,7 +207,7 @@ def preparar_datos(tickers):
             t for t in usdt_pairs 
             if t['lastPrice_f'] < 1.0 
             and -2.0 <= t['priceChangePercent_f'] <= 2.0
-            and t['quoteVolume_f'] >= 1_500_000
+            and t['quoteVolume_f'] >= 1_000_000
             and t not in perlas_quirurgicas
         ]
         perlas_quirurgicas.extend(sorted(silenciosa_pool_respaldo, key=lambda x: x['quoteVolume_f'], reverse=True)[:7 - len(perlas_quirurgicas)])
@@ -215,8 +218,11 @@ def preparar_datos(tickers):
     historial_previo.append(nuevos_simbolos)
     guardar_memoria_perlas(historial_previo)
     
-    perdedoras = sorted(usdt_pairs, key=lambda x: x['priceChangePercent_f'])[:7]
+    # 4. TOP 7 PERDEDORAS (Sincronizado estrictamente con los valores negativos reales del mercado)
+    perdedoras_pool = [t for t in usdt_pairs if t['priceChangePercent_f'] < 0]
+    perdedoras = sorted(perdedoras_pool, key=lambda x: x['priceChangePercent_f'])[:7]
     
+    # 5. TUS 5 FAVORITAS
     favoritas_simbolos = ['QI', 'TUT', 'NEIRO', 'LUNC', 'BANK']
     favoritas = []
     for sim in favoritas_simbolos:
