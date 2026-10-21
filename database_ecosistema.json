@@ -1,7 +1,28 @@
 {
-    "sentimiento_mercado": "VERDE",
-    "ultima_actualizacion": "2026-10-16 02:28:34",
-    "incubadora_cazador": [],
-    "ganadoras_dia": [],
-    "alertas_pre_explosion": []
+  "timestamp": "2026-10-20T16:00:00",
+  "sentimiento_mercado": {
+    "estado": "VERDE", 
+    "descripcion": "Mercado con sesgo alcista y flujos de liquidez positivos."
+  },
+  "binance_metricas": {
+    "ganadoras_dia": [
+      {"ticker": "BTC", "variacion": "+4.5%"},
+      {"ticker": "SOL", "variacion": "+8.2%"}
+    ],
+    "perdedoras": [
+      {"ticker": "ETH", "variacion": "-2.1%"}
+    ],
+    "acumulacion_24h": [...],
+    "acumulacion_silenciosa": [...]
+  },
+  "cazador_tactico": [
+    {"ticker": "...", "senal": "..."}
+  ],
+  "pre_explosion": [
+    {"ticker": "...", "termometro": "Alto"}
+  ],
+  "convertidas_ganadoras": [
+    {"ticker": "...", "efectividad": "Color Verde - Cumplido con éxito"}
+  ],
+  "dictamen_ia": "Dictamen Maestro de Confluencia: Las señales tácticas de acumulación silenciosa en rango confluyen con el impulso alcista general..."
 }
