@@ -180,14 +180,11 @@ def obtener_noticias_cripto_multifuente():
         "Referer": "https://es.tradingview.com/"
     }
 
-    # Extracción directa del endpoint de noticias de TradingView en español
     url_tv = "https://es.tradingview.com/markets/cryptocurrencies/news/"
     try:
         res_tv = requests.get(url_tv, headers=headers, timeout=10)
         if res_tv.status_code == 200:
             soup = BeautifulSoup(res_tv.content, "html.parser")
-            
-            # Buscar elementos de titulares específicos de la tabla de TradingView
             links = soup.find_all("a", href=lambda h: h and ("/news/" in h or "articulo" in h.lower()))
             for l in links:
                 titular = l.text.strip()
@@ -195,9 +192,7 @@ def obtener_noticias_cripto_multifuente():
                 if href.startswith("/"):
                     href = "https://es.tradingview.com" + href
                 
-                # Filtrar textos cortos o menús de navegación irrelevantes
                 if titular and len(titular) > 25 and not any(n['titular'] == titular for n in noticias_candidatas):
-                    # Intentar detectar el proveedor si está en el contenedor
                     fuente_nombre = "TradingView Markets"
                     parent = l.find_parent("div")
                     if parent:
@@ -217,7 +212,6 @@ def obtener_noticias_cripto_multifuente():
     except Exception as e:
         print(f"⚠️ Error obteniendo noticias de TradingView: {e}")
 
-    # Respaldo robusto mediante RSS si la estructura web cambia temporalmente
     if len(noticias_candidatas) < 3:
         sources_rss = [
             ("https://es.cointelegraph.com/rss", "Cointelegraph"),
@@ -250,7 +244,6 @@ def obtener_noticias_cripto_multifuente():
 
     noticias_actuales = noticias_candidatas[:3]
     
-    # Control de memoria y duplicados respecto al último ciclo de 30 minutos
     historial = cargar_historial_noticias()
     titulos_actuales = [n['titular'] for n in noticias_actuales]
     titulos_historial = [n['titular'] for n in historial]
@@ -393,18 +386,21 @@ def enviar_mensaje_telegram(url_base, payload_base):
         return None
 
 # ---------------------------------------------------------
-# 6. ACTUALIZACIÓN DEL ECOSISTEMA WEB (JSON)
+# 6. ACTUALIZACIÓN DEL ECOSISTEMA WEB (ROBUSTO)
 # ---------------------------------------------------------
 def actualizar_base_datos_web(noticias):
-    try:
-        datos_actuales = {}
-        if os.path.exists(DATABASE_ECOSISTEMA_FILE):
+    datos_actuales = {}
+    if os.path.exists(DATABASE_ECOSISTEMA_FILE):
+        try:
             with open(DATABASE_ECOSISTEMA_FILE, "r", encoding="utf-8") as f:
                 datos_actuales = json.load(f)
-                
-        datos_actuales["noticias"] = noticias
-        datos_actuales["ultima_actualizacion"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        
+        except Exception:
+            datos_actuales = {}
+            
+    datos_actuales["noticias"] = noticias
+    datos_actuales["ultima_actualizacion"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    try:
         with open(DATABASE_ECOSISTEMA_FILE, "w", encoding="utf-8") as f:
             json.dump(datos_actuales, f, ensure_ascii=False, indent=4)
         print("📊 Base de datos del ecosistema web actualizada correctamente.")
@@ -477,9 +473,9 @@ if __name__ == "__main__":
         if thread_id: p_m2['message_thread_id'] = thread_id
         enviar_mensaje_telegram(url_base, p_m2)
 
-        # Enviar 3: NOTICIAS (Solo si hay novedades respecto al ciclo anterior)
-        if hay_novedades:
-            print("✨ ¡Nuevas noticias detectadas! Enviando alerta a Telegram...")
+        # Enviar 3: NOTICIAS (Garantizado siempre)
+        if noticias_tv:
+            print("✨ Enviando bloque de noticias a Telegram...")
             msg_noticias = "📰 <b>SENTINEL NOTICIAS — TRADINGVIEW & MARKET HEADLINES</b>\n\n"
             for idx, noticia in enumerate(noticias_tv, 1):
                 msg_noticias += str(idx) + ". ⚡ <b>" + noticia['titular'] + "</b>\n"
@@ -495,8 +491,6 @@ if __name__ == "__main__":
 
             res_noticias = enviar_mensaje_telegram(url_base, p_news)
             print("✅ Resultado del envío de Noticias:", res_noticias)
-        else:
-            print("ℹ️ Las noticias extraídas coinciden con las del último ciclo. Se omite el envío a Telegram para evitar repetición.")
 
         print("✅ Ejecución completada exitosamente.")
     else:
