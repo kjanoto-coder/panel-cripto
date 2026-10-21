@@ -2,7 +2,7 @@ name: Sentinel Macro Global Alert
 
 on:
   schedule:
-    # Se ejecuta cada 30 minutos de forma continua
+    # Se ejecuta cada 30 minutos de forma continua (media hora)
     - cron: '*/30 * * * *'
   workflow_dispatch: # Permite ejecución manual
 
@@ -17,11 +17,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
       - name: Install Dependencies
         run: |
-          pip install requests pandas google-genai yfinance matplotlib squarify
+          python -m pip install --upgrade pip
+          pip install requests pandas google-genai yfinance matplotlib squarify beautifulsoup4 lxml urllib3
 
       - name: Run Sentinel Macro Script
         env:
@@ -33,10 +34,10 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python bot_sentinel_macro.py
 
-      - name: Commit & Push Historial de Noticias
+      - name: Commit & Push Historial de Noticias y Datos
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add historial_noticias.json datos_sentinel_macro.json || true
-          git commit -m "Auto-update: Historial de noticias y datos macro" || true
+          git add .
+          git commit -m "Auto-update: Historial de noticias, datos macro y dashboard (30 min)" || true
           git push || true
