@@ -173,10 +173,6 @@ def guardar_historial_noticias(noticias):
         print("Error guardando historial de noticias: " + str(e))
 
 def obtener_noticias_cripto_multifuente():
-    """
-    Extrae noticias vivas asegurando control de duplicados mediante historial.
-    Retorna: (noticias, hay_novedades)
-    """
     noticias_candidatas = []
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -188,7 +184,6 @@ def obtener_noticias_cripto_multifuente():
         "https://min-api.cryptocompare.com/data/v2/news/?lang=EN"
     ]
 
-    # 1. Intentar RSS en Español (Cointelegraph / BeInCrypto)
     for url in sources[:2]:
         try:
             res_rss = requests.get(url, headers=headers, timeout=8)
@@ -200,3 +195,297 @@ def obtener_noticias_cripto_multifuente():
                     link_elem = item.find('link')
                     if title_elem and link_elem:
                         titular = title_elem.text.strip().replace("<![CDATA[", "").replace("]]>", "")
+                        enlace = link_elem.text.strip()
+                        fuente_nombre = "Cointelegraph" if "cointelegraph" in url else "BeInCrypto"
+                        if titular and not any(n['titular'] == titular for n in noticias_candidatas):
+                            noticias_candidatas.append({
+                                'titular': limpiar_html(titular),
+                                'enlace': enlace,
+                                'fuente': fuente_nombre
+                            })
+                            if len(noticias_candidatas) >= 3:
+                                break
+            if len(noticias_candidatas) >= 3:
+                break
+        except Exception as e:
+            print(f"⚠️ Error obteniendo RSS ({url}): {e}")
+
+    if len(noticias_candidatas) < 3:
+        try:
+            res_cc = requests.get(sources[2], headers=headers, timeout=8)
+            if res_cc.status_code == 200:
+                data = res_cc.json()
+                for item in data.get('Data', [])[:5]:
+                    titular = item.get('title')
+                    enlace = item.get('url')
+                    fuente_nombre = item.get('source_info', {}).get('name', 'CryptoNews')
+                    if titular and not any(n['titular'] == titular for n in noticias_candidatas):
+                        noticias_candidatas.append({
+                            'titular': limpiar_html(titular),
+                            'enlace': enlace,
+                            'fuente': fuente_nombre
+                        })
+                        if len(noticias_candidatas) >= 3:
+                            break
+        except Exception as e:
+            print(f"⚠️ Error obteniendo CryptoCompare: {e}")
+
+    if not noticias_candidatas:
+        noticias_candidatas = [
+            {'titular': 'Bitcoin y altcoins muestran consolidación de volumen en rangos clave de liquidez', 'enlace': 'https://es.tradingview.com/markets/cryptocurrencies/news/', 'fuente': 'TradingView Markets'},
+            {'titular': 'Flujos institucionales monitorean la compresión de volatilidad en el mercado spot', 'enlace': 'https://es.tradingview.com/markets/cryptocurrencies/news/', 'fuente': 'Sentinel Macro'},
+            {'titular': 'Analistas destacan rotación táctica hacia tokens de baja capitalización', 'enlace': 'https://es.tradingview.com/markets/cryptocurrencies/news/', 'fuente': 'Cointelegraph'}
+        ]
+
+    noticias_actuales = noticias_candidatas[:3]
+    
+    historial = cargar_historial_noticias()
+    titulos_actuales = [n['titular'] for n in noticias_actuales]
+    titulos_historial = [n['titular'] for n in historial]
+    
+    hay_novedades = set(titulos_actuales) != set(titulos_historial)
+    
+    if hay_novedades:
+        guardar_historial_noticias(noticias_actuales)
+
+    return noticias_actuales, hay_novedades
+
+# ---------------------------------------------------------
+# 4. GENERACIÓN DE DIAGNÓSTICO Y ALERTA DE IA
+# ---------------------------------------------------------
+def analizar_wall_street_ia(df_ws, sesion, estado_previo):
+    if not GEMINI_API_KEY: 
+        return "📊 Diagnóstico: Renta variable operando con volatilidad moderada.\n🚨 Alerta: Mantener cautela en posiciones apalancadas."
+    
+    try:
+        client = genai.Client(api_key=GEMINI_API_KEY)
+        detalle_actual = {}
+        for _, r in df_ws.iterrows():
+            detalle_actual[r['ticker']] = r['var']
+
+        prev_ws = estado_previo.get("wall_street", {})
+        
+        giros = []
+        for t, val_act in detalle_actual.items():
+            val_prev = prev_ws.get(t, val_act)
+            if val_prev < 0 and val_act > 0:
+                giros.append(t + " cambió de rojo a verde (+" + str(val_act) + "%)")
+            elif val_prev > 0 and val_act < 0:
+                giros.append(t + " cambió de verde a rojo (" + str(val_act) + "%)")
+
+        texto_giros = ", ".join(giros) if giros else "Sin cambios drásticos."
+        
+        partes_txt = []
+        for _, r in df_ws.iterrows():
+            partes_txt.append(r['ticker'] + ": " + str(r['var']) + "%")
+        datos_txt = ", ".join(partes_txt)
+
+        prompt = (
+            "Actúa como estratega macro de Wall Street. "
+            "Sesión: " + sesion + ". "
+            "Datos S&P 500: " + datos_txt + ". "
+            "Giros: " + texto_giros + ". "
+            "Devuelve strictly dos líneas: "
+            "📊 Diagnóstico: [texto corto] y 🚨 Alerta: [texto corto]."
+        )
+
+        for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
+            try:
+                res = client.models.generate_content(model=mod, contents=prompt)
+                if res and res.text:
+                    return res.text.strip()
+            except Exception:
+                continue
+    except Exception as e:
+        print("Error analizando Wall Street con Gemini: " + str(e))
+        
+    return "📊 Diagnóstico: Renta variable operando con volatilidad moderada.\n🚨 Alerta: Mantener cautela en posiciones apalancadas."
+
+def analizar_cripto_ia(df_cripto, sesion, estado_previo):
+    if not GEMINI_API_KEY: 
+        return "📊 Diagnóstico: Mercado buscando estabilización.\n🚨 Alerta: Monitoreando flujos de liquidez."
+    
+    try:
+        client = genai.Client(api_key=GEMINI_API_KEY)
+        detalle_actual = {}
+        for _, r in df_cripto.iterrows():
+            detalle_actual[r['ticker']] = r['var']
+
+        prev_cripto = estado_previo.get("cripto", {})
+        
+        giros = []
+        for t, val_act in detalle_actual.items():
+            val_prev = prev_cripto.get(t, val_act)
+            if val_prev < 0 and val_act > 0:
+                giros.append(t + " giró a verde (+" + str(val_act) + "%)")
+            elif val_prev > 0 and val_act < 0:
+                giros.append(t + " giró a rojo (" + str(val_act) + "%)")
+
+        texto_giros = ", ".join(giros) if giros else "Sin giros drásticos."
+        
+        partes_txt = []
+        for _, r in df_cripto.iterrows():
+            partes_txt.append(r['ticker'] + ": " + str(r['var']) + "%")
+        datos_txt = ", ".join(partes_txt)
+
+        prompt = (
+            "Actúa como analista cuantitativo crypto. "
+            "Sesión: " + sesion + ". "
+            "Binance: " + datos_txt + ". "
+            "Giros: " + texto_giros + ". "
+            "Devuelve strictly dos líneas: "
+            "📊 Diagnóstico: [texto corto] y 🚨 Alerta: [texto corto]."
+        )
+
+        for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
+            try:
+                res = client.models.generate_content(model=mod, contents=prompt)
+                if res and res.text:
+                    return res.text.strip()
+            except Exception:
+                continue
+    except Exception as e:
+        print("Error analizando Cripto con Gemini: " + str(e))
+        
+    return "📊 Diagnóstico: Mercado buscando estabilización.\n🚨 Alerta: Monitoreando flujos de liquidez."
+
+# ---------------------------------------------------------
+# FUNCIONES DE ENVÍO ROBUSTO A TELEGRAM (HTML)
+# ---------------------------------------------------------
+def enviar_foto_telegram(url_base, payload_base, image_path):
+    try:
+        with open(image_path, 'rb') as f:
+            res = requests.post(url_base + "/sendPhoto", data=payload_base, files={'photo': f})
+            resultado = res.json()
+            if not resultado.get("ok") and "message thread not found" in str(resultado.get("description", "")):
+                payload_copia = payload_base.copy()
+                payload_copia.pop("message_thread_id", None)
+                f.seek(0)
+                res = requests.post(url_base + "/sendPhoto", data=payload_copia, files={'photo': f})
+    except Exception as e:
+        print("⚠️ Error al enviar foto: " + str(e))
+
+def enviar_mensaje_telegram(url_base, payload_base):
+    try:
+        res = requests.post(url_base + "/sendMessage", json=payload_base)
+        resultado = res.json()
+        if not resultado.get("ok") and "message thread not found" in str(resultado.get("description", "")):
+            payload_copia = payload_base.copy()
+            payload_copia.pop("message_thread_id", None)
+            res = requests.post(url_base + "/sendMessage", json=payload_copia)
+            resultado = res.json()
+        print("Telegram Response:", resultado)
+        return resultado
+    except Exception as e:
+        print("⚠️ Error al enviar mensaje: " + str(e))
+        return None
+
+# ---------------------------------------------------------
+# 6. ACTUALIZACIÓN DEL ECOSISTEMA WEB (JSON)
+# ---------------------------------------------------------
+def actualizar_base_datos_web(noticias):
+    try:
+        datos_actuales = {}
+        if os.path.exists(DATABASE_ECOSISTEMA_FILE):
+            with open(DATABASE_ECOSISTEMA_FILE, "r", encoding="utf-8") as f:
+                datos_actuales = json.load(f)
+                
+        datos_actuales["noticias"] = noticias
+        datos_actuales["ultima_actualizacion"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        with open(DATABASE_ECOSISTEMA_FILE, "w", encoding="utf-8") as f:
+            json.dump(datos_actuales, f, ensure_ascii=False, indent=4)
+        print("📊 Base de datos del ecosistema web actualizada correctamente.")
+    except Exception as e:
+        print("⚠️ Error actualizando base web: " + str(e))
+
+# ---------------------------------------------------------
+# 5. EJECUCIÓN Y ENVÍO
+# ---------------------------------------------------------
+if __name__ == "__main__":
+    print("🌐 Ejecutando Sentinel Macro...")
+
+    sesion_actual = obtener_sesion_actual_mercado()
+    estado_previo = cargar_estado_previo()
+
+    # 1. S&P 500
+    df_ws = obtener_datos_wall_street_treemap()
+    generar_treemap_wall_street(df_ws)
+    causas_ws = analizar_wall_street_ia(df_ws, sesion_actual, estado_previo)
+    msg_ws = "🏛️ <b>SENTINEL MACRO — 1. S&P 500 & TRADFI</b>\n🕒 <b>Sesión:</b> 🌎 <code>" + sesion_actual + "</code>\n\n" + causas_ws + "\n"
+
+    # 2. Cripto Market
+    df_cripto = obtener_datos_cripto_treemap()
+    generar_treemap_cripto(df_cripto)
+    causas_cripto = analizar_cripto_ia(df_cripto, sesion_actual, estado_previo)
+    msg_cripto = "🪙 <b>SENTINEL MACRO — 2. BINANCE CRIPTO MARKET</b>\n🕒 <b>Sesión:</b> 🌎 <code>" + sesion_actual + "</code>\n\n" + causas_cripto + "\n"
+
+    dict_ws_save = {}
+    for _, r in df_ws.iterrows():
+        dict_ws_save[r['ticker']] = r['var']
+
+    dict_cripto_save = {}
+    for _, r in df_cripto.iterrows():
+        dict_cripto_save[r['ticker']] = r['var']
+
+    guardar_estado_actual(dict_ws_save, dict_cripto_save)
+
+    # 3. Obtener Noticias y actualizar la Web
+    print("📰 Procesando titulares de noticias...")
+    noticias_tv, hay_novedades = obtener_noticias_cripto_multifuente()
+    actualizar_base_datos_web(noticias_tv)
+
+    if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
+        url_base = "https://api.telegram.org/bot" + TELEGRAM_BOT_TOKEN
+        thread_id = None
+        if MESSAGE_THREAD_ID:
+            try:
+                thread_id = int(MESSAGE_THREAD_ID)
+            except ValueError:
+                pass
+
+        teclado_ws = {"inline_keyboard": [[{"text": "📊 Ver Mapa Interactivo S&P 500 (Investing)", "url": "https://es.investing.com/markets/heatmap"}]]}
+        teclado_cripto = {"inline_keyboard": [[{"text": "🪙 Ver Mapa Interactivo Binance Futures", "url": "https://www.binance.com/es-AR/futures/crypto-heatmap"}]]}
+
+        # Enviar 1: S&P 500
+        p_f1 = {'chat_id': TELEGRAM_CHAT_ID, 'caption': "🗺️ <b>Mapa de Calor — S&P 500 (" + sesion_actual + ")</b>", 'parse_mode': 'HTML'}
+        if thread_id: p_f1['message_thread_id'] = thread_id
+        enviar_foto_telegram(url_base, p_f1, 'heatmap_wall_street.png')
+
+        p_m1 = {'chat_id': TELEGRAM_CHAT_ID, 'text': msg_ws, 'parse_mode': 'HTML', 'reply_markup': teclado_ws}
+        if thread_id: p_m1['message_thread_id'] = thread_id
+        enviar_mensaje_telegram(url_base, p_m1)
+
+        # Enviar 2: Cripto
+        p_f2 = {'chat_id': TELEGRAM_CHAT_ID, 'caption': "🗺️ <b>Mapa de Calor — Cripto (" + sesion_actual + ")</b>", 'parse_mode': 'HTML'}
+        if thread_id: p_f2['message_thread_id'] = thread_id
+        enviar_foto_telegram(url_base, p_f2, 'heatmap_cripto.png')
+
+        p_m2 = {'chat_id': TELEGRAM_CHAT_ID, 'text': msg_cripto, 'parse_mode': 'HTML', 'reply_markup': teclado_cripto}
+        if thread_id: p_m2['message_thread_id'] = thread_id
+        enviar_mensaje_telegram(url_base, p_m2)
+
+        # Enviar 3: NOTICIAS (Solo si hay novedades respecto al ciclo anterior)
+        if hay_novedades:
+            print("✨ ¡Nuevas noticias detectadas! Enviando alerta a Telegram...")
+            msg_noticias = "📰 <b>SENTINEL NOTICIAS — TRADINGVIEW & MARKET HEADLINES</b>\n\n"
+            for idx, noticia in enumerate(noticias_tv, 1):
+                msg_noticias += str(idx) + ". ⚡ <b>" + noticia['titular'] + "</b>\n"
+                msg_noticias += "🔗 <a href=\"" + noticia['enlace'] + "\">Leer en " + noticia['fuente'] + "</a>\n\n"
+
+            p_news = {
+                'chat_id': TELEGRAM_CHAT_ID,
+                'text': msg_noticias,
+                'parse_mode': 'HTML',
+                'disable_web_page_preview': True
+            }
+            if thread_id: p_news['message_thread_id'] = thread_id
+
+            res_noticias = enviar_mensaje_telegram(url_base, p_news)
+            print("✅ Resultado del envío de Noticias:", res_noticias)
+        else:
+            print("ℹ️ Las noticias extraídas coinciden con las del último ciclo. Se omite el envío a Telegram para evitar repetición.")
+
+        print("✅ Ejecución completada exitosamente.")
+    else:
+        print("⚠️ No se pudo enviar a Telegram: Faltan credenciales.")
