@@ -151,10 +151,10 @@ def generar_treemap_cripto(df):
     plt.close()
 
 # ---------------------------------------------------------
-# 3. EXTRAER NOTICIAS EN VIVO CON MEMORIA ANTI-DUPLICADOS
+# 3. EXTRAER NOTICIAS EXACTAS DE TRADINGVIEW EN VIVO
 # ---------------------------------------------------------
 def limpiar_html(texto):
-    return texto.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    return texto.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").strip()
 
 def cargar_historial_noticias():
     if os.path.exists(HISTORIAL_NOTICIAS_FILE):
@@ -175,77 +175,89 @@ def guardar_historial_noticias(noticias):
 def obtener_noticias_cripto_multifuente():
     noticias_candidatas = []
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
+        "Referer": "https://es.tradingview.com/"
     }
 
-    sources = [
-        "https://es.cointelegraph.com/rss",
-        "https://es.beincrypto.com/feed/",
-        "https://min-api.cryptocompare.com/data/v2/news/?lang=EN"
-    ]
-
-    for url in sources[:2]:
-        try:
-            res_rss = requests.get(url, headers=headers, timeout=8)
-            if res_rss.status_code == 200:
-                soup_rss = BeautifulSoup(res_rss.content, features="xml")
-                items = soup_rss.find_all('item')
-                for item in items[:5]:
-                    title_elem = item.find('title')
-                    link_elem = item.find('link')
-                    if title_elem and link_elem:
-                        titular = title_elem.text.strip().replace("<![CDATA[", "").replace("]]>", "")
-                        enlace = link_elem.text.strip()
-                        fuente_nombre = "Cointelegraph" if "cointelegraph" in url else "BeInCrypto"
-                        if titular and not any(n['titular'] == titular for n in noticias_candidatas):
-                            noticias_candidatas.append({
-                                'titular': limpiar_html(titular),
-                                'enlace': enlace,
-                                'fuente': fuente_nombre
-                            })
-                            if len(noticias_candidatas) >= 3:
+    # Extracción directa del endpoint de noticias de TradingView en español
+    url_tv = "https://es.tradingview.com/markets/cryptocurrencies/news/"
+    try:
+        res_tv = requests.get(url_tv, headers=headers, timeout=10)
+        if res_tv.status_code == 200:
+            soup = BeautifulSoup(res_tv.content, "html.parser")
+            
+            # Buscar elementos de titulares específicos de la tabla de TradingView
+            links = soup.find_all("a", href=lambda h: h and ("/news/" in h or "articulo" in h.lower()))
+            for l in links:
+                titular = l.text.strip()
+                href = l.get("href", "")
+                if href.startswith("/"):
+                    href = "https://es.tradingview.com" + href
+                
+                # Filtrar textos cortos o menús de navegación irrelevantes
+                if titular and len(titular) > 25 and not any(n['titular'] == titular for n in noticias_candidatas):
+                    # Intentar detectar el proveedor si está en el contenedor
+                    fuente_nombre = "TradingView Markets"
+                    parent = l.find_parent("div")
+                    if parent:
+                        texto_padre = parent.text
+                        for prov in ["Cointelegraph", "BeInCrypto", "Investing", "Binance", "Bloomberg", "Reuters"]:
+                            if prov.lower() in texto_padre.lower():
+                                fuente_nombre = prov
                                 break
-            if len(noticias_candidatas) >= 3:
-                break
-        except Exception as e:
-            print(f"⚠️ Error obteniendo RSS ({url}): {e}")
 
+                    noticias_candidatas.append({
+                        'titular': limpiar_html(titular),
+                        'enlace': href,
+                        'fuente': fuente_nombre
+                    })
+                    if len(noticias_candidatas) >= 3:
+                        break
+    except Exception as e:
+        print(f"⚠️ Error obteniendo noticias de TradingView: {e}")
+
+    # Respaldo robusto mediante RSS si la estructura web cambia temporalmente
     if len(noticias_candidatas) < 3:
-        try:
-            res_cc = requests.get(sources[2], headers=headers, timeout=8)
-            if res_cc.status_code == 200:
-                data = res_cc.json()
-                for item in data.get('Data', [])[:5]:
-                    titular = item.get('title')
-                    enlace = item.get('url')
-                    fuente_nombre = item.get('source_info', {}).get('name', 'CryptoNews')
-                    if titular and not any(n['titular'] == titular for n in noticias_candidatas):
-                        noticias_candidatas.append({
-                            'titular': limpiar_html(titular),
-                            'enlace': enlace,
-                            'fuente': fuente_nombre
-                        })
-                        if len(noticias_candidatas) >= 3:
-                            break
-        except Exception as e:
-            print(f"⚠️ Error obteniendo CryptoCompare: {e}")
-
-    if not noticias_candidatas:
-        noticias_candidatas = [
-            {'titular': 'Bitcoin y altcoins muestran consolidación de volumen en rangos clave de liquidez', 'enlace': 'https://es.tradingview.com/markets/cryptocurrencies/news/', 'fuente': 'TradingView Markets'},
-            {'titular': 'Flujos institucionales monitorean la compresión de volatilidad en el mercado spot', 'enlace': 'https://es.tradingview.com/markets/cryptocurrencies/news/', 'fuente': 'Sentinel Macro'},
-            {'titular': 'Analistas destacan rotación táctica hacia tokens de baja capitalización', 'enlace': 'https://es.tradingview.com/markets/cryptocurrencies/news/', 'fuente': 'Cointelegraph'}
+        sources_rss = [
+            ("https://es.cointelegraph.com/rss", "Cointelegraph"),
+            ("https://es.beincrypto.com/feed/", "BeInCrypto")
         ]
+        for url_rss, nombre_fuente in sources_rss:
+            try:
+                res_rss = requests.get(url_rss, headers=headers, timeout=8)
+                if res_rss.status_code == 200:
+                    soup_rss = BeautifulSoup(res_rss.content, features="xml")
+                    items = soup_rss.find_all('item')
+                    for item in items[:5]:
+                        t_elem = item.find('title')
+                        l_elem = item.find('link')
+                        if t_elem and l_elem:
+                            titular = t_elem.text.strip().replace("<![CDATA[", "").replace("]]>", "")
+                            enlace = l_elem.text.strip()
+                            if titular and not any(n['titular'] == titular for n in noticias_candidatas):
+                                noticias_candidatas.append({
+                                    'titular': limpiar_html(titular),
+                                    'enlace': enlace,
+                                    'fuente': nombre_fuente
+                                })
+                                if len(noticias_candidatas) >= 3:
+                                    break
+                if len(noticias_candidatas) >= 3:
+                    break
+            except Exception as e:
+                print(f"⚠️ Error en RSS respaldo: {e}")
 
     noticias_actuales = noticias_candidatas[:3]
     
+    # Control de memoria y duplicados respecto al último ciclo de 30 minutos
     historial = cargar_historial_noticias()
     titulos_actuales = [n['titular'] for n in noticias_actuales]
     titulos_historial = [n['titular'] for n in historial]
     
     hay_novedades = set(titulos_actuales) != set(titulos_historial)
     
-    if hay_novedades:
+    if hay_novedades and noticias_actuales:
         guardar_historial_noticias(noticias_actuales)
 
     return noticias_actuales, hay_novedades
