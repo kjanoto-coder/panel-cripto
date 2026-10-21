@@ -151,7 +151,8 @@ def generar_treemap_cripto(df):
     plt.close()
 
 # ---------------------------------------------------------
-# 3. EXTRAER NOTICIAS EXACTAS DE TRADINGVIEW EN VIVO
+# ---------------------------------------------------------
+# 3. EXTRAER NOTICIAS EXACTAS EN VIVO (ENFOQUE COINTELEGRAPH / TRADINGVIEW)
 # ---------------------------------------------------------
 def limpiar_html(texto):
     return texto.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").strip()
@@ -176,71 +177,56 @@ def obtener_noticias_cripto_multifuente():
     noticias_candidatas = []
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-        "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
-        "Referer": "https://es.tradingview.com/"
+        "Accept-Language": "es-ES,es;q=0.9,en;q=0.8"
     }
 
-    url_tv = "https://es.tradingview.com/markets/cryptocurrencies/news/"
+    # 1. Prioridad Absoluta: RSS Oficial de Cointelegraph en Español (Fuente exacta de la portada de TradingView)
+    url_ct = "https://es.cointelegraph.com/rss"
     try:
-        res_tv = requests.get(url_tv, headers=headers, timeout=10)
-        if res_tv.status_code == 200:
-            soup = BeautifulSoup(res_tv.content, "html.parser")
-            links = soup.find_all("a", href=lambda h: h and ("/news/" in h or "articulo" in h.lower()))
-            for l in links:
-                titular = l.text.strip()
-                href = l.get("href", "")
-                if href.startswith("/"):
-                    href = "https://es.tradingview.com" + href
-                
-                if titular and len(titular) > 25 and not any(n['titular'] == titular for n in noticias_candidatas):
-                    fuente_nombre = "TradingView Markets"
-                    parent = l.find_parent("div")
-                    if parent:
-                        texto_padre = parent.text
-                        for prov in ["Cointelegraph", "BeInCrypto", "Investing", "Binance", "Bloomberg", "Reuters"]:
-                            if prov.lower() in texto_padre.lower():
-                                fuente_nombre = prov
-                                break
-
-                    noticias_candidatas.append({
-                        'titular': limpiar_html(titular),
-                        'enlace': href,
-                        'fuente': fuente_nombre
-                    })
-                    if len(noticias_candidatas) >= 3:
-                        break
+        res_ct = requests.get(url_ct, headers=headers, timeout=10)
+        if res_ct.status_code == 200:
+            soup_rss = BeautifulSoup(res_ct.content, features="xml")
+            items = soup_rss.find_all('item')
+            for item in items[:5]:
+                t_elem = item.find('title')
+                l_elem = item.find('link')
+                if t_elem and l_elem:
+                    titular = t_elem.text.strip().replace("<![CDATA[", "").replace("]]>", "")
+                    enlace = l_elem.text.strip()
+                    if titular and not any(n['titular'] == titular for n in noticias_candidatas):
+                        noticias_candidatas.append({
+                            'titular': limpiar_html(titular),
+                            'enlace': enlace,
+                            'fuente': 'Cointelegraph'
+                        })
+                        if len(noticias_candidatas) >= 3:
+                            break
     except Exception as e:
-        print(f"⚠️ Error obteniendo noticias de TradingView: {e}")
+        print(f"⚠️ Error obteniendo RSS de Cointelegraph: {e}")
 
+    # 2. Respaldo secundario: BeInCrypto si faltaran entradas
     if len(noticias_candidatas) < 3:
-        sources_rss = [
-            ("https://es.cointelegraph.com/rss", "Cointelegraph"),
-            ("https://es.beincrypto.com/feed/", "BeInCrypto")
-        ]
-        for url_rss, nombre_fuente in sources_rss:
-            try:
-                res_rss = requests.get(url_rss, headers=headers, timeout=8)
-                if res_rss.status_code == 200:
-                    soup_rss = BeautifulSoup(res_rss.content, features="xml")
-                    items = soup_rss.find_all('item')
-                    for item in items[:5]:
-                        t_elem = item.find('title')
-                        l_elem = item.find('link')
-                        if t_elem and l_elem:
-                            titular = t_elem.text.strip().replace("<![CDATA[", "").replace("]]>", "")
-                            enlace = l_elem.text.strip()
-                            if titular and not any(n['titular'] == titular for n in noticias_candidatas):
-                                noticias_candidatas.append({
-                                    'titular': limpiar_html(titular),
-                                    'enlace': enlace,
-                                    'fuente': nombre_fuente
-                                })
-                                if len(noticias_candidatas) >= 3:
-                                    break
-                if len(noticias_candidatas) >= 3:
-                    break
-            except Exception as e:
-                print(f"⚠️ Error en RSS respaldo: {e}")
+        try:
+            res_bic = requests.get("https://es.beincrypto.com/feed/", headers=headers, timeout=8)
+            if res_bic.status_code == 200:
+                soup_bic = BeautifulSoup(res_bic.content, features="xml")
+                items = soup_bic.find_all('item')
+                for item in items[:5]:
+                    t_elem = item.find('title')
+                    l_elem = item.find('link')
+                    if t_elem and l_elem:
+                        titular = t_elem.text.strip().replace("<![CDATA[", "").replace("]]>", "")
+                        enlace = l_elem.text.strip()
+                        if titular and not any(n['titular'] == titular for n in noticias_candidatas):
+                            noticias_candidatas.append({
+                                'titular': limpiar_html(titular),
+                                'enlace': enlace,
+                                'fuente': 'BeInCrypto'
+                            })
+                            if len(noticias_candidatas) >= 3:
+                                break
+        except Exception as e:
+            print(f"⚠️ Error en RSS BeInCrypto: {e}")
 
     noticias_actuales = noticias_candidatas[:3]
     
