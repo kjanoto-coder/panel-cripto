@@ -22,8 +22,8 @@ ESTADO_PREVIO_FILE = "datos_sentinel_macro.json"
 HISTORIAL_NOTICIAS_FILE = "historial_noticias.json"
 DATABASE_ECOSISTEMA_FILE = "database_ecosistema.json"
 
-# Enlace de tu Planilla de Google Sheets (Auditor Ecosistema Cripto)
-GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1qMAWNGK7dMay12wDQ9x3hZiZwE9klzdtWuoReGE1pg/edit"
+# Enlace exacto y corregido de tu Planilla de Google Sheets (Auditor Ecosistema Cripto)
+GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1qMAWNGK7dMaY12wDQ9x3h3iZwJE9klzdtWuoReGE1pg/edit?usp=sharing"
 
 # ---------------------------------------------------------
 # MEMORIA Y COMPARATIVA DE GIROS
@@ -466,7 +466,7 @@ if __name__ == "__main__":
         if thread_id: p_m2['message_thread_id'] = thread_id
         enviar_mensaje_telegram(url_base, p_m2)
 
-        # Enviar 3: NOTICIAS (Incluyendo el teclado central con el enlace a la planilla)
+        # Enviar 3: NOTICIAS (Incluyendo el teclado central con el enlace corregido a la planilla)
         if noticias_tv:
             print("✨ Enviando bloque de noticias a Telegram...")
             msg_noticias = "📰 <b>SENTINEL NOTICIAS — TRADINGVIEW & MARKET HEADLINES</b>\n\n"
