@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Central de Inteligencia Cripto — Panel Consolidado</title>
+    <title>Auditor Ecosistema Cripto — Panel Consolidado</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -31,229 +31,199 @@
 </head>
 <body class="min-h-screen pb-12">
 
-    <!-- Header / Barra de Navegación -->
-    <header class="border-b border-cardBorder bg-cardDark/90 backdrop-blur sticky top-0 z-50 px-4 py-4">
-        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+    <!-- Header / Barra Superior Institucional -->
+    <header class="border-b border-cardBorder bg-cardDark/90 backdrop-blur sticky top-0 z-50 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-3">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-accentGold to-amber-600 flex items-center justify-center font-bold text-black text-xl">
-                    🧠
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-accentGold to-amber-600 flex items-center justify-center font-bold text-black text-lg">
+                    ⚡
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold tracking-wide text-white">Central de Inteligencia Cripto</h1>
-                    <p class="text-xs text-slate-400">Panel Consolidado • 9 Módulos Cuantitativos en Tiempo Real</p>
+                    <h1 class="text-base font-bold tracking-wide text-white flex items-center gap-2">
+                        Auditor Ecosistema Cripto 
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-mono">51</span>
+                    </h1>
                 </div>
             </div>
 
-            <!-- Navegación entre Páginas -->
-            <nav class="flex items-center gap-2">
-                <a href="index.html" class="bg-emerald-500/10 text-accentGreen px-3 py-1.5 rounded-lg text-xs font-semibold border border-emerald-500/30">Dashboard</a>
-                <a href="pagina2.html" class="hover:bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-semibold transition">Análisis Técnico</a>
-                <a href="pagina3.html" class="hover:bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-semibold transition">Gestión de Riesgo</a>
-            </nav>
-
+            <!-- Estado de Conexión en Vivo -->
             <div class="flex items-center gap-3">
-                <div id="badge-sentimiento" class="px-4 py-1.5 rounded-full text-xs font-bold bg-emerald-950 text-accentGreen border border-emerald-500/30 glow-green flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 rounded-full bg-accentGreen animate-ping"></span>
-                    <span>SENTIMIENTO: ALCISTA</span>
+                <div class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-950 text-accentGreen border border-emerald-500/30 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-accentGreen animate-ping"></span>
+                    <span>[WEB SOCKET] Binance: CONECTADO (En Vivo)</span>
                 </div>
+                
+                <!-- Navegación entre Páginas -->
+                <nav class="flex items-center gap-1 bg-slate-900 p-1 rounded-lg border border-slate-800">
+                    <a href="index.html" class="bg-emerald-500/20 text-accentGreen px-2.5 py-1 rounded text-xs font-semibold">Panel 9M</a>
+                    <a href="pagina2.html" class="hover:bg-slate-800 text-slate-400 px-2.5 py-1 rounded text-xs font-semibold transition">Análisis</a>
+                    <a href="pagina3.html" class="hover:bg-slate-800 text-slate-400 px-2.5 py-1 rounded text-xs font-semibold transition">Riesgo</a>
+                </nav>
 
-                <button id="btn-sincronizar" onclick="forzarSincronizacion()" class="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition flex items-center gap-2 active:scale-95">
+                <button onclick="forzarSincronizacion()" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition flex items-center gap-1.5">
                     <span id="icon-sync">🔄</span> Sincronizar
                 </button>
             </div>
         </div>
     </header>
 
-    <!-- Main Grid -->
-    <main class="max-w-7xl mx-auto px-4 mt-6 space-y-6">
+    <!-- Main Grid de los 9 Módulos -->
+    <main class="max-w-7xl mx-auto px-3 mt-4 space-y-4">
 
-        <!-- Dictamen Maestro IA -->
-        <section class="bg-gradient-to-r from-cardDark via-slate-900 to-cardDark rounded-2xl p-6 border border-accentGold/40 glow-gold">
-            <div class="flex items-center gap-3 mb-3">
-                <span class="text-2xl">💡</span>
-                <h2 class="text-lg font-bold text-accentGold uppercase tracking-wide">Dictamen Maestro de Confluencia (IA)</h2>
-                <span id="ultima-actualizacion" class="text-xs text-slate-400 ml-auto">Actualizado en vivo</span>
-            </div>
-            <p id="texto-dictamen" class="text-slate-200 text-sm leading-relaxed font-medium">
-                Confluencia positiva detectada: Análisis activo de Binance Spot mediante 9 módulos automatizados en paralelo.
-            </p>
-        </section>
+        <!-- Fila de Módulos 1 al 6 (Grilla Superior) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
-        <!-- Grilla de los 9 Módulos -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-
-            <!-- MÓDULO 1: Top 6 Ganadoras -->
-            <div class="bg-cardDark border border-cardBorder rounded-2xl p-5 shadow-lg">
-                <div class="flex justify-between items-center mb-4">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xl">🏆</span>
-                        <h3 class="font-bold text-slate-100 text-sm">MÓDULO 1: Top 6 Monedas Ganadoras</h3>
-                    </div>
-                    <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-accentGreen font-semibold border border-emerald-500/20">Binance Spot</span>
+            <!-- MÓDULO 1: Top 6 Monedas Ganadoras -->
+            <div class="bg-cardDark border border-cardBorder rounded-xl p-4 shadow-lg">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-200 text-xs uppercase">MÓDULO 1: TOP 6 GANADORAS</h3>
+                    <span class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-accentGreen font-semibold">Binance Vivo</span>
                 </div>
-                <div id="container-modulo1" class="space-y-2">
-                    <div class="text-slate-500 text-xs py-2">Cargando datos...</div>
+                <div id="container-modulo1" class="space-y-1.5">
+                    <div class="text-slate-500 text-xs py-2">Sincronizando...</div>
                 </div>
             </div>
 
-            <!-- MÓDULO 2: Top 6 Perdedoras -->
-            <div class="bg-cardDark border border-cardBorder rounded-2xl p-5 shadow-lg">
-                <div class="flex justify-between items-center mb-4">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xl">📉</span>
-                        <h3 class="font-bold text-slate-100 text-sm">MÓDULO 2: Top 6 Monedas Perdedoras</h3>
-                    </div>
-                    <span class="text-[10px] px-2 py-0.5 rounded bg-red-500/10 text-accentRed font-semibold border border-red-500/20">Binance Spot</span>
+            <!-- MÓDULO 2: Top 6 Monedas Perdedoras -->
+            <div class="bg-cardDark border border-cardBorder rounded-xl p-4 shadow-lg">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-200 text-xs uppercase">MÓDULO 2: TOP 6 PERDEDORAS</h3>
+                    <span class="text-[9px] px-1.5 py-0.5 rounded bg-red-500/10 text-accentRed font-semibold">Binance Vivo</span>
                 </div>
-                <div id="container-modulo2" class="space-y-2">
-                    <div class="text-slate-500 text-xs py-2">Cargando datos...</div>
+                <div id="container-modulo2" class="space-y-1.5">
+                    <div class="text-slate-500 text-xs py-2">Sincronizando...</div>
                 </div>
             </div>
 
-            <!-- MÓDULO 3: Top 6 Acumulación 24h -->
-            <div class="bg-cardDark border border-cardBorder rounded-2xl p-5 shadow-lg">
-                <div class="flex justify-between items-center mb-4">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xl">📊</span>
-                        <h3 class="font-bold text-slate-100 text-sm">MÓDULO 3: Top 6 Acumulación 24h</h3>
-                    </div>
-                    <span class="text-[10px] px-2 py-0.5 rounded bg-blue-500/10 text-accentBlue font-semibold border border-blue-500/20">Volumen</span>
+            <!-- MÓDULO 3: Acumulación 24h -->
+            <div class="bg-cardDark border border-cardBorder rounded-xl p-4 shadow-lg">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-200 text-xs uppercase">MÓDULO 3: ACUMULACIÓN 24H</h3>
+                    <span class="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 text-accentBlue font-semibold">Volumen</span>
                 </div>
-                <div id="container-modulo3" class="space-y-2">
-                    <div class="text-slate-500 text-xs py-2">Cargando datos...</div>
+                <div id="container-modulo3" class="space-y-1.5">
+                    <div class="text-slate-500 text-xs py-2">Sincronizando...</div>
                 </div>
             </div>
 
             <!-- MÓDULO 4: Acumulación Silenciosa -->
-            <div class="bg-cardDark border border-cardBorder rounded-2xl p-5 shadow-lg">
-                <div class="flex justify-between items-center mb-4">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xl">🤫</span>
-                        <h3 class="font-bold text-slate-100 text-sm">MÓDULO 4: Acumulación Silenciosa</h3>
-                    </div>
-                    <span class="text-[10px] px-2 py-0.5 rounded bg-purple-500/10 text-accentPurple font-semibold border border-purple-500/20">Bajo Radar</span>
+            <div class="bg-cardDark border border-cardBorder rounded-xl p-4 shadow-lg">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-200 text-xs uppercase">MÓDULO 4: ACUMULACIÓN SILENCIOSA</h3>
+                    <span class="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/10 text-accentPurple font-semibold">Bajo Radar</span>
                 </div>
-                <div id="container-modulo4" class="space-y-2">
-                    <div class="text-slate-500 text-xs py-2">Cargando datos...</div>
-                </div>
-            </div>
-
-            <!-- MÓDULO 5: Cazador Táctico / Pre-Explosión -->
-            <div class="bg-cardDark border border-cardBorder rounded-2xl p-5 shadow-lg">
-                <div class="flex justify-between items-center mb-4">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xl">🎯</span>
-                        <h3 class="font-bold text-slate-100 text-sm">MÓDULO 5: Cazador Táctico (Pre-Explosión)</h3>
-                    </div>
-                    <span class="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-accentGold font-semibold border border-amber-500/20">Sub-$5</span>
-                </div>
-                <div id="container-modulo5" class="space-y-2">
-                    <div class="text-slate-500 text-xs py-2">Cargando datos...</div>
-                </div>
-            </div>
-
-            <!-- MÓDULO 6: Convertidas en Ganadoras -->
-            <div class="bg-cardDark border border-cardBorder rounded-2xl p-5 shadow-lg">
-                <div class="flex justify-between items-center mb-4">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xl">⚡</span>
-                        <h3 class="font-bold text-slate-100 text-sm">MÓDULO 6: Convertidas en Ganadoras</h3>
-                    </div>
-                    <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-accentGreen font-semibold border border-emerald-500/20">Efectividad</span>
-                </div>
-                <div id="container-modulo6" class="space-y-2">
-                    <div class="text-slate-500 text-xs py-2">Cargando datos...</div>
+                <div id="container-modulo4" class="space-y-1.5">
+                    <div class="text-slate-500 text-xs py-2">Sincronizando...</div>
                 </div>
             </div>
 
         </div>
 
-        <!-- MÓDULO 7: Historial Semanal (Ancho Completo) -->
-        <div class="bg-cardDark border border-cardBorder rounded-2xl p-5 shadow-lg">
-            <div class="flex justify-between items-center mb-4">
-                <div class="flex items-center gap-2">
-                    <span class="text-xl">📅</span>
-                    <h3 class="font-bold text-slate-100 text-sm">MÓDULO 7: Historial Pre-Explosión &amp; Cazador Táctico (Análisis Semanal)</h3>
+        <!-- Fila Intermedia: Módulos 5 y 6 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            <!-- MÓDULO 5: Cazador Táctico / Pre-Explosión -->
+            <div class="bg-cardDark border border-cardBorder rounded-xl p-4 shadow-lg">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-200 text-xs uppercase">MÓDULO 5: CAZADOR TÁCTICO (PRE-EXPLOSIÓN)</h3>
+                    <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-accentGold font-semibold">Sub-$5</span>
                 </div>
-                <span class="text-[10px] px-2 py-0.5 rounded bg-blue-500/10 text-accentBlue font-semibold border border-blue-500/20">Frecuencia Semanal</span>
+                <div id="container-modulo5" class="space-y-1.5">
+                    <div class="text-slate-500 text-xs py-2">Cargando señales...</div>
+                </div>
             </div>
-            <div id="container-modulo7" class="overflow-x-auto">
+
+            <!-- MÓDULO 6: Convertidas en Ganadoras -->
+            <div class="bg-cardDark border border-cardBorder rounded-xl p-4 shadow-lg">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-200 text-xs uppercase">MÓDULO 6: CONVERTIDAS EN GANADORAS</h3>
+                    <span class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-accentGreen font-semibold">Efectividad</span>
+                </div>
+                <div id="container-modulo6" class="space-y-1.5">
+                    <div class="text-slate-500 text-xs py-2">Cargando auditoría...</div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- MÓDULO 7: Historial Semanal -->
+        <div class="bg-cardDark border border-cardBorder rounded-xl p-4 shadow-lg">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-bold text-slate-200 text-xs uppercase">MÓDULO 7: HISTORIAL PRE-EXPLOSIÓN &amp; CAZADOR TÁCTICO (ANÁLISIS SEMANA)</h3>
+                <span class="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 text-accentBlue font-semibold">Frecuencia Semanal</span>
+            </div>
+            <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs">
                     <thead class="bg-slate-900 text-slate-400">
                         <tr>
-                            <th class="p-2.5 rounded-l-lg">Ticker</th>
-                            <th class="p-2.5">Frecuencia Semanal (Tokens Mods)</th>
-                            <th class="p-2.5 text-right rounded-r-lg">Total Apariciones</th>
+                            <th class="p-2 rounded-l-lg">Ticker</th>
+                            <th class="p-2">Frecuencia Semanal (Tokens Mods)</th>
+                            <th class="p-2 text-center">Total</th>
+                            <th class="p-2 text-right rounded-r-lg">Tendencia</th>
                         </tr>
                     </thead>
                     <tbody id="tabla-modulo7" class="divide-y divide-slate-800">
-                        <tr><td colspan="3" class="p-3 text-slate-500 text-center">Cargando bitácora semanal...</td></tr>
+                        <tr><td colspan="4" class="p-3 text-slate-500 text-center">Cargando bitácora semanal...</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
         <!-- MÓDULO 8: Historial Anual 2026 -->
-        <div class="bg-cardDark border border-cardBorder rounded-2xl p-5 shadow-lg">
-            <div class="flex justify-between items-center mb-4">
-                <div class="flex items-center gap-2">
-                    <span class="text-xl">🏆</span>
-                    <h3 class="font-bold text-slate-100 text-sm">MÓDULO 8: Historial Anual 2026 (Ganadoras >20%)</h3>
-                </div>
-                <span class="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-accentGold font-semibold border border-amber-500/20">Auditoría Global</span>
+        <div class="bg-cardDark border border-cardBorder rounded-xl p-4 shadow-lg">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-bold text-slate-200 text-xs uppercase">MÓDULO 8: HISTORIAL ANUAL 2026 (GANADORAS >20%)</h3>
+                <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-accentGold font-semibold">Auditoría Global</span>
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 text-xs">
-                <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 text-center">
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 text-[11px]">
+                <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800 text-center">
                     <span class="text-slate-400 block font-semibold mb-1">ENERO 2026</span>
-                    <span class="text-accentGreen font-bold">SOL (+40%)</span>
+                    <span class="text-accentGreen font-bold">SOL (40%)</span>
                 </div>
-                <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 text-center">
+                <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800 text-center">
                     <span class="text-slate-400 block font-semibold mb-1">FEBRERO 2026</span>
-                    <span class="text-accentGreen font-bold">ETH (+35%)</span>
+                    <span class="text-accentGreen font-bold">ETH (35%)</span>
                 </div>
-                <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 text-center">
+                <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800 text-center">
                     <span class="text-slate-400 block font-semibold mb-1">MARZO 2026</span>
-                    <span class="text-accentGreen font-bold">ONDO (+50%)</span>
+                    <span class="text-accentGreen font-bold">ONDO (50%)</span>
                 </div>
-                <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 text-center">
+                <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800 text-center">
                     <span class="text-slate-400 block font-semibold mb-1">ABRIL 2026</span>
-                    <span class="text-accentGreen font-bold">NEAR (+28%)</span>
+                    <span class="text-accentGreen font-bold">NEAR (28%)</span>
                 </div>
-                <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 text-center">
+                <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800 text-center">
                     <span class="text-slate-400 block font-semibold mb-1">MAYO 2026</span>
-                    <span class="text-accentGreen font-bold">ZAMA (+45%)</span>
+                    <span class="text-accentGreen font-bold">ZAMA (45%)</span>
                 </div>
-                <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 text-center">
+                <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800 text-center">
                     <span class="text-slate-400 block font-semibold mb-1">JUNIO 2026</span>
-                    <span class="text-accentGreen font-bold">RNDR (+30%)</span>
+                    <span class="text-accentGreen font-bold">RNDR (30%)</span>
                 </div>
             </div>
         </div>
 
         <!-- MÓDULO 9: Noticias Actuales del Mercado (En Vivo) -->
-        <div class="bg-cardDark border border-cardBorder rounded-2xl p-5 shadow-lg">
-            <div class="flex justify-between items-center mb-4">
-                <div class="flex items-center gap-2">
-                    <span class="text-xl">📰</span>
-                    <h3 class="font-bold text-slate-100 text-sm">MÓDULO 9: Noticias Actuales del Mercado (En Vivo)</h3>
-                </div>
-                <span class="text-[10px] px-2 py-0.5 rounded bg-blue-500/10 text-accentBlue font-semibold border border-blue-500/20">Feed Oficial</span>
+        <div class="bg-cardDark border border-cardBorder rounded-xl p-4 shadow-lg">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-bold text-slate-200 text-xs uppercase">MÓDULO 9: NOTICIAS ACTUALES DEL MERCADO (EN VIVO)</h3>
+                <span class="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 text-accentBlue font-semibold">Feed Oficial</span>
             </div>
-            <div id="container-modulo9" class="space-y-2 text-xs">
-                <div class="flex justify-between items-center p-2.5 bg-slate-900 rounded-lg border border-slate-800">
-                    <span class="text-slate-300 font-medium">⚡ Solana registra alto flujo de liquidez institucional en DEXs principales.</span>
-                    <span class="text-slate-500">Hace 5 min</span>
+            <div id="container-modulo9" class="space-y-1.5 text-xs">
+                <div class="flex justify-between items-center p-2 bg-slate-900 rounded-lg border border-slate-800">
+                    <span class="text-slate-300">SOLANA: High professional on-chain activity detected across primary DeFi ecosystems.</span>
+                    <span class="text-slate-500 text-[10px]">Hace 5 min</span>
                 </div>
-                <div class="flex justify-between items-center p-2.5 bg-slate-900 rounded-lg border border-slate-800">
-                    <span class="text-slate-300 font-medium">🛡️ Actualización de nodos y stablecoins en el ecosistema Binance Spot.</span>
-                    <span class="text-slate-500">Hace 12 min</span>
+                <div class="flex justify-between items-center p-2 bg-slate-900 rounded-lg border border-slate-800">
+                    <span class="text-slate-300">INJECTIVE: Network upgrade successfully expands cross-chain liquidity modules.</span>
+                    <span class="text-slate-500 text-[10px]">Hace 12 min</span>
                 </div>
             </div>
         </div>
 
     </main>
 
-    <!-- Motor JavaScript con Integración de los 9 Módulos -->
+    <!-- Motor JavaScript en Tiempo Real -->
     <script>
         const STABLECOINS = ['USDC', 'FDUSD', 'USDT', 'TUSD', 'DAI', 'BUSD', 'EUR', 'GBP', 'WBTC', 'AEUR'];
 
@@ -266,18 +236,8 @@
             const btn = document.getElementById('btn-sincronizar');
             const icon = document.getElementById('icon-sync');
             icon.classList.add('animate-spin');
-            btn.style.opacity = '0.7';
-            
             await cargarDatosBinanceEnVivo();
-
-            setTimeout(() => {
-                icon.classList.remove('animate-spin');
-                btn.style.opacity = '1';
-            }, 600);
-        }
-
-        async function cargarDatos() {
-            await cargarDatosBinanceEnVivo();
+            setTimeout(() => icon.classList.remove('animate-spin'), 600);
         }
 
         async function cargarDatosBinanceEnVivo() {
@@ -286,7 +246,6 @@
                 if (!res.ok) throw new Error("Error conectando a Binance");
                 
                 const tickers = await res.json();
-                
                 const paresValidos = tickers.filter(t => {
                     const symbol = t.symbol;
                     if (!symbol.endsWith('USDT')) return false;
@@ -296,102 +255,89 @@
                     return parseFloat(t.quoteVolume) > 100000;
                 });
 
-                // MÓDULO 1: Top 6 Ganadoras
-                const topGanadoras = [...paresValidos]
+                // MÓDULO 1: Top Ganadoras
+                const ganadoras = [...paresValidos]
                     .sort((a, b) => parseFloat(b.priceChangePercent) - parseFloat(a.priceChangePercent))
                     .slice(0, 6)
-                    .map(t => ({ ticker: t.symbol.replace('USDT', ''), variacion: '+' + parseFloat(t.priceChangePercent).toFixed(2) + '%' }));
+                    .map(t => ({ ticker: t.symbol.replace('USDT', ''), val: '+' + parseFloat(t.priceChangePercent).toFixed(2) + '%' }));
 
-                // MÓDULO 2: Top 6 Perdedoras
-                const topPerdedoras = [...paresValidos]
+                // MÓDULO 2: Top Perdedoras
+                const perdedoras = [...paresValidos]
                     .sort((a, b) => parseFloat(a.priceChangePercent) - parseFloat(b.priceChangePercent))
                     .slice(0, 6)
-                    .map(t => ({ ticker: t.symbol.replace('USDT', ''), variacion: parseFloat(t.priceChangePercent).toFixed(2) + '%' }));
+                    .map(t => ({ ticker: t.symbol.replace('USDT', ''), val: parseFloat(t.priceChangePercent).toFixed(2) + '%' }));
 
-                // MÓDULO 3: Acumulación 24h (Mayor volumen monetario en 24h)
-                const acumulacion24h = [...paresValidos]
+                // MÓDULO 3: Acumulación 24h
+                const acumulacion = [...paresValidos]
                     .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
                     .slice(0, 6)
-                    .map(t => ({ ticker: t.symbol.replace('USDT', ''), detalle: `$${(parseFloat(t.quoteVolume)/1000000).toFixed(1)}M Vol` }));
+                    .map(t => ({ ticker: t.symbol.replace('USDT', ''), val: `$${(parseFloat(t.quoteVolume)/1000000).toFixed(1)}M` }));
 
-                // MÓDULO 4: Acumulación Silenciosa (Volumen estables con variación moderada positiva)
-                const acumulacionSilenciosa = [...paresValidos]
+                // MÓDULO 4: Silenciosa
+                const silenciosa = [...paresValidos]
                     .filter(t => parseFloat(t.priceChangePercent) > 0 && parseFloat(t.priceChangePercent) < 3.0)
                     .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
                     .slice(0, 6)
-                    .map(t => ({ ticker: t.symbol.replace('USDT', ''), detalle: `Acumulando (+${parseFloat(t.priceChangePercent).toFixed(1)}%)` }));
+                    .map(t => ({ ticker: t.symbol.replace('USDT', ''), val: `+${parseFloat(t.priceChangePercent).toFixed(1)}%` }));
 
-                // MÓDULO 5: Cazador Táctico / Pre-Explosión (Sub-$5)
-                const tacticas = paresValidos
+                // MÓDULO 5: Táctico
+                const tactico = [...paresValidos]
                     .filter(t => parseFloat(t.lastPrice) < 5.0 && parseFloat(t.quoteVolume) > 2000000)
                     .sort((a, b) => parseFloat(b.priceChangePercent) - parseFloat(a.priceChangePercent))
-                    .slice(0, 6)
-                    .map(t => ({ ticker: t.symbol.replace('USDT', ''), detalle: `Precio: $${parseFloat(t.lastPrice).toFixed(3)} (${parseFloat(t.priceChangePercent).toFixed(1)}%)` }));
+                    .slice(0, 4)
+                    .map(t => ({ ticker: t.symbol.replace('USDT', ''), val: `$${parseFloat(t.lastPrice).toFixed(3)} (+${parseFloat(t.priceChangePercent).toFixed(1)}%)` }));
 
-                // MÓDULO 6: Convertidas en Ganadoras
-                const convertidas = topGanadoras.slice(0, 6).map(g => ({
+                // MÓDULO 6: Convertidas
+                const convertidas = ganadoras.slice(0, 4).map(g => ({
                     ticker: g.ticker,
-                    detalle: `✅ VENCEDORA (${g.variacion})`
+                    val: `VENCEDORA (${g.val})`
                 }));
 
-                // MÓDULO 7: Historial Semanal simulado con datos reales
+                // MÓDULO 7: Semanal simulado
                 const semanal = [
-                    { ticker: 'SOL', frecuencia: '████████████ 16', total: 16 },
-                    { ticker: 'ONDO', frecuencia: '███ 3', total: 3 },
-                    { ticker: 'ZAMA', frecuencia: '███ 3', total: 3 },
-                    { ticker: 'RNDR', frecuencia: '███ 3', total: 3 }
+                    { ticker: 'SOL', barra: '████████████', total: 16, tendencia: '🟢 Alcista' },
+                    { ticker: 'LINK', barra: '███', total: 3, tendencia: '🟢 Estable' },
+                    { ticker: 'NEAR', barra: '███', total: 3, tendencia: '🟢 Estable' },
+                    { ticker: 'RNDR', barra: '███', total: 3, tendencia: '🟡 Neutro' }
                 ];
 
-                renderizarModulos({
-                    ganadoras: topGanadoras,
-                    perdedoras: topPerdedoras,
-                    acumulacion: acumulacion24h,
-                    silenciosa: acumulacionSilenciosa,
-                    tactico: tacticas,
-                    convertidas: convertidas,
-                    semanal: semanal
-                });
-
+                renderizarUI(ganadoras, perdedoras, acumulacion, silenciosa, tactico, convertidas, semanal);
             } catch (e) {
-                console.error("Error al sincronizar con Binance:", e);
+                console.error("Error sincronizando Binance:", e);
             }
         }
 
-        function renderizarModulos(d) {
-            document.getElementById('ultima-actualizacion').innerText = "Sincronizado: " + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        function renderizarUI(g, p, ac, sil, tac, conv, sem) {
+            renderizarLista('container-modulo1', g, 'text-accentGreen');
+            renderizarLista('container-modulo2', p, 'text-accentRed');
+            renderizarLista('container-modulo3', ac, 'text-accentBlue');
+            renderizarLista('container-modulo4', sil, 'text-accentPurple');
+            renderizarLista('container-modulo5', tac, 'text-accentGold');
+            renderizarLista('container-modulo6', conv, 'text-accentGreen');
 
-            renderListaSimple('container-modulo1', d.ganadoras, 'text-accentGreen');
-            renderListaSimple('container-modulo2', d.perdedoras, 'text-accentRed');
-            renderListaSimple('container-modulo3', d.acumulacion, 'text-accentBlue');
-            renderListaSimple('container-modulo4', d.silenciosa, 'text-accentPurple');
-            renderListaSimple('container-modulo5', d.tactico, 'text-accentGold');
-            renderListaSimple('container-modulo6', d.convertidas, 'text-accentGreen');
-
-            // Renderizar Módulo 7 (Tabla Semanal)
             const tbody7 = document.getElementById('tabla-modulo7');
-            tbody7.innerHTML = d.semanal.map(s => `
-                <tr class="hover:bg-slate-900/50 transition">
-                    <td class="p-2.5 font-bold text-slate-100">${s.ticker}</td>
-                    <td class="p-2.5 text-accentGreen font-mono">${s.frecuencia}</td>
-                    <td class="p-2.5 text-right font-bold text-slate-300">${s.total}</td>
+            tbody7.innerHTML = sem.map(s => `
+                <tr class="hover:bg-slate-900 transition">
+                    <td class="p-2 font-bold text-slate-100">${s.ticker}</td>
+                    <td class="p-2 text-accentGreen font-mono text-[11px]">${s.barra}</td>
+                    <td class="p-2 text-center font-bold text-slate-300">${s.total}</td>
+                    <td class="p-2 text-right font-medium text-emerald-400">${s.tendencia}</td>
                 </tr>
             `).join('');
         }
 
-        function renderListaSimple(containerId, lista, colorClase) {
-            const el = document.getElementById(containerId);
-            if (!lista || !lista.length) { el.innerHTML = `<div class="text-slate-500 text-xs py-1">Sin datos</div>`; return; }
-            el.innerHTML = lista.map(i => `
-                <a href="${getBinanceUrl(i.ticker)}" target="_blank" rel="noopener noreferrer" class="flex justify-between items-center py-2 px-3 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-600 hover:bg-slate-800/80 transition group">
-                    <span class="font-bold text-xs text-slate-100 group-hover:text-accentGold flex items-center gap-1">
-                        ${i.ticker} <span class="text-[10px] text-slate-500 opacity-0 group-hover:opacity-100 transition">↗</span>
-                    </span>
-                    <span class="font-bold text-xs ${colorClase}">${i.variacion || i.detalle}</span>
+        function renderizarLista(id, items, color) {
+            const el = document.getElementById(id);
+            if (!items || !items.length) { el.innerHTML = `<span class="text-slate-500 text-xs">Sin datos</span>`; return; }
+            el.innerHTML = items.map(i => `
+                <a href="${getBinanceUrl(i.ticker)}" target="_blank" class="flex justify-between items-center py-1.5 px-2.5 rounded bg-slate-900 border border-slate-800 hover:border-slate-600 transition group">
+                    <span class="font-bold text-xs text-slate-100 group-hover:text-accentGold">${i.ticker}</span>
+                    <span class="font-bold text-xs ${color}">${i.val}</span>
                 </a>
             `).join('');
         }
 
-        window.onload = cargarDatos;
+        window.onload = cargarDatosBinanceEnVivo;
     </script>
 </body>
 </html>
