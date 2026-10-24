@@ -2,9 +2,7 @@ name: Dashboard Cripto Auto Update
 
 on:
   schedule:
-    # Se ejecuta automáticamente cada 30 minutos
     - cron: "*/30 * * * *"
-  # Permite ejecutar manualmente desde la pestaña Actions
   workflow_dispatch:
 
 permissions:
