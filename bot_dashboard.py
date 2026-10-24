@@ -10,28 +10,28 @@ SCOPES = [
 ]
 
 def conectar_sheets():
-    """Conecta directamente con la planilla de Google Sheets existente utilizando un ID fijo."""
+    """Conecta directamente con la planilla de Google Sheets existente."""
     try:
         service_account_info = json.loads(os.environ.get('GCP_SERVICE_ACCOUNT_KEY'))
         credentials = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
         client = gspread.authorize(credentials)
         
-        # ID fijo y explícito de la planilla existente
+        # ID escrito de forma literal y blindada
         spreadsheet_id = "1qMAWNGK7dMaY12wDQ9x3h3iZwJE9KlzdtWuoReEG1pg"
-        print(f"[*] Conectando con Google Sheets. ID: '{spreadsheet_id}'")
+        print(f"[*] Abriendo planilla de Google Sheets con ID fijo...")
         
         sheet = client.open_by_key(spreadsheet_id)
-        print("[+] ¡Conexión exitosa con la planilla!")
+        print("[+] ¡Conexión establecida con éxito!")
         return sheet
 
     except Exception as e:
-        print(f"[!] Error al conectar con la planilla: {e}")
+        print(f"[!] Error crítico al conectar con la planilla: {e}")
         raise e
 
 def generar_dictamen_ia(pre_data, tactico_data):
     api_key = os.environ.get('GEMINI_API_KEY')
     if not api_key:
-        return "⚠️ Análisis maestro no disponible (falta GEMINI_API_KEY)"
+        return "⚠️ Análisis maestro no disponible"
     
     try:
         client = genai.Client(api_key=api_key)
