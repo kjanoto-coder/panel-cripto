@@ -10,13 +10,14 @@ SCOPES = [
 ]
 
 def conectar_sheets():
-    """Conecta directamente con la planilla de Google Sheets existente."""
+    """Conecta directamente con la planilla de Google Sheets existente utilizando un ID fijo."""
     try:
         service_account_info = json.loads(os.environ.get('GCP_SERVICE_ACCOUNT_KEY'))
         credentials = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
         client = gspread.authorize(credentials)
         
-        spreadsheet_id = '1qMAWNGK7dMaY12wDQ9x3h3iZwJE9KlzdtWuoReEG1pg'
+        # ID fijo y explícito de la planilla existente
+        spreadsheet_id = "1qMAWNGK7dMaY12wDQ9x3h3iZwJE9KlzdtWuoReEG1pg"
         print(f"[*] Conectando con Google Sheets. ID: '{spreadsheet_id}'")
         
         sheet = client.open_by_key(spreadsheet_id)
