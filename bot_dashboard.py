@@ -4,12 +4,15 @@ import csv
 from datetime import datetime
 import requests
 from google import genai
+import gspread
+from google.oauth2.service_account import Credentials
+
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
 def cargar_json(nombre_archivo):
     try:
         with open(nombre_archivo, 'r', encoding='utf-8') as f:
             data = json.load(f)
-            # Asegurar que siempre devuelva una lista
             if isinstance(data, list):
                 return data
             elif isinstance(data, dict):
@@ -57,6 +60,35 @@ def enviar_telegram(mensaje):
         except Exception as e:
             print(f"[!] Error enviando a Telegram: {e}")
 
+def actualizar_google_sheets(fecha, pre_data, tactico_data, dictamen):
+    """Actualiza tu planilla personal de Google Sheets de manera segura."""
+    try:
+        service_account_info = json.loads(os.environ.get('GCP_SERVICE_ACCOUNT_KEY'))
+        credentials = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
+        client = gspread.authorize(credentials)
+        
+        # ID exacto de tu planilla "Auditor Ecosistema Cripto"
+        spreadsheet_id = "1n6VesCq65Nplbj_sUSfouVAHfleVEyS3u7H-e7m2a8M"
+        sheet = client.open_by_key(spreadsheet_id)
+        worksheet = sheet.get_worksheet(0)
+        
+        # Agregamos una fila de control con el resumen de la ejecución
+        worksheet.append_row([fecha, "--- NUEVA EJECUCIÓN ---", dictamen, ""])
+        
+        if isinstance(pre_data, list):
+            for item in pre_data:
+                if isinstance(item, dict):
+                    worksheet.append_row([fecha, "Pre-Explosion", item.get('moneda'), item.get('subida')])
+                    
+        if isinstance(tactico_data, list):
+            for item in tactico_data:
+                if isinstance(item, dict):
+                    worksheet.append_row([fecha, "Cazador Tactico", item.get('moneda'), item.get('subida')])
+                    
+        print("[+] Google Sheets actualizado correctamente con los nuevos datos.")
+    except Exception as e:
+        print(f"[!] Aviso: No se pudo escribir en Google Sheets en esta ejecución ({e}). El sistema local y Telegram siguen operativos.")
+
 def actualizar_dashboard():
     print("[*] Iniciando procesamiento de datos...")
     
@@ -66,7 +98,7 @@ def actualizar_dashboard():
     
     fecha_actual = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-    # 1. Generar Vista en Markdown para GitHub (DASHBOARD_CRIPTO.md)
+    # 1. Actualizar Vista Markdown en GitHub (DASHBOARD_CRIPTO.md)
     md_content = f"# 🚀 Dashboard Cripto Automatizado\n"
     md_content += f"**Última actualización:** `{fecha_actual} UTC`\n\n"
     md_content += f"### 🧠 Dictamen Institucional (IA)\n> {dictamen}\n\n"
@@ -76,9 +108,7 @@ def actualizar_dashboard():
         md_content += "| Moneda | % Subida |\n| --- | --- |\n"
         for item in pre_data[:7]:
             if isinstance(item, dict):
-                coin = item.get('moneda', 'N/A')
-                subida = item.get('subida', 'N/A')
-                md_content += f"| **{coin}** | {subida} |\n"
+                md_content += f"| **{item.get('moneda', 'N/A')}** | {item.get('subida', 'N/A')} |\n"
     else:
         md_content += "*Sin alertas activas en este período.*\n"
         
@@ -87,9 +117,7 @@ def actualizar_dashboard():
         md_content += "| Moneda | % Subida |\n| --- | --- |\n"
         for item in tactico_data[:7]:
             if isinstance(item, dict):
-                coin = item.get('moneda', 'N/A')
-                subida = item.get('subida', 'N/A')
-                md_content += f"| **{coin}** | {subida} |\n"
+                md_content += f"| **{item.get('moneda', 'N/A')}** | {item.get('subida', 'N/A')} |\n"
     else:
         md_content += "*Sin alertas activas en este período.*\n"
 
@@ -97,7 +125,7 @@ def actualizar_dashboard():
         f.write(md_content)
     print("[+] DASHBOARD_CRIPTO.md actualizado.")
 
-    # 2. Guardar en Histórico CSV (historico_alertas.csv)
+    # 2. Guardar en Histórico CSV local
     file_exists = os.path.isfile("historico_alertas.csv")
     with open("historico_alertas.csv", "a", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
@@ -115,7 +143,10 @@ def actualizar_dashboard():
             
     print("[+] Registro añadido a historico_alertas.csv.")
 
-    # 3. Notificación limpia a Telegram
+    # 3. Sincronizar con tu Google Sheets personal
+    actualizar_google_sheets(fecha_actual, pre_data, tactico_data, dictamen)
+
+    # 4. Notificación limpia a Telegram
     msg_telegram = f"📊 *DASHBOARD ACTUALIZADO* (`{fecha_actual}`)\n\n"
     msg_telegram += f"🧠 *Dictamen:* {dictamen}\n"
     enviar_telegram(msg_telegram)
