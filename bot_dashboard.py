@@ -13,7 +13,7 @@ def conectar_sheets():
     credentials = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
     client = gspread.authorize(credentials)
     
-    # ID de tu planilla de Google Sheets ("Auditor Ecosistema Cripto.")
+    # ID correcto de tu planilla "Auditor Ecosistema Cripto."
     spreadsheet_id = os.environ.get('SPREADSHEET_ID', '1qMAWNGK7dMaY12wDQ9x3h3iZwJE9KlzdtWuoReEG1pg')
     sheet = client.open_by_key(spreadsheet_id)
     return sheet
@@ -72,7 +72,7 @@ def actualizar_dashboard():
 
     # Selección de la hoja principal para volcar los datos
     hoja_principal = sheet.get_worksheet(0)
-    print("[+] Conexión y volcado de datos preparados correctamente.")
+    print("[+] Conexión y acceso a Google Sheets completados con éxito.")
 
 if __name__ == '__main__':
     actualizar_dashboard()
