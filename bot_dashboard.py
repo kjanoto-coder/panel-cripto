@@ -7,12 +7,13 @@ from google import genai
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
 
 def conectar_sheets():
-    """Conecta con Google Sheets utilizando la cuenta de servicio y el ID fijo."""
+    """Conecta con Google Sheets utilizando directamente el ID fijo de la planilla."""
     try:
         service_account_info = json.loads(os.environ.get('GCP_SERVICE_ACCOUNT_KEY'))
         credentials = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
         client = gspread.authorize(credentials)
         
+        # ID fijo inalterable para asegurar que nunca llegue vacío
         spreadsheet_id = '1qMAWNGK7dMaY12wDQ9x3h3iZwJE9KlzdtWuoReEG1pg'
         print(f"[*] Intentando conectar con Google Sheets. ID configurado: '{spreadsheet_id}'")
             
