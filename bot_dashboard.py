@@ -4,24 +4,22 @@ import gspread
 from google.oauth2.service_account import Credentials
 from google import genai
 
-# Usamos únicamente el permiso de spreadsheets para evitar tocar Google Drive
 SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets'
 ]
 
 def conectar_sheets():
-    """Conecta directamente a la planilla existente mediante su ID de forma estricta."""
+    """Conecta de manera segura con tu planilla existente 'Auditor Ecosistema Cripto.'."""
     try:
         service_account_info = json.loads(os.environ.get('GCP_SERVICE_ACCOUNT_KEY'))
         credentials = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
         client = gspread.authorize(credentials)
         
-        # ID fijo y directo de tu planilla existente
         spreadsheet_id = "1qMAWNGK7dMaY12wDQ9x3h3iZwJE9KlzdtWuoReEG1pg"
-        print(f"[*] Abriendo la planilla de Google Sheets por ID...")
+        print(f"[*] Abriendo la planilla de Google Sheets con ID: {spreadsheet_id}")
         
         sheet = client.open_by_key(spreadsheet_id)
-        print("[+] ¡Conexión establecida con éxito con la planilla existente!")
+        print("[+] ¡Conexión establecida con éxito con la planilla!")
         return sheet
 
     except Exception as e:
@@ -74,7 +72,7 @@ def actualizar_dashboard():
     print(f"[*] Dictamen procesado: {dictamen}")
 
     hoja_principal = sheet.get_worksheet(0)
-    print("[+] Sincronización de datos completada con éxito en Google Sheets.")
+    print("[+] ¡Sincronización de datos completada con éxito en tu planilla!")
 
 if __name__ == '__main__':
     actualizar_dashboard()
