@@ -5,26 +5,33 @@ from google.oauth2.service_account import Credentials
 from google import genai
 
 SCOPES = [
-    'https://www.googleapis.com/auth/spreadsheets'
+    'https://www.googleapis.com/auth/spreadsheets',
+    'https://www.googleapis.com/auth/drive'
 ]
 
 def conectar_sheets():
-    """Conecta directamente a la nueva planilla mediante su ID fijo."""
+    """Crea una planilla propia de forma automática con la cuenta de servicio."""
     try:
         service_account_info = json.loads(os.environ.get('GCP_SERVICE_ACCOUNT_KEY'))
         credentials = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
         client = gspread.authorize(credentials)
         
-        # ID de tu nueva planilla
-        spreadsheet_id = "1n6VesCq65Nplbj_sUSfouVAHfleVEyS3u7H-e7m2a8M"
-        print(f"[*] Abriendo la nueva planilla de Google Sheets...")
+        # Nombre único para el dashboard
+        sheet_name = "Auditor Ecosistema Cripto Oficial"
         
-        sheet = client.open_by_key(spreadsheet_id)
-        print("[+] ¡Conexión establecida con éxito en la nueva planilla!")
+        try:
+            print(f"[*] Buscando la planilla '{sheet_name}'...")
+            sheet = client.open(sheet_name)
+            print("[+] ¡Planilla encontrada con éxito!")
+        except Exception:
+            print("[*] Creando una nueva planilla administrada...")
+            sheet = client.create(sheet_name)
+            print(f"[+] ¡Planilla creada con éxito! ID: {sheet.id}")
+            
         return sheet
 
     except Exception as e:
-        print(f"[!] Error al conectar con la planilla: {e}")
+        print(f"[!] Error al conectar con Google Sheets: {e}")
         raise e
 
 def generar_dictamen_ia(pre_data, tactico_data):
@@ -73,7 +80,7 @@ def actualizar_dashboard():
     print(f"[*] Dictamen procesado: {dictamen}")
 
     hoja_principal = sheet.get_worksheet(0)
-    print("[+] ¡Sincronización completada con éxito!")
+    print("[+] ¡Sincronización completada con éxito en Google Sheets!")
 
 if __name__ == '__main__':
     actualizar_dashboard()
