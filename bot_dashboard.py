@@ -7,18 +7,15 @@ from google import genai
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
 
 def conectar_sheets():
-    """Conecta con Google Sheets utilizando la cuenta de servicio y el ID configurado."""
+    """Conecta con Google Sheets utilizando la cuenta de servicio y el ID fijo de la planilla."""
     try:
         service_account_info = json.loads(os.environ.get('GCP_SERVICE_ACCOUNT_KEY'))
         credentials = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
         client = gspread.authorize(credentials)
         
-        # Rescata el SPREADSHEET_ID inyectado desde las variables de entorno de GitHub Actions
-        spreadsheet_id = os.environ.get('SPREADSHEET_ID', '1qMAWNGK7dMaY12wDQ9x3h3iZwJE9KlzdtWuoReEG1pg').strip()
+        # ID fijo integrado directamente para evitar que llegue vacío
+        spreadsheet_id = '1qMAWNGK7dMaY12wDQ9x3h3iZwJE9KlzdtWuoReEG1pg'
         print(f"[*] Intentando conectar con Google Sheets. ID configurado: '{spreadsheet_id}'")
-        
-        if not spreadsheet_id:
-            raise ValueError("El SPREADSHEET_ID está vacío en las variables de entorno/secretos.")
             
         sheet = client.open_by_key(spreadsheet_id)
         print("[+] ¡Conexión exitosa con la planilla!")
