@@ -10,28 +10,21 @@ SCOPES = [
 ]
 
 def conectar_sheets():
-    """Conecta con Google Sheets de forma segura o crea una planilla nueva si hay problemas de acceso."""
+    """Conecta directamente con la planilla de Google Sheets existente."""
     try:
         service_account_info = json.loads(os.environ.get('GCP_SERVICE_ACCOUNT_KEY'))
         credentials = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
         client = gspread.authorize(credentials)
         
         spreadsheet_id = '1qMAWNGK7dMaY12wDQ9x3h3iZwJE9KlzdtWuoReEG1pg'
-        print(f"[*] Intentando conectar con Google Sheets. ID configurado: '{spreadsheet_id}'")
+        print(f"[*] Conectando con Google Sheets. ID: '{spreadsheet_id}'")
         
-        try:
-            sheet = client.open_by_key(spreadsheet_id)
-            print("[+] ¡Conexión exitosa con la planilla existente!")
-            return sheet
-        except Exception as err_open:
-            print(f"[!] No se pudo abrir por ID ({err_open}). Creando una planilla nueva administrada por la cuenta de servicio...")
-            sheet = client.create("Auditor Ecosistema Cripto (Auto)")
-            print(f"[+] ¡Planilla nueva creada con éxito! Nuevo ID: {sheet.id}")
-            print(f"[!] Copia este nuevo ID si lo necesitas: {sheet.id}")
-            return sheet
+        sheet = client.open_by_key(spreadsheet_id)
+        print("[+] ¡Conexión exitosa con la planilla!")
+        return sheet
 
     except Exception as e:
-        print(f"[!] Error crítico al autenticar con la cuenta de servicio: {e}")
+        print(f"[!] Error al conectar con la planilla: {e}")
         raise e
 
 def generar_dictamen_ia(pre_data, tactico_data):
