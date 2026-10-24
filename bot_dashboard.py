@@ -1,43 +1,27 @@
 import os
 import json
-import gspread
-from google.oauth2.service_account import Credentials
+import csv
+from datetime import datetime
+import requests
 from google import genai
 
-# Usamos únicamente permisos estrictos de hojas de cálculo
-SCOPES = [
-    'https://www.googleapis.com/auth/spreadsheets'
-]
-
-def conectar_sheets():
-    """Abre la planilla exclusivamente por ID, evitando cualquier uso de Google Drive."""
+def cargar_json(nombre_archivo):
     try:
-        service_account_info = json.loads(os.environ.get('GCP_SERVICE_ACCOUNT_KEY'))
-        credentials = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
-        client = gspread.authorize(credentials)
-        
-        # ID exacto de tu nueva planilla creada en la cuenta personal
-        spreadsheet_id = "1n6VesCq65Nplbj_sUSfouVAHfleVEyS3u7H-e7m2a8M"
-        print(f"[*] Abriendo la planilla directamente por ID...")
-        
-        sheet = client.open_by_key(spreadsheet_id)
-        print("[+] ¡Conexión establecida con éxito en la planilla!")
-        return sheet
-
-    except Exception as e:
-        print(f"[!] Error al conectar con la planilla: {e}")
-        raise e
+        with open(nombre_archivo, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return []
 
 def generar_dictamen_ia(pre_data, tactico_data):
     api_key = os.environ.get('GEMINI_API_KEY')
     if not api_key:
-        return "⚠️ Análisis maestro no disponible"
+        return "⚠️ Dictamen IA no disponible (Falta GEMINI_API_KEY)."
     
     try:
         client = genai.Client(api_key=api_key)
         prompt = f"""
         Actúa como el Analista Jefe de un fondo cuantitativo de criptomonedas.
-        Cruza la información del Radar Pre-Explosión y el Cazador Táctico para emitir un dictamen institucional de máximo 5 líneas:
+        Cruza la información del Radar Pre-Explosión y el Cazador Táctico para emitir un dictamen institucional de máximo 4 líneas:
         Datos Pre-Explosión: {json.dumps(pre_data[:3] if pre_data else [])}
         Datos Tácticos: {json.dumps(tactico_data[:3] if tactico_data else [])}
         """
@@ -46,35 +30,83 @@ def generar_dictamen_ia(pre_data, tactico_data):
             try:
                 response = client.models.generate_content(model=mod, contents=prompt)
                 if response and response.text:
-                    return response.text
+                    return response.text.strip()
             except Exception:
                 continue
 
-        return "Sincronización global completada con éxito."
-    except Exception:
-        return "Sincronización global completada con éxito."
+        return "Sincronización y análisis completados con éxito."
+    except Exception as e:
+        return f"Análisis actualizado a las {datetime.now().strftime('%H:%M:%S')}."
+
+def enviar_telegram(mensaje):
+    token = os.environ.get('TELEGRAM_BOT_TOKEN')
+    chat_id = os.environ.get('TELEGRAM_CHAT_ID')
+    
+    if token and chat_id:
+        try:
+            url = f"https://api.telegram.org/bot{token}/sendMessage"
+            payload = {"chat_id": chat_id, "text": mensaje, "parse_mode": "Markdown"}
+            requests.post(url, json=payload, timeout=10)
+            print("[+] Notificación enviada a Telegram con éxito.")
+        except Exception as e:
+            print(f"[!] Error enviando a Telegram: {e}")
 
 def actualizar_dashboard():
-    print("[*] Iniciando sincronización del dashboard con Google Sheets...")
-    sheet = conectar_sheets()
+    print("[*] Iniciando procesamiento de datos...")
     
-    try:
-        with open('datos_pre_explosion_ia.json', 'r', encoding='utf-8') as f:
-            pre_data = json.load(f)
-    except Exception:
-        pre_data = []
-
-    try:
-        with open('datos_tactico.json', 'r', encoding='utf-8') as f:
-            tactico_data = json.load(f)
-    except Exception:
-        tactico_data = []
-
+    pre_data = cargar_json('datos_pre_explosion_ia.json')
+    tactico_data = cargar_json('datos_tactico.json')
     dictamen = generar_dictamen_ia(pre_data, tactico_data)
-    print(f"[*] Dictamen procesado: {dictamen}")
+    
+    fecha_actual = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-    hoja_principal = sheet.get_worksheet(0)
-    print("[+] ¡Sincronización completada con éxito!")
+    # 1. Generar Vista en Markdown para GitHub (DASHBOARD_CRIPTO.md)
+    md_content = f"# 🚀 Dashboard Cripto Automatizado\n"
+    md_content += f"**Última actualización:** `{fecha_actual} UTC`\n\n"
+    md_content += f"### 🧠 Dictamen Institucional (IA)\n> {dictamen}\n\n"
+    
+    md_content += "### ⚡ Radar Pre-Explosión\n"
+    if pre_data:
+        md_content += "| Moneda | % Subida |\n| --- | --- |\n"
+        for item in pre_data[:7]:
+            coin = item.get('moneda', 'N/A')
+            subida = item.get('subida', 'N/A')
+            md_content += f"| **{coin}** | {subida} |\n"
+    else:
+        md_content += "*Sin alertas activas en este período.*\n"
+        
+    md_content += "\n### 🎯 Cazador Táctico\n"
+    if tactico_data:
+        md_content += "| Moneda | % Subida |\n| --- | --- |\n"
+        for item in tactico_data[:7]:
+            coin = item.get('moneda', 'N/A')
+            subida = item.get('subida', 'N/A')
+            md_content += f"| **{coin}** | {subida} |\n"
+    else:
+        md_content += "*Sin alertas activas en este período.*\n"
+
+    with open("DASHBOARD_CRIPTO.md", "w", encoding="utf-8") as f:
+        f.write(md_content)
+    print("[+] DASHBOARD_CRIPTO.md actualizado.")
+
+    # 2. Guardar en Histórico CSV (historico_alertas.csv)
+    file_exists = os.path.isfile("historico_alertas.csv")
+    with open("historico_alertas.csv", "a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(["Fecha", "Tipo", "Moneda", "Subida"])
+            
+        for item in pre_data:
+            writer.writerow([fecha_actual, "Pre-Explosion", item.get('moneda'), item.get('subida')])
+        for item in tactico_data:
+            writer.writerow([fecha_actual, "Cazador Tactico", item.get('moneda'), item.get('subida')])
+            
+    print("[+] Registro añadido a historico_alertas.csv.")
+
+    # 3. Notificación limpia a Telegram
+    msg_telegram = f"📊 *DASHBOARD ACTUALIZADO* (`{fecha_actual}`)\n\n"
+    msg_telegram += f"🧠 *Dictamen:* {dictamen}\n"
+    enviar_telegram(msg_telegram)
 
 if __name__ == '__main__':
     actualizar_dashboard()
