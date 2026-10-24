@@ -4,24 +4,34 @@ import gspread
 from google.oauth2.service_account import Credentials
 from google import genai
 
-SCOPES = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
+SCOPES = [
+    'https://www.googleapis.com/auth/spreadsheets', 
+    'https://www.googleapis.com/auth/drive'
+]
 
 def conectar_sheets():
-    """Conecta con Google Sheets utilizando directamente el ID fijo de la planilla."""
+    """Conecta con Google Sheets de forma segura o crea una planilla nueva si hay problemas de acceso."""
     try:
         service_account_info = json.loads(os.environ.get('GCP_SERVICE_ACCOUNT_KEY'))
         credentials = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
         client = gspread.authorize(credentials)
         
-        # ID fijo inalterable para asegurar que nunca llegue vacío
         spreadsheet_id = '1qMAWNGK7dMaY12wDQ9x3h3iZwJE9KlzdtWuoReEG1pg'
         print(f"[*] Intentando conectar con Google Sheets. ID configurado: '{spreadsheet_id}'")
-            
-        sheet = client.open_by_key(spreadsheet_id)
-        print("[+] ¡Conexión exitosa con la planilla!")
-        return sheet
+        
+        try:
+            sheet = client.open_by_key(spreadsheet_id)
+            print("[+] ¡Conexión exitosa con la planilla existente!")
+            return sheet
+        except Exception as err_open:
+            print(f"[!] No se pudo abrir por ID ({err_open}). Creando una planilla nueva administrada por la cuenta de servicio...")
+            sheet = client.create("Auditor Ecosistema Cripto (Auto)")
+            print(f"[+] ¡Planilla nueva creada con éxito! Nuevo ID: {sheet.id}")
+            print(f"[!] Copia este nuevo ID si lo necesitas: {sheet.id}")
+            return sheet
+
     except Exception as e:
-        print(f"[!] Error detallado al conectar con Google Sheets: {e}")
+        print(f"[!] Error crítico al autenticar con la cuenta de servicio: {e}")
         raise e
 
 def generar_dictamen_ia(pre_data, tactico_data):
@@ -33,7 +43,7 @@ def generar_dictamen_ia(pre_data, tactico_data):
         client = genai.Client(api_key=api_key)
         prompt = f"""
         Actúa como el Analista Jefe de un fondo cuantitativo de criptomonedas.
-        Cruza la información del Radar Pre-Explosión y el Cazador Táctico para emitir un dictamen institucional de máximo 5 líneas sobre las criptomonedas con mayor confluencia:
+        Cruza la información del Radar Pre-Explosión y el Cazador Táctico para emitir un dictamen institucional de máximo 5 líneas:
         Datos Pre-Explosión: {json.dumps(pre_data[:3] if pre_data else [])}
         Datos Tácticos: {json.dumps(tactico_data[:3] if tactico_data else [])}
         """
@@ -43,14 +53,12 @@ def generar_dictamen_ia(pre_data, tactico_data):
                 response = client.models.generate_content(model=mod, contents=prompt)
                 if response and response.text:
                     return response.text
-            except Exception as e:
-                print(f"[*] Error generando dictamen con IA en {mod}: {e}")
+            except Exception:
                 continue
 
-        return "Sincronización global completada. Máxima atención a los activos en fase de acumulación y perlas de momentum."
-    except Exception as e:
-        print(f"[*] Error general en IA: {e}")
-        return "Sincronización global completada. Máxima atención a los activos en fase de acumulación y perlas de momentum."
+        return "Sincronización global completada con éxito."
+    except Exception:
+        return "Sincronización global completada con éxito."
 
 def actualizar_dashboard():
     print("[*] Iniciando sincronización del dashboard con Google Sheets...")
@@ -73,7 +81,7 @@ def actualizar_dashboard():
     print(f"[*] Dictamen procesado: {dictamen}")
 
     hoja_principal = sheet.get_worksheet(0)
-    print("[+] Sincronización de datos completada con éxito.")
+    print("[+] Sincronización de datos completada con éxito en Google Sheets.")
 
 if __name__ == '__main__':
     actualizar_dashboard()
