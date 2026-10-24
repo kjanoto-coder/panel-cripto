@@ -5,35 +5,25 @@ from google.oauth2.service_account import Credentials
 from google import genai
 
 SCOPES = [
-    'https://www.googleapis.com/auth/spreadsheets', 
-    'https://www.googleapis.com/auth/drive'
+    'https://www.googleapis.com/auth/spreadsheets'
 ]
 
 def conectar_sheets():
-    """Crea o conecta a una planilla administrada por la cuenta de servicio."""
+    """Abre la planilla existente mediante su ID usando únicamente permisos de Sheets."""
     try:
         service_account_info = json.loads(os.environ.get('GCP_SERVICE_ACCOUNT_KEY'))
         credentials = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
         client = gspread.authorize(credentials)
         
-        # Como las cuentas de servicio no tienen interfaz visual, creamos una planilla limpia por código
-        sheet_name = "Auditor Ecosistema Cripto Final"
-        print(f"[*] Buscando o creando la planilla '{sheet_name}'...")
+        spreadsheet_id = "1qMAWNGK7dMaY12wDQ9x3h3iZwJE9KlzdtWuoReEG1pg"
+        print(f"[*] Abriendo planilla directamente por ID...")
         
-        try:
-            sheet = client.open(sheet_name)
-            print("[+] ¡Planilla encontrada con éxito!")
-        except Exception:
-            print("[*] La planilla no existe. Creando una nueva desde la cuenta de servicio...")
-            sheet = client.create(sheet_name)
-            # Opcional: la compartimos con tu correo personal si quieres verla en tu Drive
-            # sheet.share('tu_correo@gmail.com', perm_type='user', role='owner')
-            print("[+] ¡Planilla creada y lista!")
-            
+        sheet = client.open_by_key(spreadsheet_id)
+        print("[+] ¡Conexión establecida con éxito!")
         return sheet
 
     except Exception as e:
-        print(f"[!] Error crítico en Google Sheets: {e}")
+        print(f"[!] Error al conectar con la planilla: {e}")
         raise e
 
 def generar_dictamen_ia(pre_data, tactico_data):
