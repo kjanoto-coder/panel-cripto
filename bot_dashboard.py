@@ -8,7 +8,13 @@ from google import genai
 def cargar_json(nombre_archivo):
     try:
         with open(nombre_archivo, 'r', encoding='utf-8') as f:
-            return json.load(f)
+            data = json.load(f)
+            # Asegurar que siempre devuelva una lista
+            if isinstance(data, list):
+                return data
+            elif isinstance(data, dict):
+                return [data]
+            return []
     except Exception:
         return []
 
@@ -66,22 +72,24 @@ def actualizar_dashboard():
     md_content += f"### 🧠 Dictamen Institucional (IA)\n> {dictamen}\n\n"
     
     md_content += "### ⚡ Radar Pre-Explosión\n"
-    if pre_data:
+    if pre_data and isinstance(pre_data, list):
         md_content += "| Moneda | % Subida |\n| --- | --- |\n"
         for item in pre_data[:7]:
-            coin = item.get('moneda', 'N/A')
-            subida = item.get('subida', 'N/A')
-            md_content += f"| **{coin}** | {subida} |\n"
+            if isinstance(item, dict):
+                coin = item.get('moneda', 'N/A')
+                subida = item.get('subida', 'N/A')
+                md_content += f"| **{coin}** | {subida} |\n"
     else:
         md_content += "*Sin alertas activas en este período.*\n"
         
     md_content += "\n### 🎯 Cazador Táctico\n"
-    if tactico_data:
+    if tactico_data and isinstance(tactico_data, list):
         md_content += "| Moneda | % Subida |\n| --- | --- |\n"
         for item in tactico_data[:7]:
-            coin = item.get('moneda', 'N/A')
-            subida = item.get('subida', 'N/A')
-            md_content += f"| **{coin}** | {subida} |\n"
+            if isinstance(item, dict):
+                coin = item.get('moneda', 'N/A')
+                subida = item.get('subida', 'N/A')
+                md_content += f"| **{coin}** | {subida} |\n"
     else:
         md_content += "*Sin alertas activas en este período.*\n"
 
@@ -96,10 +104,14 @@ def actualizar_dashboard():
         if not file_exists:
             writer.writerow(["Fecha", "Tipo", "Moneda", "Subida"])
             
-        for item in pre_data:
-            writer.writerow([fecha_actual, "Pre-Explosion", item.get('moneda'), item.get('subida')])
-        for item in tactico_data:
-            writer.writerow([fecha_actual, "Cazador Tactico", item.get('moneda'), item.get('subida')])
+        if isinstance(pre_data, list):
+            for item in pre_data:
+                if isinstance(item, dict):
+                    writer.writerow([fecha_actual, "Pre-Explosion", item.get('moneda'), item.get('subida')])
+        if isinstance(tactico_data, list):
+            for item in tactico_data:
+                if isinstance(item, dict):
+                    writer.writerow([fecha_actual, "Cazador Tactico", item.get('moneda'), item.get('subida')])
             
     print("[+] Registro añadido a historico_alertas.csv.")
 
