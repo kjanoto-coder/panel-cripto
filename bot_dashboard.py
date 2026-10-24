@@ -4,34 +4,28 @@ import gspread
 from google.oauth2.service_account import Credentials
 from google import genai
 
+# Usamos únicamente permisos estrictos de hojas de cálculo
 SCOPES = [
-    'https://www.googleapis.com/auth/spreadsheets',
-    'https://www.googleapis.com/auth/drive'
+    'https://www.googleapis.com/auth/spreadsheets'
 ]
 
 def conectar_sheets():
-    """Crea una planilla propia de forma automática con la cuenta de servicio."""
+    """Abre la planilla exclusivamente por ID, evitando cualquier uso de Google Drive."""
     try:
         service_account_info = json.loads(os.environ.get('GCP_SERVICE_ACCOUNT_KEY'))
         credentials = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
         client = gspread.authorize(credentials)
         
-        # Nombre único para el dashboard
-        sheet_name = "Auditor Ecosistema Cripto Oficial"
+        # ID exacto de tu nueva planilla creada en la cuenta personal
+        spreadsheet_id = "1n6VesCq65Nplbj_sUSfouVAHfleVEyS3u7H-e7m2a8M"
+        print(f"[*] Abriendo la planilla directamente por ID...")
         
-        try:
-            print(f"[*] Buscando la planilla '{sheet_name}'...")
-            sheet = client.open(sheet_name)
-            print("[+] ¡Planilla encontrada con éxito!")
-        except Exception:
-            print("[*] Creando una nueva planilla administrada...")
-            sheet = client.create(sheet_name)
-            print(f"[+] ¡Planilla creada con éxito! ID: {sheet.id}")
-            
+        sheet = client.open_by_key(spreadsheet_id)
+        print("[+] ¡Conexión establecida con éxito en la planilla!")
         return sheet
 
     except Exception as e:
-        print(f"[!] Error al conectar con Google Sheets: {e}")
+        print(f"[!] Error al conectar con la planilla: {e}")
         raise e
 
 def generar_dictamen_ia(pre_data, tactico_data):
@@ -80,7 +74,7 @@ def actualizar_dashboard():
     print(f"[*] Dictamen procesado: {dictamen}")
 
     hoja_principal = sheet.get_worksheet(0)
-    print("[+] ¡Sincronización completada con éxito en Google Sheets!")
+    print("[+] ¡Sincronización completada con éxito!")
 
 if __name__ == '__main__':
     actualizar_dashboard()
