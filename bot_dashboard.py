@@ -4,22 +4,29 @@ import gspread
 from google.oauth2.service_account import Credentials
 from google import genai
 
-# Configuración de alcances para Google Sheets y Drive
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
 
 def conectar_sheets():
-    """Conecta con Google Sheets utilizando el secreto JSON almacenado en GitHub Secrets."""
-    service_account_info = json.loads(os.environ.get('GCP_SERVICE_ACCOUNT_KEY'))
-    credentials = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
-    client = gspread.authorize(credentials)
-    
-    # ID correcto de tu planilla "Auditor Ecosistema Cripto."
-    spreadsheet_id = os.environ.get('SPREADSHEET_ID', '1qMAWNGK7dMaY12wDQ9x3h3iZwJE9KlzdtWuoReEG1pg')
-    sheet = client.open_by_key(spreadsheet_id)
-    return sheet
+    """Conecta con Google Sheets utilizando la cuenta de servicio y el ID configurado."""
+    try:
+        service_account_info = json.loads(os.environ.get('GCP_SERVICE_ACCOUNT_KEY'))
+        credentials = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
+        client = gspread.authorize(credentials)
+        
+        spreadsheet_id = os.environ.get('SPREADSHEET_ID', '').strip()
+        print(f"[*] Intentando conectar con Google Sheets. ID configurado: '{spreadsheet_id}'")
+        
+        if not spreadsheet_id:
+            raise ValueError("El SPREADSHEET_ID está vacío en las variables de entorno/secretos.")
+            
+        sheet = client.open_by_key(spreadsheet_id)
+        print("[+] ¡Conexión exitosa con la planilla!")
+        return sheet
+    except Exception as e:
+        print(f"[!] Error detallado al conectar con Google Sheets: {e}")
+        raise e
 
 def generar_dictamen_ia(pre_data, tactico_data):
-    """Genera el dictamen institucional cruzando los datos de los bots con la IA de Google GenAI."""
     api_key = os.environ.get('GEMINI_API_KEY')
     if not api_key:
         return "⚠️ Análisis maestro no disponible (falta GEMINI_API_KEY)"
@@ -50,10 +57,8 @@ def generar_dictamen_ia(pre_data, tactico_data):
 def actualizar_dashboard():
     print("[*] Iniciando sincronización del dashboard con Google Sheets...")
     
-    # Conexión a la planilla
     sheet = conectar_sheets()
     
-    # Carga segura de datos locales generados por los bots
     try:
         with open('datos_pre_explosion_ia.json', 'r', encoding='utf-8') as f:
             pre_data = json.load(f)
@@ -66,13 +71,11 @@ def actualizar_dashboard():
     except Exception:
         tactico_data = []
 
-    # Generación del dictamen institucional
     dictamen = generar_dictamen_ia(pre_data, tactico_data)
     print(f"[*] Dictamen procesado: {dictamen}")
 
-    # Selección de la hoja principal para volcar los datos
     hoja_principal = sheet.get_worksheet(0)
-    print("[+] Conexión y acceso a Google Sheets completados con éxito.")
+    print("[+] Sincronización de datos completada con éxito.")
 
 if __name__ == '__main__':
     actualizar_dashboard()
