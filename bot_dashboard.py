@@ -13,7 +13,8 @@ def conectar_sheets():
         credentials = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
         client = gspread.authorize(credentials)
         
-        spreadsheet_id = os.environ.get('SPREADSHEET_ID', '').strip()
+        # Rescata el SPREADSHEET_ID inyectado desde las variables de entorno de GitHub Actions
+        spreadsheet_id = os.environ.get('SPREADSHEET_ID', '1qMAWNGK7dMaY12wDQ9x3h3iZwJE9KlzdtWuoReEG1pg').strip()
         print(f"[*] Intentando conectar con Google Sheets. ID configurado: '{spreadsheet_id}'")
         
         if not spreadsheet_id:
