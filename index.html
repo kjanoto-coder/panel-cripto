@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Auditor Ecosistema Cripto — Panel en Tiempo Real</title>
+    <title>Auditor Ecosistema Cripto — En Vivo</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -105,7 +105,7 @@
                     <span>Price 24h Change (%)</span>
                 </div>
                 <div id="container-modulo1" class="space-y-1.5">
-                    <div class="text-slate-500 text-xs py-2">Sincronizando...</div>
+                    <div class="text-slate-500 text-xs py-2">Conectando mercado...</div>
                 </div>
             </div>
 
@@ -119,7 +119,7 @@
                     <span>Price 24h Change (%)</span>
                 </div>
                 <div id="container-modulo2" class="space-y-1.5">
-                    <div class="text-slate-500 text-xs py-2">Sincronizando...</div>
+                    <div class="text-slate-500 text-xs py-2">Conectando mercado...</div>
                 </div>
             </div>
 
@@ -133,7 +133,7 @@
                     <span>Price 24h Change (%)</span>
                 </div>
                 <div id="container-modulo3" class="space-y-1.5">
-                    <div class="text-slate-500 text-xs py-2">Sincronizando...</div>
+                    <div class="text-slate-500 text-xs py-2">Conectando mercado...</div>
                 </div>
             </div>
 
@@ -148,7 +148,7 @@
                     <span>Estado Total</span>
                 </div>
                 <div id="container-modulo4" class="space-y-1.5">
-                    <div class="text-slate-500 text-xs py-2">Sincronizando...</div>
+                    <div class="text-slate-500 text-xs py-2">Conectando mercado...</div>
                 </div>
             </div>
 
@@ -284,7 +284,7 @@
 
     </main>
 
-    <!-- Motor JavaScript con Filtrado Real Exacto de Binance -->
+    <!-- Motor JavaScript Robusto en Tiempo Real -->
     <script>
         const EXCLUDE_TOKENS = ['UP', 'DOWN', 'BEAR', 'BULL', 'USDC', 'FDUSD', 'USDT', 'TUSD', 'DAI', 'BUSD', 'EUR', 'GBP', 'WBTC', 'AEUR', 'PAXG'];
 
@@ -294,36 +294,36 @@
 
         async function sincronizarMercado() {
             try {
-                const res = await fetch('https://api.binance.com/api/v3/ticker/24hr', { cache: 'no-store' });
+                // Usamos directamente un proxy confiable compatible con dispositivos móviles
+                const res = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.binance.com/api/v3/ticker/24hr'), { cache: 'no-store' });
                 if (!res.ok) throw new Error("Error red");
                 const tickers = await res.json();
                 procesarDatosReales(tickers);
             } catch (e) {
-                conectarProxyRespaldo();
+                console.warn("Intentando conexión directa alternativa...");
+                conectarDirectoBinance();
             }
         }
 
-        async function conectarProxyRespaldo() {
+        async function conectarDirectoBinance() {
             try {
-                const res = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.binance.com/api/v3/ticker/24hr'), { cache: 'no-store' });
-                if (!res.ok) throw new Error("Error Proxy");
+                const res = await fetch('https://api.binance.com/api/v3/ticker/24hr', { cache: 'no-store' });
+                if (!res.ok) throw new Error("Error directo");
                 const tickers = await res.json();
                 procesarDatosReales(tickers);
             } catch (err) {
-                console.error("Fallo al actualizar en vivo", err);
+                console.error("Fallo total de red en vivo", err);
             }
         }
 
         function procesarDatosReales(tickers) {
-            // Filtrar estrictamente solo pares reales contra USDT que tengan volumen real y no sean tokens apalancados
             const paresValidos = tickers.filter(t => {
                 const symbol = t.symbol;
                 if (!symbol.endsWith('USDT')) return false;
                 const clean = symbol.replace('USDT', '');
                 if (EXCLUDE_TOKENS.includes(clean)) return false;
                 if (symbol.includes('UP') || symbol.includes('DOWN') || symbol.includes('BEAR') || symbol.includes('BULL')) return false;
-                // Excluir tokens anómalos o de prueba con volumen bajo
-                if (parseFloat(t.quoteVolume) < 50000) return false;
+                if (parseFloat(t.quoteVolume) < 20000) return false;
                 return true;
             });
 
@@ -333,7 +333,7 @@
             if (btc) document.getElementById('btc-price').innerText = '$' + Number(parseFloat(btc.lastPrice)).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
             if (eth) document.getElementById('eth-price').innerText = '$' + Number(parseFloat(eth.lastPrice)).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
-            // Cálculo del Índice en vivo basado en el mercado real
+            // Índice en tiempo real
             const avgChange = paresValidos.reduce((acc, t) => acc + parseFloat(t.priceChangePercent), 0) / (paresValidos.length || 1);
             let indexVal = Math.round(50 + (avgChange * 12));
             indexVal = Math.max(0, Math.min(100, indexVal));
@@ -342,7 +342,7 @@
             let semanaVal = Math.max(5, Math.min(95, indexVal - 4));
             actualizarTacometroBinance(indexVal, ayerVal, semanaVal);
 
-            // MÓDULO 1: Top 6 Ganadoras Reales (ordenadas de mayor a menor porcentaje 24h)
+            // MÓDULO 1: Top 6 Ganadoras Reales
             const ganadoras = [...paresValidos]
                 .sort((a, b) => parseFloat(b.priceChangePercent) - parseFloat(a.priceChangePercent))
                 .slice(0, 6)
@@ -352,7 +352,7 @@
                     change: '+' + parseFloat(t.priceChangePercent).toFixed(2) + '%'
                 }));
 
-            // MÓDULO 2: Top 6 Perdedoras Reales (ordenadas de menor a mayor porcentaje 24h)
+            // MÓDULO 2: Top 6 Perdedoras Reales
             const perdedoras = [...paresValidos]
                 .sort((a, b) => parseFloat(a.priceChangePercent) - parseFloat(b.priceChangePercent))
                 .slice(0, 6)
@@ -362,7 +362,7 @@
                     change: parseFloat(t.priceChangePercent).toFixed(2) + '%'
                 }));
 
-            // MÓDULO 3: Top 6 Acumulación 24H (Mayor Volumen de negociación real)
+            // MÓDULO 3: Top 6 Acumulación 24H (Volumen)
             const acumulacion = [...paresValidos]
                 .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
                 .slice(0, 6)
@@ -372,7 +372,7 @@
                     change: (parseFloat(t.priceChangePercent) >= 0 ? '+' : '') + parseFloat(t.priceChangePercent).toFixed(2) + '%'
                 }));
 
-            // MÓDULO 4: Acumulación Silenciosa (Crecimiento moderado positivo < 4%)
+            // MÓDULO 4: Acumulación Silenciosa
             const silenciosa = [...paresValidos]
                 .filter(t => parseFloat(t.priceChangePercent) > 0 && parseFloat(t.priceChangePercent) < 4.0)
                 .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
@@ -483,10 +483,10 @@
             `).join('');
         }
 
-        // Actualización automática en tiempo real cada 3 segundos
+        // Ejecutar al cargar y actualizar automáticamente cada 4 segundos
         window.onload = () => {
             sincronizarMercado();
-            setInterval(sincronizarMercado, 3000);
+            setInterval(sincronizarMercado, 4000);
         };
     </script>
 </body>
