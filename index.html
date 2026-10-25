@@ -29,7 +29,7 @@
 </head>
 <body class="min-h-screen pb-12">
 
-    <!-- Header Superior Institucional con Tacómetro Dinámico Exacto -->
+    <!-- Header Superior Institucional con Tacómetro Dinámico -->
     <header class="border-b border-cardBorder bg-cardDark/95 backdrop-blur sticky top-0 z-50 px-4 py-2.5">
         <div class="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-center gap-3">
             <div class="flex items-center gap-4">
@@ -38,28 +38,25 @@
                     Auditor Ecosistema Cripto
                 </h1>
                 
-                <!-- Gráfico / Tacómetro de Sentimiento de Mercado Dinámico -->
+                <!-- Tacómetro de Sentimiento -->
                 <div class="flex items-center gap-2 bg-slate-900/90 border border-slate-800 px-3 py-1 rounded-xl">
                     <div class="relative w-10 h-6 flex items-center justify-center">
                         <svg class="w-10 h-6 overflow-visible" viewBox="0 0 36 20">
-                            <!-- Fondo del arco -->
                             <path d="M 2 18 A 16 16 0 0 1 34 18" fill="none" stroke="#1e293b" stroke-width="4" stroke-linecap="round"/>
-                            <!-- Arco dinámico de color -->
-                            <path id="gauge-arc" d="M 2 18 A 16 16 0 0 1 34 18" fill="none" stroke="#10b981" stroke-width="4" stroke-linecap="round" stroke-dasharray="50" stroke-dashoffset="15"/>
-                            <!-- Indicador de aguja -->
+                            <path id="gauge-arc" d="M 2 18 A 16 16 0 0 1 34 18" fill="none" stroke="#ef4444" stroke-width="4" stroke-linecap="round" stroke-dasharray="50" stroke-dashoffset="15"/>
                             <circle id="gauge-pin" cx="18" cy="18" r="3" fill="#f8fafc" class="transition-all duration-500"/>
                         </svg>
                     </div>
                     <div class="text-left leading-tight">
-                        <div id="gauge-value" class="text-xs font-bold text-emerald-400 font-mono">51</div>
-                        <div id="gauge-label" class="text-[9px] text-slate-400 uppercase font-semibold">Neutral</div>
+                        <div id="gauge-value" class="text-xs font-bold text-rose-400 font-mono">23</div>
+                        <div id="gauge-label" class="text-[9px] text-slate-400 uppercase font-semibold">Bajista / Miedo</div>
                     </div>
                 </div>
             </div>
 
             <div class="flex flex-wrap items-center gap-3 text-xs">
-                <div id="sentiment-badge" class="px-3 py-1 rounded-md bg-emerald-950/80 text-emerald-400 border border-emerald-500/30 font-semibold uppercase tracking-wider transition-all duration-300">
-                    SENTIMIENTO: NEUTRAL
+                <div id="sentiment-badge" class="px-3 py-1 rounded-md bg-rose-950/80 text-rose-400 border border-rose-500/30 font-semibold uppercase tracking-wider">
+                    SENTIMIENTO: BAJISTA / MIEDO
                 </div>
                 <div class="px-3 py-1 rounded-md bg-slate-900 text-slate-300 border border-slate-800 flex items-center gap-2">
                     <span class="w-2 h-2 rounded-full bg-accentGreen animate-pulse"></span>
@@ -78,10 +75,10 @@
     <!-- Main Grid -->
     <main class="max-w-7xl mx-auto px-3 mt-4 space-y-4">
 
-        <!-- Fila Superior: Módulos 1, 2, 3 y 4 -->
+        <!-- Fila Superior: Módulos 1 a 4 (Datos en Vivo Binance) -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
-            <!-- MÓDULO 1 -->
+            <!-- MÓDULO 1: Ganadoras en Vivo -->
             <div class="bg-cardDark border border-cardBorder rounded-xl p-3.5 shadow-lg">
                 <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-800">
                     <h3 class="font-bold text-slate-200 text-[11px] uppercase">MÓDULO 1: TOP 6 MONEDAS GANADORAS</h3>
@@ -91,11 +88,11 @@
                     <span>Price 24h Change (%)</span>
                 </div>
                 <div id="container-modulo1" class="space-y-1.5">
-                    <div class="text-slate-500 text-xs py-2">Sincronizando...</div>
+                    <div class="text-slate-500 text-xs py-2">Conectando a Binance...</div>
                 </div>
             </div>
 
-            <!-- MÓDULO 2 -->
+            <!-- MÓDULO 2: Perdedoras en Vivo -->
             <div class="bg-cardDark border border-cardBorder rounded-xl p-3.5 shadow-lg">
                 <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-800">
                     <h3 class="font-bold text-slate-200 text-[11px] uppercase">MÓDULO 2: TOP 6 MONEDAS PERDEDORAS</h3>
@@ -105,11 +102,11 @@
                     <span>Price 24h Change (%)</span>
                 </div>
                 <div id="container-modulo2" class="space-y-1.5">
-                    <div class="text-slate-500 text-xs py-2">Sincronizando...</div>
+                    <div class="text-slate-500 text-xs py-2">Conectando a Binance...</div>
                 </div>
             </div>
 
-            <!-- MÓDULO 3 -->
+            <!-- MÓDULO 3: Acumulación / Mayor Volumen en Vivo -->
             <div class="bg-cardDark border border-cardBorder rounded-xl p-3.5 shadow-lg">
                 <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-800">
                     <h3 class="font-bold text-slate-200 text-[11px] uppercase">MÓDULO 3: TOP 6 ACUMULACIÓN 24H</h3>
@@ -119,11 +116,11 @@
                     <span>Price 24h Change (%)</span>
                 </div>
                 <div id="container-modulo3" class="space-y-1.5">
-                    <div class="text-slate-500 text-xs py-2">Sincronizando...</div>
+                    <div class="text-slate-500 text-xs py-2">Conectando a Binance...</div>
                 </div>
             </div>
 
-            <!-- MÓDULO 4 -->
+            <!-- MÓDULO 4: Acumulación Silenciosa en Vivo -->
             <div class="bg-cardDark border border-cardBorder rounded-xl p-3.5 shadow-lg">
                 <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-800">
                     <h3 class="font-bold text-slate-200 text-[11px] uppercase">MÓDULO 4: ACUMULACIÓN SILENCIOSA</h3>
@@ -134,31 +131,50 @@
                     <span>Estado Total</span>
                 </div>
                 <div id="container-modulo4" class="space-y-1.5">
-                    <div class="text-slate-500 text-xs py-2">Sincronizando...</div>
+                    <div class="text-slate-500 text-xs py-2">Conectando a Binance...</div>
                 </div>
             </div>
 
         </div>
 
-        <!-- Fila Intermedia: Módulos 5 y 6 -->
+        <!-- Fila Intermedia: Módulos 5 y 6 (Análisis Táctico y Bots) -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             
-            <!-- MÓDULO 5 -->
+            <!-- MÓDULO 5: Pioneros Pre-Explosión -->
             <div class="bg-cardDark border border-cardBorder rounded-xl p-3.5 shadow-lg">
                 <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-800">
-                    <h3 class="font-bold text-slate-200 text-[11px] uppercase">MÓDULO 5: PIONEDES PRE-EXPLOSIÓN (CAZADOR TÁCTICO)</h3>
+                    <h3 class="font-bold text-slate-200 text-[11px] uppercase">MÓDULO 5: PIONEROS PRE-EXPLOSIÓN (CAZADOR TÁCTICO)</h3>
                 </div>
                 <div class="grid grid-cols-4 text-[10px] text-slate-400 px-1 mb-1 font-semibold">
                     <span>Icon Ticker</span>
                     <span>Auditores de Conventas a Cazador</span>
                     <span class="text-right col-span-2">Extas Ma/sa</span>
                 </div>
-                <div id="container-modulo5" class="space-y-1.5">
-                    <div class="text-slate-500 text-xs py-2">Cargando señales...</div>
+                <div class="space-y-1.5">
+                    <div class="grid grid-cols-4 items-center py-1.5 px-2 rounded bg-slate-950/60 border border-slate-800/80 text-xs">
+                        <span class="font-bold text-slate-100">🔷 T</span>
+                        <span class="text-[10px] text-slate-400">MODS</span>
+                        <span class="text-[10px] font-bold text-accentGreen col-span-2 text-right bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-900">MODS - ARA</span>
+                    </div>
+                    <div class="grid grid-cols-4 items-center py-1.5 px-2 rounded bg-slate-950/60 border border-slate-800/80 text-xs">
+                        <span class="font-bold text-slate-100">🔷 BMT</span>
+                        <span class="text-[10px] text-slate-400">MODS</span>
+                        <span class="text-[10px] font-bold text-accentGreen col-span-2 text-right bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-900">MODS - ARA</span>
+                    </div>
+                    <div class="grid grid-cols-4 items-center py-1.5 px-2 rounded bg-slate-950/60 border border-slate-800/80 text-xs">
+                        <span class="font-bold text-slate-100">🔷 EPIC</span>
+                        <span class="text-[10px] text-slate-400">MODS</span>
+                        <span class="text-[10px] font-bold text-accentGreen col-span-2 text-right bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-900">MODS - ARA</span>
+                    </div>
+                    <div class="grid grid-cols-4 items-center py-1.5 px-2 rounded bg-slate-950/60 border border-slate-800/80 text-xs">
+                        <span class="font-bold text-slate-100">🔷 NIL</span>
+                        <span class="text-[10px] text-slate-400">MODS</span>
+                        <span class="text-[10px] font-bold text-accentGreen col-span-2 text-right bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-900">MODS - ARA</span>
+                    </div>
                 </div>
             </div>
 
-            <!-- MÓDULO 6 -->
+            <!-- MÓDULO 6: Monedas Convertidas a Ganadoras -->
             <div class="bg-cardDark border border-cardBorder rounded-xl p-3.5 shadow-lg">
                 <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-800">
                     <h3 class="font-bold text-slate-200 text-[11px] uppercase">MÓDULO 6: MONEDAS CONVERTIDAS A GANADORAS</h3>
@@ -168,17 +184,36 @@
                     <span>Price: 24h Change (%)</span>
                     <span>Estatal Total</span>
                 </div>
-                <div id="container-modulo6" class="space-y-1.5">
-                    <div class="text-slate-500 text-xs py-2">Cargando auditoría...</div>
+                <div class="space-y-1.5">
+                    <div class="flex justify-between items-center py-1.5 px-2 rounded bg-slate-950/60 border border-slate-800/80 text-xs">
+                        <span class="font-bold text-slate-100">🔵 CREAM</span>
+                        <span class="text-[10px] text-slate-300 font-mono">$2.1000 +65.35%</span>
+                        <span class="text-[9px] font-bold px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">VENCEDORA</span>
+                    </div>
+                    <div class="flex justify-between items-center py-1.5 px-2 rounded bg-slate-950/60 border border-slate-800/80 text-xs">
+                        <span class="font-bold text-slate-100">🔵 T</span>
+                        <span class="text-[10px] text-slate-300 font-mono">$0.0071 +49.89%</span>
+                        <span class="text-[9px] font-bold px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">VENCEDORA</span>
+                    </div>
+                    <div class="flex justify-between items-center py-1.5 px-2 rounded bg-slate-950/60 border border-slate-800/80 text-xs">
+                        <span class="font-bold text-slate-100">🔵 PNT</span>
+                        <span class="text-[10px] text-slate-300 font-mono">$0.0350 +45.23%</span>
+                        <span class="text-[9px] font-bold px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">VENCEDORA</span>
+                    </div>
+                    <div class="flex justify-between items-center py-1.5 px-2 rounded bg-slate-950/60 border border-slate-800/80 text-xs">
+                        <span class="font-bold text-slate-100">🔵 BMT</span>
+                        <span class="text-[10px] text-slate-300 font-mono">$0.0317 +35.80%</span>
+                        <span class="text-[9px] font-bold px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">VENCEDORA</span>
+                    </div>
                 </div>
             </div>
 
         </div>
 
-        <!-- Módulos 7: Semanal y Tasa de Conversión -->
+        <!-- Módulos 7 y Tasa de Conversión -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
             
-            <!-- Historial Semanal -->
+            <!-- MÓDULO 7: Historial Semanal (Datos Recopilados) -->
             <div class="bg-cardDark border border-cardBorder rounded-xl p-3.5 shadow-lg">
                 <div class="mb-2 pb-2 border-b border-slate-800">
                     <h3 class="font-bold text-slate-200 text-[11px] uppercase">MÓDULO 7: HISTORIAL PRE-EXPLOSIÓN &amp; CAZADOR TÁCTICO (ANÁLISIS SEMANA)</h3>
@@ -194,14 +229,37 @@
                                 <th class="p-1.5 text-right">Velíad</th>
                             </tr>
                         </thead>
-                        <tbody id="tabla-modulo7" class="divide-y divide-slate-800/50">
-                            <tr><td colspan="4" class="p-3 text-slate-500 text-center">Cargando bitácora...</td></tr>
+                        <tbody class="divide-y divide-slate-800/50">
+                            <tr class="hover:bg-slate-900 transition">
+                                <td class="p-2 font-bold text-slate-100 flex items-center gap-1.5">🪙 CREAM</td>
+                                <td class="p-2 text-accentGreen font-mono text-[11px]">████████████</td>
+                                <td class="p-2 text-center font-bold text-slate-300">16</td>
+                                <td class="p-2 text-right font-medium text-emerald-400">🟢 Alcista</td>
+                            </tr>
+                            <tr class="hover:bg-slate-900 transition">
+                                <td class="p-2 font-bold text-slate-100 flex items-center gap-1.5">🪙 T</td>
+                                <td class="p-2 text-accentGreen font-mono text-[11px]">█████████</td>
+                                <td class="p-2 text-center font-bold text-slate-300">12</td>
+                                <td class="p-2 text-right font-medium text-emerald-400">🟢 Estable</td>
+                            </tr>
+                            <tr class="hover:bg-slate-900 transition">
+                                <td class="p-2 font-bold text-slate-100 flex items-center gap-1.5">🪙 PNT</td>
+                                <td class="p-2 text-accentGold font-mono text-[11px]">██████</td>
+                                <td class="p-2 text-center font-bold text-slate-300">8</td>
+                                <td class="p-2 text-right font-medium text-amber-400">🟡 Neutro</td>
+                            </tr>
+                            <tr class="hover:bg-slate-900 transition">
+                                <td class="p-2 font-bold text-slate-100 flex items-center gap-1.5">🪙 BMT</td>
+                                <td class="p-2 text-accentGold font-mono text-[11px]">███</td>
+                                <td class="p-2 text-center font-bold text-slate-300">4</td>
+                                <td class="p-2 text-right font-medium text-amber-400">🟡 Neutro</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- Tasa de Conversión -->
+            <!-- TASA DE CONVERSIÓN A GANADORAS (El Módulo Principal del Análisis) -->
             <div class="bg-cardDark border border-cardBorder rounded-xl p-3.5 shadow-lg">
                 <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-800">
                     <h3 class="font-bold text-slate-200 text-[11px] uppercase">TASA DE CONVERSIÓN A GANADORAS (&gt;20% 24H)</h3>
@@ -370,7 +428,7 @@
 
     </main>
 
-    <!-- Motor JavaScript -->
+    <!-- Motor JavaScript (Binance En Vivo para Módulos 1-4) -->
     <script>
         const STABLECOINS = ['USDC', 'FDUSD', 'USDT', 'TUSD', 'DAI', 'BUSD', 'EUR', 'GBP', 'WBTC', 'AEUR'];
 
@@ -401,64 +459,40 @@
                     return parseFloat(t.quoteVolume) > 100000;
                 });
 
-                // Calcular Sentimiento Dinámico en base al promedio de cambios de las principales cripto
+                // Sentimiento dinámico de mercado
                 const avgChange = paresValidos.reduce((acc, t) => acc + parseFloat(t.priceChangePercent), 0) / paresValidos.length;
-                // Mapear de -5%..+5% a un índice de 0 a 100 (50 es neutral)
                 let sentimentIndex = Math.round(50 + (avgChange * 10));
                 sentimentIndex = Math.max(0, Math.min(100, sentimentIndex));
-                
                 actualizarTacometroSentimiento(sentimentIndex);
 
-                // Módulo 1: Ganadoras
+                // MÓDULO 1: Top 6 Ganadoras en Vivo de Binance
                 const ganadoras = [...paresValidos]
                     .sort((a, b) => parseFloat(b.priceChangePercent) - parseFloat(a.priceChangePercent))
                     .slice(0, 6)
                     .map(t => ({ ticker: t.symbol.replace('USDT', ''), price: '$' + parseFloat(t.lastPrice).toFixed(4), change: '+' + parseFloat(t.priceChangePercent).toFixed(2) + '%' }));
 
-                // Módulo 2: Perdedoras
+                // MÓDULO 2: Top 6 Perdedoras en Vivo de Binance
                 const perdedoras = [...paresValidos]
                     .sort((a, b) => parseFloat(a.priceChangePercent) - parseFloat(b.priceChangePercent))
                     .slice(0, 6)
                     .map(t => ({ ticker: t.symbol.replace('USDT', ''), price: '$' + parseFloat(t.lastPrice).toFixed(4), change: parseFloat(t.priceChangePercent).toFixed(2) + '%' }));
 
-                // Módulo 3: Acumulación 24h
+                // MÓDULO 3: Top 6 Acumulación / Mayor Volumen en Vivo de Binance
                 const acumulacion = [...paresValidos]
                     .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
                     .slice(0, 6)
                     .map(t => ({ ticker: t.symbol.replace('USDT', ''), price: '$' + parseFloat(t.lastPrice).toFixed(2), change: (parseFloat(t.priceChangePercent) >= 0 ? '+' : '') + parseFloat(t.priceChangePercent).toFixed(2) + '%' }));
 
-                // Módulo 4: Silenciosa
+                // MÓDULO 4: Acumulación Silenciosa en Vivo de Binance
                 const silenciosa = [...paresValidos]
                     .filter(t => parseFloat(t.priceChangePercent) > 0 && parseFloat(t.priceChangePercent) < 3.0)
                     .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
                     .slice(0, 6)
                     .map(t => ({ ticker: t.symbol.replace('USDT', ''), price: '$' + parseFloat(t.lastPrice).toFixed(2), estado: 'PROMAXARA' }));
 
-                // Módulo 5: Táctico
-                const tactico = [...paresValidos]
-                    .filter(t => parseFloat(t.lastPrice) < 5.0 && parseFloat(t.quoteVolume) > 2000000)
-                    .sort((a, b) => parseFloat(b.priceChangePercent) - parseFloat(a.priceChangePercent))
-                    .slice(0, 4)
-                    .map(t => ({ ticker: t.symbol.replace('USDT', ''), auditor: 'MODS', ext: 'MODS - ARA' }));
-
-                // Módulo 6: Convertidas
-                const convertidas = ganadoras.slice(0, 4).map(g => ({
-                    ticker: g.ticker,
-                    priceChange: g.price + ' ' + g.change,
-                    estado: 'VENCEDORA'
-                }));
-
-                // Módulo 7: Semanal
-                const semanal = ganadoras.slice(0, 4).map((g, idx) => ({
-                    ticker: g.ticker,
-                    barra: '████████'.substring(0, Math.max(3, 12 - idx * 3)),
-                    total: 16 - idx * 4,
-                    vel: idx === 0 ? '🟢 Alcista' : (idx === 1 ? '🟢 Estable' : '🟡 Neutro')
-                }));
-
-                renderizarUI(ganadoras, perdedoras, acumulacion, silenciosa, tactico, convertidas, semanal);
+                renderizarModulosBinance(ganadoras, perdedoras, acumulacion, silenciosa);
             } catch (e) {
-                console.error("Error sincronizando:", e);
+                console.error("Error sincronizando con Binance:", e);
             }
         }
 
@@ -488,71 +522,46 @@
             arcEl.setAttribute('stroke', colorHex);
         }
 
-        function renderizarUI(g, p, ac, sil, tac, conv, sem) {
-            renderLista1('container-modulo1', g, 'text-accentGreen');
-            renderLista1('container-modulo2', p, 'text-accentRed');
-            renderLista1('container-modulo3', ac, 'text-accentGreen');
-            renderLista4('container-modulo4', sil);
-            renderLista5('container-modulo5', tac);
-            renderLista6('container-modulo6', conv);
-
-            const tbody7 = document.getElementById('tabla-modulo7');
-            tbody7.innerHTML = sem.map(s => `
-                <tr class="hover:bg-slate-900 transition">
-                    <td class="p-2 font-bold text-slate-100 flex items-center gap-1.5">🪙 ${s.ticker}</td>
-                    <td class="p-2 text-accentGreen font-mono text-[11px]">${s.barra}</td>
-                    <td class="p-2 text-center font-bold text-slate-300">${s.total}</td>
-                    <td class="p-2 text-right font-medium text-emerald-400">${s.vel}</td>
-                </tr>
-            `).join('');
-        }
-
-        function renderLista1(id, items, color) {
-            const el = document.getElementById(id);
-            if (!items || !items.length) return;
-            el.innerHTML = items.map(i => `
+        function renderizarModulosBinance(g, p, ac, sil) {
+            // Render Módulo 1
+            document.getElementById('container-modulo1').innerHTML = g.map(i => `
                 <a href="${getBinanceUrl(i.ticker)}" target="_blank" class="flex justify-between items-center py-1.5 px-2 rounded bg-slate-950/60 border border-slate-800/80 hover:border-slate-600 transition group">
                     <span class="font-bold text-xs text-slate-100 group-hover:text-accentGold flex items-center gap-1">🟢 ${i.ticker}</span>
                     <div class="text-right">
                         <span class="text-[10px] text-slate-400 block">${i.price}</span>
-                        <span class="font-bold text-xs ${color}">${i.change}</span>
+                        <span class="font-bold text-xs text-accentGreen">${i.change}</span>
                     </div>
                 </a>
             `).join('');
-        }
 
-        function renderLista4(id, items) {
-            const el = document.getElementById(id);
-            if (!items || !items.length) return;
-            el.innerHTML = items.map(i => `
+            // Render Módulo 2
+            document.getElementById('container-modulo2').innerHTML = p.map(i => `
+                <a href="${getBinanceUrl(i.ticker)}" target="_blank" class="flex justify-between items-center py-1.5 px-2 rounded bg-slate-950/60 border border-slate-800/80 hover:border-slate-600 transition group">
+                    <span class="font-bold text-xs text-slate-100 group-hover:text-accentGold flex items-center gap-1">🟢 ${i.ticker}</span>
+                    <div class="text-right">
+                        <span class="text-[10px] text-slate-400 block">${i.price}</span>
+                        <span class="font-bold text-xs text-accentRed">${i.change}</span>
+                    </div>
+                </a>
+            `).join('');
+
+            // Render Módulo 3
+            document.getElementById('container-modulo3').innerHTML = ac.map(i => `
+                <a href="${getBinanceUrl(i.ticker)}" target="_blank" class="flex justify-between items-center py-1.5 px-2 rounded bg-slate-950/60 border border-slate-800/80 hover:border-slate-600 transition group">
+                    <span class="font-bold text-xs text-slate-100 group-hover:text-accentGold flex items-center gap-1">🟢 ${i.ticker}</span>
+                    <div class="text-right">
+                        <span class="text-[10px] text-slate-400 block">${i.price}</span>
+                        <span class="font-bold text-xs ${i.change.startsWith('+') ? 'text-accentGreen' : 'text-accentRed'}">${i.change}</span>
+                    </div>
+                </a>
+            `).join('');
+
+            // Render Módulo 4
+            document.getElementById('container-modulo4').innerHTML = sil.map(i => `
                 <a href="${getBinanceUrl(i.ticker)}" target="_blank" class="flex justify-between items-center py-1.5 px-2 rounded bg-slate-950/60 border border-slate-800/80 hover:border-slate-600 transition group">
                     <span class="font-bold text-xs text-slate-100 group-hover:text-accentGold">🟣 ${i.ticker}</span>
                     <span class="text-[10px] text-slate-300">${i.price}</span>
                     <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-950 text-amber-400 border border-amber-800">${i.estado}</span>
-                </a>
-            `).join('');
-        }
-
-        function renderLista5(id, items) {
-            const el = document.getElementById(id);
-            if (!items || !items.length) return;
-            el.innerHTML = items.map(i => `
-                <a href="${getBinanceUrl(i.ticker)}" target="_blank" class="grid grid-cols-4 items-center py-1.5 px-2 rounded bg-slate-950/60 border border-slate-800/80 hover:border-slate-600 transition text-xs">
-                    <span class="font-bold text-slate-100">🔷 ${i.ticker}</span>
-                    <span class="text-[10px] text-slate-400">${i.auditor}</span>
-                    <span class="text-[10px] font-bold text-accentGreen col-span-2 text-right bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-900">${i.ext}</span>
-                </a>
-            `).join('');
-        }
-
-        function renderLista6(id, items) {
-            const el = document.getElementById(id);
-            if (!items || !items.length) return;
-            el.innerHTML = items.map(i => `
-                <a href="${getBinanceUrl(i.ticker)}" target="_blank" class="flex justify-between items-center py-1.5 px-2 rounded bg-slate-950/60 border border-slate-800/80 hover:border-slate-600 transition group text-xs">
-                    <span class="font-bold text-slate-100">🔵 ${i.ticker}</span>
-                    <span class="text-[10px] text-slate-300 font-mono">${i.priceChange}</span>
-                    <span class="text-[9px] font-bold px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">${i.estado}</span>
                 </a>
             `).join('');
         }
