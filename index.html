@@ -42,7 +42,6 @@
                 <div class="flex items-center gap-3 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-xl">
                     <div class="relative w-12 h-7 flex items-center justify-center">
                         <svg class="w-12 h-7 overflow-visible" viewBox="0 0 36 20">
-                            <!-- Gradiente exacto Rojo -> Amarillo -> Verde -->
                             <defs>
                                 <linearGradient id="binanceGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                                     <stop offset="0%" stop-color="#ef4444" />
@@ -51,7 +50,6 @@
                                 </linearGradient>
                             </defs>
                             <path d="M 2 18 A 16 16 0 0 1 34 18" fill="none" stroke="url(#binanceGrad)" stroke-width="4.5" stroke-linecap="round"/>
-                            <!-- Triángulo / Puntero indicador idéntico -->
                             <polygon id="gauge-pointer" points="18,10 15,16 21,16" fill="#94a3b8" class="transition-all duration-500" transform="rotate(0, 18, 18)"/>
                         </svg>
                     </div>
@@ -82,7 +80,7 @@
                 </div>
                 <div class="px-3 py-1 rounded-md bg-slate-900 text-slate-300 border border-slate-800 flex items-center gap-2">
                     <span id="ws-status-dot" class="w-2 h-2 rounded-full bg-accentGreen animate-pulse"></span>
-                    <span>[EN VIVO]: <strong id="ws-status-text" class="text-accentGreen">AUTOMÁTICO</strong></span>
+                    <span>[MERCADO EN VIVO]: <strong id="ws-status-text" class="text-accentGreen">CONECTADO</strong></span>
                 </div>
                 <div class="text-slate-400 font-mono hidden xl:block">
                     BTC: <span id="btc-price" class="text-slate-200 font-bold">--</span> | ETH: <span id="eth-price" class="text-slate-200 font-bold">--</span>
@@ -286,21 +284,20 @@
 
     </main>
 
-    <!-- Motor JavaScript en Tiempo Real Automático -->
+    <!-- Motor JavaScript con Filtrado Real Exacto de Binance -->
     <script>
-        const STABLECOINS = ['USDC', 'FDUSD', 'USDT', 'TUSD', 'DAI', 'BUSD', 'EUR', 'GBP', 'WBTC', 'AEUR'];
+        const EXCLUDE_TOKENS = ['UP', 'DOWN', 'BEAR', 'BULL', 'USDC', 'FDUSD', 'USDT', 'TUSD', 'DAI', 'BUSD', 'EUR', 'GBP', 'WBTC', 'AEUR', 'PAXG'];
 
         function getBinanceUrl(ticker) {
-            const clean = ticker.replace('USDT', '');
-            return `https://www.binance.com/es-AR/trade/${clean}_USDT`;
+            return `https://www.binance.com/es-AR/trade/${ticker}_USDT`;
         }
 
         async function sincronizarMercado() {
             try {
                 const res = await fetch('https://api.binance.com/api/v3/ticker/24hr', { cache: 'no-store' });
-                if (!res.ok) throw new Error("Error API");
+                if (!res.ok) throw new Error("Error red");
                 const tickers = await res.json();
-                procesarDatos(tickers);
+                procesarDatosReales(tickers);
             } catch (e) {
                 conectarProxyRespaldo();
             }
@@ -311,20 +308,23 @@
                 const res = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.binance.com/api/v3/ticker/24hr'), { cache: 'no-store' });
                 if (!res.ok) throw new Error("Error Proxy");
                 const tickers = await res.json();
-                procesarDatos(tickers);
+                procesarDatosReales(tickers);
             } catch (err) {
-                console.error("Error al conectar en vivo", err);
+                console.error("Fallo al actualizar en vivo", err);
             }
         }
 
-        function procesarDatos(tickers) {
+        function procesarDatosReales(tickers) {
+            // Filtrar estrictamente solo pares reales contra USDT que tengan volumen real y no sean tokens apalancados
             const paresValidos = tickers.filter(t => {
                 const symbol = t.symbol;
                 if (!symbol.endsWith('USDT')) return false;
                 const clean = symbol.replace('USDT', '');
-                if (STABLECOINS.includes(clean)) return false;
+                if (EXCLUDE_TOKENS.includes(clean)) return false;
                 if (symbol.includes('UP') || symbol.includes('DOWN') || symbol.includes('BEAR') || symbol.includes('BULL')) return false;
-                return parseFloat(t.quoteVolume) > 10000;
+                // Excluir tokens anómalos o de prueba con volumen bajo
+                if (parseFloat(t.quoteVolume) < 50000) return false;
+                return true;
             });
 
             // BTC y ETH Header
@@ -338,13 +338,11 @@
             let indexVal = Math.round(50 + (avgChange * 12));
             indexVal = Math.max(0, Math.min(100, indexVal));
 
-            // Valores de Ayer y Semana pasada dinámicos y consistentes
             let ayerVal = Math.max(5, Math.min(95, indexVal + 2));
             let semanaVal = Math.max(5, Math.min(95, indexVal - 4));
-
             actualizarTacometroBinance(indexVal, ayerVal, semanaVal);
 
-            // MÓDULO 1: Top 6 Ganadoras
+            // MÓDULO 1: Top 6 Ganadoras Reales (ordenadas de mayor a menor porcentaje 24h)
             const ganadoras = [...paresValidos]
                 .sort((a, b) => parseFloat(b.priceChangePercent) - parseFloat(a.priceChangePercent))
                 .slice(0, 6)
@@ -354,7 +352,7 @@
                     change: '+' + parseFloat(t.priceChangePercent).toFixed(2) + '%'
                 }));
 
-            // MÓDULO 2: Top 6 Perdedoras
+            // MÓDULO 2: Top 6 Perdedoras Reales (ordenadas de menor a mayor porcentaje 24h)
             const perdedoras = [...paresValidos]
                 .sort((a, b) => parseFloat(a.priceChangePercent) - parseFloat(b.priceChangePercent))
                 .slice(0, 6)
@@ -364,7 +362,7 @@
                     change: parseFloat(t.priceChangePercent).toFixed(2) + '%'
                 }));
 
-            // MÓDULO 3: Top 6 Acumulación 24H (Volumen)
+            // MÓDULO 3: Top 6 Acumulación 24H (Mayor Volumen de negociación real)
             const acumulacion = [...paresValidos]
                 .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
                 .slice(0, 6)
@@ -374,7 +372,7 @@
                     change: (parseFloat(t.priceChangePercent) >= 0 ? '+' : '') + parseFloat(t.priceChangePercent).toFixed(2) + '%'
                 }));
 
-            // MÓDULO 4: Acumulación Silenciosa
+            // MÓDULO 4: Acumulación Silenciosa (Crecimiento moderado positivo < 4%)
             const silenciosa = [...paresValidos]
                 .filter(t => parseFloat(t.priceChangePercent) > 0 && parseFloat(t.priceChangePercent) < 4.0)
                 .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
@@ -424,7 +422,6 @@
             badgeEl.className = `px-3 py-1 rounded-md border font-semibold uppercase tracking-wider transition-all duration-300 ${badgeClass}`;
             badgeEl.innerText = `SENTIMIENTO: ${estadoTxt.toUpperCase()}`;
 
-            // Rotación exacta de la flecha del tacómetro (de -80° a +80°)
             const grados = -80 + (val / 100) * 160;
             pointer.style.transform = `rotate(${grados}deg)`;
         }
@@ -486,7 +483,7 @@
             `).join('');
         }
 
-        // Actualización automática en tiempo real cada 3 segundos idéntico a Binance
+        // Actualización automática en tiempo real cada 3 segundos
         window.onload = () => {
             sincronizarMercado();
             setInterval(sincronizarMercado, 3000);
