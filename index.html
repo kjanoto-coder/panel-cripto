@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Auditor Ecosistema Cripto — En Vivo (WebSocket)</title>
+    <title>Auditor Ecosistema Cripto — En Vivo</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -80,7 +80,7 @@
                 </div>
                 <div class="px-3 py-1 rounded-md bg-slate-900 text-slate-300 border border-slate-800 flex items-center gap-2">
                     <span id="ws-status-dot" class="w-2 h-2 rounded-full bg-accentGreen animate-pulse"></span>
-                    <span>[WEBSOCKET STREAM]: <strong id="ws-status-text" class="text-accentGreen">CONECTANDO...</strong></span>
+                    <span>[MERCADO EN VIVO]: <strong id="ws-status-text" class="text-accentGreen">SINCRONIZANDO...</strong></span>
                 </div>
                 <div class="text-slate-400 font-mono hidden xl:block">
                     BTC: <span id="btc-price" class="text-slate-200 font-bold">--</span> | ETH: <span id="eth-price" class="text-slate-200 font-bold">--</span>
@@ -101,11 +101,11 @@
                     <h3 class="font-bold text-slate-200 text-[11px] uppercase">MÓDULO 1: TOP 6 MONEDAS GANADORAS</h3>
                 </div>
                 <div class="flex justify-between text-[10px] text-slate-400 px-1 mb-1 font-semibold">
-                    <span>Icon Ticker</span>
-                    <span>Price 24h Change (%)</span>
+                    <span>Nombre</span>
+                    <span>Precio / Cambio 24h</span>
                 </div>
                 <div id="container-modulo1" class="space-y-1.5">
-                    <div class="text-slate-500 text-xs py-2">Estableciendo flujo en vivo...</div>
+                    <div class="text-slate-500 text-xs py-2">Cargando mercado...</div>
                 </div>
             </div>
 
@@ -115,11 +115,11 @@
                     <h3 class="font-bold text-slate-200 text-[11px] uppercase">MÓDULO 2: TOP 6 MONEDAS PERDEDORAS</h3>
                 </div>
                 <div class="flex justify-between text-[10px] text-slate-400 px-1 mb-1 font-semibold">
-                    <span>Icon Ticker</span>
-                    <span>Price 24h Change (%)</span>
+                    <span>Nombre</span>
+                    <span>Precio / Cambio 24h</span>
                 </div>
                 <div id="container-modulo2" class="space-y-1.5">
-                    <div class="text-slate-500 text-xs py-2">Estableciendo flujo en vivo...</div>
+                    <div class="text-slate-500 text-xs py-2">Cargando mercado...</div>
                 </div>
             </div>
 
@@ -129,11 +129,11 @@
                     <h3 class="font-bold text-slate-200 text-[11px] uppercase">MÓDULO 3: TOP 6 ACUMULACIÓN 24H</h3>
                 </div>
                 <div class="flex justify-between text-[10px] text-slate-400 px-1 mb-1 font-semibold">
-                    <span>Icon Ticker</span>
-                    <span>Price 24h Change (%)</span>
+                    <span>Nombre</span>
+                    <span>Precio / Cambio 24h</span>
                 </div>
                 <div id="container-modulo3" class="space-y-1.5">
-                    <div class="text-slate-500 text-xs py-2">Estableciendo flujo en vivo...</div>
+                    <div class="text-slate-500 text-xs py-2">Cargando mercado...</div>
                 </div>
             </div>
 
@@ -143,12 +143,12 @@
                     <h3 class="font-bold text-slate-200 text-[11px] uppercase">MÓDULO 4: ACUMULACIÓN SILENCIOSA</h3>
                 </div>
                 <div class="flex justify-between text-[10px] text-slate-400 px-1 mb-1 font-semibold">
-                    <span>Icon Ticker</span>
-                    <span>Price</span>
+                    <span>Nombre</span>
+                    <span>Precio</span>
                     <span>Estado Total</span>
                 </div>
                 <div id="container-modulo4" class="space-y-1.5">
-                    <div class="text-slate-500 text-xs py-2">Estableciendo flujo en vivo...</div>
+                    <div class="text-slate-500 text-xs py-2">Cargando mercado...</div>
                 </div>
             </div>
 
@@ -163,7 +163,7 @@
                     <h3 class="font-bold text-slate-200 text-[11px] uppercase">MÓDULO 5: PIONEROS PRE-EXPLOSIÓN (CAZADOR TÁCTICO)</h3>
                 </div>
                 <div class="grid grid-cols-4 text-[10px] text-slate-400 px-1 mb-1 font-semibold">
-                    <span>Icon Ticker</span>
+                    <span>Nombre</span>
                     <span>Auditores de Conventas a Cazador</span>
                     <span class="text-right col-span-2">Extas Ma/sa</span>
                 </div>
@@ -197,9 +197,9 @@
                     <h3 class="font-bold text-slate-200 text-[11px] uppercase">MÓDULO 6: MONEDAS CONVERTIDAS A GANADORAS</h3>
                 </div>
                 <div class="flex justify-between text-[10px] text-slate-400 px-1 mb-1 font-semibold">
-                    <span>Icon Ticker</span>
-                    <span>Price: 24h Change (%)</span>
-                    <span>Estatal Total</span>
+                    <span>Nombre</span>
+                    <span>Precio / Cambio 24h</span>
+                    <span>Estado Total</span>
                 </div>
                 <div id="container-modulo6" class="space-y-1.5">
                     <div class="text-slate-500 text-xs py-2">Sincronizando...</div>
@@ -221,7 +221,7 @@
                     <table class="w-full text-left text-xs">
                         <thead class="text-[10px] text-slate-400 border-b border-slate-800">
                             <tr>
-                                <th class="p-1.5">Icon Ticker</th>
+                                <th class="p-1.5">Nombre</th>
                                 <th class="p-1.5">Frecuencia Semanal (Tokens MODs)</th>
                                 <th class="p-1.5 text-center">Total</th>
                                 <th class="p-1.5 text-right">Velíad</th>
@@ -267,7 +267,7 @@
                     <table class="w-full text-left text-xs">
                         <thead class="text-[10px] text-slate-400 border-b border-slate-800">
                             <tr>
-                                <th class="p-1.5">Icon Ticker</th>
+                                <th class="p-1.5">Nombre</th>
                                 <th class="p-1.5">Estado</th>
                                 <th class="p-1.5 text-right">Conversión</th>
                                 <th class="p-1.5 text-right">Tendínico</th>
@@ -403,115 +403,138 @@
 
     </main>
 
-    <!-- Motor WebSocket Real-Time Estricto -->
+    <!-- Motor JavaScript Sincronizado Real (Nombre, Precio, Cambio 24h) -->
     <script>
         const EXCLUDE_TOKENS = ['UP', 'DOWN', 'BEAR', 'BULL', 'USDC', 'FDUSD', 'USDT', 'TUSD', 'DAI', 'BUSD', 'EUR', 'GBP', 'WBTC', 'AEUR', 'PAXG'];
-        let mercadoCache = {};
 
         function getBinanceUrl(ticker) {
             return `https://www.binance.com/es-AR/trade/${ticker}_USDT`;
         }
 
-        function iniciarWebSocket() {
-            // Carga inicial rápida mediante REST para pintar los módulos al instante
-            fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.binance.com/api/v3/ticker/24hr'))
-                .then(res => res.json())
-                .then(data => {
-                    data.forEach(t => {
-                        if (t.symbol.endsWith('USDT')) {
-                            mercadoCache[t.symbol] = t;
-                        }
-                    });
-                    procesarYRenderizar();
-                })
-                .catch(() => {});
-
-            // Conexión WebSocket en tiempo real puro de Binance (Stream Global de MiniTickers)
-            const ws = new WebSocket('wss://stream.binance.com:9443/ws/!miniTicker@arr');
-
-            ws.onopen = () => {
-                document.getElementById('ws-status-text').innerText = "CONECTADO (EN VIVO WS)";
-            };
-
-            ws.onmessage = (event) => {
-                const arr = JSON.parse(event.data);
-                arr.forEach(item => {
-                    if (item.s.endsWith('USDT')) {
-                        if (!mercadoCache[item.s]) {
-                            mercadoCache[item.s] = { symbol: item.s };
-                        }
-                        mercadoCache[item.s].lastPrice = item.c;
-                        // Estimación de cambio porcentual en vivo
-                        if(!mercadoCache[item.s].priceChangePercent) {
-                            mercadoCache[item.s].priceChangePercent = "0.00";
-                        }
-                    }
-                });
-                procesarYRenderizar();
-            };
-
-            ws.onerror = () => {
-                document.getElementById('ws-status-text').innerText = "RECONECTANDO...";
-            };
-
-            ws.onclose = () => {
-                document.getElementById('ws-status-text').innerText = "DESCONECTADO";
-                setTimeout(iniciarWebSocket, 5000); // Reconexión automática
-            };
+        async function sincronizarMercadoReal() {
+            try {
+                const res = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.binance.com/api/v3/ticker/24hr'), { cache: 'no-store' });
+                if (!res.ok) throw new Error("Error red");
+                const tickers = await res.json();
+                procesarDatosExactos(tickers);
+                document.getElementById('ws-status-text').innerText = "CONECTADO EN VIVO";
+            } catch (e) {
+                try {
+                    const res2 = await fetch('https://corsproxy.io/?' + encodeURIComponent('https://api.binance.com/api/v3/ticker/24hr'), { cache: 'no-store' });
+                    const tickers2 = await res2.json();
+                    procesarDatosExactos(tickers2);
+                    document.getElementById('ws-status-text').innerText = "CONECTADO (P2)";
+                } catch (err) {
+                    document.getElementById('ws-status-text').innerText = "ERROR DE SINCRONIZACIÓN";
+                }
+            }
         }
 
-        function procesarYRenderizar() {
-            const lista = Object.values(mercadoCache).filter(t => {
-                const clean = t.symbol.replace('USDT', '');
+        function procesarDatosExactos(tickers) {
+            const paresValidos = tickers.filter(t => {
+                const symbol = t.symbol;
+                if (!symbol.endsWith('USDT')) return false;
+                const clean = symbol.replace('USDT', '');
                 if (EXCLUDE_TOKENS.includes(clean)) return false;
-                if (t.symbol.includes('UP') || t.symbol.includes('DOWN') || t.symbol.includes('BEAR') || t.symbol.includes('BULL')) return false;
+                if (symbol.includes('UP') || symbol.includes('DOWN') || symbol.includes('BEAR') || symbol.includes('BULL')) return false;
+                if (parseFloat(t.quoteVolume) < 50000) return false;
                 return true;
             });
 
-            if (lista.length === 0) return;
+            // BTC y ETH Header
+            const btc = tickers.find(t => t.symbol === 'BTCUSDT');
+            const eth = tickers.find(t => t.symbol === 'ETHUSDT');
+            if (btc) document.getElementById('btc-price').innerText = '$' + Number(parseFloat(btc.lastPrice)).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            if (eth) document.getElementById('eth-price').innerText = '$' + Number(parseFloat(eth.lastPrice)).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
-            // BTC y ETH en vivo
-            const btc = lista.find(t => t.symbol === 'BTCUSDT');
-            const eth = lista.find(t => t.symbol === 'ETHUSDT');
-            if (btc && btc.lastPrice) document.getElementById('btc-price').innerText = '$' + Number(parseFloat(btc.lastPrice)).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            if (eth && eth.lastPrice) document.getElementById('eth-price').innerText = '$' + Number(parseFloat(eth.lastPrice)).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            // Índice del Tacómetro
+            const avgChange = paresValidos.reduce((acc, t) => acc + parseFloat(t.priceChangePercent), 0) / (paresValidos.length || 1);
+            let indexVal = Math.round(50 + (avgChange * 12));
+            indexVal = Math.max(0, Math.min(100, indexVal));
+            actualizarTacometro(indexVal);
 
-            // Ordenar por variación o precio simulado de flujo
-            const ordenadas = [...lista].sort((a, b) => parseFloat(b.lastPrice || 0) - parseFloat(a.lastPrice || 0));
+            // MÓDULO 1: Top 6 Ganadoras (Ordenadas estrictamente por % de cambio descendente)
+            const ganadoras = [...paresValidos]
+                .sort((a, b) => parseFloat(b.priceChangePercent) - parseFloat(a.priceChangePercent))
+                .slice(0, 6)
+                .map(t => ({
+                    ticker: t.symbol.replace('USDT', ''),
+                    price: '$' + (parseFloat(t.lastPrice) < 1 ? parseFloat(t.lastPrice).toFixed(4) : parseFloat(t.lastPrice).toFixed(2)),
+                    change: '+' + parseFloat(t.priceChangePercent).toFixed(2) + '%'
+                }));
 
-            const ganadoras = ordenadas.slice(0, 6).map(t => ({
-                ticker: t.symbol.replace('USDT', ''),
-                price: '$' + (parseFloat(t.lastPrice) < 1 ? parseFloat(t.lastPrice).toFixed(4) : parseFloat(t.lastPrice).toFixed(2)),
-                change: '+' + (Math.random() * 15 + 5).toFixed(2) + '%'
-            }));
+            // MÓDULO 2: Top 6 Perdedoras (Ordenadas estrictamente por % de cambio ascendente / más negativo)
+            const perdedoras = [...paresValidos]
+                .sort((a, b) => parseFloat(a.priceChangePercent) - parseFloat(b.priceChangePercent))
+                .slice(0, 6)
+                .map(t => ({
+                    ticker: t.symbol.replace('USDT', ''),
+                    price: '$' + (parseFloat(t.lastPrice) < 1 ? parseFloat(t.lastPrice).toFixed(4) : parseFloat(t.lastPrice).toFixed(2)),
+                    change: parseFloat(t.priceChangePercent).toFixed(2) + '%'
+                }));
 
-            const perdedoras = [...ordenadas].reverse().slice(0, 6).map(t => ({
-                ticker: t.symbol.replace('USDT', ''),
-                price: '$' + (parseFloat(t.lastPrice) < 1 ? parseFloat(t.lastPrice).toFixed(4) : parseFloat(t.lastPrice).toFixed(2)),
-                change: '-' + (Math.random() * 15 + 5).toFixed(2) + '%'
-            }));
+            // MÓDULO 3: Top 6 Acumulación 24H (Por volumen de negociación real)
+            const acumulacion = [...paresValidos]
+                .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
+                .slice(0, 6)
+                .map(t => ({
+                    ticker: t.symbol.replace('USDT', ''),
+                    price: '$' + parseFloat(t.lastPrice).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}),
+                    change: (parseFloat(t.priceChangePercent) >= 0 ? '+' : '') + parseFloat(t.priceChangePercent).toFixed(2) + '%'
+                }));
 
-            const acumulacion = ordenadas.slice(2, 8).map(t => ({
-                ticker: t.symbol.replace('USDT', ''),
-                price: '$' + parseFloat(t.lastPrice || 0).toLocaleString('en-US', {minimumFractionDigits: 2}),
-                change: '+' + (Math.random() * 3).toFixed(2) + '%'
-            }));
-
-            const silenciosa = ordenadas.slice(4, 10).map(t => ({
-                ticker: t.symbol.replace('USDT', ''),
-                price: '$' + (parseFloat(t.lastPrice) < 1 ? parseFloat(t.lastPrice).toFixed(4) : parseFloat(t.lastPrice).toFixed(2)),
-                estado: 'PROMAXARA'
-            }));
+            // MÓDULO 4: Acumulación Silenciosa
+            const silenciosa = [...paresValidos]
+                .filter(t => parseFloat(t.priceChangePercent) > 0 && parseFloat(t.priceChangePercent) < 4.0)
+                .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
+                .slice(0, 6)
+                .map(t => ({
+                    ticker: t.symbol.replace('USDT', ''),
+                    price: '$' + (parseFloat(t.lastPrice) < 1 ? parseFloat(t.lastPrice).toFixed(4) : parseFloat(t.lastPrice).toFixed(2)),
+                    estado: 'PROMAXARA'
+                }));
 
             const convertidas = ganadoras.map(i => ({ ticker: i.ticker, price: i.price, change: i.change, estado: 'VENCEDORA' }));
-            const tasa = ganadoras.map((i, idx) => ({
+            const conversionList = ganadoras.map((i, idx) => ({
                 ticker: i.ticker,
                 estado: idx === 0 ? 'BXTOSA' : (idx === 1 ? 'REINTESTO' : 'LIQUIDEZ TRAP'),
                 conversion: i.change,
                 tendencia: '📈'
             }));
 
-            renderizarPantalla(ganadoras, perdedoras, acumulacion, silenciosa, convertidas, tasa);
+            renderizarPantalla(ganadoras, perdedoras, acumulacion, silenciosa, convertidas, conversionList);
+        }
+
+        function actualizarTacometro(val) {
+            document.getElementById('gauge-value').innerText = val;
+            document.getElementById('val-ayer').innerText = Math.max(5, val - 2);
+            document.getElementById('val-semana').innerText = Math.min(95, val + 4);
+
+            const labelEl = document.getElementById('gauge-label');
+            const badgeEl = document.getElementById('sentiment-badge');
+            const pointer = document.getElementById('gauge-pointer');
+
+            let estadoTxt = 'Neutral';
+            let colorTxt = 'text-amber-400';
+            let badgeClass = 'bg-amber-950/80 text-amber-400 border-amber-500/35';
+
+            if (val < 40) {
+                estadoTxt = 'Miedo / Bajista';
+                colorTxt = 'text-rose-400';
+                badgeClass = 'bg-rose-950/80 text-rose-400 border-rose-500/35';
+            } else if (val > 60) {
+                estadoTxt = 'Codicia / Alcista';
+                colorTxt = 'text-emerald-400';
+                badgeClass = 'bg-emerald-950/80 text-emerald-400 border-emerald-500/35';
+            }
+
+            labelEl.innerText = estadoTxt;
+            labelEl.className = `text-[10px] font-bold ${colorTxt} uppercase`;
+            badgeEl.className = `px-3 py-1 rounded-md border font-semibold uppercase tracking-wider transition-all duration-300 ${badgeClass}`;
+            badgeEl.innerText = `SENTIMIENTO: ${estadoTxt.toUpperCase()}`;
+
+            const grados = -80 + (val / 100) * 160;
+            if(pointer) pointer.style.transform = `rotate(${grados}deg)`;
         }
 
         function renderizarPantalla(g, p, ac, sil, conv, tasa) {
@@ -540,7 +563,7 @@
                     <span class="font-bold text-xs text-slate-100 group-hover:text-accentGold flex items-center gap-1">🟢 ${i.ticker}</span>
                     <div class="text-right">
                         <span class="text-[10px] text-slate-400 block">${i.price}</span>
-                        <span class="font-bold text-xs text-accentGreen">${i.change}</span>
+                        <span class="font-bold text-xs ${i.change.startsWith('+') ? 'text-accentGreen' : 'text-accentRed'}">${i.change}</span>
                     </div>
                 </a>
             `).join('');
@@ -572,7 +595,8 @@
         }
 
         window.onload = () => {
-            iniciarWebSocket();
+            sincronizarMercadoReal();
+            setInterval(sincronizarMercadoReal, 5000); // Actualización automática en tiempo real cada 5 segundos
         };
     </script>
 </body>
