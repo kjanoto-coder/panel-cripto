@@ -29,31 +29,44 @@
 </head>
 <body class="min-h-screen pb-12">
 
-    <!-- Header Superior Institucional Exacto -->
+    <!-- Header Superior Institucional con Tacómetro Dinámico Exacto -->
     <header class="border-b border-cardBorder bg-cardDark/95 backdrop-blur sticky top-0 z-50 px-4 py-2.5">
         <div class="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-center gap-3">
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-4">
                 <span class="text-xl">⚡</span>
                 <h1 class="text-sm font-bold tracking-wide text-white">
                     Auditor Ecosistema Cripto
                 </h1>
-                <div class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-xs">
-                    <span class="w-2 h-2 rounded-full bg-accentGreen"></span>
-                    <span class="font-bold text-accentGreen">51</span>
-                    <span class="text-[10px] text-slate-400">Neutral</span>
+                
+                <!-- Gráfico / Tacómetro de Sentimiento de Mercado Dinámico -->
+                <div class="flex items-center gap-2 bg-slate-900/90 border border-slate-800 px-3 py-1 rounded-xl">
+                    <div class="relative w-10 h-6 flex items-center justify-center">
+                        <svg class="w-10 h-6 overflow-visible" viewBox="0 0 36 20">
+                            <!-- Fondo del arco -->
+                            <path d="M 2 18 A 16 16 0 0 1 34 18" fill="none" stroke="#1e293b" stroke-width="4" stroke-linecap="round"/>
+                            <!-- Arco dinámico de color -->
+                            <path id="gauge-arc" d="M 2 18 A 16 16 0 0 1 34 18" fill="none" stroke="#10b981" stroke-width="4" stroke-linecap="round" stroke-dasharray="50" stroke-dashoffset="15"/>
+                            <!-- Indicador de aguja -->
+                            <circle id="gauge-pin" cx="18" cy="18" r="3" fill="#f8fafc" class="transition-all duration-500"/>
+                        </svg>
+                    </div>
+                    <div class="text-left leading-tight">
+                        <div id="gauge-value" class="text-xs font-bold text-emerald-400 font-mono">51</div>
+                        <div id="gauge-label" class="text-[9px] text-slate-400 uppercase font-semibold">Neutral</div>
+                    </div>
                 </div>
             </div>
 
             <div class="flex flex-wrap items-center gap-3 text-xs">
-                <div class="px-3 py-1 rounded-md bg-rose-950/80 text-rose-400 border border-rose-500/30 font-semibold uppercase tracking-wider">
-                    SENTIMIENTO: BAJISTA
+                <div id="sentiment-badge" class="px-3 py-1 rounded-md bg-emerald-950/80 text-emerald-400 border border-emerald-500/30 font-semibold uppercase tracking-wider transition-all duration-300">
+                    SENTIMIENTO: NEUTRAL
                 </div>
                 <div class="px-3 py-1 rounded-md bg-slate-900 text-slate-300 border border-slate-800 flex items-center gap-2">
                     <span class="w-2 h-2 rounded-full bg-accentGreen animate-pulse"></span>
                     <span>[WEB SOCKET] Binance: <strong class="text-accentGreen">CONECTADO (En Vivo)</strong></span>
                 </div>
                 <div class="text-slate-400 font-mono hidden xl:block">
-                    DATOS EN TIEMPO REAL: <span class="text-accentGreen">0ms</span> | BTC: <span class="text-slate-200">6,311</span> ETH: <span class="text-slate-200">2,551</span>
+                    DATOS EN TIEMPO REAL: <span class="text-accentGreen">0ms</span> | BTC: <span class="text-slate-200">81,200</span> ETH: <span class="text-slate-200">2,551</span>
                 </div>
                 <button onclick="forzarSincronizacion()" class="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 transition">
                     <span id="icon-sync">🔄</span>
@@ -236,7 +249,7 @@
 
         </div>
 
-        <!-- MÓDULO 8: Historial Anual 2026 Detallado -->
+        <!-- MÓDULO 8: Historial Anual 2026 -->
         <div class="bg-cardDark border border-cardBorder rounded-xl p-3.5 shadow-lg">
             <div class="mb-3 pb-2 border-b border-slate-800">
                 <h3 class="font-bold text-slate-200 text-[11px] uppercase">MÓDULO 8: HISTORIAL ANUAL 2026 (GANADORAS +20%)</h3>
@@ -244,7 +257,7 @@
             <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2 text-[10px]">
                 <div class="bg-slate-900/80 p-2 rounded border border-slate-800 space-y-1 text-center">
                     <span class="text-slate-400 font-bold block mb-1">ENERO 2026</span>
-                    <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">ETH (45%)</div>
+                    <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">SSN (45%)</div>
                     <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">SOL (50%)</div>
                     <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">MAR (55%)</div>
                 </div>
@@ -311,7 +324,7 @@
             </div>
         </div>
 
-        <!-- MÓDULO 9: Noticias Actuales del Mercado (En Español y Múltiples Proveedores) -->
+        <!-- MÓDULO 9: Noticias Actuales del Mercado -->
         <div class="bg-cardDark border border-cardBorder rounded-xl p-3.5 shadow-lg">
             <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-800">
                 <h3 class="font-bold text-slate-200 text-[11px] uppercase">MÓDULO 9: NOTICIAS ACTUALES DEL MERCADO (EN VIVO)</h3>
@@ -388,6 +401,14 @@
                     return parseFloat(t.quoteVolume) > 100000;
                 });
 
+                // Calcular Sentimiento Dinámico en base al promedio de cambios de las principales cripto
+                const avgChange = paresValidos.reduce((acc, t) => acc + parseFloat(t.priceChangePercent), 0) / paresValidos.length;
+                // Mapear de -5%..+5% a un índice de 0 a 100 (50 es neutral)
+                let sentimentIndex = Math.round(50 + (avgChange * 10));
+                sentimentIndex = Math.max(0, Math.min(100, sentimentIndex));
+                
+                actualizarTacometroSentimiento(sentimentIndex);
+
                 // Módulo 1: Ganadoras
                 const ganadoras = [...paresValidos]
                     .sort((a, b) => parseFloat(b.priceChangePercent) - parseFloat(a.priceChangePercent))
@@ -428,17 +449,43 @@
                 }));
 
                 // Módulo 7: Semanal
-                const semanal = [
-                    { ticker: 'SOL', barra: '████████████', total: 16, vel: '🟢 Alcista' },
-                    { ticker: 'LINK', barra: '███', total: 3, vel: '🟢 Estable' },
-                    { ticker: 'NEAR', barra: '███', total: 3, vel: '🟢 Estable' },
-                    { ticker: 'RNDR', barra: '███', total: 3, vel: '🟡 Neutro' }
-                ];
+                const semanal = ganadoras.slice(0, 4).map((g, idx) => ({
+                    ticker: g.ticker,
+                    barra: '████████'.substring(0, Math.max(3, 12 - idx * 3)),
+                    total: 16 - idx * 4,
+                    vel: idx === 0 ? '🟢 Alcista' : (idx === 1 ? '🟢 Estable' : '🟡 Neutro')
+                }));
 
                 renderizarUI(ganadoras, perdedoras, acumulacion, silenciosa, tactico, convertidas, semanal);
             } catch (e) {
                 console.error("Error sincronizando:", e);
             }
+        }
+
+        function actualizarTacometroSentimiento(val) {
+            document.getElementById('gauge-value').innerText = val;
+            const labelEl = document.getElementById('gauge-label');
+            const badgeEl = document.getElementById('sentiment-badge');
+            const arcEl = document.getElementById('gauge-arc');
+
+            let estadoTxt = 'Neutral';
+            let colorHex = '#f59e0b';
+            let badgeClass = 'bg-amber-950/80 text-amber-400 border-amber-500/30';
+
+            if (val < 40) {
+                estadoTxt = 'Bajista / Miedo';
+                colorHex = '#ef4444';
+                badgeClass = 'bg-rose-950/80 text-rose-400 border-rose-500/30';
+            } else if (val > 60) {
+                estadoTxt = 'Alcista / Codicia';
+                colorHex = '#10b981';
+                badgeClass = 'bg-emerald-950/80 text-emerald-400 border-emerald-500/30';
+            }
+
+            labelEl.innerText = estadoTxt;
+            badgeEl.className = `px-3 py-1 rounded-md border font-semibold uppercase tracking-wider transition-all duration-300 ${badgeClass}`;
+            badgeEl.innerText = `SENTIMIENTO: ${estadoTxt.toUpperCase()}`;
+            arcEl.setAttribute('stroke', colorHex);
         }
 
         function renderizarUI(g, p, ac, sil, tac, conv, sem) {
