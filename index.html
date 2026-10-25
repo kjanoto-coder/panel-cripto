@@ -25,17 +25,16 @@
     </script>
     <style>
         body { background-color: #0b0e14; color: #f1f5f9; font-family: system-ui, sans-serif; }
-        .glow-green { box-shadow: 0 0 15px rgba(16, 185, 129, 0.25); }
     </style>
 </head>
 <body class="min-h-screen pb-12">
 
-    <!-- Header Institucional Exacto -->
+    <!-- Header Superior Institucional Exacto -->
     <header class="border-b border-cardBorder bg-cardDark/95 backdrop-blur sticky top-0 z-50 px-4 py-2.5">
         <div class="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-center gap-3">
             <div class="flex items-center gap-3">
                 <span class="text-xl">⚡</span>
-                <h1 class="text-sm font-bold tracking-wide text-white flex items-center gap-2">
+                <h1 class="text-sm font-bold tracking-wide text-white">
                     Auditor Ecosistema Cripto
                 </h1>
                 <div class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-xs">
@@ -69,7 +68,7 @@
         <!-- Fila Superior: Módulos 1, 2, 3 y 4 -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
-            <!-- MÓDULO 1: Top 6 Ganadoras -->
+            <!-- MÓDULO 1 -->
             <div class="bg-cardDark border border-cardBorder rounded-xl p-3.5 shadow-lg">
                 <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-800">
                     <h3 class="font-bold text-slate-200 text-[11px] uppercase">MÓDULO 1: TOP 6 MONEDAS GANADORAS</h3>
@@ -79,11 +78,11 @@
                     <span>Price 24h Change (%)</span>
                 </div>
                 <div id="container-modulo1" class="space-y-1.5">
-                    <div class="text-slate-500 text-xs py-2">Sincronizando con Binance...</div>
+                    <div class="text-slate-500 text-xs py-2">Sincronizando...</div>
                 </div>
             </div>
 
-            <!-- MÓDULO 2: Top 6 Perdedoras -->
+            <!-- MÓDULO 2 -->
             <div class="bg-cardDark border border-cardBorder rounded-xl p-3.5 shadow-lg">
                 <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-800">
                     <h3 class="font-bold text-slate-200 text-[11px] uppercase">MÓDULO 2: TOP 6 MONEDAS PERDEDORAS</h3>
@@ -93,11 +92,11 @@
                     <span>Price 24h Change (%)</span>
                 </div>
                 <div id="container-modulo2" class="space-y-1.5">
-                    <div class="text-slate-500 text-xs py-2">Sincronizando con Binance...</div>
+                    <div class="text-slate-500 text-xs py-2">Sincronizando...</div>
                 </div>
             </div>
 
-            <!-- MÓDULO 3: Acumulación 24h -->
+            <!-- MÓDULO 3 -->
             <div class="bg-cardDark border border-cardBorder rounded-xl p-3.5 shadow-lg">
                 <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-800">
                     <h3 class="font-bold text-slate-200 text-[11px] uppercase">MÓDULO 3: TOP 6 ACUMULACIÓN 24H</h3>
@@ -107,11 +106,11 @@
                     <span>Price 24h Change (%)</span>
                 </div>
                 <div id="container-modulo3" class="space-y-1.5">
-                    <div class="text-slate-500 text-xs py-2">Sincronizando con Binance...</div>
+                    <div class="text-slate-500 text-xs py-2">Sincronizando...</div>
                 </div>
             </div>
 
-            <!-- MÓDULO 4: Acumulación Silenciosa -->
+            <!-- MÓDULO 4 -->
             <div class="bg-cardDark border border-cardBorder rounded-xl p-3.5 shadow-lg">
                 <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-800">
                     <h3 class="font-bold text-slate-200 text-[11px] uppercase">MÓDULO 4: ACUMULACIÓN SILENCIOSA</h3>
@@ -122,7 +121,7 @@
                     <span>Estado Total</span>
                 </div>
                 <div id="container-modulo4" class="space-y-1.5">
-                    <div class="text-slate-500 text-xs py-2">Sincronizando con Binance...</div>
+                    <div class="text-slate-500 text-xs py-2">Sincronizando...</div>
                 </div>
             </div>
 
@@ -131,7 +130,7 @@
         <!-- Fila Intermedia: Módulos 5 y 6 -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             
-            <!-- MÓDULO 5: Cazador Táctico -->
+            <!-- MÓDULO 5 -->
             <div class="bg-cardDark border border-cardBorder rounded-xl p-3.5 shadow-lg">
                 <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-800">
                     <h3 class="font-bold text-slate-200 text-[11px] uppercase">MÓDULO 5: PIONEDES PRE-EXPLOSIÓN (CAZADOR TÁCTICO)</h3>
@@ -146,7 +145,7 @@
                 </div>
             </div>
 
-            <!-- MÓDULO 6: Convertidas en Ganadoras -->
+            <!-- MÓDULO 6 -->
             <div class="bg-cardDark border border-cardBorder rounded-xl p-3.5 shadow-lg">
                 <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-800">
                     <h3 class="font-bold text-slate-200 text-[11px] uppercase">MÓDULO 6: MONEDAS CONVERTIDAS A GANADORAS</h3>
@@ -163,7 +162,7 @@
 
         </div>
 
-        <!-- MÓDULO 7: Historial Semanal y Tasa de Conversión -->
+        <!-- Módulos 7: Semanal y Tasa de Conversión -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
             
             <!-- Historial Semanal -->
@@ -237,86 +236,74 @@
 
         </div>
 
-        <!-- MÓDULO 8: Historial Anual 2026 -->
+        <!-- MÓDULO 8: Historial Anual 2026 Detallado -->
         <div class="bg-cardDark border border-cardBorder rounded-xl p-3.5 shadow-lg">
             <div class="mb-3 pb-2 border-b border-slate-800">
                 <h3 class="font-bold text-slate-200 text-[11px] uppercase">MÓDULO 8: HISTORIAL ANUAL 2026 (GANADORAS +20%)</h3>
             </div>
             <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2 text-[10px]">
-                <!-- ENERO -->
                 <div class="bg-slate-900/80 p-2 rounded border border-slate-800 space-y-1 text-center">
                     <span class="text-slate-400 font-bold block mb-1">ENERO 2026</span>
                     <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">ETH (45%)</div>
                     <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">SOL (50%)</div>
                     <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">MAR (55%)</div>
                 </div>
-                <!-- FEBRERO -->
                 <div class="bg-slate-900/80 p-2 rounded border border-slate-800 space-y-1 text-center">
                     <span class="text-slate-400 font-bold block mb-1">FEBRERO</span>
                     <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">ETH (47%)</div>
                     <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">SOP (50%)</div>
                     <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">JAP (40%)</div>
                 </div>
-                <!-- MARZO -->
                 <div class="bg-slate-900/80 p-2 rounded border border-slate-800 space-y-1 text-center">
                     <span class="text-slate-400 font-bold block mb-1">MARZO</span>
                     <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">ETH (40%)</div>
                     <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">3PN (50%)</div>
                     <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">ASH (40%)</div>
                 </div>
-                <!-- ABRIL -->
                 <div class="bg-slate-900/80 p-2 rounded border border-slate-800 space-y-1 text-center">
                     <span class="text-slate-400 font-bold block mb-1">ABRIL</span>
                     <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">AON (60%)</div>
                     <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">RDX (54%)</div>
                     <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">BCR (44%)</div>
                 </div>
-                <!-- MAYO -->
                 <div class="bg-slate-900/80 p-2 rounded border border-slate-800 space-y-1 text-center">
                     <span class="text-slate-400 font-bold block mb-1">MAYO</span>
                     <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">ADN (60%)</div>
                     <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">ASI (50%)</div>
                     <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">ASN (65%)</div>
                 </div>
-                <!-- JUNIO -->
                 <div class="bg-slate-900/80 p-2 rounded border border-slate-800 space-y-1 text-center">
                     <span class="text-slate-400 font-bold block mb-1">JUNIO</span>
                     <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">AGA (58%)</div>
                     <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">GNT (54%)</div>
                     <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">GOT (53%)</div>
                 </div>
-                <!-- JULIO -->
                 <div class="bg-slate-900/80 p-2 rounded border border-slate-800 space-y-1 text-center">
                     <span class="text-slate-400 font-bold block mb-1">JULIO</span>
                     <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">ETH (50%)</div>
                     <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">DON (45%)</div>
                     <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">ASH (59%)</div>
                 </div>
-                <!-- AGOSTO -->
                 <div class="bg-slate-900/80 p-2 rounded border border-slate-800 space-y-1 text-center">
                     <span class="text-slate-400 font-bold block mb-1">AGOSTO</span>
                     <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">BCN (50%)</div>
                     <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">DON (45%)</div>
                     <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">ASH (59%)</div>
                 </div>
-                <!-- SEPTIEMBRE -->
                 <div class="bg-slate-900/80 p-2 rounded border border-slate-800 space-y-1 text-center">
                     <span class="text-slate-400 font-bold block mb-1">SEPTIEMBRE</span>
                     <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">AON (60%)</div>
                     <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">DON (40%)</div>
                     <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">NCP (40%)</div>
                 </div>
-                <!-- OCTUBRE -->
                 <div class="bg-slate-900/80 p-2 rounded border border-slate-800 space-y-1 text-center">
                     <span class="text-slate-400 font-bold block mb-1">OCTUBRE</span>
                     <span class="text-amber-400 font-mono text-[9px] block mt-4 font-bold">EN REVISIÓN<br>00:08:19</span>
                 </div>
-                <!-- NOVIEMBRE -->
                 <div class="bg-slate-900/80 p-2 rounded border border-slate-800 space-y-1 text-center">
                     <span class="text-slate-400 font-bold block mb-1">NOVIEMBRE</span>
                     <span class="text-amber-400 font-mono text-[9px] block mt-4 font-bold">EN REVISIÓN<br>00:08:12</span>
                 </div>
-                <!-- DICIEMBRE -->
                 <div class="bg-slate-900/80 p-2 rounded border border-slate-800 space-y-1 text-center">
                     <span class="text-slate-400 font-bold block mb-1">DICIEMBRE</span>
                     <span class="text-amber-400 font-mono text-[9px] block mt-4 font-bold">EN REVISIÓN<br>00:03:19</span>
@@ -324,44 +311,44 @@
             </div>
         </div>
 
-        <!-- MÓDULO 9: Noticias Actuales del Mercado -->
+        <!-- MÓDULO 9: Noticias Actuales del Mercado (En Español y Múltiples Proveedores) -->
         <div class="bg-cardDark border border-cardBorder rounded-xl p-3.5 shadow-lg">
             <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-800">
                 <h3 class="font-bold text-slate-200 text-[11px] uppercase">MÓDULO 9: NOTICIAS ACTUALES DEL MERCADO (EN VIVO)</h3>
-                <a href="#" class="text-[11px] text-accentBlue hover:underline font-semibold">Ver todas las noticias &gt;</a>
+                <a href="https://es.tradingview.com/markets/cryptocurrencies/news/" target="_blank" class="text-[11px] text-accentBlue hover:underline font-semibold">Ver todas las noticias &gt;</a>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs">
                     <thead class="text-[10px] text-slate-400 border-b border-slate-800">
                         <tr>
                             <th class="p-2">Hora</th>
-                            <th class="p-2">Evento</th>
-                            <th class="p-2">Ticker</th>
+                            <th class="p-2">Proveedor</th>
+                            <th class="p-2">Titular</th>
                             <th class="p-2">Categoría</th>
                             <th class="p-2 text-right">Actualizado</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-800/50 text-[11px]">
                         <tr class="hover:bg-slate-900/50">
-                            <td class="p-2 text-slate-300 flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-accentGreen"></span> 10:22:20</td>
-                            <td class="p-2 text-slate-400">Celullito.com</td>
-                            <td class="p-2 font-bold text-slate-100">SOLANA: Heari professional en ofrosa a littaira decraoles del merciodo ol Ecosistema Cripto</td>
-                            <td class="p-2 text-slate-400">Noticias</td>
-                            <td class="p-2 text-right font-mono text-slate-500">26/01 2023 13:36</td>
+                            <td class="p-2 text-slate-300 flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-accentGreen"></span> hace 2 horas</td>
+                            <td class="p-2 text-slate-400 font-semibold">BeInCrypto</td>
+                            <td class="p-2 font-bold text-slate-100">Ethereum muestra la misma señal que provocó el rally de junio: ¿Qué significa?</td>
+                            <td class="p-2 text-slate-400">Análisis</td>
+                            <td class="p-2 text-right font-mono text-slate-500">26/10/2026 08:15</td>
                         </tr>
                         <tr class="hover:bg-slate-900/50">
-                            <td class="p-2 text-slate-300 flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-accentGreen"></span> 10:22:20</td>
-                            <td class="p-2 text-slate-400">Celullito.com</td>
-                            <td class="p-2 font-bold text-slate-100">Promeiia xotovillo:: magoeero de rotoem apazediindo lla mersad de demastriación exptoss...</td>
-                            <td class="p-2 text-slate-400">Categoría</td>
-                            <td class="p-2 text-right font-mono text-slate-500">26/01 2023 13:38</td>
+                            <td class="p-2 text-slate-300 flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-accentGreen"></span> hace 8 horas</td>
+                            <td class="p-2 text-slate-400 font-semibold">BeInCrypto</td>
+                            <td class="p-2 font-bold text-slate-100">Bitcoin pierde los $80,000 y $200 millones en posiciones apalancadas se liquidan en una hora</td>
+                            <td class="p-2 text-slate-400">Mercado</td>
+                            <td class="p-2 text-right font-mono text-slate-500">26/10/2026 02:10</td>
                         </tr>
                         <tr class="hover:bg-slate-900/50">
-                            <td class="p-2 text-slate-300 flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-accentGreen"></span> 10:22:20</td>
-                            <td class="p-2 text-slate-400">Celullito.com</td>
-                            <td class="p-2 font-bold text-slate-100">ViewCcream: usago la financial ennuicks live secoraria</td>
-                            <td class="p-2 text-slate-400">Categoría</td>
-                            <td class="p-2 text-right font-mono text-slate-500">26/01 2023 14:30</td>
+                            <td class="p-2 text-slate-300 flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-accentGreen"></span> hace 13 horas</td>
+                            <td class="p-2 text-slate-400 font-semibold">TradingView</td>
+                            <td class="p-2 font-bold text-slate-100">Datos clave: CRIPTO: BTCUSD a $81 mil; ETF: -$636 millones; $281 millones en liquidaciones largas</td>
+                            <td class="p-2 text-slate-400">Institucional</td>
+                            <td class="p-2 text-right font-mono text-slate-500">25/10/2026 21:30</td>
                         </tr>
                     </tbody>
                 </table>
@@ -417,7 +404,7 @@
                 const acumulacion = [...paresValidos]
                     .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
                     .slice(0, 6)
-                    .map(t => ({ ticker: t.symbol.replace('USDT', ''), price: '$' + parseFloat(t.lastPrice).toFixed(2), change: '+' + parseFloat(t.priceChangePercent).toFixed(2) + '%' }));
+                    .map(t => ({ ticker: t.symbol.replace('USDT', ''), price: '$' + parseFloat(t.lastPrice).toFixed(2), change: (parseFloat(t.priceChangePercent) >= 0 ? '+' : '') + parseFloat(t.priceChangePercent).toFixed(2) + '%' }));
 
                 // Módulo 4: Silenciosa
                 const silenciosa = [...paresValidos]
