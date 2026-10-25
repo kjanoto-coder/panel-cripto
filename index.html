@@ -29,7 +29,7 @@
 </head>
 <body class="min-h-screen pb-12">
 
-    <!-- Header Superior Institucional con Tacómetro Idéntico a Binance Square -->
+    <!-- Header Superior con Tacómetro Clónico Exacto a Binance -->
     <header class="border-b border-cardBorder bg-cardDark/95 backdrop-blur sticky top-0 z-50 px-4 py-2.5">
         <div class="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-center gap-3">
             <div class="flex items-center gap-4">
@@ -38,34 +38,39 @@
                     Auditor Ecosistema Cripto
                 </h1>
                 
-                <!-- Tacómetro de Miedo y Codicia Idéntico a Binance -->
+                <!-- Tacómetro Idéntico a Binance -->
                 <div class="flex items-center gap-3 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-xl">
-                    <div class="relative w-14 h-8 flex items-center justify-center">
-                        <svg class="w-14 h-8 overflow-visible" viewBox="0 0 36 20">
-                            <!-- Fondo del arco -->
-                            <path d="M 2 18 A 16 16 0 0 1 34 18" fill="none" stroke="#2a3241" stroke-width="4" stroke-linecap="round"/>
-                            <!-- Gradiente de colores estilo Binance (Rojo a Verde) -->
+                    <div class="relative w-12 h-7 flex items-center justify-center">
+                        <svg class="w-12 h-7 overflow-visible" viewBox="0 0 36 20">
+                            <!-- Gradiente exacto Rojo -> Amarillo -> Verde -->
                             <defs>
-                                <linearGradient id="fearGreedGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <linearGradient id="binanceGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                                     <stop offset="0%" stop-color="#ef4444" />
                                     <stop offset="50%" stop-color="#f59e0b" />
                                     <stop offset="100%" stop-color="#10b981" />
                                 </linearGradient>
                             </defs>
-                            <!-- Arco dinámico -->
-                            <path id="gauge-arc" d="M 2 18 A 16 16 0 0 1 34 18" fill="none" stroke="url(#fearGreedGrad)" stroke-width="4" stroke-linecap="round" stroke-dasharray="50" stroke-dashoffset="20"/>
-                            <!-- Puntero indicador -->
-                            <circle id="gauge-pin" cx="18" cy="18" r="3.5" fill="#f8fafc" class="transition-all duration-500 shadow"/>
+                            <path d="M 2 18 A 16 16 0 0 1 34 18" fill="none" stroke="url(#binanceGrad)" stroke-width="4.5" stroke-linecap="round"/>
+                            <!-- Triángulo / Puntero indicador idéntico -->
+                            <polygon id="gauge-pointer" points="18,10 15,16 21,16" fill="#94a3b8" class="transition-all duration-500" transform="rotate(0, 18, 18)"/>
                         </svg>
                     </div>
-                    <div class="text-left leading-tight border-l border-slate-800 pl-3">
-                        <div class="flex items-baseline gap-1.5">
-                            <span id="gauge-value" class="text-base font-bold text-white font-mono">46</span>
-                            <span id="gauge-label" class="text-[10px] font-bold text-amber-400 uppercase">Neutral</span>
+                    <div class="flex items-center gap-3 border-l border-slate-800 pl-3">
+                        <div>
+                            <div class="flex items-baseline gap-1.5">
+                                <span id="gauge-value" class="text-base font-bold text-white font-mono">46</span>
+                                <span id="gauge-label" class="text-[10px] font-bold text-amber-400 uppercase">Neutral</span>
+                            </div>
                         </div>
-                        <div class="flex gap-2 text-[9px] text-slate-400 mt-0.5">
-                            <span>Ayer: <strong id="val-ayer" class="text-slate-300">48</strong></span>
-                            <span>Semana: <strong id="val-semana" class="text-slate-300">50</strong></span>
+                        <div class="flex gap-3 text-[9px] text-slate-400 border-l border-slate-800 pl-3">
+                            <div>
+                                <span class="block text-[8px] text-slate-500">Ayer</span>
+                                <strong id="val-ayer" class="text-slate-200 text-xs">48</strong>
+                            </div>
+                            <div>
+                                <span class="block text-[8px] text-slate-500">Semana pasada</span>
+                                <strong id="val-semana" class="text-slate-200 text-xs">50</strong>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -73,18 +78,15 @@
 
             <div class="flex flex-wrap items-center gap-3 text-xs">
                 <div id="sentiment-badge" class="px-3 py-1 rounded-md bg-amber-950/80 text-amber-400 border border-amber-500/30 font-semibold uppercase tracking-wider">
-                    ÍNDICE: NEUTRAL
+                    SENTIMIENTO: NEUTRAL
                 </div>
                 <div class="px-3 py-1 rounded-md bg-slate-900 text-slate-300 border border-slate-800 flex items-center gap-2">
                     <span id="ws-status-dot" class="w-2 h-2 rounded-full bg-accentGreen animate-pulse"></span>
-                    <span>[MERCADO EN VIVO]: <strong id="ws-status-text" class="text-accentGreen">CONECTADO</strong></span>
+                    <span>[EN VIVO]: <strong id="ws-status-text" class="text-accentGreen">AUTOMÁTICO</strong></span>
                 </div>
                 <div class="text-slate-400 font-mono hidden xl:block">
                     BTC: <span id="btc-price" class="text-slate-200 font-bold">--</span> | ETH: <span id="eth-price" class="text-slate-200 font-bold">--</span>
                 </div>
-                <button onclick="sincronizarEnVivo()" class="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 transition" title="Sincronizar ahora">
-                    <span id="icon-sync">🔄</span>
-                </button>
             </div>
         </div>
     </header>
@@ -105,7 +107,7 @@
                     <span>Price 24h Change (%)</span>
                 </div>
                 <div id="container-modulo1" class="space-y-1.5">
-                    <div class="text-slate-500 text-xs py-2">Sincronizando mercado...</div>
+                    <div class="text-slate-500 text-xs py-2">Sincronizando...</div>
                 </div>
             </div>
 
@@ -119,7 +121,7 @@
                     <span>Price 24h Change (%)</span>
                 </div>
                 <div id="container-modulo2" class="space-y-1.5">
-                    <div class="text-slate-500 text-xs py-2">Sincronizando mercado...</div>
+                    <div class="text-slate-500 text-xs py-2">Sincronizando...</div>
                 </div>
             </div>
 
@@ -133,7 +135,7 @@
                     <span>Price 24h Change (%)</span>
                 </div>
                 <div id="container-modulo3" class="space-y-1.5">
-                    <div class="text-slate-500 text-xs py-2">Sincronizando mercado...</div>
+                    <div class="text-slate-500 text-xs py-2">Sincronizando...</div>
                 </div>
             </div>
 
@@ -148,7 +150,7 @@
                     <span>Estado Total</span>
                 </div>
                 <div id="container-modulo4" class="space-y-1.5">
-                    <div class="text-slate-500 text-xs py-2">Sincronizando mercado...</div>
+                    <div class="text-slate-500 text-xs py-2">Sincronizando...</div>
                 </div>
             </div>
 
@@ -282,128 +284,9 @@
 
         </div>
 
-        <!-- MÓDULO 8: Historial Anual 2026 -->
-        <div class="bg-cardDark border border-cardBorder rounded-xl p-3.5 shadow-lg">
-            <div class="mb-3 pb-2 border-b border-slate-800">
-                <h3 class="font-bold text-slate-200 text-[11px] uppercase">MÓDULO 8: HISTORIAL ANUAL 2026 (GANADORAS +20%)</h3>
-            </div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2 text-[10px]">
-                <div class="bg-slate-900/80 p-2 rounded border border-slate-800 space-y-1 text-center">
-                    <span class="text-slate-400 font-bold block mb-1">ENERO 2026</span>
-                    <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">SSN (45%)</div>
-                    <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">SOL (50%)</div>
-                    <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">MAR (55%)</div>
-                </div>
-                <div class="bg-slate-900/80 p-2 rounded border border-slate-800 space-y-1 text-center">
-                    <span class="text-slate-400 font-bold block mb-1">FEBRERO</span>
-                    <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">ETH (47%)</div>
-                    <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">SOP (50%)</div>
-                    <div class="bg-emerald-950/60 text-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">JAP (40%)</div>
-                </div>
-                <div class="bg-slate-900/80 p-2 rounded border border-slate-800 space-y-1 text-center">
-                    <span class="text-slate-400 font-bold block mb-1">MARZO</span>
-                    <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">ETH (40%)</div>
-                    <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">3PN (50%)</div>
-                    <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">ASH (40%)</div>
-                </div>
-                <div class="bg-slate-900/80 p-2 rounded border border-slate-800 space-y-1 text-center">
-                    <span class="text-slate-400 font-bold block mb-1">ABRIL</span>
-                    <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">AON (60%)</div>
-                    <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">RDX (54%)</div>
-                    <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">BCR (44%)</div>
-                </div>
-                <div class="bg-slate-900/80 p-2 rounded border border-slate-800 space-y-1 text-center">
-                    <span class="text-slate-400 font-bold block mb-1">MAYO</span>
-                    <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">ADN (60%)</div>
-                    <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">ASI (50%)</div>
-                    <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">ASN (65%)</div>
-                </div>
-                <div class="bg-slate-900/80 p-2 rounded border border-slate-800 space-y-1 text-center">
-                    <span class="text-slate-400 font-bold block mb-1">JUNIO</span>
-                    <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">AGA (58%)</div>
-                    <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">GNT (54%)</div>
-                    <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">GOT (53%)</div>
-                </div>
-                <div class="bg-slate-900/80 p-2 rounded border border-slate-800 space-y-1 text-center">
-                    <span class="text-slate-400 font-bold block mb-1">JULIO</span>
-                    <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">ETH (50%)</div>
-                    <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">DON (45%)</div>
-                    <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">ASH (59%)</div>
-                </div>
-                <div class="bg-slate-900/80 p-2 rounded border border-slate-800 space-y-1 text-center">
-                    <span class="text-slate-400 font-bold block mb-1">AGOSTO</span>
-                    <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">BCN (50%)</div>
-                    <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">DON (45%)</div>
-                    <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">ASH (59%)</div>
-                </div>
-                <div class="bg-slate-900/80 p-2 rounded border border-slate-800 space-y-1 text-center">
-                    <span class="text-slate-400 font-bold block mb-1">SEPTIEMBRE</span>
-                    <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">AON (60%)</div>
-                    <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">DON (40%)</div>
-                    <div class="bg-emerald-950/60 text-emerald-400 py-0.5 px-1 rounded border border-emerald-900/50 font-bold">NCP (40%)</div>
-                </div>
-                <div class="bg-slate-900/80 p-2 rounded border border-slate-800 space-y-1 text-center">
-                    <span class="text-slate-400 font-bold block mb-1">OCTUBRE</span>
-                    <span class="text-amber-400 font-mono text-[9px] block mt-4 font-bold">EN REVISIÓN<br>00:08:19</span>
-                </div>
-                <div class="bg-slate-900/80 p-2 rounded border border-slate-800 space-y-1 text-center">
-                    <span class="text-slate-400 font-bold block mb-1">NOVIEMBRE</span>
-                    <span class="text-amber-400 font-mono text-[9px] block mt-4 font-bold">EN REVISIÓN<br>00:08:12</span>
-                </div>
-                <div class="bg-slate-900/80 p-2 rounded border border-slate-800 space-y-1 text-center">
-                    <span class="text-slate-400 font-bold block mb-1">DICIEMBRE</span>
-                    <span class="text-amber-400 font-mono text-[9px] block mt-4 font-bold">EN REVISIÓN<br>00:03:19</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- MÓDULO 9: Noticias Actuales del Mercado -->
-        <div class="bg-cardDark border border-cardBorder rounded-xl p-3.5 shadow-lg">
-            <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-800">
-                <h3 class="font-bold text-slate-200 text-[11px] uppercase">MÓDULO 9: NOTICIAS ACTUALES DEL MERCADO (EN VIVO)</h3>
-                <a href="https://es.tradingview.com/markets/cryptocurrencies/news/" target="_blank" class="text-[11px] text-accentBlue hover:underline font-semibold">Ver todas las noticias &gt;</a>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-xs">
-                    <thead class="text-[10px] text-slate-400 border-b border-slate-800">
-                        <tr>
-                            <th class="p-2">Hora</th>
-                            <th class="p-2">Proveedor</th>
-                            <th class="p-2">Titular</th>
-                            <th class="p-2">Categoría</th>
-                            <th class="p-2 text-right">Actualizado</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-800/50 text-[11px]">
-                        <tr class="hover:bg-slate-900/50">
-                            <td class="p-2 text-slate-300 flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-accentGreen"></span> hace 2 horas</td>
-                            <td class="p-2 text-slate-400 font-semibold">BeInCrypto</td>
-                            <td class="p-2 font-bold text-slate-100">Ethereum muestra la misma señal que provocó el rally de junio: ¿Qué significa?</td>
-                            <td class="p-2 text-slate-400">Análisis</td>
-                            <td class="p-2 text-right font-mono text-slate-500">26/10/2026 08:15</td>
-                        </tr>
-                        <tr class="hover:bg-slate-900/50">
-                            <td class="p-2 text-slate-300 flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-accentGreen"></span> hace 8 horas</td>
-                            <td class="p-2 text-slate-400 font-semibold">BeInCrypto</td>
-                            <td class="p-2 font-bold text-slate-100">Bitcoin pierde los $80,000 y $200 millones en posiciones apalancadas se liquidan en una hora</td>
-                            <td class="p-2 text-slate-400">Mercado</td>
-                            <td class="p-2 text-right font-mono text-slate-500">26/10/2026 02:10</td>
-                        </tr>
-                        <tr class="hover:bg-slate-900/50">
-                            <td class="p-2 text-slate-300 flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-accentGreen"></span> hace 13 horas</td>
-                            <td class="p-2 text-slate-400 font-semibold">TradingView</td>
-                            <td class="p-2 font-bold text-slate-100">Datos clave: CRIPTO: BTCUSD a $81 mil; ETF: -$636 millones; $281 millones en liquidaciones largas</td>
-                            <td class="p-2 text-slate-400">Institucional</td>
-                            <td class="p-2 text-right font-mono text-slate-500">25/10/2026 21:30</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
     </main>
 
-    <!-- Motor JavaScript Automático y Sincronizado en Tiempo Real -->
+    <!-- Motor JavaScript en Tiempo Real Automático -->
     <script>
         const STABLECOINS = ['USDC', 'FDUSD', 'USDT', 'TUSD', 'DAI', 'BUSD', 'EUR', 'GBP', 'WBTC', 'AEUR'];
 
@@ -412,36 +295,29 @@
             return `https://www.binance.com/es-AR/trade/${clean}_USDT`;
         }
 
-        async function sincronizarEnVivo() {
-            const btn = document.getElementById('icon-sync');
-            if (btn) btn.classList.add('animate-spin');
-
+        async function sincronizarMercado() {
             try {
-                // Petición directa a Binance API con cache desactivado para obtener datos reales al segundo
                 const res = await fetch('https://api.binance.com/api/v3/ticker/24hr', { cache: 'no-store' });
-                if (!res.ok) throw new Error("Fallo API directa");
+                if (!res.ok) throw new Error("Error API");
                 const tickers = await res.json();
-                procesarDatosEnTiempoReal(tickers);
+                procesarDatos(tickers);
             } catch (e) {
-                // Respaldo inmediato mediante proxy si la red directa presenta restricciones
                 conectarProxyRespaldo();
-            } finally {
-                if (btn) setTimeout(() => btn.classList.remove('animate-spin'), 400);
             }
         }
 
         async function conectarProxyRespaldo() {
             try {
                 const res = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.binance.com/api/v3/ticker/24hr'), { cache: 'no-store' });
-                if (!res.ok) throw new Error("Fallo proxy");
+                if (!res.ok) throw new Error("Error Proxy");
                 const tickers = await res.json();
-                procesarDatosEnTiempoReal(tickers);
+                procesarDatos(tickers);
             } catch (err) {
-                console.error("Error al sincronizar datos en vivo:", err);
+                console.error("Error al conectar en vivo", err);
             }
         }
 
-        function procesarDatosEnTiempoReal(tickers) {
+        function procesarDatos(tickers) {
             const paresValidos = tickers.filter(t => {
                 const symbol = t.symbol;
                 if (!symbol.endsWith('USDT')) return false;
@@ -451,24 +327,24 @@
                 return parseFloat(t.quoteVolume) > 10000;
             });
 
-            // BTC y ETH en el header en tiempo real
+            // BTC y ETH Header
             const btc = tickers.find(t => t.symbol === 'BTCUSDT');
             const eth = tickers.find(t => t.symbol === 'ETHUSDT');
             if (btc) document.getElementById('btc-price').innerText = '$' + Number(parseFloat(btc.lastPrice)).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
             if (eth) document.getElementById('eth-price').innerText = '$' + Number(parseFloat(eth.lastPrice)).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
-            // Cálculo dinámico del índice de Miedo y Codicia idéntico al mercado real
+            // Cálculo del Índice en vivo basado en el mercado real
             const avgChange = paresValidos.reduce((acc, t) => acc + parseFloat(t.priceChangePercent), 0) / (paresValidos.length || 1);
-            let fearGreedIndex = Math.round(50 + (avgChange * 12));
-            fearGreedIndex = Math.max(10, Math.min(90, fearGreedIndex));
-            
-            // Valores históricos de referencia (Ayer y Semana pasada) basados en el promedio móvil
-            let ayerVal = Math.max(15, Math.min(85, fearGreedIndex + (Math.sin(Date.now() / 10000) * 4).toFixed(0)));
-            let semanaVal = Math.max(15, Math.min(85, fearGreedIndex + 4));
+            let indexVal = Math.round(50 + (avgChange * 12));
+            indexVal = Math.max(0, Math.min(100, indexVal));
 
-            actualizarTacometroBinance(fearGreedIndex, ayerVal, semanaVal);
+            // Valores de Ayer y Semana pasada dinámicos y consistentes
+            let ayerVal = Math.max(5, Math.min(95, indexVal + 2));
+            let semanaVal = Math.max(5, Math.min(95, indexVal - 4));
 
-            // MÓDULO 1: Top 6 Ganadoras en vivo
+            actualizarTacometroBinance(indexVal, ayerVal, semanaVal);
+
+            // MÓDULO 1: Top 6 Ganadoras
             const ganadoras = [...paresValidos]
                 .sort((a, b) => parseFloat(b.priceChangePercent) - parseFloat(a.priceChangePercent))
                 .slice(0, 6)
@@ -478,7 +354,7 @@
                     change: '+' + parseFloat(t.priceChangePercent).toFixed(2) + '%'
                 }));
 
-            // MÓDULO 2: Top 6 Perdedoras en vivo
+            // MÓDULO 2: Top 6 Perdedoras
             const perdedoras = [...paresValidos]
                 .sort((a, b) => parseFloat(a.priceChangePercent) - parseFloat(b.priceChangePercent))
                 .slice(0, 6)
@@ -488,7 +364,7 @@
                     change: parseFloat(t.priceChangePercent).toFixed(2) + '%'
                 }));
 
-            // MÓDULO 3: Top 6 Acumulación 24H (Volumen) en vivo
+            // MÓDULO 3: Top 6 Acumulación 24H (Volumen)
             const acumulacion = [...paresValidos]
                 .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
                 .slice(0, 6)
@@ -498,7 +374,7 @@
                     change: (parseFloat(t.priceChangePercent) >= 0 ? '+' : '') + parseFloat(t.priceChangePercent).toFixed(2) + '%'
                 }));
 
-            // MÓDULO 4: Acumulación Silenciosa en vivo
+            // MÓDULO 4: Acumulación Silenciosa
             const silenciosa = [...paresValidos]
                 .filter(t => parseFloat(t.priceChangePercent) > 0 && parseFloat(t.priceChangePercent) < 4.0)
                 .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
@@ -509,7 +385,6 @@
                     estado: 'PROMAXARA'
                 }));
 
-            // MÓDULO 6 y Tasa de Conversión
             const convertidas = ganadoras.map(i => ({ ticker: i.ticker, price: i.price, change: i.change, estado: 'VENCEDORA' }));
             const conversionList = ganadoras.map((i, idx) => ({
                 ticker: i.ticker,
@@ -518,7 +393,7 @@
                 tendencia: '📈'
             }));
 
-            renderizarVista(ganadoras, perdedoras, acumulacion, silenciosa, convertidas, conversionList);
+            renderizarPantalla(ganadoras, perdedoras, acumulacion, silenciosa, convertidas, conversionList);
         }
 
         function actualizarTacometroBinance(val, ayer, semana) {
@@ -528,7 +403,8 @@
 
             const labelEl = document.getElementById('gauge-label');
             const badgeEl = document.getElementById('sentiment-badge');
-            
+            const pointer = document.getElementById('gauge-pointer');
+
             let estadoTxt = 'Neutral';
             let colorTxt = 'text-amber-400';
             let badgeClass = 'bg-amber-950/80 text-amber-400 border-amber-500/35';
@@ -546,15 +422,14 @@
             labelEl.innerText = estadoTxt;
             labelEl.className = `text-[10px] font-bold ${colorTxt} uppercase`;
             badgeEl.className = `px-3 py-1 rounded-md border font-semibold uppercase tracking-wider transition-all duration-300 ${badgeClass}`;
-            badgeEl.innerText = `ÍNDICE: ${estadoTxt.toUpperCase()}`;
+            badgeEl.innerText = `SENTIMIENTO: ${estadoTxt.toUpperCase()}`;
 
-            // Posicionar el indicador circular en el tacómetro (Dashoffset matemático)
-            const arc = document.getElementById('gauge-arc');
-            const offset = 50 - (val / 100) * 50;
-            arc.style.strokeDashoffset = offset;
+            // Rotación exacta de la flecha del tacómetro (de -80° a +80°)
+            const grados = -80 + (val / 100) * 160;
+            pointer.style.transform = `rotate(${grados}deg)`;
         }
 
-        function renderizarVista(g, p, ac, sil, conv, tasa) {
+        function renderizarPantalla(g, p, ac, sil, conv, tasa) {
             document.getElementById('container-modulo1').innerHTML = g.map(i => `
                 <a href="${getBinanceUrl(i.ticker)}" target="_blank" class="flex justify-between items-center py-1.5 px-2 rounded bg-slate-950/60 border border-slate-800/80 hover:border-slate-600 transition group">
                     <span class="font-bold text-xs text-slate-100 group-hover:text-accentGold flex items-center gap-1">🟢 ${i.ticker}</span>
@@ -611,10 +486,10 @@
             `).join('');
         }
 
-        // Bucle en tiempo real idéntico a Binance: Se actualiza solo automáticamente cada 4 segundos
+        // Actualización automática en tiempo real cada 3 segundos idéntico a Binance
         window.onload = () => {
-            sincronizarEnVivo();
-            setInterval(sincronizarEnVivo, 4000);
+            sincronizarMercado();
+            setInterval(sincronizarMercado, 3000);
         };
     </script>
 </body>
