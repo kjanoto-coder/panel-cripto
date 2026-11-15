@@ -11,8 +11,11 @@ EXCLUDE_TOKENS = ['UP', 'DOWN', 'BEAR', 'BULL', 'USDC', 'FDUSD', 'USDT', 'TUSD',
 
 def obtener_datos_binance():
     try:
-        url = 'https://api.binance.com/api/v3/ticker/24hr'
-        response = requests.get(url, timeout=10)
+        # Usamos proxy seguro de allorigins para evitar el bloqueo 451 en GitHub Actions
+        target_url = 'https://api.binance.com/api/v3/ticker/24hr'
+        proxy_url = f'https://api.allorigins.win/raw?url={requests.utils.quote(target_url)}'
+        
+        response = requests.get(proxy_url, timeout=15)
         response.raise_for_status()
         data = response.json()
         
@@ -28,7 +31,7 @@ def obtener_datos_binance():
                     })
         return mercado
     except Exception as e:
-        print(f"Error al conectar con Binance: {e}")
+        print(f"Error al conectar con Binance via proxy: {e}")
         return []
 
 def formatear_precio(precio):
@@ -41,7 +44,6 @@ def formatear_precio(precio):
     return f"${precio:,.2f}"
 
 def generar_circulos(cambio):
-    # Genera 5 círculos dinámicos basados en la fuerza del porcentaje
     if cambio >= 35:
         return "🟢🟢🟢🟢🟢"
     elif cambio >= 25:
@@ -79,16 +81,14 @@ def enviar_telegram(mensaje):
         print(f"Excepción al enviar mensaje: {e}")
 
 def main():
-    print("Ejecutando escaneo para Top 7 Ganadoras...")
+    print("Ejecutando escaneo para Top 7 Ganadoras via Proxy...")
     mercado = obtener_datos_binance()
     
     if not mercado:
         print("No se pudieron obtener datos del mercado.")
         return
 
-    # Ordenar estrictamente de mayor a menor y tomar el Top 7 exacto
     ganadoras = sorted(mercado, key=lambda x: x['change'], reverse=True)[:7]
-    
     fecha_actual = datetime.now().strftime('%Y-%m-%d')
     
     mensaje = f"🧠 **CENTRAL DE INTELIGENCIA DE MERCADO (1/5)**\n"
@@ -101,7 +101,6 @@ def main():
         circulos = generar_circulos(item['change'])
         cambio = item['change']
         
-        # Enlaces directos personalizados estilo tu captura
         link_resumen = f"https://es.tradingview.com/symbols/{ticker}USDT/"
         link_tradear = f"https://www.binance.com/es-AR/trade/{ticker}_USDT"
         
