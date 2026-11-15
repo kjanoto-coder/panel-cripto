@@ -7,7 +7,7 @@ TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 TOPIC_ID_GANADORAS = os.getenv('TOPIC_ID_GANADORAS')
 
-EXCLUDE_TOKENS = ['CREAM', 'UP', 'DOWN', 'BEAR', 'BULL', 'USDC', 'FDUSD', 'USDT', 'TUSD', 'DAI', 'BUSD', 'EUR', 'GBP', 'WBTC', 'AEUR', 'PAXG']
+EXCLUDE_TOKENS = ['KDA', 'CREAM', 'UP', 'DOWN', 'BEAR', 'BULL', 'USDC', 'FDUSD', 'USDT', 'TUSD', 'DAI', 'BUSD', 'EUR', 'GBP', 'WBTC', 'AEUR', 'PAXG']
 
 def obtener_datos_binance():
     headers = {
@@ -33,7 +33,6 @@ def obtener_datos_binance():
                         price = float(t['lastPrice'])
                         
                         if clean not in EXCLUDE_TOKENS and change > 0:
-                            # Cálculo matemático exacto del precio base de hace 24h
                             base_price = price / (1 + (change / 100))
                             mercado.append({
                                 'ticker': clean,
@@ -111,8 +110,9 @@ def main():
         link_resumen = f"https://es.tradingview.com/symbols/{ticker}USDT/"
         link_tradear = f"https://www.binance.com/es-AR/trade/{ticker}_USDT"
         
-        mensaje += f"• **{ticker}** | `{precio_fmt}` (Base: `{base_fmt}`)\n"
-        mensaje += f"   {circulos} | `+{cambio:.1f}%`\n"
+        # Orden solicitado: Ticker | Base -> Actual | Porcentaje
+        mensaje += f"• **{ticker}** | Base: `{base_fmt}` ➔ `{precio_fmt}` | `+{cambio:.1f}%`\n"
+        mensaje += f"   {circulos}\n"
         mensaje += f" ┗ 📊 [Resumen IA]({link_resumen}) | 🔶 [Tradear]({link_tradear})\n\n"
     
     enviar_telegram(mensaje)
