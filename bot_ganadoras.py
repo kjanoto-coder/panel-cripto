@@ -7,6 +7,51 @@ TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 TOPIC_ID_GANADORAS = os.getenv('TOPIC_ID_GANADORAS')
 
+EXCLUDE_TOKENS = ['CREAM', 'UP', 'DOWN', 'BEAR', 'BULL', 'USDC', 'FDUSD', 'USDT', 'TUSD', 'DAI', 'BUSD', 'EUR', 'GBP', 'WBTC', 'AEUR', 'PAXG']
+
+def obtener_datos_binance():
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json'
+    }
+    urls = [
+        'https://api.binance.com/api/v3/ticker/24hr',
+        'https://data-api.binance.vision/api/v3/ticker/24hr'
+    ]
+    for url in urls:
+        try:
+            response = requests.get(url, headers=headers, timeout=15)
+            if response.status_code == 200:
+                data = response.json()
+                mercado = []
+                for t in data:
+                    if t['symbol'].endswith('USDT'):
+                        clean = t['symbol'].replace('USDT', '')
+                        change = float(t['priceChangePercent'])
+                        price = float(t['lastPrice'])
+                        if clean not in EXCLUDE_TOKENS and change > 0:
+                            base_price = price / (1 + (change / 100))
+                            mercado.append({
+                                'ticker': clean,
+                                'price': price,
+                                'base_price': base_price,
+                                'change': change
+                            })
+                if mercado:
+                    return mercado
+        except Exception:
+            continue
+    return []
+
+def formatear_precio(precio):
+    if precio < 0.0001:
+        return f"${precio:.8f}"
+    if precio < 1:
+        return f"${precio:.5f}"
+    if precio < 10:
+        return f"${precio:.4f}"
+    return f"${precio:,.2f}"
+
 def enviar_telegram(mensaje):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         return
@@ -24,62 +69,70 @@ def enviar_telegram(mensaje):
     except Exception:
         pass
 
-def formatear_precio(precio):
-    if precio < 0.0001:
-        return f"${precio:.8f}"
-    if precio < 1:
-        return f"${precio:.5f}"
-    if precio < 10:
-        return f"${precio:.4f}"
-    return f"${precio:,.2f}"
-
 def main():
+    # Zona horaria local (Argentina UTC-3)
     tz_arg = timezone(timedelta(hours=-3))
-    ayer = datetime.now(tz_arg) - timedelta(days=1)
-    fecha_ayer = ayer.strftime('%Y-%m-%d')
-    json_diario = f'datos_ganadoras_{fecha_ayer}.json'
+    ahora = datetime.now(tz_arg)
+    hoy_str = ahora.strftime('%Y-%m-%d')
+    json_file = f'datos_ganadoras_{hoy_str}.json'
     
-    if not os.path.exists(json_diario):
-        print(f"No hay registros para la fecha {fecha_ayer}")
+    # Cargar acumulado del día actual (desde las 00:00 hs)
+    datos_acumulados = {'fecha': hoy_str, 'monedas': {}}
+    if os.path.exists(json_file):
+        try:
+            with open(json_file, 'r', encoding='utf-8') as f:
+                contenido = json.load(f)
+                if contenido.get('fecha') == hoy_str:
+                    datos_acumulados = contenido
+        except Exception:
+            pass
+
+    # Obtener datos actuales de Binance
+    mercado = obtener_datos_binance()
+    if not mercado:
         return
 
-    try:
-        with open(json_diario, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            monedas = list(data.get('monedas', {}).values())
-    except Exception as e:
-        print(f"Error leyendo el archivo diario: {e}")
-        return
-
-    # Ordenar de mayor a menor porcentaje acumulado del día
-    ranking = sorted(monedas, key=lambda x: x['change'], reverse=True)
-    
-    # Guardar archivo consolidado oficial para la semana
-    archivo_semanal_registro = f'resumen_final_{fecha_ayer}.json'
-    with open(archivo_semanal_registro, 'w', encoding='utf-8') as f:
-        json.dump({'fecha': fecha_ayer, 'ranking': ranking}, f, ensure_ascii=False, indent=4)
-
-    # Construir mensaje diario detallado incluyendo Precio Base ➔ Precio Actual
-    mensaje = f"🧠 **CENTRAL DE INTELIGENCIA DE MERCADO**\n"
-    mensaje += f"📊 **RESUMEN DIARIO DE GANADORAS** 🚀\n"
-    mensaje += f"📅 *Fecha:* `{fecha_ayer}`\n\n"
-    
-    for idx, item in enumerate(ranking, 1):
+    # Incorporar y actualizar el récord máximo de cada moneda durante el día sin duplicados
+    for item in mercado:
         ticker = item['ticker']
-        # Si ya viene calculado el precio base del bot de 15m lo usamos, sino lo calculamos matemáticamente
+        if ticker not in datos_acumulados['monedas'] or item['change'] > datos_acumulados['monedas'][ticker]['change']:
+            datos_acumulados['monedas'][ticker] = item
+
+    # Guardar el JSON del día actualizado en el repositorio
+    try:
+        with open(json_file, 'w', encoding='utf-8') as f:
+            json.dump(datos_acumulados, f, ensure_ascii=False, indent=4)
+    except Exception:
+        pass
+
+    # Ordenar estrictamente de mayor a menor porcentaje acumulado
+    ranking_dia = sorted(list(datos_acumulados['monedas'].values()), key=lambda x: x['change'], reverse=True)
+
+    # Guardar también el respaldo para el resumen semanal del domingo
+    archivo_semanal = f'resumen_final_{hoy_str}.json'
+    with open(archivo_semanal, 'w', encoding='utf-8') as f:
+        json.dump({'fecha': hoy_str, 'ranking': ranking_dia}, f, ensure_ascii=False, indent=4)
+
+    # Construir el mensaje en formato tabla limpia con Precio Base -> Actual
+    mensaje = f"🧠 **CENTRAL DE INTELIGENCIA DE MERCADO**\n"
+    mensaje += f"🚀 **GANADORAS ACUMULADAS DEL DÍA**\n"
+    mensaje += f"📅 *Fecha:* `{hoy_str}` (Actualizado en vivo c/15m)\n\n"
+    mensaje += "` N° |   NOMBRE   |      $ BASE ➔ ACTUAL      | % SUBIDA `\n"
+    mensaje += "`--------------------------------------------------`\n"
+    
+    for idx, item in enumerate(ranking_dia, 1):
+        ticker = item['ticker'].ljust(8)[:8]
         precio_act = item['price']
         cambio = item['change']
         base_price = item.get('base_price', precio_act / (1 + (cambio / 100)))
         
         base_fmt = formatear_precio(base_price)
         precio_fmt = formatear_precio(precio_act)
+        rango_precio = f"{base_fmt} ➔ {precio_fmt}".ljust(21)[:21]
+        porcentaje = f"+{cambio:.1f}%".ljust(7)[:7]
         
-        link_resumen = f"https://es.tradingview.com/symbols/{ticker}USDT/"
-        link_tradear = f"https://www.binance.com/es-AR/trade/{ticker}_USDT"
-        
-        mensaje += f"`{idx}.` **{ticker}** | Base: `{base_fmt}` ➔ `{precio_fmt}` | `+{cambio:.1f}%`\n"
-        mensaje += f" ┗ 📊 [Resumen IA]({link_resumen}) | 🔶 [Tradear]({link_tradear})\n\n"
-        
+        mensaje += f"`{idx:2d} | {ticker} | {rango_precio} | {porcentaje}`\n"
+
     enviar_telegram(mensaje)
 
 if __name__ == "__main__":
