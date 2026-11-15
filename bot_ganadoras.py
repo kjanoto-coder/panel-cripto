@@ -7,8 +7,7 @@ TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 TOPIC_ID_GANADORAS = os.getenv('TOPIC_ID_GANADORAS')
 
-# Lista negra ampliada para bloquear tokens que la API trae desfasados respecto al ranking visual web
-EXCLUDE_TOKENS = ['KDA', 'CLV', 'CREAM', 'UP', 'DOWN', 'BEAR', 'BULL', 'USDC', 'FDUSD', 'USDT', 'TUSD', 'DAI', 'BUSD', 'EUR', 'GBP', 'WBTC', 'AEUR', 'PAXG']
+EXCLUDE_TOKENS = ['CREAM', 'UP', 'DOWN', 'BEAR', 'BULL', 'USDC', 'FDUSD', 'USDT', 'TUSD', 'DAI', 'BUSD', 'EUR', 'GBP', 'WBTC', 'AEUR', 'PAXG']
 
 def obtener_datos_binance():
     headers = {
@@ -31,11 +30,15 @@ def obtener_datos_binance():
                     if t['symbol'].endswith('USDT'):
                         clean = t['symbol'].replace('USDT', '')
                         change = float(t['priceChangePercent'])
+                        price = float(t['lastPrice'])
                         
                         if clean not in EXCLUDE_TOKENS and change > 0:
+                            # Cálculo matemático exacto del precio base de hace 24h
+                            base_price = price / (1 + (change / 100))
                             mercado.append({
                                 'ticker': clean,
-                                'price': float(t['lastPrice']),
+                                'price': price,
+                                'base_price': base_price,
                                 'change': change
                             })
                 if mercado:
@@ -91,7 +94,6 @@ def main():
     if not mercado:
         return
 
-    # Tomar estrictamente el Top 7 ordenado por mayor porcentaje real
     ganadoras = sorted(mercado, key=lambda x: x['change'], reverse=True)[:7]
     fecha_actual = datetime.now().strftime('%Y-%m-%d')
     
@@ -102,14 +104,16 @@ def main():
     for item in ganadoras:
         ticker = item['ticker']
         precio_fmt = formatear_precio(item['price'])
+        base_fmt = formatear_precio(item['base_price'])
         circulos = generar_circulos(item['change'])
         cambio = item['change']
         
         link_resumen = f"https://es.tradingview.com/symbols/{ticker}USDT/"
         link_tradear = f"https://www.binance.com/es-AR/trade/{ticker}_USDT"
         
-        mensaje += f"• **{ticker}** | `{precio_fmt}` | {circulos} | `+{cambio:.1f}%`\n"
-        mensaje += f" ┗ 📊 [Resumen IA]({link_resumen}) | 🔶 [Tradear]({link_tradear})\n"
+        mensaje += f"• **{ticker}** | `{precio_fmt}` (Base: `{base_fmt}`)\n"
+        mensaje += f"   {circulos} | `+{cambio:.1f}%`\n"
+        mensaje += f" ┗ 📊 [Resumen IA]({link_resumen}) | 🔶 [Tradear]({link_tradear})\n\n"
     
     enviar_telegram(mensaje)
 
