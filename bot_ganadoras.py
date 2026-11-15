@@ -10,22 +10,18 @@ TOPIC_ID_GANADORAS = os.getenv('TOPIC_ID_GANADORAS')
 EXCLUDE_TOKENS = ['UP', 'DOWN', 'BEAR', 'BULL', 'USDC', 'FDUSD', 'USDT', 'TUSD', 'DAI', 'BUSD', 'EUR', 'GBP', 'WBTC', 'AEUR', 'PAXG']
 
 def obtener_datos_binance():
-    # Usamos cabeceras de navegador reales para evitar el bloqueo de Cloudflare/Binance en la nube
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json',
-        'Accept-Language': 'en-US,en;q=0.5'
+        'Accept': 'application/json'
     }
     
-    # Intentamos primero con la API pública oficial añadiendo cabeceras de navegador
     urls = [
         'https://api.binance.com/api/v3/ticker/24hr',
-        'https://data-api.binance.vision/api/v3/ticker/24hr' # Endpoint secundario oficial sin restricciones de IP
+        'https://data-api.binance.vision/api/v3/ticker/24hr'
     ]
 
     for url in urls:
         try:
-            print(f"Conectando a Binance vía: {url}")
             response = requests.get(url, headers=headers, timeout=15)
             if response.status_code == 200:
                 data = response.json()
@@ -33,16 +29,20 @@ def obtener_datos_binance():
                 for t in data:
                     if t['symbol'].endswith('USDT'):
                         clean = t['symbol'].replace('USDT', '')
-                        if clean not in EXCLUDE_TOKENS:
+                        volume = float(t['quoteVolume'])
+                        change = float(t['priceChangePercent'])
+                        
+                        # Filtro estricto idéntico al web de Binance: excluir tokens sin volumen real y cambios negativos/cero
+                        if clean not in EXCLUDE_TOKENS and volume >= 100000 and change > 0:
                             mercado.append({
                                 'ticker': clean,
                                 'price': float(t['lastPrice']),
-                                'change': float(t['priceChangePercent'])
+                                'change': change,
+                                'volume': volume
                             })
                 if mercado:
                     return mercado
         except Exception as e:
-            print(f"Fallo con el endpoint {url}: {e}")
             continue
             
     return []
@@ -70,7 +70,6 @@ def generar_circulos(cambio):
 
 def enviar_telegram(mensaje):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        print("Faltan las credenciales de Telegram en los secretos.")
         return
 
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
@@ -85,23 +84,16 @@ def enviar_telegram(mensaje):
         payload['message_thread_id'] = int(TOPIC_ID_GANADORAS)
 
     try:
-        res = requests.post(url, json=payload, timeout=10)
-        if res.ok:
-            print("Alerta de Ganadoras enviada con éxito a Telegram.")
-        else:
-            print(f"Error al enviar a Telegram: {res.text}")
-    except Exception as e:
-        print(f"Excepción al enviar mensaje: {e}")
+        requests.post(url, json=payload, timeout=10)
+    except Exception:
+        pass
 
 def main():
-    print("Iniciando escaneo en vivo de Top 7 Ganadoras...")
     mercado = obtener_datos_binance()
-    
     if not mercado:
-        print("No se pudieron obtener datos del mercado tras probar todos los canales.")
         return
 
-    # Ordenar estrictamente de mayor a menor y tomar el Top 7 exacto tal como en la web de Binance
+    # Ordenar estrictamente de mayor a menor y tomar el Top 7 exacto que coincide con la interfaz web
     ganadoras = sorted(mercado, key=lambda x: x['change'], reverse=True)[:7]
     fecha_actual = datetime.now().strftime('%Y-%m-%d')
     
