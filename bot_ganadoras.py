@@ -1,51 +1,28 @@
 import os
+import json
 import requests
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
-# Configuración de los secretos de Telegram desde GitHub Actions
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 TOPIC_ID_GANADORAS = os.getenv('TOPIC_ID_GANADORAS')
 
-EXCLUDE_TOKENS = ['KDA', 'CREAM', 'UP', 'DOWN', 'BEAR', 'BULL', 'USDC', 'FDUSD', 'USDT', 'TUSD', 'DAI', 'BUSD', 'EUR', 'GBP', 'WBTC', 'AEUR', 'PAXG']
-
-def obtener_datos_binance():
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json'
+def enviar_telegram(mensaje):
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        return
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        'chat_id': TELEGRAM_CHAT_ID,
+        'text': mensaje,
+        'parse_mode': 'Markdown',
+        'disable_web_page_preview': True
     }
-    
-    urls = [
-        'https://api.binance.com/api/v3/ticker/24hr',
-        'https://data-api.binance.vision/api/v3/ticker/24hr'
-    ]
-
-    for url in urls:
-        try:
-            response = requests.get(url, headers=headers, timeout=15)
-            if response.status_code == 200:
-                data = response.json()
-                mercado = []
-                for t in data:
-                    if t['symbol'].endswith('USDT'):
-                        clean = t['symbol'].replace('USDT', '')
-                        change = float(t['priceChangePercent'])
-                        price = float(t['lastPrice'])
-                        
-                        if clean not in EXCLUDE_TOKENS and change > 0:
-                            base_price = price / (1 + (change / 100))
-                            mercado.append({
-                                'ticker': clean,
-                                'price': price,
-                                'base_price': base_price,
-                                'change': change
-                            })
-                if mercado:
-                    return mercado
-        except Exception as e:
-            continue
-            
-    return []
+    if TOPIC_ID_GANADORAS:
+        payload['message_thread_id'] = int(TOPIC_ID_GANADORAS)
+    try:
+        requests.post(url, json=payload, timeout=10)
+    except Exception:
+        pass
 
 def formatear_precio(precio):
     if precio < 0.0001:
@@ -56,65 +33,53 @@ def formatear_precio(precio):
         return f"${precio:.4f}"
     return f"${precio:,.2f}"
 
-def generar_circulos(cambio):
-    if cambio >= 35:
-        return "🟢🟢🟢🟢🟢"
-    elif cambio >= 25:
-        return "🟢🟢🟢🟢⬜"
-    elif cambio >= 15:
-        return "🟢🟢🟢⬜⬜"
-    elif cambio >= 8:
-        return "🟢🟢⬜⬜⬜"
-    else:
-        return "🟢⬜⬜⬜⬜"
-
-def enviar_telegram(mensaje):
-    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        return
-
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {
-        'chat_id': TELEGRAM_CHAT_ID,
-        'text': mensaje,
-        'parse_mode': 'Markdown',
-        'disable_web_page_preview': True
-    }
+def main():
+    tz_arg = timezone(timedelta(hours=-3))
+    ayer = datetime.now(tz_arg) - timedelta(days=1)
+    fecha_ayer = ayer.strftime('%Y-%m-%d')
+    json_diario = f'datos_ganadoras_{fecha_ayer}.json'
     
-    if TOPIC_ID_GANADORAS:
-        payload['message_thread_id'] = int(TOPIC_ID_GANADORAS)
+    if not os.path.exists(json_diario):
+        print(f"No hay registros para la fecha {fecha_ayer}")
+        return
 
     try:
-        requests.post(url, json=payload, timeout=10)
-    except Exception:
-        pass
-
-def main():
-    mercado = obtener_datos_binance()
-    if not mercado:
+        with open(json_diario, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            monedas = list(data.get('monedas', {}).values())
+    except Exception as e:
+        print(f"Error leyendo el archivo diario: {e}")
         return
 
-    ganadoras = sorted(mercado, key=lambda x: x['change'], reverse=True)[:7]
-    fecha_actual = datetime.now().strftime('%Y-%m-%d')
+    # Ordenar de mayor a menor porcentaje acumulado del día
+    ranking = sorted(monedas, key=lambda x: x['change'], reverse=True)
     
-    mensaje = f"🧠 **CENTRAL DE INTELIGENCIA DE MERCADO (1/5)**\n"
-    mensaje += f"🚀 **1. TOP 7 GANADORAS (Detalle)**\n"
-    mensaje += f"📅 *Fecha:* `{fecha_actual}`\n\n"
+    # Guardar archivo consolidado oficial para la semana
+    archivo_semanal_registro = f'resumen_final_{fecha_ayer}.json'
+    with open(archivo_semanal_registro, 'w', encoding='utf-8') as f:
+        json.dump({'fecha': fecha_ayer, 'ranking': ranking}, f, ensure_ascii=False, indent=4)
+
+    # Construir mensaje diario detallado incluyendo Precio Base ➔ Precio Actual
+    mensaje = f"🧠 **CENTRAL DE INTELIGENCIA DE MERCADO**\n"
+    mensaje += f"📊 **RESUMEN DIARIO DE GANADORAS** 🚀\n"
+    mensaje += f"📅 *Fecha:* `{fecha_ayer}`\n\n"
     
-    for item in ganadoras:
+    for idx, item in enumerate(ranking, 1):
         ticker = item['ticker']
-        precio_fmt = formatear_precio(item['price'])
-        base_fmt = formatear_precio(item['base_price'])
-        circulos = generar_circulos(item['change'])
+        # Si ya viene calculado el precio base del bot de 15m lo usamos, sino lo calculamos matemáticamente
+        precio_act = item['price']
         cambio = item['change']
+        base_price = item.get('base_price', precio_act / (1 + (cambio / 100)))
+        
+        base_fmt = formatear_precio(base_price)
+        precio_fmt = formatear_precio(precio_act)
         
         link_resumen = f"https://es.tradingview.com/symbols/{ticker}USDT/"
         link_tradear = f"https://www.binance.com/es-AR/trade/{ticker}_USDT"
         
-        # Orden solicitado: Ticker | Base -> Actual | Porcentaje
-        mensaje += f"• **{ticker}** | Base: `{base_fmt}` ➔ `{precio_fmt}` | `+{cambio:.1f}%`\n"
-        mensaje += f"   {circulos}\n"
+        mensaje += f"`{idx}.` **{ticker}** | Base: `{base_fmt}` ➔ `{precio_fmt}` | `+{cambio:.1f}%`\n"
         mensaje += f" ┗ 📊 [Resumen IA]({link_resumen}) | 🔶 [Tradear]({link_tradear})\n\n"
-    
+        
     enviar_telegram(mensaje)
 
 if __name__ == "__main__":
