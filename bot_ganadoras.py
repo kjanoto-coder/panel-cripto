@@ -29,16 +29,14 @@ def obtener_datos_binance():
                 for t in data:
                     if t['symbol'].endswith('USDT'):
                         clean = t['symbol'].replace('USDT', '')
-                        volume = float(t['quoteVolume'])
                         change = float(t['priceChangePercent'])
                         
-                        # Filtro estricto idéntico al web de Binance: excluir tokens sin volumen real y cambios negativos/cero
-                        if clean not in EXCLUDE_TOKENS and volume >= 100000 and change > 0:
+                        # Sin filtros raros de volumen: solo excluir apalancados/stables y variaciones positivas
+                        if clean not in EXCLUDE_TOKENS and change > 0:
                             mercado.append({
                                 'ticker': clean,
                                 'price': float(t['lastPrice']),
-                                'change': change,
-                                'volume': volume
+                                'change': change
                             })
                 if mercado:
                     return mercado
@@ -93,7 +91,7 @@ def main():
     if not mercado:
         return
 
-    # Ordenar estrictamente de mayor a menor y tomar el Top 7 exacto que coincide con la interfaz web
+    # Tomar exactamente el Top 7 ordenado por mayor porcentaje puro
     ganadoras = sorted(mercado, key=lambda x: x['change'], reverse=True)[:7]
     fecha_actual = datetime.now().strftime('%Y-%m-%d')
     
