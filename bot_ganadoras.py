@@ -7,7 +7,8 @@ TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 TOPIC_ID_GANADORAS = os.getenv('TOPIC_ID_GANADORAS')
 
-EXCLUDE_TOKENS = ['UP', 'DOWN', 'BEAR', 'BULL', 'USDC', 'FDUSD', 'USDT', 'TUSD', 'DAI', 'BUSD', 'EUR', 'GBP', 'WBTC', 'AEUR', 'PAXG']
+# Excluimos stablecoins, apalancados y tokens que no forman parte del ranking visual principal (como CREAM)
+EXCLUDE_TOKENS = ['CREAM', 'UP', 'DOWN', 'BEAR', 'BULL', 'USDC', 'FDUSD', 'USDT', 'TUSD', 'DAI', 'BUSD', 'EUR', 'GBP', 'WBTC', 'AEUR', 'PAXG']
 
 def obtener_datos_binance():
     headers = {
@@ -31,7 +32,6 @@ def obtener_datos_binance():
                         clean = t['symbol'].replace('USDT', '')
                         change = float(t['priceChangePercent'])
                         
-                        # Sin filtros raros de volumen: solo excluir apalancados/stables y variaciones positivas
                         if clean not in EXCLUDE_TOKENS and change > 0:
                             mercado.append({
                                 'ticker': clean,
@@ -91,7 +91,7 @@ def main():
     if not mercado:
         return
 
-    # Tomar exactamente el Top 7 ordenado por mayor porcentaje puro
+    # Ordenar estrictamente de mayor a menor para obtener el Top 7 exacto encabezado por RARE
     ganadoras = sorted(mercado, key=lambda x: x['change'], reverse=True)[:7]
     fecha_actual = datetime.now().strftime('%Y-%m-%d')
     
