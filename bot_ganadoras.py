@@ -7,8 +7,8 @@ TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 TOPIC_ID_GANADORAS = os.getenv('TOPIC_ID_GANADORAS')
 
-# Excluimos stablecoins, apalancados y tokens que no forman parte del ranking visual principal (como CREAM)
-EXCLUDE_TOKENS = ['CREAM', 'UP', 'DOWN', 'BEAR', 'BULL', 'USDC', 'FDUSD', 'USDT', 'TUSD', 'DAI', 'BUSD', 'EUR', 'GBP', 'WBTC', 'AEUR', 'PAXG']
+# Lista negra ampliada para bloquear tokens que la API trae desfasados respecto al ranking visual web
+EXCLUDE_TOKENS = ['KDA', 'CLV', 'CREAM', 'UP', 'DOWN', 'BEAR', 'BULL', 'USDC', 'FDUSD', 'USDT', 'TUSD', 'DAI', 'BUSD', 'EUR', 'GBP', 'WBTC', 'AEUR', 'PAXG']
 
 def obtener_datos_binance():
     headers = {
@@ -91,7 +91,7 @@ def main():
     if not mercado:
         return
 
-    # Ordenar estrictamente de mayor a menor para obtener el Top 7 exacto encabezado por RARE
+    # Tomar estrictamente el Top 7 ordenado por mayor porcentaje real
     ganadoras = sorted(mercado, key=lambda x: x['change'], reverse=True)[:7]
     fecha_actual = datetime.now().strftime('%Y-%m-%d')
     
