@@ -25,7 +25,6 @@ def registrar_en_csv(ticker, precio_actual, rendimiento):
 
 def enviar_telegram(mensaje):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        print("❌ Faltan credenciales de Telegram.")
         return
     
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
@@ -43,16 +42,11 @@ def enviar_telegram(mensaje):
             pass
             
     try:
-        response = requests.post(url, json=payload, timeout=15)
-        if response.status_code == 200:
-            print("✅ Mensaje enviado a Telegram con éxito.")
-        else:
-            print(f"❌ Error de Telegram ({response.status_code}): {response.text}")
+        requests.post(url, json=payload, timeout=15)
     except Exception as e:
-        print(f"❌ Excepción conectando a Telegram: {e}")
+        print(f"Error Telegram: {e}")
 
 def obtener_datos_binance():
-    # Espejos oficiales para evitar bloqueos geográficos en GitHub Actions
     urls = [
         "https://data-api.binance.vision/api/v3/ticker/24hr",
         "https://api1.binance.com/api/v3/ticker/24hr",
@@ -82,14 +76,13 @@ def generar_bolillas(rendimiento):
 def main():
     data = obtener_datos_binance()
     if not data:
-        print("❌ Error crítico: Binance no devolvió datos.")
         return
 
     ganadoras = []
     for t in data:
         sym = t.get('symbol', '')
-        # Tomamos exclusivamente los pares contra USDT que publica Binance de forma oficial
-        if sym.endswith('USDT') and not any(sub in sym for sub in ['UP', 'DOWN', 'BULL', 'BEAR']):
+        # Excluimos pares apalancados (UP, DOWN, BULL, BEAR) y filtramos estrictamente contra USDT
+        if sym.endswith('USDT') and not any(x in sym for x in ['UP', 'DOWN', 'BULL', 'BEAR']):
             ticker = sym.replace('USDT', '')
             try:
                 precio_actual = float(t.get('lastPrice', 0))
@@ -98,8 +91,8 @@ def main():
             except ValueError:
                 continue
             
-            # Filtro estricto para asegurar que sean monedas con movimiento real y volumen considerable
-            if cambio_24h > 0 and volumen_usdt >= 100000:
+            # Filtro estricto de mercado real (excluye tokens con anomalías o volumen bajo)
+            if cambio_24h > 0 and volumen_usdt >= 200000:
                 ganadoras.append({
                     "ticker": ticker,
                     "precio": precio_actual,
@@ -107,10 +100,9 @@ def main():
                 })
 
     if not ganadoras:
-        print("⚠️ No hay suficientes ganadoras para mostrar.")
         return
 
-    # Ordenar exactamente de mayor a menor rendimiento (Top 7 oficial idéntico a Binance)
+    # Ordenar de mayor a menor rendimiento exactamente igual al panel oficial
     ganadoras_ordenadas = sorted(ganadoras, key=lambda x: x['rendimiento'], reverse=True)
 
     tz_arg = timezone(timedelta(hours=-3))
@@ -124,7 +116,7 @@ def main():
         precio_str = f"${g['precio']:.5f}" if g['precio'] < 1.0 else f"${g['precio']:.2f}"
         bolillas = generar_bolillas(g['rendimiento'])
         
-        # Guardamos en el archivo CSV la información oficial exacta para que el reporte diario la consuma sin alteraciones
+        # Guardamos en el CSV los datos limpios y exactos para el reporte diario
         registrar_en_csv(g['ticker'], g['precio'], g['rendimiento'])
 
         mensaje += f"• **{g['ticker']}** | Precio: `{precio_str}` | `+{g['rendimiento']:.2f}%`\n"
