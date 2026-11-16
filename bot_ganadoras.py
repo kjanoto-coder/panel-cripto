@@ -66,72 +66,75 @@ def enviar_telegram(mensaje):
         payload['message_thread_id'] = int(TOPIC_ID_GANADORAS)
     try:
         requests.post(url, json=payload, timeout=10)
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Error enviando a Telegram: {e}")
 
 def main():
-    # Zona horaria local (Argentina UTC-3)
     tz_arg = timezone(timedelta(hours=-3))
     ahora = datetime.now(tz_arg)
     hoy_str = ahora.strftime('%Y-%m-%d')
     json_file = f'datos_ganadoras_{hoy_str}.json'
     
-    # Cargar acumulado del día actual (desde las 00:00 hs)
+    # Cargar acumulado previo del día si existe
     datos_acumulados = {'fecha': hoy_str, 'monedas': {}}
     if os.path.exists(json_file):
         try:
             with open(json_file, 'r', encoding='utf-8') as f:
                 contenido = json.load(f)
-                if contenido.get('fecha') == hoy_str:
+                if isinstance(contenido, dict) and 'monedas' in contenido:
                     datos_acumulados = contenido
         except Exception:
             pass
 
-    # Obtener datos actuales de Binance
+    # Obtener escaneo actual de Binance
     mercado = obtener_datos_binance()
     if not mercado:
+        print("No se pudieron obtener datos de Binance.")
         return
 
-    # Incorporar y actualizar el récord máximo de cada moneda durante el día sin duplicados
+    # Actualizar o incorporar las monedas encontradas conservando el mayor porcentaje del día
     for item in mercado:
         ticker = item['ticker']
         if ticker not in datos_acumulados['monedas'] or item['change'] > datos_acumulados['monedas'][ticker]['change']:
             datos_acumulados['monedas'][ticker] = item
 
-    # Guardar el JSON del día actualizado en el repositorio
+    # Guardar el JSON actualizado localmente para el commit
     try:
         with open(json_file, 'w', encoding='utf-8') as f:
             json.dump(datos_acumulados, f, ensure_ascii=False, indent=4)
     except Exception:
         pass
 
-    # Ordenar estrictamente de mayor a menor porcentaje acumulado
+    # Ordenar de mayor a menor porcentaje
     ranking_dia = sorted(list(datos_acumulados['monedas'].values()), key=lambda x: x['change'], reverse=True)
 
-    # Guardar también el respaldo para el resumen semanal del domingo
+    # Guardar también el respaldo semanal
     archivo_semanal = f'resumen_final_{hoy_str}.json'
-    with open(archivo_semanal, 'w', encoding='utf-8') as f:
-        json.dump({'fecha': hoy_str, 'ranking': ranking_dia}, f, ensure_ascii=False, indent=4)
+    try:
+        with open(archivo_semanal, 'w', encoding='utf-8') as f:
+            json.dump({'fecha': hoy_str, 'ranking': ranking_dia}, f, ensure_ascii=False, indent=4)
+    except Exception:
+        pass
 
-    # Construir el mensaje en formato tabla limpia con Precio Base -> Actual
-    mensaje = f"🧠 **CENTRAL DE INTELIGENCIA DE MERCADO**\n"
-    mensaje += f"🚀 **GANADORAS ACUMULADAS DEL DÍA**\n"
-    mensaje += f"📅 *Fecha:* `{hoy_str}` (Actualizado en vivo c/15m)\n\n"
-    mensaje += "` N° |   NOMBRE   |      $ BASE ➔ ACTUAL      | % SUBIDA `\n"
-    mensaje += "`--------------------------------------------------`\n"
+    # Construir mensaje con el Top acumulado del día
+    mensaje = f"🧠 **CENTRAL DE INTELIGENCIA DE MERCADO (1/5)**\n"
+    mensaje += f"🚀 **1. TOP GANADORAS ACUMULADAS**\n"
+    mensaje += f"📅 *Fecha:* `{hoy_str}`\n\n"
     
-    for idx, item in enumerate(ranking_dia, 1):
-        ticker = item['ticker'].ljust(8)[:8]
+    for idx, item in enumerate(ranking_dia[:10], 1): # Mostramos el top consolidado
+        ticker = item['ticker']
         precio_act = item['price']
         cambio = item['change']
         base_price = item.get('base_price', precio_act / (1 + (cambio / 100)))
         
         base_fmt = formatear_precio(base_price)
         precio_fmt = formatear_precio(precio_act)
-        rango_precio = f"{base_fmt} ➔ {precio_fmt}".ljust(21)[:21]
-        porcentaje = f"+{cambio:.1f}%".ljust(7)[:7]
         
-        mensaje += f"`{idx:2d} | {ticker} | {rango_precio} | {porcentaje}`\n"
+        link_resumen = f"https://es.tradingview.com/symbols/{ticker}USDT/"
+        link_tradear = f"https://www.binance.com/es-AR/trade/{ticker}_USDT"
+        
+        mensaje += f"• **{ticker}** | Base: `{base_fmt}` ➔ `{precio_fmt}` | `+{cambio:.1f}%`\n"
+        mensaje += f" ┗ 📊 [Resumen IA]({link_resumen}) | 🔶 [Tradear]({link_tradear})\n\n"
 
     enviar_telegram(mensaje)
 
