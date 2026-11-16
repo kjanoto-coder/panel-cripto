@@ -2,8 +2,8 @@ name: Bot Monedas Ganadoras
 
 on:
   schedule:
-    - cron: '*/10 * * * *' # Se ejecuta cada 10 minutos en UTC
-  workflow_dispatch:      # Permite forzarlo manualmente cuando quieras
+    - cron: '*/15 * * * *' # Se ejecuta cada 15 minutos de forma automática
+  workflow_dispatch:      # Permite la ejecución manual cuando lo requieras
 
 jobs:
   run-bot:
