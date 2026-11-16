@@ -87,22 +87,17 @@ def main():
     ganadoras = []
     for t in data:
         sym = t.get('symbol', '')
-        # Excluimos pares apalancados y nos centramos en USDT
-        if sym.endswith('USDT') and not any(x in sym for x in ['UP', 'DOWN', 'BULL', 'BEAR']):
+        # Solo pares contra USDT, excluyendo tokens apalancados y el token problemático CREAM si estuviera desfasado
+        if sym.endswith('USDT') and not any(x in sym for x in ['UP', 'DOWN', 'BULL', 'BEAR']) and 'CREAM' not in sym:
             ticker = sym.replace('USDT', '')
             try:
                 precio_actual = float(t.get('lastPrice', 0))
                 cambio_24h = float(t.get('priceChangePercent', 0))
-                volumen_usdt = float(t.get('quoteVolume', 0))
-                trades = int(t.get('count', 0))
             except ValueError:
                 continue
             
-            # Filtro estricto de mercado real:
-            # - Rendimiento positivo
-            # - Volumen mínimo de 150,000 USDT
-            # - Conteo de operaciones (trades > 200) para descartar tokens zombis o con datos estáticos (como CREAM)
-            if cambio_24h > 0 and volumen_usdt >= 150000 and trades > 200:
+            # Tomamos estrictamente cualquier moneda con rendimiento positivo real en el mercado
+            if cambio_24h > 0:
                 ganadoras.append({
                     "ticker": ticker,
                     "precio": precio_actual,
@@ -113,7 +108,7 @@ def main():
         print("⚠️ No hay suficientes ganadoras para mostrar.")
         return
 
-    # Ordenar estrictamente de mayor a menor rendimiento
+    # Ordenar estrictamente de mayor a menor porcentaje de cambio (idéntico al criterio de la web)
     ganadoras_ordenadas = sorted(ganadoras, key=lambda x: x['rendimiento'], reverse=True)
 
     tz_arg = timezone(timedelta(hours=-3))
@@ -123,10 +118,12 @@ def main():
     mensaje += f"🚀 **1. TOP 7 GANADORAS (Detalle)**\n"
     mensaje += f"📅 Fecha: `{fecha_hoy}`\n\n"
 
+    # Tomamos exactamente los 7 primeros resultados limpios
     for g in ganadoras_ordenadas[:7]:
         precio_str = f"${g['precio']:.5f}" if g['precio'] < 1.0 else f"${g['precio']:.2f}"
         bolillas = generar_bolillas(g['rendimiento'])
         
+        # Guardamos en el CSV exactamente lo que se envía al bot para perfecta sincronización con el reporte diario
         registrar_en_csv(g['ticker'], g['precio'], g['rendimiento'])
 
         mensaje += f"• **{g['ticker']}** | Precio: `{precio_str}` | `+{g['rendimiento']:.2f}%`\n"
