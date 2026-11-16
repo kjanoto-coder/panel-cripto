@@ -1,13 +1,12 @@
 import os
-import json
 import requests
-from datetime import datetime, timezone, timedelta
 
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 TOPIC_ID_GANADORAS = os.getenv('TOPIC_ID_GANADORAS')
 
-EXCLUDE_TOKENS = ['CREAM', 'UP', 'DOWN', 'BEAR', 'BULL', 'USDC', 'FDUSD', 'USDT', 'TUSD', 'DAI', 'BUSD', 'EUR', 'GBP', 'WBTC', 'AEUR', 'PAXG']
+# Lista negra estricta para matchear exactamente con Binance (incluyendo KDA)
+EXCLUDE_TOKENS = ['CREAM', 'KDA', 'CLV', 'UP', 'DOWN', 'BEAR', 'BULL', 'USDC', 'FDUSD', 'USDT', 'TUSD', 'DAI', 'BUSD', 'EUR', 'GBP', 'WBTC', 'AEUR', 'PAXG']
 
 def obtener_datos_binance():
     headers = {
@@ -29,8 +28,9 @@ def obtener_datos_binance():
                         clean = t['symbol'].replace('USDT', '')
                         change = float(t['priceChangePercent'])
                         price = float(t['lastPrice'])
+                        
+                        # Filtramos la lista negra y solo tomamos las que están en positivo
                         if clean not in EXCLUDE_TOKENS and change > 0:
-                            # Cálculo exacto del precio base oficial de Binance
                             base_price = price / (1 + (change / 100))
                             mercado.append({
                                 'ticker': clean,
@@ -87,12 +87,12 @@ def main():
     if not mercado:
         return
 
-    # Ordenar estrictamente de mayor a menor según el % real directo de Binance
+    # Ordenar estrictamente de mayor a menor según el % real directo de Binance y tomar el Top 7
     ganadoras = sorted(mercado, key=lambda x: x['change'], reverse=True)[:7]
     
+    from datetime import datetime, timezone, timedelta
     tz_arg = timezone(timedelta(hours=-3))
-    ahora = datetime.now(tz_arg)
-    fecha_actual = ahora.strftime('%Y-%m-%d')
+    fecha_actual = datetime.now(tz_arg).strftime('%Y-%m-%d')
     
     mensaje = f"🧠 **CENTRAL DE INTELIGENCIA DE MERCADO (1/5)**\n"
     mensaje += f"🚀 **1. TOP 7 GANADORAS (Detalle)**\n"
