@@ -7,7 +7,23 @@ TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 TOPIC_ID_GANADORAS = os.getenv('TOPIC_ID_GANADORAS')
 
-print("📊 Generando reporte diario de Monedas Ganadoras...")
+HISTORIAL_CSV = "historico_alertas.csv"
+
+print("🔍 Iniciando Bot de Monedas Ganadoras (Ciclo de 5 min)...")
+
+def registrar_en_csv(ticker, precio, rendimiento):
+    tz_arg = timezone(timedelta(hours=-3))
+    ahora = datetime.now(tz_arg).strftime('%Y-%m-%d %H:%M:%S')
+    
+    existe = os.path.exists(HISTORIAL_CSV)
+    try:
+        with open(HISTORIAL_CSV, mode='a', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            if not existe:
+                writer.writerow(['fecha_hora', 'ticker', 'precio', 'rendimiento'])
+            writer.writerow([ahora, ticker, precio, rendimiento])
+    except Exception as e:
+        print(f"⚠️ Error al guardar en el CSV histórico: {e}")
 
 def enviar_telegram(mensaje):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
@@ -31,60 +47,68 @@ def enviar_telegram(mensaje):
     try:
         response = requests.post(url, json=payload, timeout=15)
         if response.status_code == 200:
-            print("✅ Reporte de ganadoras enviado a Telegram con éxito.")
+            print("✅ Alerta enviada a Telegram con éxito.")
         else:
             print(f"❌ Error de Telegram ({response.status_code}): {response.text}")
     except Exception as e:
         print(f"❌ Excepción conectando a Telegram: {e}")
 
+def obtener_datos_binance():
+    urls = [
+        "https://api.binance.com/api/v3/ticker/24hr",
+        "https://data-api.binance.vision/api/v3/ticker/24hr"
+    ]
+    for url in urls:
+        try:
+            res = requests.get(url, timeout=15)
+            if res.status_code == 200:
+                return res.json()
+        except Exception:
+            continue
+    return []
+
 def main():
-    archivo_csv = "historico_alertas.csv"
-    
-    if not os.path.exists(archivo_csv) or os.path.getsize(archivo_csv) == 0:
-        print("⚠️ No hay registros acumulados en el archivo histórico.")
+    data = obtener_datos_binance()
+    if not data:
+        print("❌ No se pudieron obtener datos de Binance.")
         return
 
-    monedas_dia = {}
+    ganadoras_encontradas = []
+
+    for t in data:
+        sym = t.get('symbol', '')
+        if sym.endswith('USDT'):
+            ticker = sym.replace('USDT', '')
+            precio_actual = float(t.get('lastPrice', 0))
+            cambio_24h = float(t.get('priceChangePercent', 0))
+            
+            # Filtro de ganadoras (ej: monedas con rendimiento positivo destacado, ajusta el umbral si es necesario)
+            if cambio_24h >= 5.0:
+                precio_base = precio_actual / (1 + (cambio_24h / 100))
+                ganadoras_encontradas.append({
+                    "ticker": ticker,
+                    "precio": precio_actual,
+                    "rendimiento": cambio_24h
+                })
+                # Guardamos de inmediato en el archivo compartido para el reporte diario
+                registrar_en_csv(ticker, precio_actual, cambio_24h)
+
+    if not ganadoras_encontradas:
+        print("ℹ️ No hay suficientes ganadoras en este ciclo para reportar.")
+        return
+
+    # Ordenar de mayor a menor rendimiento para el mensaje en vivo
+    ganadoras_ordenadas = sorted(ganadoras_encontradas, key=lambda x: x['rendimiento'], reverse=True)
+
     tz_arg = timezone(timedelta(hours=-3))
-    ayer_str = (datetime.now(tz_arg) - timedelta(days=1)).strftime('%Y-%m-%d')
+    fecha_hora_actual = datetime.now(tz_arg).strftime('%Y-%m-%d %H:%M')
 
-    try:
-        with open(archivo_csv, mode='r', encoding='utf-8') as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                fecha_hora = row.get('fecha_hora', '')
-                if ayer_str in fecha_hora:
-                    ticker = row.get('ticker', '').upper()
-                    precio = float(row.get('precio', 0))
-                    rendimiento = float(row.get('rendimiento', 0))
-                    
-                    if ticker not in monedas_dia or rendimiento > monedas_dia[ticker]['rendimiento']:
-                        monedas_dia[ticker] = {
-                            "ticker": ticker,
-                            "precio": precio,
-                            "rendimiento": rendimiento
-                        }
-    except Exception as e:
-        print(f"❌ Error leyendo el archivo CSV: {e}")
-        return
+    mensaje = f"💰 **MONEDAS GANADORAS (EN VIVO)**\n"
+    mensaje += f"⏱ *Hora:* `{fecha_hora_actual}`\n\n"
 
-    if not monedas_dia:
-        print(f"⚠️ No se encontraron registros para la fecha {ayer_str}.")
-        return
-
-    # Ordenar estrictamente de mayor a menor rendimiento (% subida)
-    lista_ganadoras = list(monedas_dia.values())
-    lista_ganadoras_ordenada = sorted(lista_ganadoras, key=lambda x: x['rendimiento'], reverse=True)
-
-    # Construir el mensaje con el formato exacto de tu tabla
-    mensaje = f"🏆 **REPORTE DIARIO • MONEDAS GANADORAS**\n"
-    mensaje += f"📅 *Fecha:* `{ayer_str}`\n\n"
-    mensaje += f"` N°  | NOMBRE   | $ valor    | % subida `\n"
-    mensaje += f"`----------------------------------`\n"
-
-    for idx, g in enumerate(lista_ganadoras_ordenada, 1):
-        precio_str = f"${g['precio']:.4f}"
-        mensaje += f"` {idx:<3} | {g['ticker']:<8} | {precio_str:<10} | +{g['rendimiento']:.2f}% `\n"
+    for g in ganadoras_ordenadas[:7]: # Top 7 en vivo por ejemplo
+        precio_str = f"${g['precio']:.4f}" if g['precio'] < 1.0 else f"${g['precio']:.2f}"
+        mensaje += f"• **{g['ticker']}** | Valor: `{precio_str}` | 🚀 `+{g['rendimiento']:.2f}%`\n"
 
     enviar_telegram(mensaje)
 
