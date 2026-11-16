@@ -9,8 +9,6 @@ TOPIC_ID_GANADORAS = os.getenv('TOPIC_ID_GANADORAS')
 
 HISTORIAL_CSV = "historico_alertas.csv"
 
-print("🔍 Iniciando ejecución del Bot de Ganadoras...")
-
 def registrar_en_csv(ticker, precio_base, precio_actual, rendimiento):
     tz_arg = timezone(timedelta(hours=-3))
     ahora = datetime.now(tz_arg).strftime('%Y-%m-%d %H:%M:%S')
@@ -68,10 +66,23 @@ def obtener_datos_binance():
             continue
     return []
 
+def generar_bolillas(rendimiento):
+    # Genera los 5 círculos (verdes o grises) según el porcentaje de subida
+    if rendimiento >= 50:
+        return "🟢🟢🟢🟢🟢"
+    elif rendimiento >= 30:
+        return "🟢🟢🟢🟢⬜"
+    elif rendimiento >= 15:
+        return "🟢🟢🟢⬜⬜"
+    elif rendimiento >= 8:
+        return "🟢🟢⬜⬜⬜"
+    else:
+        return "🟢⬜⬜⬜⬜"
+
 def main():
     data = obtener_datos_binance()
     if not data:
-        print("❌ Error crítico: Binance no devolvió datos (posible bloqueo 451 en el servidor).")
+        print("❌ Error crítico: Binance no devolvió datos.")
         return
 
     ganadoras = []
@@ -85,7 +96,8 @@ def main():
             except ValueError:
                 continue
             
-            if cambio_24h > 0:
+            # Filtro para captar las ganadoras destacadas
+            if cambio_24h >= 5.0:
                 precio_base = precio_actual / (1 + (cambio_24h / 100))
                 ganadoras.append({
                     "ticker": ticker,
@@ -96,20 +108,27 @@ def main():
                 registrar_en_csv(ticker, precio_base, precio_actual, cambio_24h)
 
     if not ganadoras:
-        print("⚠️ No se encontraron monedas con rendimiento positivo.")
+        print("⚠️ No hay suficientes ganadoras en este ciclo.")
         return
 
     ganadoras_ordenadas = sorted(ganadoras, key=lambda x: x['rendimiento'], reverse=True)
 
     tz_arg = timezone(timedelta(hours=-3))
-    hora_actual = datetime.now(tz_arg).strftime('%H:%M')
-    
-    mensaje = f"💰 **MONEDAS GANADORAS (EN VIVO)** ⏱ `{hora_actual}`\n\n"
+    fecha_hoy = datetime.now(tz_arg).strftime('%Y-%m-%d')
+
+    # Estructura idéntica a tu imagen de referencia
+    mensaje = f"🧠 **CENTRAL DE INTELIGENCIA DE MERCADO (1/5)**\n"
+    mensaje += f"🚀 **1. TOP 7 GANADORAS (Detalle)**\n"
+    mensaje += f"📅 Fecha: `{fecha_hoy}`\n\n"
+
     for g in ganadoras_ordenadas[:7]:
         base_str = f"${g['base']:.5f}" if g['base'] < 1.0 else f"${g['base']:.2f}"
         actual_str = f"${g['actual']:.5f}" if g['actual'] < 1.0 else f"${g['actual']:.2f}"
+        bolillas = generar_bolillas(g['rendimiento'])
         
         mensaje += f"• **{g['ticker']}** | Base: `{base_str}` ➔ `{actual_str}` | `+{g['rendimiento']:.2f}%`\n"
+        mensaje += f"{bolillas}\n"
+        mensaje += f"┗ 📊 [Resumen IA](https://t.me/) | 🔶 Tradear\n\n"
 
     enviar_telegram(mensaje)
 
