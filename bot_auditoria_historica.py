@@ -65,8 +65,9 @@ def enviar_telegram(mensaje):
         print(f"❌ Error enviando a Telegram: {e}")
 
 def main():
-    if not os.path.exists(HISTORIAL_FILE):
-        print("❌ No se encontró el archivo datos_pre_explosion_ia.json")
+    if not os.path.exists(HISTORIAL_FILE) or os.path.getsize(HISTORIAL_FILE) == 0:
+        print("⚠️ El archivo 'datos_pre_explosion_ia.json' no existe o está vacío actualmente.")
+        enviar_telegram("⚠️ *Auditoría Global:* El archivo `datos_pre_explosion_ia.json` está vacío en este momento. Esperando la próxima ejecución del bot principal para recopilar datos.")
         return
 
     try:
@@ -76,7 +77,6 @@ def main():
         print(f"❌ Error al leer el JSON: {e}")
         return
 
-    # Extraer la lista de candidatas del JSON
     registros = []
     if isinstance(contenido, dict):
         registros = contenido.get("top_candidatas", [])
@@ -84,7 +84,7 @@ def main():
         registros = contenido
 
     if not registros:
-        print("⚠️ El archivo no contiene elementos en 'top_candidatas'.")
+        print("⚠️ El archivo JSON no contiene registros en 'top_candidatas'.")
         return
 
     precios_actuales = obtener_precios_actuales()
@@ -118,7 +118,6 @@ def main():
         precio_orig = float(item.get('price', 0))
         fase_raw = str(item.get('fase', 'VERDE')).upper()
         
-        # Mapear fase
         if "ROJO" in fase_raw:
             color = "ROJO"
         elif "AMARILLO" in fase_raw:
@@ -143,9 +142,8 @@ def main():
                 resultados_por_color[color]["ganadoras"] += 1
             resultados_por_color[color]["gemas"].append(item_info)
 
-    # Construir reporte para Telegram
     mensaje = f"📈 **AUDITORÍA DE PRE-EXPLOSIÓN (BACKTESTING)**\n"
-    mensaje += f"📅 *Fecha de Origen de Datos:* `{fecha_orig_str}` (`{dias_transcurridos} días atrás`)\n"
+    mensaje += f"📅 *Fecha de Origen:* `{fecha_orig_str}` (`{dias_transcurridos} días atrás`)\n"
     mensaje += f"📅 *Fecha de Corte:* `{hoy_str}`\n\n"
 
     etiquetas_color = {
