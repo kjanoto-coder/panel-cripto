@@ -1,5 +1,6 @@
 import os
 import requests
+from datetime import datetime, timezone, timedelta
 
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
@@ -90,7 +91,6 @@ def main():
     # Ordenar estrictamente de mayor a menor según el % real directo de Binance y tomar el Top 7
     ganadoras = sorted(mercado, key=lambda x: x['change'], reverse=True)[:7]
     
-    from datetime import datetime, timezone, timedelta
     tz_arg = timezone(timedelta(hours=-3))
     fecha_actual = datetime.now(tz_arg).strftime('%Y-%m-%d')
     
