@@ -2,8 +2,9 @@ name: Bot Monedas Ganadoras
 
 on:
   schedule:
-    - cron: '*/5 * * * *'
-  workflow_dispatch: # Vital para que no pierda la sincronización con GitHub
+    # Se ejecuta de forma estricta cada 10 minutos
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # Mantiene el botón para forzarlo de forma manual cuando quieras
 
 jobs:
   run-bot:
@@ -29,9 +30,3 @@ jobs:
           TOPIC_ID_GANADORAS: ${{ secrets.TOPIC_ID_GANADORAS }}
         run: |
           python bot_ganadoras.py
-
-      - name: Auto-commit del historial CSV
-        uses: stefanzweifel/git-auto-commit-action@v4
-        with:
-          commit_message: "Auto-update: Registro en historico_alertas.csv [skip ci]"
-          file_pattern: "historico_alertas.csv"
