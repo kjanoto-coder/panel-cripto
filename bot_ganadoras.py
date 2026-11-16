@@ -22,13 +22,12 @@ def registrar_en_csv(ticker, precio_base, precio_actual, rendimiento):
             if not existe:
                 writer.writerow(['fecha_hora', 'ticker', 'precio_base', 'precio_actual', 'rendimiento'])
             writer.writerow([ahora, ticker, precio_base, precio_actual, rendimiento])
-        print(f"📝 Registrado en CSV: {ticker} (+{rendimiento:.2f}%)")
     except Exception as e:
         print(f"⚠️ Error al guardar en CSV: {e}")
 
 def enviar_telegram(mensaje):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        print("❌ Faltan credenciales de Telegram en las variables de entorno.")
+        print("❌ Faltan credenciales de Telegram.")
         return
     
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
@@ -54,15 +53,25 @@ def enviar_telegram(mensaje):
     except Exception as e:
         print(f"❌ Excepción conectando a Telegram: {e}")
 
+def obtener_datos_binance():
+    urls = [
+        "https://data-api.binance.vision/api/v3/ticker/24hr",
+        "https://api1.binance.com/api/v3/ticker/24hr",
+        "https://api.binance.com/api/v3/ticker/24hr"
+    ]
+    for url in urls:
+        try:
+            res = requests.get(url, timeout=15)
+            if res.status_code == 200:
+                return res.json()
+        except Exception:
+            continue
+    return []
+
 def main():
-    try:
-        res = requests.get("https://api.binance.com/api/v3/ticker/24hr", timeout=15)
-        if res.status_code != 200:
-            print(f"❌ Error al conectar con Binance: {res.status_code}")
-            return
-        data = res.json()
-    except Exception as e:
-        print(f"❌ Excepción consultando Binance: {e}")
+    data = obtener_datos_binance()
+    if not data:
+        print("❌ Error crítico: Binance no devolvió datos (posible bloqueo 451 en el servidor).")
         return
 
     ganadoras = []
@@ -76,7 +85,6 @@ def main():
             except ValueError:
                 continue
             
-            # Tomamos todas las que tengan rendimiento positivo para asegurar que siempre haya contenido
             if cambio_24h > 0:
                 precio_base = precio_actual / (1 + (cambio_24h / 100))
                 ganadoras.append({
@@ -85,28 +93,24 @@ def main():
                     "actual": precio_actual,
                     "rendimiento": cambio_24h
                 })
-                # Guardamos en el CSV para el reporte diario de las 00:00
                 registrar_en_csv(ticker, precio_base, precio_actual, cambio_24h)
 
     if not ganadoras:
-        print("⚠️ No se encontraron monedas con rendimiento positivo en este ciclo.")
+        print("⚠️ No se encontraron monedas con rendimiento positivo.")
         return
 
-    # Ordenar de mayor a menor rendimiento
     ganadoras_ordenadas = sorted(ganadoras, key=lambda x: x['rendimiento'], reverse=True)
 
-    # Construir el mensaje con el diseño clásico exacto que pediste
     tz_arg = timezone(timedelta(hours=-3))
     hora_actual = datetime.now(tz_arg).strftime('%H:%M')
     
     mensaje = f"💰 **MONEDAS GANADORAS (EN VIVO)** ⏱ `{hora_actual}`\n\n"
-    for g in ganadoras_ordenadas[:7]: # Top 7
+    for g in ganadoras_ordenadas[:7]:
         base_str = f"${g['base']:.5f}" if g['base'] < 1.0 else f"${g['base']:.2f}"
         actual_str = f"${g['actual']:.5f}" if g['actual'] < 1.0 else f"${g['actual']:.2f}"
         
         mensaje += f"• **{g['ticker']}** | Base: `{base_str}` ➔ `{actual_str}` | `+{g['rendimiento']:.2f}%`\n"
 
-    print("📤 Enviando mensaje consolidado a Telegram...")
     enviar_telegram(mensaje)
 
 if __name__ == "__main__":
