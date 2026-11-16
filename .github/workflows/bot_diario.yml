@@ -2,9 +2,9 @@ name: Reporte Diario Monedas Ganadoras
 
 on:
   schedule:
-    # Se ejecuta todos los días exactamente a las 00:00 UTC (o ajusta la hora si prefieres otro horario)
+    # Se ejecuta todos los días a las 00:00 UTC (ajusta si prefieres otra hora)
     - cron: '0 0 * * *'
-  workflow_dispatch: # Te permite forzar el envío de este reporte diario con un botón manual cuando lo desees
+  workflow_dispatch: # Permite forzar el reporte manualmente desde la pestaña Actions cuando quieras probarlo
 
 jobs:
   run-reporte-diario:
@@ -29,4 +29,4 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           TOPIC_ID_GANADORAS: ${{ secrets.TOPIC_ID_GANADORAS }}
         run: |
-          python bot_ganadoras.py
+          python bot_diario.py
