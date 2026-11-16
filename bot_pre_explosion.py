@@ -18,7 +18,7 @@ BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
 
 HISTORIAL_FILE = "historial_perlas.json"
 
-print("🔥 INICIANDO MOTOR TÁCTICO INTEGRADO (MAPA DE CALOR + IA + SPOT REAL)...")
+print("🔥 INICIANDO MOTOR TÁCTICO MULTITEMPORAL (1H / 4H / 24H + SPOT REAL)...")
 
 def cargar_historial():
     if os.path.exists(HISTORIAL_FILE):
@@ -82,6 +82,40 @@ def obtener_datos_binance(session):
             print(f"⚠️ Error al conectar con {url}: {e}")
     return []
 
+def obtener_cambios_temporalidades(session, symbol):
+    """Consulta las klines para calcular con precisión milimétrica los cambios en 1h y 4h."""
+    cambio_1h = 0.0
+    cambio_4h = 0.0
+    
+    endpoints = [
+        ("1h", 2),
+        ("4h", 2)
+    ]
+    
+    for interval, limit in endpoints:
+        urls = [
+            f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}",
+            f"https://data-api.binance.vision/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}"
+        ]
+        for u in urls:
+            try:
+                res = session.get(u, timeout=4)
+                if res.status_code == 200:
+                    candles = res.json()
+                    if len(candles) >= 1:
+                        open_p = float(candles[-1][1])
+                        close_p = float(candles[-1][4])
+                        if open_p > 0:
+                            pct = ((close_p - open_p) / open_p) * 100
+                            if interval == "1h":
+                                cambio_1h = round(pct, 2)
+                            elif interval == "4h":
+                                cambio_4h = round(pct, 2)
+                    break
+            except Exception:
+                continue
+    return cambio_1h, cambio_4h
+
 def formatear_precio(precio):
     if precio >= 1.0:
         return f"${precio:.2f}"
@@ -92,15 +126,7 @@ def formatear_precio(precio):
     else:
         return f"${precio:.8f}"
 
-def evaluar_estado_semaforo(posicion_pct):
-    if posicion_pct > 65.0:
-        return "ROJO", "🔴 Próxima Ganadora (Explosión Inminente)", "#ff1744", "🔴"
-    elif posicion_pct >= 30.0:
-        return "AMARILLO", "🟡 Posibilidad Media (Confirmación Táctica)", "#ffd600", "🟡"
-    else:
-        return "VERDE", "🟢 Cazada en Inicios (Acumulación Fria)", "#00e676", "🟢"
-
-def motor_ia_seleccion_tactica(tickers, simbolos_activos, historial):
+def motor_ia_seleccion_tactica(tickers, simbolos_activos, session, historial):
     PALABRAS_PROHIBIDAS_BASE = ['USD', 'EUR', 'GBP', 'AUD', 'BRL', 'DAI', 'USDT', 'USDC', 'FDUSD', 'TUSD', 'USDP', 'BUSD']
     MEGA_CAPS = ['BTC', 'ETH', 'SOL', 'ADA', 'XRP', 'DOGE', 'TRX', 'SHIB', 'AVAX', 'LINK', 'BNB', 'DOT', 'NEAR', 'SUI', 'PEPE']
     EXCLUIDOS_TOTALES = set(MEGA_CAPS)
@@ -110,15 +136,12 @@ def motor_ia_seleccion_tactica(tickers, simbolos_activos, historial):
         historial = {"fecha": hoy_str, "mencionadas": {}, "resumen_dia": []}
     
     mencionadas = historial.get("mencionadas", {})
-    
     for sym in list(mencionadas.keys()):
         mencionadas[sym] -= 1
         if mencionadas[sym] <= 0:
             del mencionadas[sym]
 
-    candidatas_rojas = []
-    candidatas_amarillas = []
-    candidatas_verdes = []
+    candidatas = []
     total_analizadas = 0
     
     for t in tickers:
@@ -143,53 +166,53 @@ def motor_ia_seleccion_tactica(tickers, simbolos_activos, historial):
                 high = float(t.get('highPrice', 0))
                 low = float(t.get('lowPrice', 0))
                 
-                if (0.000001 <= precio < 1.00 and 
-                    25_000 <= vol_usdt <= 35_000_000 and 
-                    -6.0 <= cambio_24h <= 10.0):
-                    
+                if (0.000001 <= precio < 10.0 and vol_usdt >= 50_000 and cambio_24h >= 0.0):
                     total_analizadas += 1
+                    
+                    # Obtenemos velocidad en 1h y 4h para precisión multitemporal
+                    cambio_1h, cambio_4h = obtener_cambios_temporalidades(session, symbol)
                     
                     pos_liquidez_pct = ((precio - low) / (high - low)) * 100 if high > low else 50.0
                     pos_liquidez_pct = round(pos_liquidez_pct, 1)
-                    
-                    categoria, estado_texto, color_hex, emoji_semaforo = evaluar_estado_semaforo(pos_liquidez_pct)
                     
                     rango = high - low
                     pct_rango = (rango / precio) * 100 if precio > 0 else 1
                     factor_spike = (vol_usdt / 1_000_000) / (pct_rango if pct_rango > 0 else 1)
                     
-                    score_ia = factor_spike * (1.0 + (pos_liquidez_pct / 100.0) if categoria != "VERDE" else 1.5 - (pos_liquidez_pct / 100.0)) * (abs(cambio_24h) + 1.0)
+                    # SCORE MULTITEMPORAL PONDERADO (1h, 4h, 24h + Volumen + Rango)
+                    score_ia = (cambio_24h * 2.0) + (cambio_4h * 1.5) + (cambio_1h * 3.0) + (factor_spike * 1.5) + (pos_liquidez_pct * 0.3)
                     
                     item = {
                         'symbol': symbol,
                         'ticker': base,
                         'precio_f': precio,
                         'cambio_f': cambio_24h,
+                        'cambio_1h': cambio_1h,
+                        'cambio_4h': cambio_4h,
                         'vol_f': vol_usdt,
                         'high_f': high,
                         'low_f': low,
                         'pos_liquidez_pct': pos_liquidez_pct,
-                        'categoria': categoria,
-                        'estado_texto': estado_texto,
-                        'color_hex': color_hex,
-                        'emoji_semaforo': emoji_semaforo,
-                        'factor_spike': round(factor_spike, 2),
                         'score_ia': score_ia
                     }
-                    
-                    if categoria == "ROJO":
-                        candidatas_rojas.append(item)
-                    elif categoria == "AMARILLO":
-                        candidatas_amarillas.append(item)
-                    else:
-                        candidatas_verdes.append(item)
+                    candidatas.append(item)
             except (ValueError, TypeError):
                 continue
-                
-    top_rojas = sorted(candidatas_rojas, key=lambda x: x['score_ia'], reverse=True)[:5]
-    top_amarillas = sorted(candidatas_amarillas, key=lambda x: x['score_ia'], reverse=True)[:5]
-    top_verdes = sorted(candidatas_verdes, key=lambda x: x['score_ia'], reverse=True)[:5]
     
+    # Ordenamos por el score multitemporal sincronizado con el mercado real
+    candidatas_ordenadas = sorted(candidatas, key=lambda x: x['score_ia'], reverse=True)
+    
+    top_rojas = candidatas_ordenadas[:5]
+    top_amarillas = candidatas_ordenadas[5:10]
+    top_verdes = candidatas_ordenadas[10:15]
+    
+    for item in top_rojas:
+        item['categoria'], item['estado_texto'], item['color_hex'], item['emoji_semaforo'] = "ROJO", "🔴 Próxima Ganadora (Explosión Inminente)", "#ff1744", "🔴"
+    for item in top_amarillas:
+        item['categoria'], item['estado_texto'], item['color_hex'], item['emoji_semaforo'] = "AMARILLO", "🟡 Posibilidad Media (Confirmación Táctica)", "#ffd600", "🟡"
+    for item in top_verdes:
+        item['categoria'], item['estado_texto'], item['color_hex'], item['emoji_semaforo'] = "VERDE", "🟢 Cazada en Inicios (Acumulación Fria)", "#00e676", "🟢"
+
     matriz_15_perlas = top_rojas + top_amarillas + top_verdes
     
     for item in matriz_15_perlas:
@@ -233,7 +256,7 @@ def generar_grafico_matriz(lista_items, filename="grafico_cazador_15.png"):
         ax.text(xval, max(yval / 2.0, 12), sim, ha='center', va='center', color='white', fontsize=5.5, fontweight='bold', zorder=5)
 
     fecha_str = datetime.now().strftime('%Y-%m-%d')
-    plt.title("🔥 TERMÓMETRO TÁCTICO • 15 PERLAS EN COMPRESIÓN (5 ROJAS / 5 AMARILLAS / 5 VERDES)", loc='left', color='#ffab00', fontsize=10, fontweight='bold', pad=12)
+    plt.title("🔥 TERMÓMETRO TÁCTICO • 15 PERLAS MULTITEMPORAL (1H/4H/24H)", loc='left', color='#ffab00', fontsize=10, fontweight='bold', pad=12)
     ax.text(0.0, 1.02, f"Fecha: {fecha_str}", transform=ax.transAxes, color='#94a3b8', fontsize=8)
     
     plt.tight_layout()
@@ -243,17 +266,17 @@ def generar_grafico_matriz(lista_items, filename="grafico_cazador_15.png"):
 
 def generar_dictamen_ia(lista_items):
     if not GEMINI_API_KEY:
-        return "Máxima atención a los activos en fase Roja y Amarilla: compresión extrema detectada para explosión inmediata."
+        return "Máxima atención a los activos en fase Roja y Amarilla: compresión multitemporal detectada para explosión inmediata."
     
     client = genai.Client(api_key=GEMINI_API_KEY)
-    lista_texto = "\n".join([f"- {i['ticker']} [{i['categoria']}]: Precio {i['precio_f']}, Var {i['cambio_f']}%, Liquidez Rango: {i['pos_liquidez_pct']}%" for i in lista_items])
+    lista_texto = "\n".join([f"- {i['ticker']} [{i['categoria']}]: Precio {i['precio_f']}, 1h: {i['cambio_1h']}%, 4h: {i['cambio_4h']}%, 24h: {i['cambio_f']}%" for i in lista_items])
     
     prompt = f"""
-    Actúa como un analista institucional de criptomonedas y validador de redes sociales experto en pre-explosiones inminentes. Evalúa estas 15 perlas institucionales detectadas en Binance Spot bajo compresión de volumen y mapas de calor:
+    Actúa como un analista institucional de criptomonedas experto en pre-explosiones inminentes. Evalúa estas 15 perlas institucionales detectadas en Binance Spot analizando temporalidades cruzadas (1h, 4h, 24h):
 
     {lista_texto}
 
-    Escribe un dictamen táctico directo de máximo 4 líneas destacando cuáles son los activos con mayor presión inminente de ruptura para las próximas horas.
+    Escribe un dictamen táctico directo de máximo 4 líneas destacando cuáles son los activos con mayor presión inminente de ruptura.
     """
     for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
         try:
@@ -266,16 +289,9 @@ def generar_dictamen_ia(lista_items):
 
 def enviar_telegram(image_path, caption_text):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        print("⚠️ Faltan credenciales de Telegram.")
         return
-        
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
-    payload = {
-        "chat_id": TELEGRAM_CHAT_ID,
-        "caption": caption_text,
-        "parse_mode": "HTML"
-    }
-    
+    payload = {"chat_id": TELEGRAM_CHAT_ID, "caption": caption_text, "parse_mode": "HTML"}
     if TELEGRAM_TOPIC_ID:
         try:
             payload["message_thread_id"] = int(TELEGRAM_TOPIC_ID)
@@ -286,29 +302,18 @@ def enviar_telegram(image_path, caption_text):
         with open(image_path, 'rb') as photo:
             res = requests.post(url, data=payload, files={"photo": photo}, timeout=45)
             resultado = res.json()
-            
             if not resultado.get("ok") and "message thread not found" in str(resultado.get("description", "")):
                 payload.pop("message_thread_id", None)
                 photo.seek(0)
-                res = requests.post(url, data=payload, files={"photo": photo}, timeout=45)
-                resultado = res.json()
-
-            if not resultado.get("ok"):
-                print(f"❌ Telegram rechazó el mensaje: {resultado.get('description')}")
-            else:
-                print("✅ ¡Foto entregada con éxito en Telegram!")
+                requests.post(url, data=payload, files={"photo": photo}, timeout=45)
     except Exception as e:
-        print(f"❌ Excepción crítica al conectar con Telegram: {e}")
+        print(f"❌ Error enviando foto a Telegram: {e}")
 
 def enviar_texto_telegram(texto):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         return
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": TELEGRAM_CHAT_ID,
-        "text": texto,
-        "parse_mode": "HTML"
-    }
+    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": texto, "parse_mode": "HTML"}
     if TELEGRAM_TOPIC_ID:
         try:
             payload["message_thread_id"] = int(TELEGRAM_TOPIC_ID)
@@ -321,27 +326,25 @@ def enviar_texto_telegram(texto):
             payload.pop("message_thread_id", None)
             requests.post(url, data=payload, timeout=30)
     except Exception as e:
-        print(f"⚠️ Error enviando mensaje de texto: {e}")
+        print(f"⚠️ Error enviando texto: {e}")
 
 if __name__ == "__main__":
-    print("🔥 EJECUTANDO ESCÁNER TÁCTICO DE 15 PERLAS...")
+    print("🔥 EJECUTANDO ESCÁNER TÁCTICO MULTITEMPORAL...")
     session = crear_sesion_binance()
     simbolos_activos = obtener_simbolos_spot_activos(session)
     datos = obtener_datos_binance(session)
     
     if datos and len(simbolos_activos) > 0:
         historial = cargar_historial()
-        matriz_15_perlas, total_analizadas, historial = motor_ia_seleccion_tactica(datos, simbolos_activos, historial)
+        matriz_15_perlas, total_analizadas, historial = motor_ia_seleccion_tactica(datos, simbolos_activos, session, historial)
         
         if len(matriz_15_perlas) > 0:
             filename = generar_grafico_matriz(matriz_15_perlas)
             dictamen_ia = generar_dictamen_ia(matriz_15_perlas)
             
-            # 1. Enviar la foto con caption corto
-            caption_foto = f"🔥 <b>RADAR TÁCTICO • 15 PERLAS (5 POR COLOR)</b>\n📊 <i>Universo analizado: {total_analizadas} altcoins reales Spot</i>"
+            caption_foto = f"🔥 <b>RADAR TÁCTICO MULTITEMPORAL • 15 PERLAS</b>\n📊 <i>Universo analizado: {total_analizadas} altcoins reales Spot (1h/4h/24h)</i>"
             enviar_telegram(filename, caption_foto.strip())
             
-            # 2. Enviar el desglose completo de las 15 perlas en un mensaje de texto independiente
             mensaje_detalle = f"💡 <b>Dictamen IA / Redes:</b>\n{dictamen_ia}\n\n"
             
             categorias = [
@@ -360,7 +363,7 @@ if __name__ == "__main__":
                         url_ia = f"{BASE_URL_NETLIFY}/?coin={sim}&price={item['precio_f']}&change={item['cambio_f']}&high={item['high_f']}&low={item['low_f']}&v={sim}_{unique_id}"
                         url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
                         
-                        mensaje_detalle += f"• <b>{sim}</b> ({item['cambio_f']:+.1f}%) | {precio_str} | Rango: {item['pos_liquidez_pct']}%\n"
+                        mensaje_detalle += f"• <b>{sim}</b> (1h: {item['cambio_1h']:+.1f}% | 24h: {item['cambio_f']:+.1f}%) | {precio_str}\n"
                         mensaje_detalle += f"  └ <a href=\"{html.escape(url_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n"
                 mensaje_detalle += "\n"
                 
@@ -380,4 +383,4 @@ if __name__ == "__main__":
                     enviar_texto_telegram(resumen_texto)
                     historial["resumen_enviado_hoy"] = True
                     guardar_historial(historial)
-                    print("✅ Resumen diario de las 9 PM enviado correctamente.")
+                    print("✅ Resumen diario enviado correctamente.")
