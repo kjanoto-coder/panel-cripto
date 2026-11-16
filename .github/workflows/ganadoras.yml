@@ -1,12 +1,13 @@
-name: Bot Ganadoras Telegram
+name: Bot Monedas Ganadoras / Central de Inteligencia
 
 on:
   schedule:
-    - cron: '*/7 * * * *' # Se ejecuta exactamente cada 7 minutos
-  workflow_dispatch:
+    # Se ejecuta de forma estricta cada 5 minutos
+    - cron: '*/5 * * * *'
+  workflow_dispatch: # Permite forzar la ejecución manual al instante con un botón si GitHub lo frena
 
 jobs:
-  run-bot:
+  run-ganadoras:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout del repositorio
@@ -22,7 +23,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests
 
-      - name: Ejecutar Script
+      - name: Ejecutar Bot de Ganadoras
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
