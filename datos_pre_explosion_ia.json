@@ -1,105 +1,184 @@
-{
-    "timestamp": "2026-10-20T17:25:55.799145",
-    "bot_origen": "Radar Term\u00f3metro Balanceado 3 Fases",
-    "total_analizados": 3732,
-    "top_candidatas": [
-        {
-            "symbol": "PHBUSDT",
-            "ticker": "PHB",
-            "price": 0.015,
-            "price_change": -54.55,
-            "ratio_volumen": 3.5,
-            "fase": "ROJO",
-            "etiqueta_grafico": "\ud83d\udea8 PHB",
-            "score": 195.11,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
-            }
-        },
-        {
-            "symbol": "FORTHUSDT",
-            "ticker": "FORTH",
-            "price": 0.237,
-            "price_change": -19.93,
-            "ratio_volumen": 6.84,
-            "fase": "ROJO",
-            "etiqueta_grafico": "\ud83d\udea8 FORTH",
-            "score": 144.54,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
-            }
-        },
-        {
-            "symbol": "MDTUSDT",
-            "ticker": "MDT",
-            "price": 0.00403,
-            "price_change": -4.5,
-            "ratio_volumen": 2.48,
-            "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 MDT",
-            "score": 14.14,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
-            }
-        },
-        {
-            "symbol": "FIOUSDT",
-            "ticker": "FIO",
-            "price": 0.00094,
-            "price_change": -4.08,
-            "ratio_volumen": 2.11,
-            "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 FIO",
-            "score": 11.15,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
-            }
-        },
-        {
-            "symbol": "COCOSUSDT",
-            "ticker": "COCOS",
-            "price": 1.7546,
-            "price_change": 3.44,
-            "ratio_volumen": 2.16,
-            "fase": "AMARILLO",
-            "etiqueta_grafico": "\ud83d\udfe1 COCOS",
-            "score": 10.03,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
-            }
-        },
-        {
-            "symbol": "NFPUSDT",
-            "ticker": "NFP",
-            "price": 0.00181,
-            "price_change": -65.85,
-            "ratio_volumen": 2.12,
-            "fase": "VERDE",
-            "etiqueta_grafico": "NFP",
-            "score": 142.14,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
-            }
-        },
-        {
-            "symbol": "VICUSDT",
-            "ticker": "VIC",
-            "price": 0.0077,
-            "price_change": -42.96,
-            "ratio_volumen": 2.54,
-            "fase": "VERDE",
-            "etiqueta_grafico": "VIC",
-            "score": 112.17,
-            "metricas_avanzadas": {
-                "zona_liq": "\ud83d\udee1\ufe0f Zona de Acumulaci\u00f3n Limpia",
-                "confluencia_tf": "\ud83d\udca4 Acumulaci\u00f3n en Soporte"
-            }
-        }
+import os
+import json
+import requests
+from datetime import datetime, timezone, timedelta
+
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
+TOPIC_ID_AUDITORIA = os.getenv('TOPIC_ID_AUDITORIA') or os.getenv('TOPIC_ID_CENTRAL')
+
+# Apuntamos exactamente al archivo que contiene tus datos históricos previos
+HISTORIAL_FILE = "datos_pre_explosion_ia.json"
+
+print("📊 INICIANDO AUDITORÍA LEYENDO 'datos_pre_explosion_ia.json'...")
+
+def cargar_historial():
+    if os.path.exists(HISTORIAL_FILE):
+        try:
+            with open(HISTORIAL_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"⚠️ Error al leer historial: {e}")
+    return {}
+
+def obtener_precios_actuales():
+    urls = [
+        "https://api.binance.com/api/v3/ticker/24hr",
+        "https://data-api.binance.vision/api/v3/ticker/24hr"
     ]
-}
+    for url in urls:
+        try:
+            res = requests.get(url, timeout=15)
+            if res.status_code == 200:
+                data = res.json()
+                precios = {}
+                for t in data:
+                    sym = t.get('symbol')
+                    if sym and sym.endswith('USDT'):
+                        precios[sym] = float(t.get('lastPrice', 0))
+                if precios:
+                    return precios
+        except Exception:
+            continue
+    return {}
+
+def formatear_precio(precio):
+    if precio >= 1.0:
+        return f"${precio:.2f}"
+    elif precio >= 0.01:
+        return f"${precio:.4f}"
+    elif precio >= 0.0001:
+        return f"${precio:.6f}"
+    else:
+        return f"${precio:.8f}"
+
+def enviar_telegram(mensaje):
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        print("⚠️ Faltan credenciales de Telegram.")
+        return
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        'chat_id': TELEGRAM_CHAT_ID,
+        'text': mensaje,
+        'parse_mode': 'Markdown',
+        'disable_web_page_preview': True
+    }
+    if TOPIC_ID_AUDITORIA:
+        try:
+            payload['message_thread_id'] = int(TOPIC_ID_AUDITORIA)
+        except ValueError:
+            pass
+    try:
+        requests.post(url, json=payload, timeout=15)
+        print("✅ Auditoría histórica enviada a Telegram con éxito.")
+    except Exception as e:
+        print(f"❌ Error enviando a Telegram: {e}")
+
+def main():
+    contenido = cargar_historial()
+    
+    # Extraemos la lista de candidatas o registros del JSON
+    registros = []
+    if isinstance(contenido, dict):
+        registros = contenido.get("top_candidatas", []) or contenido.get("registro_historico", [])
+        if not registros and "timestamp" in contenido:
+            # Si el JSON es un reporte único, lo encapsulamos
+            registros = [contenido]
+    elif isinstance(contenido, list):
+        registros = contenido
+
+    if not registros:
+        print("⚠️ No se encontraron registros válidos en el archivo.")
+        return
+
+    precios_actuales = obtener_precios_actuales()
+    if not precios_actuales:
+        print("❌ No se pudieron obtener precios actuales de Binance.")
+        return
+
+    tz_arg = timezone(timedelta(hours=-3))
+    hoy_str = datetime.now(tz_arg).strftime('%Y-%m-%d')
+    hoy_dt = datetime.strptime(hoy_str, '%Y-%m-%d')
+
+    resultados_por_color = {
+        "ROJO": {"total": 0, "ganadoras": 0, "gemas": []},
+        "AMARILLO": {"total": 0, "ganadoras": 0, "gemas": []},
+        "VERDE": {"total": 0, "ganadoras": 0, "gemas": []}
+    }
+
+    for item in registros:
+        # Extraemos los campos adaptados al formato de tu archivo
+        ticker = item.get('ticker', '')
+        sym = item.get('symbol', f"{ticker}USDT")
+        precio_orig = float(item.get('price', 0))
+        categoria = str(item.get('fase', 'VERDE')).upper()
+        
+        # Intentamos extraer la fecha del timestamp del archivo
+        timestamp_str = contenido.get('timestamp', hoy_str) if isinstance(contenido, dict) else hoy_str
+        try:
+            fecha_orig_str = timestamp_str.split('T')[0]
+        except Exception:
+            fecha_orig_str = hoy_str
+
+        if sym in precios_actuales and precio_orig > 0:
+            precio_actual = precios_actuales[sym]
+            rendimiento = ((precio_actual - precio_orig) / precio_orig) * 100
+            
+            try:
+                dias = (hoy_dt - datetime.strptime(fecha_orig_str, '%Y-%m-%d')).days
+            except Exception:
+                dias = 0
+            dias = max(dias, 0)
+
+            item_info = {
+                "ticker": ticker,
+                "dias": dias,
+                "fecha": fecha_orig_str,
+                "precio_orig": precio_orig,
+                "precio_actual": precio_actual,
+                "rendimiento": rendimiento,
+                "es_ganadora": rendimiento >= 15.0
+            }
+
+            # Normalizamos la categoría por si viene con otros nombres
+            cat_key = "ROJO" if "ROJO" in categoria else ("AMARILLO" if "AMARILLO" in categoria else "VERDE")
+            
+            resultados_por_color[cat_key]["total"] += 1
+            if item_info["es_ganadora"]:
+                resultados_por_color[cat_key]["ganadoras"] += 1
+            resultados_por_color[cat_key]["gemas"].append(item_info)
+
+    # Construir mensaje para Telegram
+    mensaje = f"📈 **BACKTESTING GLOBAL • AUDITORÍA HISTÓRICA**\n"
+    mensaje += f"📅 *Fecha de Corte:* `{hoy_str}`\n"
+    mensaje += f"🔬 *Análisis de efectividad cruzando datos previos y Binance*\n\n"
+
+    etiquetas_color = {
+        "ROJO": "🔴 *Fase Roja (Explosión Inminente)*",
+        "AMARILLO": "🟡 *Fase Amarilla (Compresión)*",
+        "VERDE": "🟢 *Fase Verde (Acumulación Silenciosa)*"
+    }
+
+    for color, datos_col in resultados_por_color.items():
+        total = datos_col["total"]
+        if total == 0:
+            continue
+        ganadoras = datos_col["ganadoras"]
+        tasa_exito = (ganadoras / total * 100) if total > 0 else 0
+        
+        mensaje += f"{etiquetas_color[color]}\n"
+        mensaje += f"📊 Registradas: `{total}` | Ganadoras (>15%): `{ganadoras}` (`{tasa_exito:.1f}%`)\n"
+        
+        if datos_col["gemas"]:
+            mejores = sorted(datos_col["gemas"], key=lambda x: x['rendimiento'], reverse=True)[:3]
+            mensaje += f"🏆 *Top Rendimiento Histórico:*\n"
+            for g in mejores:
+                simbolo_res = "🚀" if g['rendimiento'] > 0 else "📉"
+                mensaje += f"  • **{g['ticker']}** ({g['dias']} días atrás)\n"
+                mensaje += f"    Or: `{formatear_precio(g['precio_orig'])}` ➔ Act: `{formatear_precio(g['precio_actual'])}` | **{g['rendimiento']:+.1f}%** {simbolo_res}\n"
+        mensaje += "\n"
+
+    enviar_telegram(mensaje)
+
+if __name__ == "__main__":
+    main()
