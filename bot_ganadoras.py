@@ -25,6 +25,7 @@ def registrar_en_csv(ticker, precio_actual, rendimiento):
 
 def enviar_telegram(mensaje):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        print("❌ Faltan credenciales de Telegram.")
         return
     
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
@@ -42,9 +43,34 @@ def enviar_telegram(mensaje):
             pass
             
     try:
-        requests.post(url, json=payload, timeout=15)
+        response = requests.post(url, json=payload, timeout=15)
+        if response.status_code == 200:
+            print("✅ Mensaje enviado a Telegram con éxito.")
+        else:
+            print(f"❌ Error de Telegram ({response.status_code}): {response.text}")
     except Exception as e:
-        print(f"Error Telegram: {e}")
+        print(f"❌ Excepción conectando a Telegram: {e}")
+
+def obtener_pares_activos():
+    # Obtiene la lista oficial de pares con comercio activo (Spot) para filtrar tokens fantasma o deslistados
+    urls = [
+        "https://data-api.binance.vision/api/v3/exchangeInfo",
+        "https://api1.binance.com/api/v3/exchangeInfo",
+        "https://api.binance.com/api/v3/exchangeInfo"
+    ]
+    for url in urls:
+        try:
+            res = requests.get(url, timeout=15)
+            if res.status_code == 200:
+                data = res.json()
+                pares_validos = set()
+                for s in data.get('symbols', []):
+                    if s.get('status') == 'TRADING' and 'SPOT' in s.get('permissions', []):
+                        pares_validos.add(s.get('symbol'))
+                return pares_validos
+        except Exception:
+            continue
+    return set()
 
 def obtener_datos_binance():
     urls = [
@@ -74,15 +100,24 @@ def generar_bolillas(rendimiento):
         return "🟢⬜⬜⬜⬜"
 
 def main():
+    # 1. Obtenemos los pares oficialmente activos en el mercado Spot de Binance
+    pares_activos = obtener_pares_activos()
+    
+    # 2. Obtenemos los datos de precios de 24h
     data = obtener_datos_binance()
-    if not data:
+    if not data or not pares_activos:
+        print("❌ Error crítico: No se pudieron obtener datos oficiales de Binance.")
         return
 
     ganadoras = []
     for t in data:
         sym = t.get('symbol', '')
-        # Excluimos pares apalancados (UP, DOWN, BULL, BEAR) y filtramos estrictamente contra USDT
-        if sym.endswith('USDT') and not any(x in sym for x in ['UP', 'DOWN', 'BULL', 'BEAR']):
+        
+        # Filtramos estrictamente:
+        # - Que sea un par contra USDT
+        # - Que esté en la lista oficial de activos con estado TRADING (elimina tokens como CREAM)
+        # - Que no sea token apalancado (UP/DOWN/BULL/BEAR)
+        if sym.endswith('USDT') and sym in pares_activos and not any(x in sym for x in ['UP', 'DOWN', 'BULL', 'BEAR']):
             ticker = sym.replace('USDT', '')
             try:
                 precio_actual = float(t.get('lastPrice', 0))
@@ -91,8 +126,8 @@ def main():
             except ValueError:
                 continue
             
-            # Filtro estricto de mercado real (excluye tokens con anomalías o volumen bajo)
-            if cambio_24h > 0 and volumen_usdt >= 200000:
+            # Filtro de rendimiento positivo y volumen real de mercado
+            if cambio_24h > 0 and volumen_usdt >= 50000:
                 ganadoras.append({
                     "ticker": ticker,
                     "precio": precio_actual,
@@ -100,9 +135,10 @@ def main():
                 })
 
     if not ganadoras:
+        print("⚠️ No hay suficientes ganadoras para mostrar.")
         return
 
-    # Ordenar de mayor a menor rendimiento exactamente igual al panel oficial
+    # Ordenar exactamente de mayor a rendimiento idéntico al panel oficial
     ganadoras_ordenadas = sorted(ganadoras, key=lambda x: x['rendimiento'], reverse=True)
 
     tz_arg = timezone(timedelta(hours=-3))
