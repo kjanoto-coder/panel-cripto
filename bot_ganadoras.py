@@ -9,7 +9,7 @@ TOPIC_ID_GANADORAS = os.getenv('TOPIC_ID_GANADORAS')
 
 HISTORIAL_CSV = "historico_alertas.csv"
 
-def registrar_en_csv(ticker, precio_base, precio_actual, rendimiento):
+def registrar_en_csv(ticker, precio_actual, rendimiento):
     tz_arg = timezone(timedelta(hours=-3))
     ahora = datetime.now(tz_arg).strftime('%Y-%m-%d %H:%M:%S')
     
@@ -18,8 +18,8 @@ def registrar_en_csv(ticker, precio_base, precio_actual, rendimiento):
         with open(HISTORIAL_CSV, mode='a', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
             if not existe:
-                writer.writerow(['fecha_hora', 'ticker', 'precio_base', 'precio_actual', 'rendimiento'])
-            writer.writerow([ahora, ticker, precio_base, precio_actual, rendimiento])
+                writer.writerow(['fecha_hora', 'ticker', 'precio', 'rendimiento'])
+            writer.writerow([ahora, ticker, precio_actual, rendimiento])
     except Exception as e:
         print(f"⚠️ Error al guardar en CSV: {e}")
 
@@ -52,6 +52,7 @@ def enviar_telegram(mensaje):
         print(f"❌ Excepción conectando a Telegram: {e}")
 
 def obtener_datos_binance():
+    # Espejos oficiales para evitar bloqueos geográficos en GitHub Actions
     urls = [
         "https://data-api.binance.vision/api/v3/ticker/24hr",
         "https://api1.binance.com/api/v3/ticker/24hr",
@@ -67,7 +68,6 @@ def obtener_datos_binance():
     return []
 
 def generar_bolillas(rendimiento):
-    # Genera los 5 círculos (verdes o grises) según el porcentaje de subida
     if rendimiento >= 50:
         return "🟢🟢🟢🟢🟢"
     elif rendimiento >= 30:
@@ -88,45 +88,46 @@ def main():
     ganadoras = []
     for t in data:
         sym = t.get('symbol', '')
-        if sym.endswith('USDT'):
+        # Tomamos exclusivamente los pares contra USDT que publica Binance de forma oficial
+        if sym.endswith('USDT') and not any(sub in sym for sub in ['UP', 'DOWN', 'BULL', 'BEAR']):
             ticker = sym.replace('USDT', '')
             try:
                 precio_actual = float(t.get('lastPrice', 0))
                 cambio_24h = float(t.get('priceChangePercent', 0))
+                volumen_usdt = float(t.get('quoteVolume', 0))
             except ValueError:
                 continue
             
-            # Filtro para captar las ganadoras destacadas
-            if cambio_24h >= 5.0:
-                precio_base = precio_actual / (1 + (cambio_24h / 100))
+            # Filtro estricto para asegurar que sean monedas con movimiento real y volumen considerable
+            if cambio_24h > 0 and volumen_usdt >= 100000:
                 ganadoras.append({
                     "ticker": ticker,
-                    "base": precio_base,
-                    "actual": precio_actual,
+                    "precio": precio_actual,
                     "rendimiento": cambio_24h
                 })
-                registrar_en_csv(ticker, precio_base, precio_actual, cambio_24h)
 
     if not ganadoras:
-        print("⚠️ No hay suficientes ganadoras en este ciclo.")
+        print("⚠️ No hay suficientes ganadoras para mostrar.")
         return
 
+    # Ordenar exactamente de mayor a menor rendimiento (Top 7 oficial idéntico a Binance)
     ganadoras_ordenadas = sorted(ganadoras, key=lambda x: x['rendimiento'], reverse=True)
 
     tz_arg = timezone(timedelta(hours=-3))
     fecha_hoy = datetime.now(tz_arg).strftime('%Y-%m-%d')
 
-    # Estructura idéntica a tu imagen de referencia
     mensaje = f"🧠 **CENTRAL DE INTELIGENCIA DE MERCADO (1/5)**\n"
     mensaje += f"🚀 **1. TOP 7 GANADORAS (Detalle)**\n"
     mensaje += f"📅 Fecha: `{fecha_hoy}`\n\n"
 
     for g in ganadoras_ordenadas[:7]:
-        base_str = f"${g['base']:.5f}" if g['base'] < 1.0 else f"${g['base']:.2f}"
-        actual_str = f"${g['actual']:.5f}" if g['actual'] < 1.0 else f"${g['actual']:.2f}"
+        precio_str = f"${g['precio']:.5f}" if g['precio'] < 1.0 else f"${g['precio']:.2f}"
         bolillas = generar_bolillas(g['rendimiento'])
         
-        mensaje += f"• **{g['ticker']}** | Base: `{base_str}` ➔ `{actual_str}` | `+{g['rendimiento']:.2f}%`\n"
+        # Guardamos en el archivo CSV la información oficial exacta para que el reporte diario la consuma sin alteraciones
+        registrar_en_csv(g['ticker'], g['precio'], g['rendimiento'])
+
+        mensaje += f"• **{g['ticker']}** | Precio: `{precio_str}` | `+{g['rendimiento']:.2f}%`\n"
         mensaje += f"{bolillas}\n"
         mensaje += f"┗ 📊 [Resumen IA](https://t.me/) | 🔶 Tradear\n\n"
 
