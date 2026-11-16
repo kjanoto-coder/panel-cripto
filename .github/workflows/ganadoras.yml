@@ -2,8 +2,8 @@ name: Bot Ganadoras Telegram
 
 on:
   schedule:
-    - cron: '0 */4 * * *' # Se ejecuta cada 4 horas (puedes cambiarlo a tu gusto)
-  workflow_dispatch: # Permite dispararlo manualmente desde GitHub
+    - cron: '*/7 * * * *' # Se ejecuta exactamente cada 7 minutos
+  workflow_dispatch:
 
 jobs:
   run-bot:
@@ -13,7 +13,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Configurar Python
-        uses: actions/setup-python@v4
+        uses: setup-python@v4
         with:
           python-version: '3.10'
 
@@ -22,7 +22,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests
 
-      - name: Ejecutar Bot de Ganadoras
+      - name: Ejecutar Script
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
