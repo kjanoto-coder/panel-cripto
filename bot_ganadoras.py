@@ -30,6 +30,7 @@ def obtener_datos_binance():
                         change = float(t['priceChangePercent'])
                         price = float(t['lastPrice'])
                         if clean not in EXCLUDE_TOKENS and change > 0:
+                            # Cálculo exacto del precio base oficial de Binance
                             base_price = price / (1 + (change / 100))
                             mercado.append({
                                 'ticker': clean,
@@ -52,6 +53,18 @@ def formatear_precio(precio):
         return f"${precio:.4f}"
     return f"${precio:,.2f}"
 
+def generar_circulos(cambio):
+    if cambio >= 35:
+        return "🟢🟢🟢🟢🟢"
+    elif cambio >= 25:
+        return "🟢🟢🟢🟢⬜"
+    elif cambio >= 15:
+        return "🟢🟢🟢⬜⬜"
+    elif cambio >= 8:
+        return "🟢🟢⬜⬜⬜"
+    else:
+        return "🟢⬜⬜⬜⬜"
+
 def enviar_telegram(mensaje):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         return
@@ -66,76 +79,39 @@ def enviar_telegram(mensaje):
         payload['message_thread_id'] = int(TOPIC_ID_GANADORAS)
     try:
         requests.post(url, json=payload, timeout=10)
-    except Exception as e:
-        print(f"Error enviando a Telegram: {e}")
+    except Exception:
+        pass
 
 def main():
-    tz_arg = timezone(timedelta(hours=-3))
-    ahora = datetime.now(tz_arg)
-    hoy_str = ahora.strftime('%Y-%m-%d')
-    json_file = f'datos_ganadoras_{hoy_str}.json'
-    
-    # Cargar acumulado previo del día si existe
-    datos_acumulados = {'fecha': hoy_str, 'monedas': {}}
-    if os.path.exists(json_file):
-        try:
-            with open(json_file, 'r', encoding='utf-8') as f:
-                contenido = json.load(f)
-                if isinstance(contenido, dict) and 'monedas' in contenido:
-                    datos_acumulados = contenido
-        except Exception:
-            pass
-
-    # Obtener escaneo actual de Binance
     mercado = obtener_datos_binance()
     if not mercado:
-        print("No se pudieron obtener datos de Binance.")
         return
 
-    # Actualizar o incorporar las monedas encontradas conservando el mayor porcentaje del día
-    for item in mercado:
-        ticker = item['ticker']
-        if ticker not in datos_acumulados['monedas'] or item['change'] > datos_acumulados['monedas'][ticker]['change']:
-            datos_acumulados['monedas'][ticker] = item
-
-    # Guardar el JSON actualizado localmente para el commit
-    try:
-        with open(json_file, 'w', encoding='utf-8') as f:
-            json.dump(datos_acumulados, f, ensure_ascii=False, indent=4)
-    except Exception:
-        pass
-
-    # Ordenar de mayor a menor porcentaje
-    ranking_dia = sorted(list(datos_acumulados['monedas'].values()), key=lambda x: x['change'], reverse=True)
-
-    # Guardar también el respaldo semanal
-    archivo_semanal = f'resumen_final_{hoy_str}.json'
-    try:
-        with open(archivo_semanal, 'w', encoding='utf-8') as f:
-            json.dump({'fecha': hoy_str, 'ranking': ranking_dia}, f, ensure_ascii=False, indent=4)
-    except Exception:
-        pass
-
-    # Construir mensaje con el Top acumulado del día
-    mensaje = f"🧠 **CENTRAL DE INTELIGENCIA DE MERCADO (1/5)**\n"
-    mensaje += f"🚀 **1. TOP GANADORAS ACUMULADAS**\n"
-    mensaje += f"📅 *Fecha:* `{hoy_str}`\n\n"
+    # Ordenar estrictamente de mayor a menor según el % real directo de Binance
+    ganadoras = sorted(mercado, key=lambda x: x['change'], reverse=True)[:7]
     
-    for idx, item in enumerate(ranking_dia[:10], 1): # Mostramos el top consolidado
+    tz_arg = timezone(timedelta(hours=-3))
+    ahora = datetime.now(tz_arg)
+    fecha_actual = ahora.strftime('%Y-%m-%d')
+    
+    mensaje = f"🧠 **CENTRAL DE INTELIGENCIA DE MERCADO (1/5)**\n"
+    mensaje += f"🚀 **1. TOP 7 GANADORAS (Detalle)**\n"
+    mensaje += f"📅 *Fecha:* `{fecha_actual}`\n\n"
+    
+    for item in ganadoras:
         ticker = item['ticker']
-        precio_act = item['price']
+        precio_fmt = formatear_precio(item['price'])
+        base_fmt = formatear_precio(item['base_price'])
+        circulos = generar_circulos(item['change'])
         cambio = item['change']
-        base_price = item.get('base_price', precio_act / (1 + (cambio / 100)))
-        
-        base_fmt = formatear_precio(base_price)
-        precio_fmt = formatear_precio(precio_act)
         
         link_resumen = f"https://es.tradingview.com/symbols/{ticker}USDT/"
         link_tradear = f"https://www.binance.com/es-AR/trade/{ticker}_USDT"
         
-        mensaje += f"• **{ticker}** | Base: `{base_fmt}` ➔ `{precio_fmt}` | `+{cambio:.1f}%`\n"
+        mensaje += f"• **{ticker}** | Base: `{base_fmt}` ➔ `{precio_fmt}` | `+{cambio:.2f}%`\n"
+        mensaje += f"   {circulos}\n"
         mensaje += f" ┗ 📊 [Resumen IA]({link_resumen}) | 🔶 [Tradear]({link_tradear})\n\n"
-
+    
     enviar_telegram(mensaje)
 
 if __name__ == "__main__":
