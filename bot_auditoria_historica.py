@@ -7,18 +7,9 @@ TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 TOPIC_ID_AUDITORIA = os.getenv('TOPIC_ID_AUDITORIA') or os.getenv('TOPIC_ID_CENTRAL')
 
-HISTORIAL_FILE = "historial_perlas.json"
+HISTORIAL_FILE = "datos_pre_explosion_ia.json"
 
-print("📊 INICIANDO AUDITORÍA HISTÓRICA GLOBAL DE PUNTA A PUNTA...")
-
-def cargar_historial():
-    if os.path.exists(HISTORIAL_FILE):
-        try:
-            with open(HISTORIAL_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except Exception as e:
-            print(f"⚠️ Error al leer historial: {e}")
-    return {}
+print("📊 INICIANDO AUDITORÍA GLOBAL DE 'datos_pre_explosion_ia.json'...")
 
 def obtener_precios_actuales():
     urls = [
@@ -69,16 +60,31 @@ def enviar_telegram(mensaje):
             pass
     try:
         requests.post(url, json=payload, timeout=15)
-        print("✅ Auditoría histórica global enviada a Telegram con éxito.")
+        print("✅ Auditoría histórica enviada a Telegram con éxito.")
     except Exception as e:
         print(f"❌ Error enviando a Telegram: {e}")
 
 def main():
-    historial = cargar_historial()
-    registro_historico = historial.get("registro_historico", {})
-    
-    if not registro_historico:
-        print("⚠️ El historial de perlas está vacío todavía.")
+    if not os.path.exists(HISTORIAL_FILE):
+        print("❌ No se encontró el archivo datos_pre_explosion_ia.json")
+        return
+
+    try:
+        with open(HISTORIAL_FILE, 'r', encoding='utf-8') as f:
+            contenido = json.load(f)
+    except Exception as e:
+        print(f"❌ Error al leer el JSON: {e}")
+        return
+
+    # Extraer la lista de candidatas del JSON
+    registros = []
+    if isinstance(contenido, dict):
+        registros = contenido.get("top_candidatas", [])
+    elif isinstance(contenido, list):
+        registros = contenido
+
+    if not registros:
+        print("⚠️ El archivo no contiene elementos en 'top_candidatas'.")
         return
 
     precios_actuales = obtener_precios_actuales()
@@ -90,49 +96,57 @@ def main():
     hoy_str = datetime.now(tz_arg).strftime('%Y-%m-%d')
     hoy_dt = datetime.strptime(hoy_str, '%Y-%m-%d')
 
-    # Estructura para clasificar por color inicial
+    timestamp_archivo = contenido.get("timestamp", hoy_str) if isinstance(contenido, dict) else hoy_str
+    try:
+        fecha_orig_str = timestamp_archivo.split('T')[0]
+        fecha_orig_dt = datetime.strptime(fecha_orig_str, '%Y-%m-%d')
+    except Exception:
+        fecha_orig_dt = hoy_dt
+        fecha_orig_str = hoy_str
+
+    dias_transcurridos = max((hoy_dt - fecha_orig_dt).days, 0)
+
     resultados_por_color = {
         "ROJO": {"total": 0, "ganadoras": 0, "gemas": []},
         "AMARILLO": {"total": 0, "ganadoras": 0, "gemas": []},
         "VERDE": {"total": 0, "ganadoras": 0, "gemas": []}
     }
 
-    for sym, data in registro_historico.items():
-        ticker = sym.replace('USDT', '')
-        fecha_orig_str = data.get("fecha_origen", hoy_str)
-        precio_orig = data.get("precio_origen", 0)
-        categoria_orig = data.get("categoria_origen", "VERDE")
+    for item in registros:
+        ticker = item.get('ticker', '')
+        sym = item.get('symbol', f"{ticker}USDT")
+        precio_orig = float(item.get('price', 0))
+        fase_raw = str(item.get('fase', 'VERDE')).upper()
+        
+        # Mapear fase
+        if "ROJO" in fase_raw:
+            color = "ROJO"
+        elif "AMARILLO" in fase_raw:
+            color = "AMARILLO"
+        else:
+            color = "VERDE"
 
         if sym in precios_actuales and precio_orig > 0:
             precio_actual = precios_actuales[sym]
             rendimiento = ((precio_actual - precio_orig) / precio_orig) * 100
-            
-            try:
-                dias = (hoy_dt - datetime.strptime(fecha_orig_str, '%Y-%m-%d')).days
-            except Exception:
-                dias = 0
-            dias = max(dias, 0)
+            es_ganadora = rendimiento >= 15.0
 
             item_info = {
                 "ticker": ticker,
-                "dias": dias,
-                "fecha": fecha_orig_str,
                 "precio_orig": precio_orig,
                 "precio_actual": precio_actual,
-                "rendimiento": rendimiento,
-                "es_ganadora": rendimiento >= 15.0 # Consideramos ganadora si supera el 15% de ROI histórico
+                "rendimiento": rendimiento
             }
 
-            if categoria_orig in resultados_por_color:
-                resultados_por_color[categoria_orig]["total"] += 1
-                if item_info["es_ganadora"]:
-                    resultados_por_color[categoria_orig]["ganadoras"] += 1
-                resultados_por_color[categoria_orig]["gemas"].append(item_info)
+            resultados_por_color[color]["total"] += 1
+            if es_ganadora:
+                resultados_por_color[color]["ganadoras"] += 1
+            resultados_por_color[color]["gemas"].append(item_info)
 
-    # Construir el mensaje global para Telegram
-    mensaje = f"📈 **BACKTESTING GLOBAL • HISTORIAL DE PUNTA A PUNTA**\n"
-    mensaje += f"📅 *Fecha de Corte:* `{hoy_str}`\n"
-    mensaje += f"🔬 *Auditoría científica de efectividad por color y tiempo de maduración*\n\n"
+    # Construir reporte para Telegram
+    mensaje = f"📈 **AUDITORÍA DE PRE-EXPLOSIÓN (BACKTESTING)**\n"
+    mensaje += f"📅 *Fecha de Origen de Datos:* `{fecha_orig_str}` (`{dias_transcurridos} días atrás`)\n"
+    mensaje += f"📅 *Fecha de Corte:* `{hoy_str}`\n\n"
 
     etiquetas_color = {
         "ROJO": "🔴 *Fase Roja (Explosión Inminente)*",
@@ -142,23 +156,22 @@ def main():
 
     for color, datos_col in resultados_por_color.items():
         total = datos_col["total"]
+        if total == 0:
+            continue
         ganadoras = datos_col["ganadoras"]
         tasa_exito = (ganadoras / total * 100) if total > 0 else 0
         
         mensaje += f"{etiquetas_color[color]}\n"
-        mensaje += f"📊 Total Registradas: `{total}` | Conversión a Ganadoras (>15%): `{ganadoras}` (`{tasa_exito:.1f}%`)\n"
+        mensaje += f"📊 Registradas: `{total}` | Ganadoras (>15%): `{ganadoras}` (`{tasa_exito:.1f}%`)\n"
         
         if datos_col["gemas"]:
-            # Ordenar las mejores gemas de este color por rendimiento histórico
             mejores = sorted(datos_col["gemas"], key=lambda x: x['rendimiento'], reverse=True)[:3]
-            mensaje += f"🏆 *Top Rendimiento Histórico:*\n"
+            mensaje += f"🏆 *Top Rendimiento Actual:*\n"
             for g in mejores:
                 simbolo_res = "🚀" if g['rendimiento'] > 0 else "📉"
-                mensaje += f"  • **{g['ticker']}** ({g['dias']} días atrás | `{g['fecha']}`)\n"
-                mensaje += f"    Or: `{formatear_precio(g['precio_orig'])}` ➔ Act: `{formatear_precio(g['precio_actual'])}` | **{g['rendimiento']:+.1f}%** {simbolo_res}\n"
+                mensaje += f"  • **{g['ticker']}**: `{formatear_precio(g['precio_orig'])}` ➔ `{formatear_precio(g['precio_actual'])}` | **{g['rendimiento']:+.1f}%** {simbolo_res}\n"
         mensaje += "\n"
 
-    mensaje += f"_💡 El sistema evalúa todo el ciclo de vida desde el primer registro guardado en el JSON._"
     enviar_telegram(mensaje)
 
 if __name__ == "__main__":
