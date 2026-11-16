@@ -51,27 +51,6 @@ def enviar_telegram(mensaje):
     except Exception as e:
         print(f"❌ Excepción conectando a Telegram: {e}")
 
-def obtener_pares_activos():
-    # Obtiene la lista oficial de pares con comercio activo (Spot) para filtrar tokens fantasma o deslistados
-    urls = [
-        "https://data-api.binance.vision/api/v3/exchangeInfo",
-        "https://api1.binance.com/api/v3/exchangeInfo",
-        "https://api.binance.com/api/v3/exchangeInfo"
-    ]
-    for url in urls:
-        try:
-            res = requests.get(url, timeout=15)
-            if res.status_code == 200:
-                data = res.json()
-                pares_validos = set()
-                for s in data.get('symbols', []):
-                    if s.get('status') == 'TRADING' and 'SPOT' in s.get('permissions', []):
-                        pares_validos.add(s.get('symbol'))
-                return pares_validos
-        except Exception:
-            continue
-    return set()
-
 def obtener_datos_binance():
     urls = [
         "https://data-api.binance.vision/api/v3/ticker/24hr",
@@ -100,34 +79,30 @@ def generar_bolillas(rendimiento):
         return "🟢⬜⬜⬜⬜"
 
 def main():
-    # 1. Obtenemos los pares oficialmente activos en el mercado Spot de Binance
-    pares_activos = obtener_pares_activos()
-    
-    # 2. Obtenemos los datos de precios de 24h
     data = obtener_datos_binance()
-    if not data or not pares_activos:
-        print("❌ Error crítico: No se pudieron obtener datos oficiales de Binance.")
+    if not data:
+        print("❌ Error crítico: No se pudieron obtener datos de Binance.")
         return
 
     ganadoras = []
     for t in data:
         sym = t.get('symbol', '')
-        
-        # Filtramos estrictamente:
-        # - Que sea un par contra USDT
-        # - Que esté en la lista oficial de activos con estado TRADING (elimina tokens como CREAM)
-        # - Que no sea token apalancado (UP/DOWN/BULL/BEAR)
-        if sym.endswith('USDT') and sym in pares_activos and not any(x in sym for x in ['UP', 'DOWN', 'BULL', 'BEAR']):
+        # Excluimos pares apalancados y nos centramos en USDT
+        if sym.endswith('USDT') and not any(x in sym for x in ['UP', 'DOWN', 'BULL', 'BEAR']):
             ticker = sym.replace('USDT', '')
             try:
                 precio_actual = float(t.get('lastPrice', 0))
                 cambio_24h = float(t.get('priceChangePercent', 0))
                 volumen_usdt = float(t.get('quoteVolume', 0))
+                trades = int(t.get('count', 0))
             except ValueError:
                 continue
             
-            # Filtro de rendimiento positivo y volumen real de mercado
-            if cambio_24h > 0 and volumen_usdt >= 50000:
+            # Filtro estricto de mercado real:
+            # - Rendimiento positivo
+            # - Volumen mínimo de 150,000 USDT
+            # - Conteo de operaciones (trades > 200) para descartar tokens zombis o con datos estáticos (como CREAM)
+            if cambio_24h > 0 and volumen_usdt >= 150000 and trades > 200:
                 ganadoras.append({
                     "ticker": ticker,
                     "precio": precio_actual,
@@ -138,7 +113,7 @@ def main():
         print("⚠️ No hay suficientes ganadoras para mostrar.")
         return
 
-    # Ordenar exactamente de mayor a rendimiento idéntico al panel oficial
+    # Ordenar estrictamente de mayor a menor rendimiento
     ganadoras_ordenadas = sorted(ganadoras, key=lambda x: x['rendimiento'], reverse=True)
 
     tz_arg = timezone(timedelta(hours=-3))
@@ -152,7 +127,6 @@ def main():
         precio_str = f"${g['precio']:.5f}" if g['precio'] < 1.0 else f"${g['precio']:.2f}"
         bolillas = generar_bolillas(g['rendimiento'])
         
-        # Guardamos en el CSV los datos limpios y exactos para el reporte diario
         registrar_en_csv(g['ticker'], g['precio'], g['rendimiento'])
 
         mensaje += f"• **{g['ticker']}** | Precio: `{precio_str}` | `+{g['rendimiento']:.2f}%`\n"
