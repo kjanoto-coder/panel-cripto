@@ -87,17 +87,18 @@ def main():
     ganadoras = []
     for t in data:
         sym = t.get('symbol', '')
-        # Solo pares contra USDT, excluyendo tokens apalancados y el token problemático CREAM si estuviera desfasado
+        # Filtramos estrictamente pares USDT limpios, excluyendo apalancados y tokens problemáticos
         if sym.endswith('USDT') and not any(x in sym for x in ['UP', 'DOWN', 'BULL', 'BEAR']) and 'CREAM' not in sym:
             ticker = sym.replace('USDT', '')
             try:
                 precio_actual = float(t.get('lastPrice', 0))
                 cambio_24h = float(t.get('priceChangePercent', 0))
+                volumen_usdt = float(t.get('quoteVolume', 0))
             except ValueError:
                 continue
             
-            # Tomamos estrictamente cualquier moneda con rendimiento positivo real en el mercado
-            if cambio_24h > 0:
+            # Filtro de liquidez real para evitar que entren tokens con baja tracción de mercado
+            if cambio_24h > 0 and volumen_usdt >= 100000:
                 ganadoras.append({
                     "ticker": ticker,
                     "precio": precio_actual,
@@ -108,7 +109,7 @@ def main():
         print("⚠️ No hay suficientes ganadoras para mostrar.")
         return
 
-    # Ordenar estrictamente de mayor a menor porcentaje de cambio (idéntico al criterio de la web)
+    # Ordenar estrictamente de mayor a menor porcentaje de cambio con alta precisión
     ganadoras_ordenadas = sorted(ganadoras, key=lambda x: x['rendimiento'], reverse=True)
 
     tz_arg = timezone(timedelta(hours=-3))
@@ -118,12 +119,11 @@ def main():
     mensaje += f"🚀 **1. TOP 7 GANADORAS (Detalle)**\n"
     mensaje += f"📅 Fecha: `{fecha_hoy}`\n\n"
 
-    # Tomamos exactamente los 7 primeros resultados limpios
     for g in ganadoras_ordenadas[:7]:
         precio_str = f"${g['precio']:.5f}" if g['precio'] < 1.0 else f"${g['precio']:.2f}"
         bolillas = generar_bolillas(g['rendimiento'])
         
-        # Guardamos en el CSV exactamente lo que se envía al bot para perfecta sincronización con el reporte diario
+        # Registrar en el CSV con la misma precisión para alimentar el reporte diario
         registrar_en_csv(g['ticker'], g['precio'], g['rendimiento'])
 
         mensaje += f"• **{g['ticker']}** | Precio: `{precio_str}` | `+{g['rendimiento']:.2f}%`\n"
