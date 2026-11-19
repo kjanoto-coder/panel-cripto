@@ -26,7 +26,7 @@ HISTORIAL_NOTICIAS_FILE = "historial_noticias.json"
 DATABASE_ECOSISTEMA_FILE = "database_ecosistema.json"
 
 GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1qMAWNGK7dMaY12wDQ9x3h3iZwJE9klzdtWuoReGE1pg/edit?usp=sharing"
-INTERVALO_REPORTE_COMPLETO_MIN = 26  # Garantiza envío puntual en los bloques de 30 min
+INTERVALO_REPORTE_COMPLETO_MIN = 26
 
 # ---------------------------------------------------------
 # MEMORIA PERSISTENTE Y DETECCIÓN DE GIROS (VERDE <-> ROJO)
@@ -213,4 +213,390 @@ def obtener_datos_cripto_treemap():
                 item = dict_res[symbol]
                 ticker_clean = symbol.replace("USDT", "")
                 vol = float(item['quoteVolume'])
-                var = round(
+                var = round(float(item['priceChangePercent']), 2)
+                datos.append({"ticker": ticker_clean, "vol": max(vol, 1.0), "var": var})
+
+    if not datos:
+        datos = [{"ticker": "BTC", "vol": 100, "var": 0.0}, {"ticker": "ETH", "vol": 60, "var": 0.0}]
+
+    return pd.DataFrame(datos)
+
+def generar_treemap_cripto(df):
+    fig, ax = plt.subplots(figsize=(12, 7), facecolor='#0b0e14')
+    ax.set_facecolor('#0b0e14')
+
+    sizes = df['vol']
+    labels = [f"{row['ticker']}\n{row['var']:+.2f}%" for _, row in df.iterrows()]
+    colors = ['#00796b' if v >= 2 else ('#26a69a' if v >= 0 else ('#e53935' if v <= -2 else '#c62828')) for v in df['var']]
+
+    squarify.plot(sizes=sizes, label=labels, color=colors, alpha=0.95,
+                  pad=True, edgecolor="#0b0e14", linewidth=2,
+                  text_kwargs={'color': 'white', 'fontsize': 9, 'weight': 'bold'}, ax=ax)
+
+    plt.title("MAPA DE CALOR PROFESIONAL — BINANCE CRIPTO MARKET", color='#FFD700', fontsize=13, fontweight='bold', pad=15)
+    plt.axis('off')
+    plt.tight_layout()
+    plt.savefig('heatmap_cripto.png', dpi=300, facecolor=fig.get_facecolor(), edgecolor='none')
+    plt.close()
+
+# ---------------------------------------------------------
+# 3. NOTICIAS EN VIVO (ESPEJO TRADINGVIEW CRIPTO + MEMORIA)
+# ---------------------------------------------------------
+def limpiar_html(texto):
+    return texto.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").strip()
+
+def cargar_historial_noticias():
+    if os.path.exists(HISTORIAL_NOTICIAS_FILE):
+        try:
+            with open(HISTORIAL_NOTICIAS_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                return data if isinstance(data, list) else []
+        except Exception:
+            return []
+    return []
+
+def guardar_historial_noticias(historial_actualizado):
+    try:
+        with open(HISTORIAL_NOTICIAS_FILE, "w", encoding="utf-8") as f:
+            json.dump(historial_actualizado[-45:], f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print("Error guardando historial de noticias: " + str(e))
+
+def obtener_noticias_cripto_multifuente():
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "es-ES,es;q=0.9",
+        "Origin": "https://es.tradingview.com",
+        "Referer": "https://es.tradingview.com/markets/cryptocurrencies/news/"
+    }
+    url_tv_base = "https://es.tradingview.com/markets/cryptocurrencies/news/"
+    noticias_raw = []
+
+    tv_endpoints = [
+        "https://news-mediator.tradingview.com/news-flow/v2/news?filter=lang%3Aes&filter=market%3Acrypto&client=screener&streaming=false",
+        "https://news-headlines.tradingview.com/v2/view/headlines/symbol?client=web&lang=es&section=&streaming=false&symbol=CRYPTO%3ABTCUSD"
+    ]
+
+    for ep in tv_endpoints:
+        if len(noticias_raw) >= 15:
+            break
+        try:
+            res = requests.get(ep, headers=headers, timeout=10)
+            if res.status_code == 200:
+                payload = res.json()
+                items = payload.get("items", []) if isinstance(payload, dict) else []
+                items_sorted = sorted(items, key=lambda x: x.get("published", 0), reverse=True)
+                for it in items_sorted[:25]:
+                    titulo = (it.get("title") or "").strip()
+                    story_path = it.get("storyPath") or ""
+                    enlace = f"https://es.tradingview.com{story_path}" if story_path.startswith("/") else (it.get("link") or url_tv_base)
+                    proveedor = (it.get("provider") or {}).get("name", "TradingView") if isinstance(it.get("provider"), dict) else "TradingView"
+
+                    if titulo and not any(n['titular_raw'] == titulo for n in noticias_raw):
+                        noticias_raw.append({
+                            'titular_raw': titulo,
+                            'titular': limpiar_html(titulo),
+                            'enlace': enlace,
+                            'fuente': proveedor
+                        })
+        except Exception as e:
+            print(f"⚠️ Error leyendo endpoint TradingView {ep}: {e}")
+
+    if not noticias_raw:
+        try:
+            r_html = requests.get(url_tv_base, headers=headers, timeout=10)
+            if r_html.status_code == 200:
+                soup = BeautifulSoup(r_html.text, "html.parser")
+                for a_tag in soup.find_all("a", href=True):
+                    href = a_tag["href"]
+                    if "/news/" in href and len(a_tag.get_text(strip=True)) > 25:
+                        titulo = a_tag.get_text(" ", strip=True)
+                        enlace = f"https://es.tradingview.com{href}" if href.startswith("/") else href
+                        if not any(n['titular_raw'] == titulo for n in noticias_raw):
+                            noticias_raw.append({
+                                'titular_raw': titulo,
+                                'titular': limpiar_html(titulo),
+                                'enlace': enlace,
+                                'fuente': 'TradingView'
+                            })
+                        if len(noticias_raw) >= 15:
+                            break
+        except Exception as e:
+            print(f"⚠️ Error en respaldo HTML TradingView: {e}")
+
+    historial = cargar_historial_noticias()
+    titulares_enviados = {
+        (h.get("titular_raw") or h.get("titular") or "").strip().lower()
+        for h in historial if isinstance(h, dict)
+    }
+
+    noticias_nuevas = [
+        n for n in noticias_raw
+        if n['titular_raw'].strip().lower() not in titulares_enviados
+    ]
+
+    seleccion = noticias_nuevas[:3] if noticias_nuevas else noticias_raw[:3]
+    hay_novedades = len(noticias_nuevas) > 0
+
+    if hay_novedades and seleccion:
+        nuevo_historial = historial + seleccion
+        guardar_historial_noticias(nuevo_historial)
+
+    return seleccion, hay_novedades
+
+# ---------------------------------------------------------
+# 4. DIAGNÓSTICO IA
+# ---------------------------------------------------------
+def analizar_mercado_ia(df, sesion, prev_dict, mercado_nombre):
+    if not GEMINI_API_KEY:
+        return "📊 Diagnóstico: Mercado operando con volatilidad moderada.\n🚨 Alerta: Monitorear niveles clave de soporte y resistencia."
+    try:
+        client = genai.Client(api_key=GEMINI_API_KEY)
+        giros = []
+        partes_txt = []
+        for _, r in df.iterrows():
+            t, val_act = r['ticker'], r['var']
+            partes_txt.append(f"{t}: {val_act:+.2f}%")
+            val_prev = prev_dict.get(t, val_act)
+            if val_prev < 0 and val_act > 0:
+                giros.append(f"{t} giró a verde ({val_act:+.2f}%)")
+            elif val_prev > 0 and val_act < 0:
+                giros.append(f"{t} giró a rojo ({val_act:+.2f}%)")
+
+        prompt = (
+            f"Actúa como estratega cuantitativo de {mercado_nombre}. Sesión: {sesion}. "
+            f"Datos: {', '.join(partes_txt)}. Giros: {', '.join(giros) if giros else 'Sin cambios drásticos'}. "
+            "Devuelve estrictamente dos líneas cortas: "
+            "📊 Diagnóstico: [texto] y 🚨 Alerta: [texto]."
+        )
+        for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
+            try:
+                res = client.models.generate_content(model=mod, contents=prompt)
+                if res and res.text:
+                    return res.text.strip()
+            except Exception:
+                continue
+    except Exception as e:
+        print(f"Error IA ({mercado_nombre}): {e}")
+    return "📊 Diagnóstico: Mercado operando con volatilidad moderada.\n🚨 Alerta: Monitorear niveles clave."
+
+# ---------------------------------------------------------
+# 5. ENVÍO BLINDADO MULTICAPA A TELEGRAM
+# ---------------------------------------------------------
+def quitar_etiquetas_html(texto):
+    return re.sub(r'<[^>]+>', '', texto)
+
+def enviar_mensaje_blindado(url_base, payload_base, max_reintentos=3):
+    esperas = [2, 5, 10]
+    for intento in range(1, max_reintentos + 1):
+        try:
+            res = requests.post(url_base + "/sendMessage", json=payload_base, timeout=15)
+            data = res.json()
+            if data.get("ok"):
+                return data
+
+            desc = str(data.get("description", "")).lower()
+
+            if "thread not found" in desc or "topic_closed" in desc:
+                p_gen = payload_base.copy()
+                p_gen.pop("message_thread_id", None)
+                res2 = requests.post(url_base + "/sendMessage", json=p_gen, timeout=15).json()
+                if res2.get("ok"):
+                    print("⚠️ Enviado a General como respaldo de tópico.")
+                    return res2
+
+            if "parse entities" in desc or res.status_code == 400:
+                p_plain = payload_base.copy()
+                p_plain.pop("parse_mode", None)
+                p_plain["text"] = quitar_etiquetas_html(p_plain["text"])
+                res3 = requests.post(url_base + "/sendMessage", json=p_plain, timeout=15).json()
+                if res3.get("ok"):
+                    print("⚠️ Enviado en texto plano como respaldo de formato.")
+                    return res3
+
+            if res.status_code == 429:
+                retry_after = data.get("parameters", {}).get("retry_after", 5)
+                time.sleep(int(retry_after) + 1)
+                continue
+
+            print(f"⚠️ Telegram rechazó intento {intento}: {data}")
+        except Exception as e:
+            print(f"⚠️ Error de red en intento {intento}: {e}")
+
+        if intento < max_reintentos:
+            time.sleep(esperas[intento - 1])
+
+    return None
+
+def enviar_foto_blindada(url_base, payload_base, image_path, max_reintentos=3):
+    esperas = [2, 5, 10]
+    for intento in range(1, max_reintentos + 1):
+        try:
+            with open(image_path, 'rb') as f:
+                res = requests.post(url_base + "/sendPhoto", data=payload_base, files={'photo': f}, timeout=20)
+                data = res.json()
+                if data.get("ok"):
+                    return True
+
+                desc = str(data.get("description", "")).lower()
+                if "thread not found" in desc or "topic_closed" in desc:
+                    p_gen = payload_base.copy()
+                    p_gen.pop("message_thread_id", None)
+                    f.seek(0)
+                    res2 = requests.post(url_base + "/sendPhoto", data=p_gen, files={'photo': f}, timeout=20).json()
+                    if res2.get("ok"):
+                        return True
+        except Exception as e:
+            print(f"⚠️ Error enviando foto (intento {intento}): {e}")
+
+        if intento < max_reintentos:
+            time.sleep(esperas[intento - 1])
+    return False
+
+# ---------------------------------------------------------
+# 6. ACTUALIZACIÓN WEB
+# ---------------------------------------------------------
+def actualizar_base_datos_web(noticias):
+    datos_actuales = {}
+    if os.path.exists(DATABASE_ECOSISTEMA_FILE):
+        try:
+            with open(DATABASE_ECOSISTEMA_FILE, "r", encoding="utf-8") as f:
+                datos_actuales = json.load(f)
+        except Exception:
+            datos_actuales = {}
+
+    datos_actuales["noticias"] = noticias
+    datos_actuales["ultima_actualizacion"] = ahora_art().strftime("%Y-%m-%d %H:%M:%S")
+
+    try:
+        with open(DATABASE_ECOSISTEMA_FILE, "w", encoding="utf-8") as f:
+            json.dump(datos_actuales, f, ensure_ascii=False, indent=4)
+    except Exception as e:
+        print("⚠️ Error actualizando base web: " + str(e))
+
+# ---------------------------------------------------------
+# 7. EJECUCIÓN PRINCIPAL (GIRO INMEDIATO + REPORTE 30 MIN)
+# ---------------------------------------------------------
+if __name__ == "__main__":
+    print(f"🌐 Ejecutando Sentinel Macro ({ahora_art().strftime('%H:%M:%S')} ART)...")
+
+    sesion_actual = obtener_sesion_actual_mercado()
+    estado_previo = cargar_estado_previo()
+
+    df_ws = obtener_datos_wall_street_treemap()
+    df_cripto = obtener_datos_cripto_treemap()
+
+    alertas_giro, sesgo_ws, sesgo_cr, prom_ws, prom_cr = evaluar_giro_mercado(df_ws, df_cripto, estado_previo)
+
+    enviar_completo = False
+    ultimo_rep_str = estado_previo.get("ultimo_reporte_completo")
+    if not ultimo_rep_str:
+        enviar_completo = True
+    else:
+        try:
+            ultimo_rep_dt = datetime.datetime.fromisoformat(ultimo_rep_str)
+            mins_transcurridos = (ahora_art() - ultimo_rep_dt).total_seconds() / 60.0
+            if mins_transcurridos >= INTERVALO_REPORTE_COMPLETO_MIN:
+                enviar_completo = True
+        except Exception:
+            enviar_completo = True
+
+    thread_id = int(MESSAGE_THREAD_ID) if MESSAGE_THREAD_ID.isdigit() else None
+    url_base = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
+
+    # 1. ALERTA INMEDIATA SI HUBO GIRO DE MERCADO (VERDE <-> ROJO)
+    if alertas_giro and TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
+        print("🚨 ¡Giro brusco detectado! Enviando alerta inmediata...")
+        msg_flash = (
+            f"🚨 <b>ALERTA DE GIRO DE MERCADO — SENTINEL MACRO</b>\n"
+            f"🕒 <b>Hora ART:</b> <code>{ahora_art().strftime('%H:%M')}</code> | {sesion_actual}\n\n"
+            + "\n".join(alertas_giro) +
+            f"\n\n📊 <b>Estado Global:</b> Cripto <b>{sesgo_cr} ({prom_cr:+.2f}%)</b> | Wall Street <b>{sesgo_ws} ({prom_ws:+.2f}%)</b>"
+        )
+        p_flash = {
+            'chat_id': TELEGRAM_CHAT_ID,
+            'text': msg_flash,
+            'parse_mode': 'HTML',
+            'disable_notification': False
+        }
+        if thread_id:
+            p_flash['message_thread_id'] = thread_id
+        enviar_mensaje_blindado(url_base, p_flash)
+
+    # 2. REPORTE COMPLETO CADA 30 MINUTOS
+    nuevo_ultimo_reporte = ultimo_rep_str
+    if enviar_completo:
+        print("📊 Generando reporte completo de 30 minutos...")
+        generar_treemap_wall_street(df_ws)
+        generar_treemap_cripto(df_cripto)
+
+        causas_ws = analizar_mercado_ia(df_ws, sesion_actual, estado_previo.get("wall_street", {}), "Wall Street S&P 500")
+        causas_cripto = analizar_mercado_ia(df_cripto, sesion_actual, estado_previo.get("cripto", {}), "Binance Cripto")
+
+        msg_ws = (
+            f"🏛️ <b>SENTINEL MACRO — 1. S&P 500 & TRADFI ({sesgo_ws} {prom_ws:+.2f}%)</b>\n"
+            f"🕒 <b>Sesión:</b> <code>{sesion_actual}</code>\n\n{causas_ws}\n"
+        )
+        msg_cripto = (
+            f"🪙 <b>SENTINEL MACRO — 2. BINANCE CRIPTO MARKET ({sesgo_cr} {prom_cr:+.2f}%)</b>\n"
+            f"🕒 <b>Sesión:</b> <code>{sesion_actual}</code>\n\n{causas_cripto}\n"
+        )
+
+        noticias_tv, _ = obtener_noticias_cripto_multifuente()
+        actualizar_base_datos_web(noticias_tv)
+
+        if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
+            teclado_ws = {"inline_keyboard": [[{"text": "📊 Ver Mapa Interactivo S&P 500 (Investing)", "url": "https://es.investing.com/markets/heatmap"}]]}
+            teclado_cripto = {"inline_keyboard": [[{"text": "🪙 Ver Mapa Interactivo Binance Futures", "url": "https://www.binance.com/es-AR/futures/crypto-heatmap"}]]}
+            teclado_central = {
+                "inline_keyboard": [
+                    [{"text": "🌐 Abrir Panel Web", "url": "https://kjanoto-coder.github.io/panel-cripto/"}],
+                    [{"text": "📊 Ver Planilla de Auditoría", "url": GOOGLE_SHEET_URL}]
+                ]
+            }
+
+            # Bloque 1: Wall Street
+            p_f1 = {'chat_id': TELEGRAM_CHAT_ID, 'caption': f"🗺️ <b>Mapa de Calor — S&P 500 ({sesion_actual})</b>", 'parse_mode': 'HTML'}
+            if thread_id: p_f1['message_thread_id'] = thread_id
+            enviar_foto_blindada(url_base, p_f1, 'heatmap_wall_street.png')
+
+            p_m1 = {'chat_id': TELEGRAM_CHAT_ID, 'text': msg_ws, 'parse_mode': 'HTML', 'reply_markup': teclado_ws}
+            if thread_id: p_m1['message_thread_id'] = thread_id
+            enviar_mensaje_blindado(url_base, p_m1)
+
+            # Bloque 2: Cripto
+            p_f2 = {'chat_id': TELEGRAM_CHAT_ID, 'caption': f"🗺️ <b>Mapa de Calor — Cripto ({sesion_actual})</b>", 'parse_mode': 'HTML'}
+            if thread_id: p_f2['message_thread_id'] = thread_id
+            enviar_foto_blindada(url_base, p_f2, 'heatmap_cripto.png')
+
+            p_m2 = {'chat_id': TELEGRAM_CHAT_ID, 'text': msg_cripto, 'parse_mode': 'HTML', 'reply_markup': teclado_cripto}
+            if thread_id: p_m2['message_thread_id'] = thread_id
+            enviar_mensaje_blindado(url_base, p_m2)
+
+            # Bloque 3: Noticias
+            if noticias_tv:
+                msg_noticias = "📰 <b>SENTINEL NOTICIAS — TRADINGVIEW CRIPTO (EN VIVO)</b>\n\n"
+                for idx, noticia in enumerate(noticias_tv, 1):
+                    fuente_txt = f" <i>({noticia['fuente']})</i>" if noticia.get('fuente') else ""
+                    msg_noticias += f"{idx}. ⚡ <b>{noticia['titular']}</b>{fuente_txt}\n🔗 <a href=\"{noticia['enlace']}\">Leer en TradingView</a>\n\n"
+
+                p_news = {
+                    'chat_id': TELEGRAM_CHAT_ID,
+                    'text': msg_noticias,
+                    'parse_mode': 'HTML',
+                    'disable_web_page_preview': True,
+                    'reply_markup': teclado_central
+                }
+                if thread_id: p_news['message_thread_id'] = thread_id
+                enviar_mensaje_blindado(url_base, p_news)
+
+        nuevo_ultimo_reporte = ahora_art().isoformat()
+    else:
+        print("⏳ Aún no se cumplen 30 min para el reporte completo (solo se vigiló giro de mercado).")
+
+    dict_ws_save = {r['ticker']: r['var'] for _, r in df_ws.iterrows()}
+    dict_cripto_save = {r['ticker']: r['var'] for _, r in df_cripto.iterrows()}
+    guardar_estado_actual(dict_ws_save, dict_cripto_save, sesgo_ws, sesgo_cr, nuevo_ultimo_reporte)
+
+# FIN DEL SCRIPT SENTINEL MACRO
