@@ -2,9 +2,17 @@ name: Sentinel Macro Global Alert
 
 on:
   schedule:
-    # Se ejecuta cada 30 minutos de forma continua (media hora)
-    - cron: '*/30 * * * *'
-  workflow_dispatch: # Permite ejecución manual
+    # Vigila giros Rojo/Verde cada 10 min y manda el reporte completo cada 30 min
+    - cron: '0,10,20,30,40,50 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Semáforo global: si otro bot está guardando datos, este espera su turno sin cancelarse
+concurrency:
+  group: escritura-repositorio-cripto
+  cancel-in-progress: false
 
 jobs:
   run-sentinel-macro:
@@ -12,12 +20,12 @@ jobs:
 
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.11"
 
       - name: Install Dependencies
         run: |
@@ -34,10 +42,16 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python bot_sentinel_macro.py
 
-      - name: Commit & Push Historial de Noticias y Datos
+      - name: Guardar memoria de mercado sin conflictos
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add .
-          git commit -m "Auto-update: Historial de noticias, datos macro y dashboard (30 min)" || true
-          git push || true
+          git add datos_sentinel_macro.json historial_noticias.json database_ecosistema.json || true
+          if ! git diff --staged --quiet; then
+            git commit -m "Auto-update: Memoria Sentinel Macro y Noticias"
+            for i in 1 2 3; do
+              git pull --rebase origin main && git push origin main && break
+              echo "⚠️ Reintentando push en 5s..."
+              sleep 5
+            done
+          fi
