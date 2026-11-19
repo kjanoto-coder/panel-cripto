@@ -240,7 +240,7 @@ def generar_treemap_cripto(df):
     plt.close()
 
 # ---------------------------------------------------------
-# 3. NOTICIAS EN VIVO (ESPEJO TRADINGVIEW CRIPTO + MEMORIA)
+# 3. NOTICIAS EN VIVO (TOP 6 ESPEJO DE TRADINGVIEW CRIPTO)
 # ---------------------------------------------------------
 def limpiar_html(texto):
     return texto.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").strip()
@@ -258,11 +258,15 @@ def cargar_historial_noticias():
 def guardar_historial_noticias(historial_actualizado):
     try:
         with open(HISTORIAL_NOTICIAS_FILE, "w", encoding="utf-8") as f:
-            json.dump(historial_actualizado[-45:], f, ensure_ascii=False, indent=2)
+            json.dump(historial_actualizado[-50:], f, ensure_ascii=False, indent=2)
     except Exception as e:
         print("Error guardando historial de noticias: " + str(e))
 
 def obtener_noticias_cripto_multifuente():
+    """
+    Espejo exacto de las primeras 6 noticias de https://es.tradingview.com/markets/cryptocurrencies/news/
+    Cuando entra una noticia nueva arriba (1), las anteriores se van corriendo de posición (2..6).
+    """
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
         "Accept": "application/json, text/plain, */*",
@@ -279,7 +283,7 @@ def obtener_noticias_cripto_multifuente():
     ]
 
     for ep in tv_endpoints:
-        if len(noticias_raw) >= 15:
+        if len(noticias_raw) >= 12:
             break
         try:
             res = requests.get(ep, headers=headers, timeout=10)
@@ -287,7 +291,7 @@ def obtener_noticias_cripto_multifuente():
                 payload = res.json()
                 items = payload.get("items", []) if isinstance(payload, dict) else []
                 items_sorted = sorted(items, key=lambda x: x.get("published", 0), reverse=True)
-                for it in items_sorted[:25]:
+                for it in items_sorted[:20]:
                     titulo = (it.get("title") or "").strip()
                     story_path = it.get("storyPath") or ""
                     enlace = f"https://es.tradingview.com{story_path}" if story_path.startswith("/") else (it.get("link") or url_tv_base)
@@ -320,30 +324,32 @@ def obtener_noticias_cripto_multifuente():
                                 'enlace': enlace,
                                 'fuente': 'TradingView'
                             })
-                        if len(noticias_raw) >= 15:
+                        if len(noticias_raw) >= 12:
                             break
         except Exception as e:
             print(f"⚠️ Error en respaldo HTML TradingView: {e}")
 
+    # Tomar siempre las primeras 6 exactamente en el orden vivo de la web
+    top_6_en_vivo = noticias_raw[:6]
+
     historial = cargar_historial_noticias()
-    titulares_enviados = {
+    titulares_vistos = {
         (h.get("titular_raw") or h.get("titular") or "").strip().lower()
         for h in historial if isinstance(h, dict)
     }
 
-    noticias_nuevas = [
-        n for n in noticias_raw
-        if n['titular_raw'].strip().lower() not in titulares_enviados
-    ]
+    hay_novedades = False
+    for n in top_6_en_vivo:
+        es_nueva = n['titular_raw'].strip().lower() not in titulares_vistos
+        n['es_nueva'] = es_nueva
+        if es_nueva:
+            hay_novedades = True
 
-    seleccion = noticias_nuevas[:3] if noticias_nuevas else noticias_raw[:3]
-    hay_novedades = len(noticias_nuevas) > 0
+    if hay_novedades and top_6_en_vivo:
+        nuevas_para_guardar = [n for n in top_6_en_vivo if n.get('es_nueva')]
+        guardar_historial_noticias(historial + nuevas_para_guardar)
 
-    if hay_novedades and seleccion:
-        nuevo_historial = historial + seleccion
-        guardar_historial_noticias(nuevo_historial)
-
-    return seleccion, hay_novedades
+    return top_6_en_vivo, hay_novedades
 
 # ---------------------------------------------------------
 # 4. DIAGNÓSTICO IA
@@ -574,12 +580,13 @@ if __name__ == "__main__":
             if thread_id: p_m2['message_thread_id'] = thread_id
             enviar_mensaje_blindado(url_base, p_m2)
 
-            # Bloque 3: Noticias
+            # Bloque 3: Top 6 Noticias en vivo (cinta deslizante)
             if noticias_tv:
-                msg_noticias = "📰 <b>SENTINEL NOTICIAS — TRADINGVIEW CRIPTO (EN VIVO)</b>\n\n"
+                msg_noticias = "📰 <b>SENTINEL NOTICIAS — TOP 6 TRADINGVIEW CRIPTO (EN VIVO)</b>\n\n"
                 for idx, noticia in enumerate(noticias_tv, 1):
+                    icono = "🆕" if noticia.get('es_nueva') else "⚡"
                     fuente_txt = f" <i>({noticia['fuente']})</i>" if noticia.get('fuente') else ""
-                    msg_noticias += f"{idx}. ⚡ <b>{noticia['titular']}</b>{fuente_txt}\n🔗 <a href=\"{noticia['enlace']}\">Leer en TradingView</a>\n\n"
+                    msg_noticias += f"{idx}. {icono} <b>{noticia['titular']}</b>{fuente_txt}\n🔗 <a href=\"{noticia['enlace']}\">Leer en TradingView</a>\n\n"
 
                 p_news = {
                     'chat_id': TELEGRAM_CHAT_ID,
@@ -596,7 +603,4 @@ if __name__ == "__main__":
         print("⏳ Aún no se cumplen 30 min para el reporte completo (solo se vigiló giro de mercado).")
 
     dict_ws_save = {r['ticker']: r['var'] for _, r in df_ws.iterrows()}
-    dict_cripto_save = {r['ticker']: r['var'] for _, r in df_cripto.iterrows()}
-    guardar_estado_actual(dict_ws_save, dict_cripto_save, sesgo_ws, sesgo_cr, nuevo_ultimo_reporte)
-
-# FIN DEL SCRIPT SENTINEL MACRO
+    dict_cripto_save = {r['ticker']: r['var'] for _, r in df_cripto.iterrows
