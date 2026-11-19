@@ -11,9 +11,6 @@ import squarify
 from bs4 import BeautifulSoup
 from google import genai
 
-# ---------------------------------------------------------
-# CONFIGURACIÓN DE CREDENCIALES, ZONA HORARIA Y RUTAS
-# ---------------------------------------------------------
 TZ_ART = datetime.timezone(datetime.timedelta(hours=-3))
 
 TELEGRAM_BOT_TOKEN = (os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("TELEGRAM_TOKEN") or "").strip()
@@ -28,9 +25,6 @@ DATABASE_ECOSISTEMA_FILE = "database_ecosistema.json"
 GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1qMAWNGK7dMaY12wDQ9x3h3iZwJE9klzdtWuoReGE1pg/edit?usp=sharing"
 INTERVALO_REPORTE_COMPLETO_MIN = 26
 
-# ---------------------------------------------------------
-# MEMORIA PERSISTENTE Y DETECCIÓN DE GIROS (VERDE <-> ROJO)
-# ---------------------------------------------------------
 def ahora_art():
     return datetime.datetime.now(TZ_ART)
 
@@ -122,9 +116,6 @@ def evaluar_giro_mercado(df_ws, df_cripto, estado_previo):
 
     return alertas_giro, sesgo_ws_act, sesgo_cr_act, prom_ws, prom_cr
 
-# ---------------------------------------------------------
-# 1. MAPA DE CALOR DE S&P 500 (WALL STREET)
-# ---------------------------------------------------------
 def obtener_datos_wall_street_treemap():
     acciones = {
         "NVDA": 3.2, "AAPL": 3.4, "MSFT": 3.1, "GOOGL": 2.1, "AMZN": 2.2,
@@ -139,7 +130,7 @@ def obtener_datos_wall_street_treemap():
     try:
         hist_bulk = yf.download(tickers, period="5d", interval="1d", progress=False, threads=True)
     except Exception as e:
-        print(f"⚠️ Descarga masiva yfinance falló, usando modo individual: {e}")
+        print(f"⚠️ Descarga masiva yfinance falló: {e}")
 
     for label, mcap_weight in acciones.items():
         var = 0.0
@@ -164,24 +155,18 @@ def obtener_datos_wall_street_treemap():
 def generar_treemap_wall_street(df):
     fig, ax = plt.subplots(figsize=(12, 7), facecolor='#0b0e14')
     ax.set_facecolor('#0b0e14')
-
     sizes = df['weight']
     labels = [f"{row['ticker']}\n{row['var']:+.2f}%" for _, row in df.iterrows()]
     colors = ['#00796b' if v >= 2 else ('#26a69a' if v >= 0 else ('#e53935' if v <= -2 else '#c62828')) for v in df['var']]
-
     squarify.plot(sizes=sizes, label=labels, color=colors, alpha=0.95,
                   pad=True, edgecolor="#0b0e14", linewidth=2,
                   text_kwargs={'color': 'white', 'fontsize': 9, 'weight': 'bold'}, ax=ax)
-
     plt.title("MAPA DE CALOR PROFESIONAL — S&P 500 (WALL STREET)", color='#FFD700', fontsize=13, fontweight='bold', pad=15)
     plt.axis('off')
     plt.tight_layout()
     plt.savefig('heatmap_wall_street.png', dpi=300, facecolor=fig.get_facecolor(), edgecolor='none')
     plt.close()
 
-# ---------------------------------------------------------
-# 2. MAPA DE CALOR DE CRIPTO (BINANCE MULTI-ENDPOINT)
-# ---------------------------------------------------------
 def obtener_datos_cripto_treemap():
     criptos = [
         "BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT",
@@ -203,8 +188,8 @@ def obtener_datos_cripto_treemap():
             if r.status_code == 200:
                 res_json = r.json()
                 break
-        except Exception as e:
-            print(f"⚠️ Falló endpoint Binance {url}: {e}")
+        except Exception:
+            continue
 
     if res_json:
         dict_res = {item['symbol']: item for item in res_json if 'symbol' in item}
@@ -224,24 +209,18 @@ def obtener_datos_cripto_treemap():
 def generar_treemap_cripto(df):
     fig, ax = plt.subplots(figsize=(12, 7), facecolor='#0b0e14')
     ax.set_facecolor('#0b0e14')
-
     sizes = df['vol']
     labels = [f"{row['ticker']}\n{row['var']:+.2f}%" for _, row in df.iterrows()]
     colors = ['#00796b' if v >= 2 else ('#26a69a' if v >= 0 else ('#e53935' if v <= -2 else '#c62828')) for v in df['var']]
-
     squarify.plot(sizes=sizes, label=labels, color=colors, alpha=0.95,
                   pad=True, edgecolor="#0b0e14", linewidth=2,
                   text_kwargs={'color': 'white', 'fontsize': 9, 'weight': 'bold'}, ax=ax)
-
     plt.title("MAPA DE CALOR PROFESIONAL — BINANCE CRIPTO MARKET", color='#FFD700', fontsize=13, fontweight='bold', pad=15)
     plt.axis('off')
     plt.tight_layout()
     plt.savefig('heatmap_cripto.png', dpi=300, facecolor=fig.get_facecolor(), edgecolor='none')
     plt.close()
 
-# ---------------------------------------------------------
-# 3. NOTICIAS EN VIVO (TOP 6 ESPEJO DE TRADINGVIEW CRIPTO)
-# ---------------------------------------------------------
 def limpiar_html(texto):
     return texto.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").strip()
 
@@ -263,10 +242,6 @@ def guardar_historial_noticias(historial_actualizado):
         print("Error guardando historial de noticias: " + str(e))
 
 def obtener_noticias_cripto_multifuente():
-    """
-    Espejo exacto de las primeras 6 noticias de https://es.tradingview.com/markets/cryptocurrencies/news/
-    Cuando entra una noticia nueva arriba (1), las anteriores se van corriendo de posición (2..6).
-    """
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
         "Accept": "application/json, text/plain, */*",
@@ -305,7 +280,7 @@ def obtener_noticias_cripto_multifuente():
                             'fuente': proveedor
                         })
         except Exception as e:
-            print(f"⚠️ Error leyendo endpoint TradingView {ep}: {e}")
+            print(f"⚠️ Error leyendo TradingView: {e}")
 
     if not noticias_raw:
         try:
@@ -327,11 +302,9 @@ def obtener_noticias_cripto_multifuente():
                         if len(noticias_raw) >= 12:
                             break
         except Exception as e:
-            print(f"⚠️ Error en respaldo HTML TradingView: {e}")
+            print(f"⚠️ Error en respaldo HTML: {e}")
 
-    # Tomar siempre las primeras 6 exactamente en el orden vivo de la web
     top_6_en_vivo = noticias_raw[:6]
-
     historial = cargar_historial_noticias()
     titulares_vistos = {
         (h.get("titular_raw") or h.get("titular") or "").strip().lower()
@@ -351,9 +324,6 @@ def obtener_noticias_cripto_multifuente():
 
     return top_6_en_vivo, hay_novedades
 
-# ---------------------------------------------------------
-# 4. DIAGNÓSTICO IA
-# ---------------------------------------------------------
 def analizar_mercado_ia(df, sesion, prev_dict, mercado_nombre):
     if not GEMINI_API_KEY:
         return "📊 Diagnóstico: Mercado operando con volatilidad moderada.\n🚨 Alerta: Monitorear niveles clave de soporte y resistencia."
@@ -387,9 +357,6 @@ def analizar_mercado_ia(df, sesion, prev_dict, mercado_nombre):
         print(f"Error IA ({mercado_nombre}): {e}")
     return "📊 Diagnóstico: Mercado operando con volatilidad moderada.\n🚨 Alerta: Monitorear niveles clave."
 
-# ---------------------------------------------------------
-# 5. ENVÍO BLINDADO MULTICAPA A TELEGRAM
-# ---------------------------------------------------------
 def quitar_etiquetas_html(texto):
     return re.sub(r'<[^>]+>', '', texto)
 
@@ -409,7 +376,6 @@ def enviar_mensaje_blindado(url_base, payload_base, max_reintentos=3):
                 p_gen.pop("message_thread_id", None)
                 res2 = requests.post(url_base + "/sendMessage", json=p_gen, timeout=15).json()
                 if res2.get("ok"):
-                    print("⚠️ Enviado a General como respaldo de tópico.")
                     return res2
 
             if "parse entities" in desc or res.status_code == 400:
@@ -418,15 +384,12 @@ def enviar_mensaje_blindado(url_base, payload_base, max_reintentos=3):
                 p_plain["text"] = quitar_etiquetas_html(p_plain["text"])
                 res3 = requests.post(url_base + "/sendMessage", json=p_plain, timeout=15).json()
                 if res3.get("ok"):
-                    print("⚠️ Enviado en texto plano como respaldo de formato.")
                     return res3
 
             if res.status_code == 429:
                 retry_after = data.get("parameters", {}).get("retry_after", 5)
                 time.sleep(int(retry_after) + 1)
                 continue
-
-            print(f"⚠️ Telegram rechazó intento {intento}: {data}")
         except Exception as e:
             print(f"⚠️ Error de red en intento {intento}: {e}")
 
@@ -460,9 +423,6 @@ def enviar_foto_blindada(url_base, payload_base, image_path, max_reintentos=3):
             time.sleep(esperas[intento - 1])
     return False
 
-# ---------------------------------------------------------
-# 6. ACTUALIZACIÓN WEB
-# ---------------------------------------------------------
 def actualizar_base_datos_web(noticias):
     datos_actuales = {}
     if os.path.exists(DATABASE_ECOSISTEMA_FILE):
@@ -481,9 +441,6 @@ def actualizar_base_datos_web(noticias):
     except Exception as e:
         print("⚠️ Error actualizando base web: " + str(e))
 
-# ---------------------------------------------------------
-# 7. EJECUCIÓN PRINCIPAL (GIRO INMEDIATO + REPORTE 30 MIN)
-# ---------------------------------------------------------
 if __name__ == "__main__":
     print(f"🌐 Ejecutando Sentinel Macro ({ahora_art().strftime('%H:%M:%S')} ART)...")
 
@@ -511,9 +468,7 @@ if __name__ == "__main__":
     thread_id = int(MESSAGE_THREAD_ID) if MESSAGE_THREAD_ID.isdigit() else None
     url_base = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
 
-    # 1. ALERTA INMEDIATA SI HUBO GIRO DE MERCADO (VERDE <-> ROJO)
     if alertas_giro and TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
-        print("🚨 ¡Giro brusco detectado! Enviando alerta inmediata...")
         msg_flash = (
             f"🚨 <b>ALERTA DE GIRO DE MERCADO — SENTINEL MACRO</b>\n"
             f"🕒 <b>Hora ART:</b> <code>{ahora_art().strftime('%H:%M')}</code> | {sesion_actual}\n\n"
@@ -530,10 +485,8 @@ if __name__ == "__main__":
             p_flash['message_thread_id'] = thread_id
         enviar_mensaje_blindado(url_base, p_flash)
 
-    # 2. REPORTE COMPLETO CADA 30 MINUTOS
     nuevo_ultimo_reporte = ultimo_rep_str
     if enviar_completo:
-        print("📊 Generando reporte completo de 30 minutos...")
         generar_treemap_wall_street(df_ws)
         generar_treemap_cripto(df_cripto)
 
@@ -562,25 +515,26 @@ if __name__ == "__main__":
                 ]
             }
 
-            # Bloque 1: Wall Street
             p_f1 = {'chat_id': TELEGRAM_CHAT_ID, 'caption': f"🗺️ <b>Mapa de Calor — S&P 500 ({sesion_actual})</b>", 'parse_mode': 'HTML'}
-            if thread_id: p_f1['message_thread_id'] = thread_id
+            if thread_id:
+                p_f1['message_thread_id'] = thread_id
             enviar_foto_blindada(url_base, p_f1, 'heatmap_wall_street.png')
 
             p_m1 = {'chat_id': TELEGRAM_CHAT_ID, 'text': msg_ws, 'parse_mode': 'HTML', 'reply_markup': teclado_ws}
-            if thread_id: p_m1['message_thread_id'] = thread_id
+            if thread_id:
+                p_m1['message_thread_id'] = thread_id
             enviar_mensaje_blindado(url_base, p_m1)
 
-            # Bloque 2: Cripto
             p_f2 = {'chat_id': TELEGRAM_CHAT_ID, 'caption': f"🗺️ <b>Mapa de Calor — Cripto ({sesion_actual})</b>", 'parse_mode': 'HTML'}
-            if thread_id: p_f2['message_thread_id'] = thread_id
+            if thread_id:
+                p_f2['message_thread_id'] = thread_id
             enviar_foto_blindada(url_base, p_f2, 'heatmap_cripto.png')
 
             p_m2 = {'chat_id': TELEGRAM_CHAT_ID, 'text': msg_cripto, 'parse_mode': 'HTML', 'reply_markup': teclado_cripto}
-            if thread_id: p_m2['message_thread_id'] = thread_id
+            if thread_id:
+                p_m2['message_thread_id'] = thread_id
             enviar_mensaje_blindado(url_base, p_m2)
 
-            # Bloque 3: Top 6 Noticias en vivo (cinta deslizante)
             if noticias_tv:
                 msg_noticias = "📰 <b>SENTINEL NOTICIAS — TOP 6 TRADINGVIEW CRIPTO (EN VIVO)</b>\n\n"
                 for idx, noticia in enumerate(noticias_tv, 1):
@@ -595,12 +549,16 @@ if __name__ == "__main__":
                     'disable_web_page_preview': True,
                     'reply_markup': teclado_central
                 }
-                if thread_id: p_news['message_thread_id'] = thread_id
+                if thread_id:
+                    p_news['message_thread_id'] = thread_id
                 enviar_mensaje_blindado(url_base, p_news)
 
         nuevo_ultimo_reporte = ahora_art().isoformat()
     else:
-        print("⏳ Aún no se cumplen 30 min para el reporte completo (solo se vigiló giro de mercado).")
+        print("⏳ Aún no se cumplen 30 min para el reporte completo.")
 
     dict_ws_save = {r['ticker']: r['var'] for _, r in df_ws.iterrows()}
-    dict_cripto_save = {r['ticker']: r['var'] for _, r in df_cripto.iterrows
+    dict_cripto_save = {r['ticker']: r['var'] for _, r in df_cripto.iterrows()}
+    guardar_estado_actual(dict_ws_save, dict_cripto_save, sesgo_ws, sesgo_cr, nuevo_ultimo_reporte)
+
+# FIN DEL SCRIPT SENTINEL MACRO
