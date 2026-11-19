@@ -26,7 +26,7 @@ HISTORIAL_NOTICIAS_FILE = "historial_noticias.json"
 DATABASE_ECOSISTEMA_FILE = "database_ecosistema.json"
 
 GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1qMAWNGK7dMaY12wDQ9x3h3iZwJE9klzdtWuoReGE1pg/edit?usp=sharing"
-INTERVALO_REPORTE_COMPLETO_MIN = 30  # Reporte completo cada 30 minutos
+INTERVALO_REPORTE_COMPLETO_MIN = 26  # Garantiza envío puntual en los bloques de 30 min
 
 # ---------------------------------------------------------
 # MEMORIA PERSISTENTE Y DETECCIÓN DE GIROS (VERDE <-> ROJO)
@@ -70,16 +70,10 @@ def obtener_sesion_actual_mercado():
         return "🌎 SESIÓN EE. UU. (Wall Street / S&P 500)"
 
 def evaluar_giro_mercado(df_ws, df_cripto, estado_previo):
-    """
-    Evalúa si el mercado global (Cripto o Wall Street) cambió de Rojo a Verde o viceversa,
-    o si hubo un movimiento brusco respecto al último chequeo.
-    """
-    # Promedio ponderado Wall Street
     peso_total_ws = df_ws['weight'].sum() or 1
     prom_ws = round((df_ws['var'] * df_ws['weight']).sum() / peso_total_ws, 2)
     sesgo_ws_act = "VERDE" if prom_ws >= 0 else "ROJO"
 
-    # Promedio ponderado por volumen Cripto
     vol_total_cr = df_cripto['vol'].sum() or 1
     prom_cr = round((df_cripto['var'] * df_cripto['vol']).sum() / vol_total_cr, 2)
     sesgo_cr_act = "VERDE" if prom_cr >= 0 else "ROJO"
@@ -91,21 +85,18 @@ def evaluar_giro_mercado(df_ws, df_cripto, estado_previo):
 
     alertas_giro = []
 
-    # 1. Giro de índice global Cripto
     if sesgo_cr_prev and sesgo_cr_prev != sesgo_cr_act:
         icono = "🟢🚀" if sesgo_cr_act == "VERDE" else "🔴⚠️"
         alertas_giro.append(
             f"{icono} <b>MERCADO CRIPTO GIRÓ DE {sesgo_cr_prev} A {sesgo_cr_act}</b> (Índice ponderado: <b>{prom_cr:+.2f}%</b>)"
         )
 
-    # 2. Giro de índice global Wall Street
     if sesgo_ws_prev and sesgo_ws_prev != sesgo_ws_act:
         icono = "🟢📈" if sesgo_ws_act == "VERDE" else "🔴📉"
         alertas_giro.append(
             f"{icono} <b>WALL STREET (S&P 500) GIRÓ DE {sesgo_ws_prev} A {sesgo_ws_act}</b> (Índice: <b>{prom_ws:+.2f}%</b>)"
         )
 
-    # 3. Giros bruscos individuales en líderes (BTC, ETH, SOL, NVDA, AAPL)
     lideres_cr = ["BTC", "ETH", "SOL", "BNB", "XRP"]
     for _, r in df_cripto.iterrows():
         t = r['ticker']
@@ -249,7 +240,7 @@ def generar_treemap_cripto(df):
     plt.close()
 
 # ---------------------------------------------------------
-# 3. NOTICIAS EN VIVO
+# 3. NOTICIAS EN VIVO (ESPEJO TRADINGVIEW CRIPTO + MEMORIA ANTI-REPETICIÓN)
 # ---------------------------------------------------------
 def limpiar_html(texto):
     return texto.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").strip()
@@ -258,59 +249,112 @@ def cargar_historial_noticias():
     if os.path.exists(HISTORIAL_NOTICIAS_FILE):
         try:
             with open(HISTORIAL_NOTICIAS_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+                return data if isinstance(data, list) else []
         except Exception:
             return []
     return []
 
-def guardar_historial_noticias(noticias):
+def guardar_historial_noticias(historial_actualizado):
     try:
+        # Conserva los últimos 45 titulares para garantizar que nunca se repitan
         with open(HISTORIAL_NOTICIAS_FILE, "w", encoding="utf-8") as f:
-            json.dump(noticias, f, ensure_ascii=False, indent=2)
+            json.dump(historial_actualizado[-45:], f, ensure_ascii=False, indent=2)
     except Exception as e:
         print("Error guardando historial de noticias: " + str(e))
 
 def obtener_noticias_cripto_multifuente():
-    noticias_candidatas = []
+    """
+    Lee directamente la API oficial de titulares de TradingView (sección Cripto ES)
+    para estar 100% a la par con https://es.tradingview.com/markets/cryptocurrencies/news/,
+    filtrando titulares ya enviados previamente.
+    """
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Accept-Language": "es-ES,es;q=0.9,en;q=0.8"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "es-ES,es;q=0.9",
+        "Origin": "https://es.tradingview.com",
+        "Referer": "https://es.tradingview.com/markets/cryptocurrencies/news/"
     }
-    url_tv = "https://es.tradingview.com/markets/cryptocurrencies/news/"
-    feeds = [
-        "https://es.cointelegraph.com/rss",
-        "https://es.beincrypto.com/feed/"
+    url_tv_base = "https://es.tradingview.com/markets/cryptocurrencies/news/"
+    noticias_raw = []
+
+    # 1. Fuente primaria: Endpoint oficial de TradingView News (exactamente la tabla de /markets/cryptocurrencies/news/)
+    tv_endpoints = [
+        "https://news-headlines.tradingview.com/v2/view/headlines/symbol?client=web&lang=es&section=&streaming=false&symbol=CRYPTO%3ABTCUSD",
+        "https://news-mediator.tradingview.com/news-flow/v2/news?filter=lang%3Aes&filter=market%3Acrypto&client=screener&streaming=false"
     ]
 
-    for feed_url in feeds:
-        if len(noticias_candidatas) >= 3:
+    for ep in tv_endpoints:
+        if len(noticias_raw) >= 15:
             break
         try:
-            res_ct = requests.get(feed_url, headers=headers, timeout=10)
-            if res_ct.status_code == 200:
-                soup_rss = BeautifulSoup(res_ct.content, features="xml")
-                for item in soup_rss.find_all('item')[:5]:
-                    t_elem = item.find('title')
-                    if t_elem:
-                        titular = t_elem.text.strip().replace("<![CDATA[", "").replace("]]>", "")
-                        if titular and not any(n['titular'] == titular for n in noticias_candidatas):
-                            noticias_candidatas.append({
-                                'titular': limpiar_html(titular),
-                                'enlace': url_tv,
-                                'fuente': 'TradingView / Market Feed'
-                            })
-                            if len(noticias_candidatas) >= 3:
-                                break
+            res = requests.get(ep, headers=headers, timeout=10)
+            if res.status_code == 200:
+                payload = res.json()
+                items = payload.get("items", []) if isinstance(payload, dict) else []
+                # Ordenar estrictamente por fecha de publicación más reciente
+                items_sorted = sorted(items, key=lambda x: x.get("published", 0), reverse=True)
+                for it in items_sorted[:20]:
+                    titulo = (it.get("title") or "").strip()
+                    story_path = it.get("storyPath") or ""
+                    enlace = f"https://es.tradingview.com{story_path}" if story_path.startswith("/") else (it.get("link") or url_tv_base)
+                    proveedor = (it.get("provider") or {}).get("name", "TradingView") if isinstance(it.get("provider"), dict) else "TradingView"
+
+                    if titulo and not any(n['titular_raw'] == titulo for n in noticias_raw):
+                        noticias_raw.append({
+                            'titular_raw': titulo,
+                            'titular': limpiar_html(titulo),
+                            'enlace': enlace,
+                            'fuente': proveedor
+                        })
         except Exception as e:
-            print(f"⚠️ Error obteniendo feed {feed_url}: {e}")
+            print(f"⚠️ Error leyendo endpoint TradingView {ep}: {e}")
 
-    noticias_actuales = noticias_candidatas[:3]
+    # 2. Respaldo secundario si TradingView limita la IP: scraping directo de la tabla HTML de TradingView Cripto
+    if not noticias_raw:
+        try:
+            r_html = requests.get(url_tv_base, headers=headers, timeout=10)
+            if r_html.status_code == 200:
+                soup = BeautifulSoup(r_html.text, "html.parser")
+                for a_tag in soup.find_all("a", href=True):
+                    href = a_tag["href"]
+                    if "/news/" in href and len(a_tag.get_text(strip=True)) > 25:
+                        titulo = a_tag.get_text(" ", strip=True)
+                        enlace = f"https://es.tradingview.com{href}" if href.startswith("/") else href
+                        if not any(n['titular_raw'] == titulo for n in noticias_raw):
+                            noticias_raw.append({
+                                'titular_raw': titulo,
+                                'titular': limpiar_html(titulo),
+                                'enlace': enlace,
+                                'fuente': 'TradingView'
+                            })
+                        if len(noticias_raw) >= 15:
+                            break
+        except Exception as e:
+            print(f"⚠️ Error en respaldo HTML TradingView: {e}")
+
+    # 3. Filtrado estricto contra historial para NO repetir noticias ya enviadas
     historial = cargar_historial_noticias()
-    hay_novedades = set(n['titular'] for n in noticias_actuales) != set(n['titular'] for n in historial)
-    if hay_novedades and noticias_actuales:
-        guardar_historial_noticias(noticias_actuales)
+    titulares_enviados = {
+        (h.get("titular_raw") or h.get("titular") or "").strip().lower()
+        for h in historial if isinstance(h, dict)
+    }
 
-    return noticias_actuales, hay_novedades
+    noticias_nuevas = [
+        n for n in noticias_raw
+        if n['titular_raw'].strip().lower() not in titulares_enviados
+    ]
+
+    # Seleccionar las 3 más recientes sin repetir (si hay menos de 3 nuevas, toma las disponibles sin repetir)
+    seleccion = noticias_nuevas[:3] if noticias_nuevas else noticias_raw[:3]
+    hay_novedades = len(noticias_nuevas) > 0
+
+    if hay_novedades and seleccion:
+        nuevo_historial = historial + seleccion
+        guardar_historial_noticias(nuevo_historial)
+
+    return seleccion, hay_novedades
 
 # ---------------------------------------------------------
 # 4. DIAGNÓSTICO IA
@@ -355,13 +399,6 @@ def quitar_etiquetas_html(texto):
     return re.sub(r'<[^>]+>', '', texto)
 
 def enviar_mensaje_blindado(url_base, payload_base, max_reintentos=3):
-    """
-    Intenta enviar el mensaje por múltiples vías:
-    1. Envío normal con HTML y thread_id.
-    2. Si falla el tópico, reintenta sin message_thread_id (canal General).
-    3. Si falla el formato HTML (HTTP 400), limpia etiquetas y envía texto plano.
-    4. Reintenta ante fallos de red o límite de velocidad (HTTP 429).
-    """
     esperas = [2, 5, 10]
     for intento in range(1, max_reintentos + 1):
         try:
@@ -372,7 +409,6 @@ def enviar_mensaje_blindado(url_base, payload_base, max_reintentos=3):
 
             desc = str(data.get("description", "")).lower()
 
-            # Fallback 1: Tópico inválido o cerrado -> enviar a General
             if "thread not found" in desc or "topic_closed" in desc:
                 p_gen = payload_base.copy()
                 p_gen.pop("message_thread_id", None)
@@ -381,7 +417,6 @@ def enviar_mensaje_blindado(url_base, payload_base, max_reintentos=3):
                     print("⚠️ Enviado a General como respaldo de tópico.")
                     return res2
 
-            # Fallback 2: Error de parseo HTML -> enviar como texto plano
             if "parse entities" in desc or res.status_code == 400:
                 p_plain = payload_base.copy()
                 p_plain.pop("parse_mode", None)
@@ -391,7 +426,6 @@ def enviar_mensaje_blindado(url_base, payload_base, max_reintentos=3):
                     print("⚠️ Enviado en texto plano como respaldo de formato.")
                     return res3
 
-            # Fallback 3: Rate limit de Telegram
             if res.status_code == 429:
                 retry_after = data.get("parameters", {}).get("retry_after", 5)
                 time.sleep(int(retry_after) + 1)
@@ -466,7 +500,6 @@ if __name__ == "__main__":
 
     alertas_giro, sesgo_ws, sesgo_cr, prom_ws, prom_cr = evaluar_giro_mercado(df_ws, df_cripto, estado_previo)
 
-    # Verificar si ya pasaron 30 minutos desde el último reporte completo
     enviar_completo = False
     ultimo_rep_str = estado_previo.get("ultimo_reporte_completo")
     if not ultimo_rep_str:
@@ -475,7 +508,7 @@ if __name__ == "__main__":
         try:
             ultimo_rep_dt = datetime.datetime.fromisoformat(ultimo_rep_str)
             mins_transcurridos = (ahora_art() - ultimo_rep_dt).total_seconds() / 60.0
-            if mins_transcurridos >= (INTERVALO_REPORTE_COMPLETO_MIN - 2):
+            if mins_transcurridos >= INTERVALO_REPORTE_COMPLETO_MIN:
                 enviar_completo = True
         except Exception:
             enviar_completo = True
@@ -554,9 +587,10 @@ if __name__ == "__main__":
 
             # Bloque 3: Noticias
             if noticias_tv:
-                msg_noticias = "📰 <b>SENTINEL NOTICIAS — TRADINGVIEW & MARKET HEADLINES</b>\n\n"
+                msg_noticias = "📰 <b>SENTINEL NOTICIAS — TRADINGVIEW CRIPTO (EN VIVO)</b>\n\n"
                 for idx, noticia in enumerate(noticias_tv, 1):
-                    msg_noticias += f"{idx}. ⚡ <b>{noticia['titular']}</b>\n🔗 <a href=\"{noticia['enlace']}\">Leer en TradingView</a>\n\n"
+                    fuente_txt = f" <i>({noticia['fuente']})</i>" if noticia.get('fuente') else ""
+                    msg_noticias += f"{idx}. ⚡ <b>{noticia['titular']}</b>{fuente_txt}\n🔗 <a href=\"{noticia['enlace']}\">Leer en TradingView</a>\n\n"
 
                 p_news = {
                     'chat_id': TELEGRAM_CHAT_ID,
@@ -572,7 +606,6 @@ if __name__ == "__main__":
     else:
         print("⏳ Aún no se cumplen 30 min para el reporte completo (solo se vigiló giro de mercado).")
 
-    # Guardar memoria actualizada para la próxima comparación
     dict_ws_save = {r['ticker']: r['var'] for _, r in df_ws.iterrows()}
     dict_cripto_save = {r['ticker']: r['var'] for _, r in df_cripto.iterrows()}
     guardar_estado_actual(dict_ws_save, dict_cripto_save, sesgo_ws, sesgo_cr, nuevo_ultimo_reporte)
