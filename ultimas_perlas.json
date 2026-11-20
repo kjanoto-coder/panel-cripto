@@ -1,14 +1,5 @@
 [
   [
-    "XRPUSDT",
-    "JSTUSDT",
-    "NIGHTUSDT",
-    "RAYUSDT",
-    "KITEUSDT",
-    "MEGAUSDT",
-    "SNXUSDT"
-  ],
-  [
     "SAPIENUSDT",
     "LUNCUSDT",
     "ZKPUSDT",
@@ -16,5 +7,14 @@
     "ENSOUSDT",
     "BMTUSDT",
     "KAVAUSDT"
+  ],
+  [
+    "JSTUSDT",
+    "BMTUSDT",
+    "ERAUSDT",
+    "LUNCUSDT",
+    "KITEUSDT",
+    "RAREUSDT",
+    "SAPIENUSDT"
   ]
 ]
