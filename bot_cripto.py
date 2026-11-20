@@ -57,7 +57,6 @@ def obtener_datos_completos_binance(session):
         except Exception:
             continue
 
-    # Consulta volumen de Futuros USD-M para igualar el ranking "Mayor volumen" de Binance Mercados
     try:
         rf = session.get("https://fapi.binance.com/fapi/v1/ticker/24hr", timeout=10)
         if rf.status_code == 200 and isinstance(rf.json(), list):
@@ -78,17 +77,32 @@ def formatear_precio(p):
     if p >= 0.0001: return f"${p:.6f}"
     return f"${p:.8f}"
 
-def generar_barra_progreso(cambio, tipo_bloque=""):
-    if tipo_bloque == "acumulacion_24h": return "🟨🟨🟨⬜⬜"
-    if tipo_bloque == "silenciosa": return "💎💎💎💎⬜"
-    if cambio >= 50: return "🟢🟢🟢🟢🟢"
-    if cambio >= 25: return "🟢🟢🟢🟢⬜"
-    if cambio >= 15: return "🟢🟢🟢⬜⬜"
-    if cambio >= 5: return "🟢🟢⬜⬜⬜"
+def generar_barra_progreso(cambio, tipo_bloque="", item=None):
+    if tipo_bloque == "acumulacion_24h":
+        vol = (item or {}).get('vol_mercado_f', 0)
+        if vol >= 1_000_000_000: return "🟨🟨🟨🟨🟨"
+        if vol >= 500_000_000: return "🟨🟨🟨🟨⬜"
+        if vol >= 250_000_000: return "🟨🟨🟨⬜⬜"
+        if vol >= 100_000_000: return "🟨🟨⬜⬜⬜"
+        return "🟨⬜⬜⬜⬜"
+
+    if tipo_bloque == "silenciosa":
+        fv = (item or {}).get('factor_vol', 1.3)
+        if fv >= 4.2: return "💎💎💎💎💎"
+        if fv >= 2.8: return "💎💎💎💎⬜"
+        if fv >= 1.8: return "💎💎💎⬜⬜"
+        return "💎💎⬜⬜⬜"
+
+    if cambio >= 18: return "🟢🟢🟢🟢🟢"
+    if cambio >= 10: return "🟢🟢🟢🟢⬜"
+    if cambio >= 5: return "🟢🟢🟢⬜⬜"
+    if cambio >= 2: return "🟢🟢⬜⬜⬜"
     if cambio > 0: return "🟢⬜⬜⬜⬜"
-    if cambio > -5: return "🟥🟥⬜⬜⬜"
-    if cambio > -12: return "🟥🟥🟥⬜⬜"
-    if cambio > -20: return "🟥🟥🟥🟥⬜"
+    if cambio == 0: return "⬜⬜⬜⬜⬜"
+    if cambio > -2: return "🟥⬜⬜⬜⬜"
+    if cambio > -5.5: return "🟥🟥⬜⬜⬜"
+    if cambio > -7.5: return "🟥🟥🟥⬜⬜"
+    if cambio > -10: return "🟥🟥🟥🟥⬜"
     return "🟥🟥🟥🟥🟥"
 
 def seleccionar_silenciosas_con_gemini(candidatas, historial_previo):
@@ -151,14 +165,13 @@ def preparar_datos(tickers_spot, spot_activos, vol_futuros):
             todos[sym] = t
             vistos.add(sym)
             if base not in EXCLUIDOS:
-                if vq_spot >= 900_000:
+                if vol_total_mercado >= 100_000:
                     web_spot.append(t)
                 if vol_total_mercado >= 1_000_000:
                     web_volumen.append(t)
         except Exception:
             continue
 
-    # Añade activos líderes que operan fuerte en Futuros de Binance (ej. HYPE) para espejar "Mayor volumen"
     if vol_futuros:
         try:
             rf = requests.get("https://fapi.binance.com/fapi/v1/ticker/24hr", timeout=10).json()
@@ -210,20 +223,33 @@ def generar_grafico_tema(items, titulo, color, filename):
     ordenados = sorted(items, key=lambda x: x['pct_24h'])
     sims = [i['base_asset'] for i in ordenados]
     cambios = [i['pct_24h'] for i in ordenados]
+    max_abs = max([abs(c) for c in cambios] + [1.0])
+
     fig, ax = plt.subplots(figsize=(8, 4.5), facecolor='#0b132b')
     ax.set_facecolor('#0b132b')
     bars = ax.bar(sims, cambios, color=color, width=0.5, zorder=3)
+    ax.axhline(0, color='#334155', linewidth=1.0, zorder=2)
     ax.grid(True, color='#1e293b', linewidth=0.8, zorder=1)
     for s in ['top', 'right', 'left', 'bottom']: ax.spines[s].set_visible(False)
     ax.tick_params(left=False, labelleft=False, bottom=False)
     ax.tick_params(axis='x', colors='white', labelsize=10)
+
+    min_y = min(cambios + [0.0])
+    max_y = max(cambios + [0.0])
+    margen = max_abs * 0.35
+    ax.set_ylim(min_y - (margen if min_y < 0 else max_abs * 0.08), max_y + (margen if max_y > 0 else max_abs * 0.08))
+
     for bar, sim, c in zip(bars, sims, cambios):
         yv, xv = bar.get_height(), bar.get_x() + bar.get_width() / 2.0
-        off = 2.5 if yv >= 0 else -5.5
-        ax.text(xv, yv + off, f"{c:+.2f}%", ha='center', va='bottom' if yv >= 0 else 'top', color=color, fontweight='bold', fontsize=9)
-        ax.plot(xv, yv + (1.2 if yv >= 0 else -1.2), marker='o', markersize=18, markerfacecolor='#0f172a', markeredgecolor=color, markeredgewidth=1.5, zorder=4)
+        signo = 1 if yv >= 0 else -1
+        pos_circulo = yv + signo * (max_abs * 0.09)
+        pos_texto = yv + signo * (max_abs * 0.21)
+
+        ax.text(xv, pos_texto, f"{c:+.2f}%", ha='center', va='bottom' if yv >= 0 else 'top', color=color, fontweight='bold', fontsize=9)
+        ax.plot(xv, pos_circulo, marker='o', markersize=18, markerfacecolor='#0f172a', markeredgecolor=color, markeredgewidth=1.5, zorder=4)
         etiqueta_circulo = sim[:5] if re.match(r'^[A-Z0-9]+$', sim) else sim[:2]
-        ax.text(xv, yv + (1.2 if yv >= 0 else -1.2), etiqueta_circulo, ha='center', va='center', color='white', fontsize=7, fontweight='bold', zorder=5)
+        ax.text(xv, pos_circulo, etiqueta_circulo, ha='center', va='center', color='white', fontsize=7, fontweight='bold', zorder=5)
+
     plt.title(titulo, loc='left', color='#ffab00', fontsize=12, fontweight='bold', pad=12)
     ax.text(0.0, 1.02, f"Fecha: {ahora_art().strftime('%Y-%m-%d %H:%M ART')}", transform=ax.transAxes, color='#94a3b8', fontsize=8)
     plt.tight_layout()
@@ -269,7 +295,8 @@ def procesar_bloque(num, titulo, icono, items, color, fname, tipo=""):
         u_ia = f"{BASE_URL_NETLIFY}/?coin={sim}&price={it['lastPrice_f']}&change={c:.2f}&high={it['highPrice_f']}&low={it['lowPrice_f']}&v={sim}_{uid}"
         u_tr = f"https://www.binance.com/es/trade/{sim}_USDT"
         extra = f" <i>[IA Gemini • Presión x{it.get('factor_vol', 1.3):.1f}]</i>" if tipo == "silenciosa" else ""
-        txt += f"• <b>{sim}</b> | Base (0%): <code>{formatear_precio(it['base_24h_f'])}</code> ➔ Actual: <code>{formatear_precio(it['lastPrice_f'])}</code> | <b>{c:+.2f}%</b>\n{generar_barra_progreso(c, tipo)}{extra}\n└ <a href=\"{html.escape(u_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(u_tr)}\">🔶 Tradear</a>\n\n"
+        barra = generar_barra_progreso(c, tipo, it)
+        txt += f"• <b>{sim}</b> | Base (0%): <code>{formatear_precio(it['base_24h_f'])}</code> ➔ Actual: <code>{formatear_precio(it['lastPrice_f'])}</code> | <b>{c:+.2f}%</b>\n{barra}{extra}\n└ <a href=\"{html.escape(u_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(u_tr)}\">🔶 Tradear</a>\n\n"
     enviar_foto_y_detalle(fname, txt.strip())
     time.sleep(2)
 
