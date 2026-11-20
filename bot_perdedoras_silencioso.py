@@ -10,7 +10,12 @@ import requests
 TZ_ART = timezone(timedelta(hours=-3))
 TELEGRAM_BOT_TOKEN = (os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("TELEGRAM_TOKEN") or "").strip()
 TELEGRAM_CHAT_ID = (os.getenv("TELEGRAM_CHAT_ID") or os.getenv("CHAT_ID") or "").strip()
-TELEGRAM_TOPIC_ID = (os.getenv("TOPIC_ID_PERDEDORAS") or os.getenv("TOPIC_ID_DIPS") or os.getenv("TOPIC_ID_CENTRAL") or "").strip()
+TELEGRAM_TOPIC_ID = (
+    os.getenv("TOPIC_ID_PERDEDORAS")
+    or os.getenv("TOPIC_ID_DIPS")
+    or os.getenv("TOPIC_ID_CENTRAL")
+    or "14669"
+).strip()
 BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
 
 ESTADO_FILE = "perdedoras_silenciosas.json"
@@ -127,7 +132,6 @@ def evaluar_oportunidad_en_baja(session, t, hist_moneda):
     high_24h = float(t.get("highPrice", precio) or precio)
     low_24h = float(t.get("lowPrice", precio) or precio)
 
-    # Filtra monedas perdedoras en 24h con liquidez mínima y rango de precio spot
     if not (0.000001 <= precio < 25.0):
         return None
     if vol_24h < 600_000:
@@ -147,7 +151,6 @@ def evaluar_oportunidad_en_baja(session, t, hist_moneda):
     pos_rango_hist = round(((precio - min_hist) / rango_hist) * 100, 1) if rango_hist > 0 else 50.0
     dist_min_pct = round(((precio - min_hist) / min_hist) * 100, 1) if min_hist > 0 else 0.0
 
-    # Antecedentes históricos de rebotes >= 12% tras caídas en 1d
     rebotes_hist = 0
     cierres_1d = [float(x[4]) for x in k1d]
     for i in range(5, len(cierres_1d) - 3):
@@ -171,7 +174,6 @@ def evaluar_oportunidad_en_baja(session, t, hist_moneda):
     rebote_desde_min_24h = round(((precio - low_24h) / low_24h) * 100, 2) if low_24h > 0 else 0.0
     mecha_rebote = (c15 > o15) and ((c15 - l15) > (h15 - c15) * 1.25)
 
-    # Condición de "perdedora con señal de recuperación / opción de compra a evaluar"
     senal_rebote = (
         pos_rango_hist <= 55.0
         and rsi_1h >= 24.0
@@ -266,7 +268,6 @@ if __name__ == "__main__":
     alertadas_hoy = estado.get("alertadas_hoy", {})
     hist_caidas = estado.get("historial_caidas", {})
 
-    # Toma primero las mayores perdedoras en 24h de Spot USDT con volumen razonable
     perdedoras_raw = []
     for t in tickers:
         sym = t.get("symbol", "")
@@ -283,7 +284,6 @@ if __name__ == "__main__":
         except (ValueError, TypeError):
             continue
 
-    # Analiza hasta 30 de las mayores caídas del día para no saturar peticiones
     perdedoras_raw.sort(key=lambda x: x[0])
     oportunidades = []
 
@@ -295,7 +295,6 @@ if __name__ == "__main__":
         if not ev:
             continue
 
-        # Evita repetir alerta si ya se avisó hoy a un precio similar o peor
         prev = alertadas_hoy.get(sym)
         if prev:
             p_prev = float(prev.get("precio", precio_act) or precio_act)
