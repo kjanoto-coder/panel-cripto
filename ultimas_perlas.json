@@ -2,19 +2,19 @@
   [
     "DODOUSDT",
     "KITEUSDT",
-    "BLURUSDT",
-    "USUALUSDT",
-    "SOPHUSDT",
-    "ERAUSDT",
-    "SAPIENUSDT"
-  ],
-  [
-    "DODOUSDT",
-    "KITEUSDT",
     "USUALUSDT",
     "BLURUSDT",
     "AIGENSYNUSDT",
     "SOPHUSDT",
     "ENSOUSDT"
+  ],
+  [
+    "DODOUSDT",
+    "KITEUSDT",
+    "USUALUSDT",
+    "SOPHUSDT",
+    "AIGENSYNUSDT",
+    "ENSOUSDT",
+    "SAPIENUSDT"
   ]
 ]
