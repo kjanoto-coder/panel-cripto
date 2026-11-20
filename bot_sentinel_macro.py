@@ -72,47 +72,20 @@ def evaluar_giro_mercado(df_ws, df_cripto, estado_previo):
     prom_cr = round((df_cripto['var'] * df_cripto['vol']).sum() / vol_total_cr, 2)
     sesgo_cr_act = "VERDE" if prom_cr >= 0 else "ROJO"
 
-    sesgo_ws_prev = estado_previo.get("sesgo_ws")
-    sesgo_cr_prev = estado_previo.get("sesgo_cripto")
     prev_cr_dict = estado_previo.get("cripto", {})
-    prev_ws_dict = estado_previo.get("wall_street", {})
-
     alertas_giro = []
 
-    if sesgo_cr_prev and sesgo_cr_prev != sesgo_cr_act:
-        icono = "🟢🚀" if sesgo_cr_act == "VERDE" else "🔴⚠️"
-        alertas_giro.append(
-            f"{icono} <b>MERCADO CRIPTO GIRÓ DE {sesgo_cr_prev} A {sesgo_cr_act}</b> (Índice ponderado: <b>{prom_cr:+.2f}%</b>)"
-        )
-
-    if sesgo_ws_prev and sesgo_ws_prev != sesgo_ws_act:
-        icono = "🟢📈" if sesgo_ws_act == "VERDE" else "🔴📉"
-        alertas_giro.append(
-            f"{icono} <b>WALL STREET (S&P 500) GIRÓ DE {sesgo_ws_prev} A {sesgo_ws_act}</b> (Índice: <b>{prom_ws:+.2f}%</b>)"
-        )
-
-    lideres_cr = ["BTC", "ETH", "SOL", "BNB", "XRP"]
-    for _, r in df_cripto.iterrows():
-        t = r['ticker']
-        v_act = r['var']
-        if t in lideres_cr and t in prev_cr_dict:
-            v_prev = prev_cr_dict[t]
-            if v_prev < 0 and v_act >= 0.3:
-                alertas_giro.append(f"🟢 <b>{t}</b> cruzó a VERDE: {v_prev:+.2f}% ➔ <b>{v_act:+.2f}%</b>")
-            elif v_prev > 0 and v_act <= -0.3:
-                alertas_giro.append(f"🔴 <b>{t}</b> cruzó a ROJO: {v_prev:+.2f}% ➔ <b>{v_act:+.2f}%</b>")
-            elif abs(v_act - v_prev) >= 2.0:
-                alertas_giro.append(f"⚡ <b>{t}</b> movimiento brusco: {v_prev:+.2f}% ➔ <b>{v_act:+.2f}%</b>")
-
-    for _, r in df_ws.iterrows():
-        t = r['ticker']
-        v_act = r['var']
-        if t in ["NVDA", "AAPL", "MSFT", "TSLA"] and t in prev_ws_dict:
-            v_prev = prev_ws_dict[t]
-            if v_prev < 0 and v_act >= 0.3:
-                alertas_giro.append(f"🟢 <b>{t}</b> (WS) cruzó a VERDE: {v_prev:+.2f}% ➔ <b>{v_act:+.2f}%</b>")
-            elif v_prev > 0 and v_act <= -0.3:
-                alertas_giro.append(f"🔴 <b>{t}</b> (WS) cruzó a ROJO: {v_prev:+.2f}% ➔ <b>{v_act:+.2f}%</b>")
+    # Vigila únicamente a BTC como termómetro principal del mercado
+    fila_btc = df_cripto[df_cripto['ticker'] == 'BTC']
+    if not fila_btc.empty and 'BTC' in prev_cr_dict:
+        v_act = float(fila_btc.iloc[0]['var'])
+        v_prev = float(prev_cr_dict['BTC'])
+        if v_prev < 0 and v_act >= 0.3:
+            alertas_giro.append(f"🟢 <b>BTC</b> cruzó a VERDE: {v_prev:+.2f}% ➔ <b>{v_act:+.2f}%</b>")
+        elif v_prev > 0 and v_act <= -0.3:
+            alertas_giro.append(f"🔴 <b>BTC</b> cruzó a ROJO: {v_prev:+.2f}% ➔ <b>{v_act:+.2f}%</b>")
+        elif abs(v_act - v_prev) >= 2.0:
+            alertas_giro.append(f"⚡ <b>BTC</b> movimiento brusco: {v_prev:+.2f}% ➔ <b>{v_act:+.2f}%</b>")
 
     return alertas_giro, sesgo_ws_act, sesgo_cr_act, prom_ws, prom_cr
 
