@@ -33,30 +33,42 @@ def guardar_memoria_perlas(historial_reportes):
 
 def crear_sesion_binance():
     s = requests.Session()
-    s.headers.update({"User-Agent": "Mozilla/5.0", "Accept": "application/json"})
+    s.headers.update({"User-Agent": "Mozilla/5.0", "Accept": "application/json", "Cache-Control": "no-cache"})
     return s
 
-def obtener_simbolos_spot_activos(session):
-    for url in ["https://data-api.binance.vision/api/v3/exchangeInfo", "https://api.binance.com/api/v3/exchangeInfo"]:
+def obtener_datos_completos_binance(session):
+    spot_activos, tickers_spot, vol_futuros = set(), [], {}
+
+    for url in ["https://api.binance.com/api/v3/exchangeInfo", "https://data-api.binance.vision/api/v3/exchangeInfo"]:
         try:
             res = session.get(url, timeout=12)
             if res.status_code == 200:
-                activos = {s['symbol'] for s in res.json().get('symbols', []) if s.get('status') == 'TRADING' and s.get('isSpotTradingAllowed', True) and s.get('quoteAsset') == 'USDT'}
-                if activos:
-                    return activos
+                spot_activos = {s['symbol'] for s in res.json().get('symbols', []) if s.get('status') == 'TRADING' and s.get('quoteAsset') == 'USDT'}
+                if spot_activos: break
         except Exception:
             continue
-    return set()
 
-def obtener_datos_binance(session):
-    for url in ["https://data-api.binance.vision/api/v3/ticker/24hr", "https://api.binance.com/api/v3/ticker/24hr"]:
+    for url in ["https://api.binance.com/api/v3/ticker/24hr", "https://data-api.binance.vision/api/v3/ticker/24hr"]:
         try:
             r = session.get(url, timeout=15)
             if r.status_code == 200 and isinstance(r.json(), list) and r.json():
-                return r.json()
+                tickers_spot = r.json()
+                break
         except Exception:
             continue
-    return []
+
+    # Consulta volumen de Futuros USD-M para igualar el ranking "Mayor volumen" de Binance Mercados
+    try:
+        rf = session.get("https://fapi.binance.com/fapi/v1/ticker/24hr", timeout=10)
+        if rf.status_code == 200 and isinstance(rf.json(), list):
+            for item in rf.json():
+                sym = item.get('symbol', '')
+                if sym.endswith('USDT'):
+                    vol_futuros[sym] = float(item.get('quoteVolume', 0))
+    except Exception:
+        pass
+
+    return spot_activos, tickers_spot, vol_futuros
 
 def formatear_precio(p):
     if p is None or p <= 0: return "$0.00"
@@ -89,7 +101,7 @@ def seleccionar_silenciosas_con_gemini(candidatas, historial_previo):
         return pool_ordenado[:7]
     try:
         client = genai.Client(api_key=GEMINI_API_KEY)
-        resumen = [f"{c['base_asset']}: precio={formatear_precio(c['lastPrice_f'])}, var24h={c['priceChangePercent_f']:+.2f}%, posRango={int(c['pos_rango']*100)}%, volUSDT={int(c['quoteVolume_f']):,}, presion=x{c['factor_vol']:.1f}" for c in pool_ordenado]
+        resumen = [f"{c['base_asset']}: precio={formatear_precio(c['lastPrice_f'])}, var24h={c['pct_24h']:+.2f}%, posRango={int(c['pos_rango']*100)}%, volUSDT={int(c['quoteVolume_f']):,}, presion=x{c['factor_vol']:.1f}" for c in pool_ordenado]
         prompt = "Analista cuantitativo Binance Spot. De estas altcoins (< $5 USD, en verde, sin stablecoins), elige exactamente los 7 tickers con mejor acumulación silenciosa alcista (liquidez y sostén en zona alta). Devuelve SOLO los 7 tickers separados por coma (ej: ARB,OP,SEI,TIA,IMX,PYTH,FET):\n" + "\n".join(resumen)
         for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
             try:
@@ -108,40 +120,83 @@ def seleccionar_silenciosas_con_gemini(candidatas, historial_previo):
         print(f"⚠️ Fallback Gemini: {e}")
     return pool_ordenado[:7]
 
-def preparar_datos(tickers, simbolos_activos):
-    todos, web = {}, []
+def preparar_datos(tickers_spot, spot_activos, vol_futuros):
+    todos, web_spot, web_volumen = {}, [], []
     EXCLUIDOS = {'USDT','USDC','FDUSD','DAI','TUSD','USDP','EUR','BUSD','AEUR','EURI','USD1','USDE','RLUSD','RWUSD','XUSD','BFUSD','PAXG','XAUT','U','USDG','USDS','PYUSD','GUSD','SUSD','FRAX','CREAM','EPX','FOR','VGX','WNXM','BOND','LOOM','OAX','MULTI','KP3R','AKRO','BLZ','WRX','SNXXB','MSTRB','GBP','TRY','BRL','ARS'}
-    for t in tickers:
+    vistos = set()
+
+    for t in tickers_spot:
         sym = t.get('symbol', '')
-        if not sym.endswith('USDT') or sym not in simbolos_activos: continue
+        if not sym.endswith('USDT') or sym not in spot_activos: continue
         base = sym[:-4]
-        if not re.match(r'^[A-Z0-9]+$', base) or any(x in base for x in ['UP', 'DOWN', 'BULL', 'BEAR']): continue
+        if any(x in base for x in ['UP', 'DOWN', 'BULL', 'BEAR']): continue
         try:
-            op, lp, vq, hp, lowp, pct_api = float(t['openPrice']), float(t['lastPrice']), float(t['quoteVolume']), float(t['highPrice']), float(t['lowPrice']), float(t['priceChangePercent'])
-            if op <= 0 or lp <= 0: continue
-            pct_real = ((lp - op) / op) * 100
+            lp, vq_spot, hp, lowp, pct_24h = float(t['lastPrice']), float(t['quoteVolume']), float(t['highPrice']), float(t['lowPrice']), float(t['priceChangePercent'])
+            if lp <= 0: continue
+            base_24h = (lp / (1.0 + (pct_24h / 100.0))) if pct_24h > -99.9 else float(t.get('openPrice', lp))
             rango = hp - lowp
-            t.update({'base_asset': base, 'openPrice_f': op, 'lastPrice_f': lp, 'priceChangePercent_f': pct_real, 'pct_api_f': pct_api, 'quoteVolume_f': vq, 'highPrice_f': hp, 'lowPrice_f': lowp, 'pct_rango': (rango / lp) * 100, 'pos_rango': ((lp - lowp) / rango) if rango > 0 else 0.5})
+            vol_total_mercado = vq_spot + vol_futuros.get(sym, 0.0)
+            t.update({
+                'base_asset': base,
+                'base_24h_f': base_24h,
+                'lastPrice_f': lp,
+                'pct_24h': pct_24h,
+                'quoteVolume_f': vq_spot,
+                'vol_mercado_f': vol_total_mercado,
+                'highPrice_f': hp,
+                'lowPrice_f': lowp,
+                'pct_rango': (rango / lp) * 100,
+                'pos_rango': ((lp - lowp) / rango) if rango > 0 else 0.5
+            })
             todos[sym] = t
-            if base not in EXCLUIDOS and vq >= 100_000:
-                web.append(t)
+            vistos.add(sym)
+            if base not in EXCLUIDOS:
+                if vq_spot >= 900_000:
+                    web_spot.append(t)
+                if vol_total_mercado >= 1_000_000:
+                    web_volumen.append(t)
         except Exception:
             continue
 
-    ganadoras = sorted([t for t in web if t['priceChangePercent_f'] > 0], key=lambda x: x['pct_api_f'], reverse=True)[:7]
-    perdedoras = sorted([t for t in web if t['priceChangePercent_f'] < 0], key=lambda x: x['pct_api_f'])[:7]
-    acum_24h = sorted(web, key=lambda x: x['quoteVolume_f'], reverse=True)[:7]
+    # Añade activos líderes que operan fuerte en Futuros de Binance (ej. HYPE) para espejar "Mayor volumen"
+    if vol_futuros:
+        try:
+            rf = requests.get("https://fapi.binance.com/fapi/v1/ticker/24hr", timeout=10).json()
+            for item in rf:
+                sym = item.get('symbol', '')
+                if sym.endswith('USDT') and sym not in vistos:
+                    base = sym[:-4]
+                    if base in EXCLUIDOS: continue
+                    lp = float(item.get('lastPrice', 0))
+                    pct_24h = float(item.get('priceChangePercent', 0))
+                    vq = float(item.get('quoteVolume', 0))
+                    if lp > 0 and vq >= 50_000_000:
+                        base_24h = (lp / (1.0 + (pct_24h / 100.0))) if pct_24h > -99.9 else lp
+                        web_volumen.append({
+                            'symbol': sym, 'base_asset': base, 'base_24h_f': base_24h,
+                            'lastPrice_f': lp, 'pct_24h': pct_24h, 'quoteVolume_f': vq,
+                            'vol_mercado_f': vq, 'highPrice_f': float(item.get('highPrice', lp)),
+                            'lowPrice_f': float(item.get('lowPrice', lp)), 'pct_rango': 2.0, 'pos_rango': 0.5
+                        })
+        except Exception:
+            pass
+
+    ganadoras = sorted([t for t in web_spot if t['pct_24h'] > 0], key=lambda x: x['pct_24h'], reverse=True)[:7]
+    perdedoras = sorted([t for t in web_spot if t['pct_24h'] < 0], key=lambda x: x['pct_24h'])[:7]
+    acum_24h = sorted(web_volumen, key=lambda x: x['vol_mercado_f'], reverse=True)[:7]
 
     hist = cargar_memoria_perlas()
     cand = []
-    for t in web:
-        if t['lastPrice_f'] < PRECIO_MAX_SILENCIOSA and 0.40 <= t['priceChangePercent_f'] <= 7.50 and t['pct_rango'] >= 1.20 and t['pos_rango'] >= 0.50 and t['quoteVolume_f'] >= 1_500_000:
+    for t in web_spot:
+        if not re.match(r'^[A-Z0-9]+$', t['base_asset']): continue
+        if t['lastPrice_f'] < PRECIO_MAX_SILENCIOSA and 0.40 <= t['pct_24h'] <= 7.50 and t['pct_rango'] >= 1.20 and t['pos_rango'] >= 0.50 and t['quoteVolume_f'] >= 1_500_000:
             vol_m = min(t['quoteVolume_f'] / 1_000_000, 60.0)
             t['factor_vol'] = max(1.3, round(1.2 + ((vol_m / max(t['pct_rango'], 1.0)) * 0.25), 1))
             cand.append(t)
     if len(cand) < 7:
-        for t in web:
-            if t not in cand and t['lastPrice_f'] < PRECIO_MAX_SILENCIOSA and 0.15 <= t['priceChangePercent_f'] <= 9.0 and t['pct_rango'] >= 1.0 and t['quoteVolume_f'] >= 1_000_000:
+        for t in web_spot:
+            if not re.match(r'^[A-Z0-9]+$', t['base_asset']): continue
+            if t not in cand and t['lastPrice_f'] < PRECIO_MAX_SILENCIOSA and 0.15 <= t['pct_24h'] <= 9.0 and t['pct_rango'] >= 1.0 and t['quoteVolume_f'] >= 1_000_000:
                 vol_m = min(t['quoteVolume_f'] / 1_000_000, 60.0)
                 t['factor_vol'] = max(1.2, round(1.1 + ((vol_m / max(t['pct_rango'], 1.0)) * 0.25), 1))
                 cand.append(t)
@@ -152,9 +207,9 @@ def preparar_datos(tickers, simbolos_activos):
     return ganadoras, perdedoras, acum_24h, silenciosa, favoritas
 
 def generar_grafico_tema(items, titulo, color, filename):
-    ordenados = sorted(items, key=lambda x: x['priceChangePercent_f'])
+    ordenados = sorted(items, key=lambda x: x['pct_24h'])
     sims = [i['base_asset'] for i in ordenados]
-    cambios = [i['priceChangePercent_f'] for i in ordenados]
+    cambios = [i['pct_24h'] for i in ordenados]
     fig, ax = plt.subplots(figsize=(8, 4.5), facecolor='#0b132b')
     ax.set_facecolor('#0b132b')
     bars = ax.bar(sims, cambios, color=color, width=0.5, zorder=3)
@@ -167,7 +222,8 @@ def generar_grafico_tema(items, titulo, color, filename):
         off = 2.5 if yv >= 0 else -5.5
         ax.text(xv, yv + off, f"{c:+.2f}%", ha='center', va='bottom' if yv >= 0 else 'top', color=color, fontweight='bold', fontsize=9)
         ax.plot(xv, yv + (1.2 if yv >= 0 else -1.2), marker='o', markersize=18, markerfacecolor='#0f172a', markeredgecolor=color, markeredgewidth=1.5, zorder=4)
-        ax.text(xv, yv + (1.2 if yv >= 0 else -1.2), sim[:5], ha='center', va='center', color='white', fontsize=7, fontweight='bold', zorder=5)
+        etiqueta_circulo = sim[:5] if re.match(r'^[A-Z0-9]+$', sim) else sim[:2]
+        ax.text(xv, yv + (1.2 if yv >= 0 else -1.2), etiqueta_circulo, ha='center', va='center', color='white', fontsize=7, fontweight='bold', zorder=5)
     plt.title(titulo, loc='left', color='#ffab00', fontsize=12, fontweight='bold', pad=12)
     ax.text(0.0, 1.02, f"Fecha: {ahora_art().strftime('%Y-%m-%d %H:%M ART')}", transform=ax.transAxes, color='#94a3b8', fontsize=8)
     plt.tight_layout()
@@ -208,22 +264,21 @@ def procesar_bloque(num, titulo, icono, items, color, fname, tipo=""):
     generar_grafico_tema(items, f"{icono} {titulo.upper()} • Ranking 24h", color, fname)
     txt = f"🧠 <b>CENTRAL DE INTELIGENCIA DE MERCADO ({num}/5)</b>\n{icono} <b>{num}. {html.escape(titulo.upper())} (Detalle)</b>\n📅 Fecha: <code>{ahora_art().strftime('%Y-%m-%d %H:%M ART')}</code>\n\n"
     for it in items:
-        sim, c = it['base_asset'], it['priceChangePercent_f']
+        sim, c = it['base_asset'], it['pct_24h']
         uid = int(time.time() * 1000) + random.randint(1, 99999)
         u_ia = f"{BASE_URL_NETLIFY}/?coin={sim}&price={it['lastPrice_f']}&change={c:.2f}&high={it['highPrice_f']}&low={it['lowPrice_f']}&v={sim}_{uid}"
         u_tr = f"https://www.binance.com/es/trade/{sim}_USDT"
         extra = f" <i>[IA Gemini • Presión x{it.get('factor_vol', 1.3):.1f}]</i>" if tipo == "silenciosa" else ""
-        txt += f"• <b>{sim}</b> | Base (0%): <code>{formatear_precio(it['openPrice_f'])}</code> ➔ Actual: <code>{formatear_precio(it['lastPrice_f'])}</code> | <b>{c:+.2f}%</b>\n{generar_barra_progreso(c, tipo)}{extra}\n└ <a href=\"{html.escape(u_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(u_tr)}\">🔶 Tradear</a>\n\n"
+        txt += f"• <b>{sim}</b> | Base (0%): <code>{formatear_precio(it['base_24h_f'])}</code> ➔ Actual: <code>{formatear_precio(it['lastPrice_f'])}</code> | <b>{c:+.2f}%</b>\n{generar_barra_progreso(c, tipo)}{extra}\n└ <a href=\"{html.escape(u_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(u_tr)}\">🔶 Tradear</a>\n\n"
     enviar_foto_y_detalle(fname, txt.strip())
     time.sleep(2)
 
 if __name__ == "__main__":
     print(f"🚀 INICIANDO CENTRAL DE INTELIGENCIA ({ahora_art().strftime('%H:%M:%S')} ART)...")
     s = crear_sesion_binance()
-    activos = obtener_simbolos_spot_activos(s)
-    datos = obtener_datos_binance(s)
-    if datos and activos:
-        g, p, a24, sil, fav = preparar_datos(datos, activos)
+    activos, datos_spot, vol_fut = obtener_datos_completos_binance(s)
+    if datos_spot and activos:
+        g, p, a24, sil, fav = preparar_datos(datos_spot, activos, vol_fut)
         procesar_bloque(1, "TOP 7 GANADORAS", "🚀", g, "#00c853", "grafico_ganadoras.png")
         procesar_bloque(2, "TOP 7 PERDEDORAS", "📉", p, "#f6465d", "grafico_perdedoras.png")
         procesar_bloque(3, "TOP 7 ACUMULACION 24H", "💎", a24, "#ffab00", "grafico_acumulacion_24h.png", "acumulacion_24h")
