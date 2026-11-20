@@ -1,14 +1,5 @@
 [
   [
-    "DODOUSDT",
-    "KITEUSDT",
-    "AIGENSYNUSDT",
-    "SAPIENUSDT",
-    "SOPHUSDT",
-    "HMSTRUSDT",
-    "HUMAUSDT"
-  ],
-  [
     "KITEUSDT",
     "DODOUSDT",
     "AIGENSYNUSDT",
@@ -16,5 +7,14 @@
     "SOPHUSDT",
     "ENSOUSDT",
     "HMSTRUSDT"
+  ],
+  [
+    "DODOUSDT",
+    "KITEUSDT",
+    "SAPIENUSDT",
+    "AIGENSYNUSDT",
+    "PORTALUSDT",
+    "SOPHUSDT",
+    "BMTUSDT"
   ]
 ]
