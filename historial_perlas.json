@@ -2,23 +2,25 @@
   "fecha": "2026-11-20",
   "mencionadas": {
     "WCTUSDT": 1,
-    "SAPIENUSDT": 1,
-    "ENSOUSDT": 1,
+    "BLURUSDT": 1,
     "DODOUSDT": 1,
-    "SENTUSDT": 1,
-    "KITEUSDT": 1,
-    "STEEMUSDT": 1,
-    "PORTALUSDT": 1,
-    "GLMRUSDT": 1,
-    "REQUSDT": 1,
-    "SHELLUSDT": 1,
-    "ERAUSDT": 1,
+    "AIGENSYNUSDT": 1,
     "HMSTRUSDT": 1,
+    "PORTALUSDT": 1,
+    "JSTUSDT": 1,
+    "SHELLUSDT": 1,
     "USUALUSDT": 1,
-    "NIGHTUSDT": 1,
+    "GLMRUSDT": 1,
+    "SENTUSDT": 1,
+    "STEEMUSDT": 1,
+    "REQUSDT": 1,
+    "ERAUSDT": 1,
+    "OPGUSDT": 1,
     "KATUSDT": 1,
-    "THETAUSDT": 1,
-    "GRAMUSDT": 1
+    "FFUSDT": 1,
+    "GRAMUSDT": 1,
+    "BMTUSDT": 1,
+    "KITEUSDT": 1
   },
   "resumen_dia": [
     "DODOUSDT",
@@ -46,7 +48,8 @@
     "NIGHTUSDT",
     "WCTUSDT",
     "ERAUSDT",
-    "THETAUSDT"
+    "THETAUSDT",
+    "BLURUSDT"
   ],
   "resumen_enviado_hoy": false,
   "seguimiento_verde": {
@@ -56,16 +59,28 @@
       "precio_deteccion": 0.1341,
       "estrellas": 2,
       "estado_actual": "AMARILLO",
-      "ultimo_estado": "AMARILLO",
-      "ultima_probabilidad": 63,
+      "ultimo_estado": "VERDE",
+      "ultima_probabilidad": 38,
       "alerta_2_estrellas_enviada": true,
       "alerta_3_estrellas_enviada": false,
-      "ultimo_precio": 0.1341
+      "ultimo_precio": 0.1336
     },
     "ERAUSDT": {
       "fecha_iso": "2026-11-20",
       "fecha_corta": "20/11",
       "precio_deteccion": 0.0766,
+      "estrellas": 1,
+      "estado_actual": "VERDE",
+      "ultimo_estado": "VERDE",
+      "ultima_probabilidad": 43,
+      "alerta_2_estrellas_enviada": false,
+      "alerta_3_estrellas_enviada": false,
+      "ultimo_precio": 0.0765
+    },
+    "OPGUSDT": {
+      "fecha_iso": "2026-11-20",
+      "fecha_corta": "20/11",
+      "precio_deteccion": 0.1317,
       "estrellas": 1,
       "estado_actual": "VERDE",
       "ultimo_estado": "VERDE",
@@ -99,21 +114,21 @@
       "symbol": "KITEUSDT",
       "base": "KITE",
       "estrellas": 2,
-      "probabilidad_pct": 63,
-      "precio_ref": 0.1341,
+      "probabilidad_pct": 38,
+      "precio_ref": 0.1336,
       "fecha_iso": "2026-11-20",
       "fecha_corta": "20/11",
-      "origen": "Cazador (AMARILLO ⭐⭐)"
+      "origen": "Cazador VERDE (⭐⭐)"
     },
     "WCTUSDT": {
       "symbol": "WCTUSDT",
       "base": "WCT",
       "estrellas": 1,
-      "probabilidad_pct": 96,
-      "precio_ref": 0.03001,
+      "probabilidad_pct": 98,
+      "precio_ref": 0.03028,
       "fecha_iso": "2026-11-20",
       "fecha_corta": "20/11",
-      "origen": "Cazador (ROJO ⭐)"
+      "origen": "Cazador ROJO (⭐)"
     },
     "SENTUSDT": {
       "symbol": "SENTUSDT",
@@ -124,6 +139,16 @@
       "fecha_iso": "2026-11-20",
       "fecha_corta": "20/11",
       "origen": "Cazador (AMARILLO ⭐)"
+    },
+    "BLURUSDT": {
+      "symbol": "BLURUSDT",
+      "base": "BLUR",
+      "estrellas": 1,
+      "probabilidad_pct": 95,
+      "precio_ref": 0.00702,
+      "fecha_iso": "2026-11-20",
+      "fecha_corta": "20/11",
+      "origen": "Cazador ROJO (⭐)"
     }
   }
 }
