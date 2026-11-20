@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import time
 import random
@@ -18,6 +19,12 @@ BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
 
 HISTORIAL_FILE = "historial_perlas.json"
 DIAS_GRADUADAS = 7
+
+EXCL_BASE = {
+    'USDT', 'USDC', 'FDUSD', 'DAI', 'TUSD', 'USDP', 'EUR', 'GBP', 'AUD', 'BRL', 'ARS', 'TRY', 'BUSD',
+    'USD1', 'AEUR', 'EURI', 'USDE', 'RLUSD', 'RWUSD', 'XUSD', 'BFUSD', 'U', 'USDG', 'USDS', 'PYUSD',
+    'BTC', 'ETH', 'SOL', 'ADA', 'XRP', 'DOGE', 'TRX', 'SHIB', 'AVAX', 'LINK', 'BNB', 'DOT', 'NEAR', 'SUI', 'PEPE'
+}
 
 def ahora_art():
     return datetime.now(TZ_ART)
@@ -41,6 +48,9 @@ def cargar_historial():
 
             grad_limpia = {}
             for sym, info in (data.get("graduadas_pre_explosion") or {}).items():
+                base_sym = sym[:-4] if sym.endswith("USDT") else sym
+                if base_sym in EXCL_BASE:
+                    continue
                 try:
                     f_det = datetime.strptime(info.get("fecha_iso", hoy), '%Y-%m-%d').date()
                     if (ahora_art().date() - f_det).days <= DIAS_GRADUADAS:
@@ -152,6 +162,15 @@ def formatear_precio(precio):
         return f"${precio:.6f}"
     return f"${precio:.8f}"
 
+def es_simbolo_valido(base):
+    if not base or base in EXCL_BASE:
+        return False
+    if not re.match(r'^[A-Z0-9]+$', base):
+        return False
+    if any(x in base for x in ['UP', 'DOWN', 'BULL', 'BEAR']):
+        return False
+    return True
+
 def construir_item_desde_ticker(session, t, desde_posta=False, info_grad=None):
     symbol = t.get('symbol', '')
     base = symbol[:-4] if symbol.endswith('USDT') else symbol
@@ -170,7 +189,6 @@ def construir_item_desde_ticker(session, t, desde_posta=False, info_grad=None):
     pct_rango = (rango / precio) * 100 if precio > 0 else 1.0
     factor_spike = (vol_usdt / 1_000_000) / (pct_rango if pct_rango > 0 else 1.0)
 
-    # Prioriza impulso fresco en 1h/4h y evita perseguir monedas ya agotadas arriba del 92% del rango diario
     penalizacion_extension = 12.0 if pos_liquidez_pct > 92.0 else 0.0
     bonus_posta = 18.0 if desde_posta else 0.0
     score_ia = round(
@@ -180,7 +198,7 @@ def construir_item_desde_ticker(session, t, desde_posta=False, info_grad=None):
 
     var_desde_grad = None
     fecha_grad = ""
-    if info_grad:
+    if desde_posta and info_grad:
         p_ref = float(info_grad.get("precio_ref", 0) or 0)
         fecha_grad = str(info_grad.get("fecha_corta", ""))
         if p_ref > 0:
@@ -198,17 +216,12 @@ def construir_item_desde_ticker(session, t, desde_posta=False, info_grad=None):
         'low_f': low,
         'pos_liquidez_pct': pos_liquidez_pct,
         'score_ia': score_ia,
-        'desde_posta': desde_posta,
+        'desde_posta': bool(desde_posta),
         'var_desde_grad': var_desde_grad,
         'fecha_grad': fecha_grad
     }
 
 def motor_ia_seleccion_tactica(tickers, simbolos_activos, session, historial):
-    EXCL_BASE = {
-        'USDT', 'USDC', 'FDUSD', 'DAI', 'TUSD', 'USDP', 'EUR', 'GBP', 'AUD', 'BRL', 'ARS', 'TRY', 'BUSD',
-        'BTC', 'ETH', 'SOL', 'ADA', 'XRP', 'DOGE', 'TRX', 'SHIB', 'AVAX', 'LINK', 'BNB', 'DOT', 'NEAR', 'SUI', 'PEPE'
-    }
-
     hoy_str = ahora_art().strftime('%Y-%m-%d')
     if historial.get("fecha") != hoy_str:
         historial["fecha"] = hoy_str
@@ -225,15 +238,20 @@ def motor_ia_seleccion_tactica(tickers, simbolos_activos, session, historial):
     grad = historial.get("graduadas_pre_explosion", {})
     posta = historial.get("posta", {})
 
-    # Identifica símbolos confirmados en Rojo (⭐⭐⭐) desde Cazador Táctico
-    syms_rojo_tactico = set(grad.keys())
+    syms_rojo_tactico = set()
+    for sym in list(grad.keys()):
+        base = sym[:-4] if sym.endswith("USDT") else sym
+        if es_simbolo_valido(base):
+            syms_rojo_tactico.add(sym)
+
     for sym, d in posta.items():
-        if int(d.get("etapa", d.get("paso", 1))) == 3:
+        base = sym[:-4] if sym.endswith("USDT") else sym
+        if es_simbolo_valido(base) and int(d.get("etapa", d.get("paso", 1))) == 3:
             syms_rojo_tactico.add(sym)
             if sym not in grad:
                 grad[sym] = {
                     "symbol": sym,
-                    "base": sym[:-4] if sym.endswith("USDT") else sym,
+                    "base": base,
                     "estrellas": 3,
                     "probabilidad_pct": int(d.get("prob_actual", 75)),
                     "precio_ref": float(d.get("precio_inicio", d.get("precio_actual", 0)) or 0),
@@ -246,14 +264,13 @@ def motor_ia_seleccion_tactica(tickers, simbolos_activos, session, historial):
         sym = t.get('symbol', '')
         if sym in simbolos_activos and sym.endswith('USDT'):
             base = sym[:-4]
-            if base not in EXCL_BASE and not any(x in base for x in ['UP', 'DOWN', 'BULL', 'BEAR']):
+            if es_simbolo_valido(base):
                 mapa_tickers[sym] = t
 
     total_analizadas = 0
     items_posta_roja = []
     candidatas_mercado = []
 
-    # 1) Evalúa primero las monedas confirmadas en Rojo de Cazador Táctico
     for sym in list(syms_rojo_tactico):
         t = mapa_tickers.get(sym)
         if not t:
@@ -272,11 +289,8 @@ def motor_ia_seleccion_tactica(tickers, simbolos_activos, session, historial):
     items_posta_roja.sort(key=lambda x: x['score_ia'], reverse=True)
     vistos = {x['symbol'] for x in items_posta_roja}
 
-    # 2) Analiza candidatas Spot adicionales con impulso/estructura sana
     for sym, t in mapa_tickers.items():
-        if sym in vistos:
-            continue
-        if sym in mencionadas:
+        if sym in vistos or sym in mencionadas:
             continue
         try:
             precio = float(t.get('lastPrice', 0))
@@ -292,7 +306,6 @@ def motor_ia_seleccion_tactica(tickers, simbolos_activos, session, historial):
 
     candidatas_mercado.sort(key=lambda x: x['score_ia'], reverse=True)
 
-    # Completa hasta 15 perlas dando prioridad a las graduadas en Rojo de Cazador Táctico
     seleccion = items_posta_roja[:15]
     cupo_restante = max(0, 15 - len(seleccion))
     if cupo_restante > 0:
@@ -303,11 +316,11 @@ def motor_ia_seleccion_tactica(tickers, simbolos_activos, session, historial):
     top_verdes = seleccion[10:15]
 
     for item in top_rojas:
-        item['categoria'], item['estado_texto'], item['color_hex'] = "ROJO", "Pre-Explosión Confirmada", "#ff1744"
+        item['categoria'], item['estado_texto'], item['color_hex'] = "ROJO", "Explosión Inminente", "#ff1744"
     for item in top_amarillas:
         item['categoria'], item['estado_texto'], item['color_hex'] = "AMARILLO", "Confirmación Táctica", "#ffd600"
     for item in top_verdes:
-        item['categoria'], item['estado_texto'], item['color_hex'] = "VERDE", "Acumulación / Vigilancia", "#00e676"
+        item['categoria'], item['estado_texto'], item['color_hex'] = "VERDE", "Vigilancia / Acumulación", "#00e676"
 
     for item in seleccion:
         sym = item['symbol']
@@ -319,26 +332,28 @@ def motor_ia_seleccion_tactica(tickers, simbolos_activos, session, historial):
     historial["graduadas_pre_explosion"] = grad
     guardar_historial(historial)
 
-    return seleccion, total_analizadas, historial
+    return {"ROJO": top_rojas, "AMARILLO": top_amarillas, "VERDE": top_verdes}, total_analizadas, historial
 
-def generar_grafico_matriz(lista_items, filename="grafico_cazador_15.png"):
+def generar_grafico_color(lista_items, titulo_graf, subtitulo_graf, filename):
+    if not lista_items:
+        return None
     simbolos = [f"{'***' if item.get('desde_posta') else ''}{item['ticker']}" for item in lista_items]
     posiciones = [item['pos_liquidez_pct'] for item in lista_items]
     colores = [item['color_hex'] for item in lista_items]
 
-    fig, ax = plt.subplots(figsize=(12, 6), facecolor='#0b132b')
+    fig, ax = plt.subplots(figsize=(8.5, 4.2), facecolor='#0b132b')
     ax.set_facecolor('#0b132b')
 
-    bars = ax.bar(simbolos, posiciones, color=colores, width=0.55, zorder=3)
+    bars = ax.bar(simbolos, posiciones, color=colores, width=0.48, zorder=3)
     ax.grid(True, color='#1e293b', linestyle='-', linewidth=0.8, zorder=1)
     ax.set_axisbelow(True)
 
-    ax.set_ylim(0, 115)
+    ax.set_ylim(0, 118)
     for spine in ['top', 'right', 'left', 'bottom']:
         ax.spines[spine].set_visible(False)
 
     ax.tick_params(left=False, labelleft=False, bottom=False)
-    ax.tick_params(axis='x', colors='white', labelsize=8, rotation=35)
+    ax.tick_params(axis='x', colors='white', labelsize=9)
 
     for bar, item, pos, color in zip(bars, lista_items, posiciones, colores):
         yval = bar.get_height()
@@ -348,35 +363,33 @@ def generar_grafico_matriz(lista_items, filename="grafico_cazador_15.png"):
             bar.set_edgecolor('#ffd700')
             bar.set_linewidth(2.0)
 
-        ax.text(xval, yval + 2.5, f"{pos:.0f}%", ha='center', va='bottom', color=color, fontweight='bold', fontsize=8)
-        ax.plot(xval, max(yval / 2.0, 12), marker='o', markersize=12, markerfacecolor='#0f172a', markeredgecolor=color, markeredgewidth=1.8, zorder=4)
-        ax.text(xval, max(yval / 2.0, 12), sim[:5], ha='center', va='center', color='white', fontsize=5.5, fontweight='bold', zorder=5)
+        ax.text(xval, yval + 2.5, f"{pos:.0f}%", ha='center', va='bottom', color=color, fontweight='bold', fontsize=8.5)
+        ax.plot(xval, max(yval / 2.0, 13), marker='o', markersize=15, markerfacecolor='#0f172a', markeredgecolor=color, markeredgewidth=1.8, zorder=4)
+        ax.text(xval, max(yval / 2.0, 13), sim[:5], ha='center', va='center', color='white', fontsize=6.5, fontweight='bold', zorder=5)
 
-    fecha_str = ahora_art().strftime('%Y-%m-%d %H:%M ART')
-    plt.title("PRE-EXPLOSION MULTITEMPORAL (1H / 4H / 24H + POSTA ROJA)", loc='left', color='#ffab00', fontsize=10, fontweight='bold', pad=12)
-    ax.text(0.0, 1.02, f"Fecha: {fecha_str} | *** = Viene de Rojo Cazador Tactico", transform=ax.transAxes, color='#94a3b8', fontsize=8)
+    plt.title(titulo_graf, loc='left', color='#ffab00', fontsize=10.5, fontweight='bold', pad=12)
+    ax.text(0.0, 1.02, subtitulo_graf, transform=ax.transAxes, color='#94a3b8', fontsize=8)
 
     plt.tight_layout()
     plt.savefig(filename, dpi=300, facecolor=fig.get_facecolor(), edgecolor='none')
     plt.close()
     return filename
 
-def generar_dictamen_ia(lista_items):
-    if not GEMINI_API_KEY or not lista_items:
-        return "Prioridad a las monedas graduadas en Rojo desde Cazador Tactico y a las lecturas alineadas en 1h/4h/24h."
+def generar_dictamen_color(cat_key, lista_items):
+    if not lista_items:
+        return ""
+    if not GEMINI_API_KEY:
+        return f"Lectura {cat_key}: foco en velocidad 1h/4h y seguimiento de las monedas graduadas en Rojo."
 
     client = genai.Client(api_key=GEMINI_API_KEY)
     lista_texto = "\n".join([
-        f"- {i['ticker']} [{'POSTA_ROJA' if i.get('desde_posta') else i['categoria']}]: Precio {i['precio_f']}, 1h: {i['cambio_1h']:+.2f}%, 4h: {i['cambio_4h']:+.2f}%, 24h: {i['cambio_f']:+.2f}%"
+        f"- {i['ticker']} ({'POSTA_ROJA' if i.get('desde_posta') else 'RADAR'}): 1h {i['cambio_1h']:+.2f}%, 4h {i['cambio_4h']:+.2f}%, 24h {i['cambio_f']:+.2f}%"
         for i in lista_items
     ])
-
-    prompt = f"""
-    Analista cuantitativo Binance Spot. Evaluá estas candidatas de Pre-Explosión (algunas vienen confirmadas como POSTA_ROJA desde Cazador Táctico):
-    {lista_texto}
-
-    Escribí un dictamen breve (máximo 4 líneas) destacando cuáles tienen mejor alineación multitemporal (1h/4h/24h) y seguimiento desde la posta.
-    """
+    prompt = (
+        f"Analista Spot Binance. Dá un dictamen breve (máximo 2 líneas) para el bloque {cat_key} de Pre-Explosión:\n"
+        f"{lista_texto}"
+    )
     for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
         try:
             response = client.models.generate_content(model=mod, contents=prompt)
@@ -384,7 +397,7 @@ def generar_dictamen_ia(lista_items):
                 return response.text.strip()
         except Exception:
             continue
-    return "Prioridad a las monedas graduadas en Rojo desde Cazador Tactico y a las lecturas alineadas en 1h/4h/24h."
+    return f"Lectura {cat_key}: foco en velocidad 1h/4h y seguimiento de las monedas graduadas en Rojo."
 
 def enviar_telegram_foto(image_path, caption_text):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
@@ -409,97 +422,93 @@ def enviar_texto_telegram(texto):
         return
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     tid = int(TELEGRAM_TOPIC_ID) if TELEGRAM_TOPIC_ID.isdigit() else None
+    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": texto.strip(), "parse_mode": "HTML", "disable_web_page_preview": True}
+    if tid:
+        payload["message_thread_id"] = tid
+    try:
+        res = requests.post(url, json=payload, timeout=30).json()
+        if not res.get("ok") and "thread not found" in str(res.get("description", "")).lower():
+            payload.pop("message_thread_id", None)
+            requests.post(url, json=payload, timeout=30)
+    except Exception as e:
+        print(f"⚠️ Error enviando texto: {e}")
 
-    partes, actual = [], ""
-    for linea in texto.split("\n"):
-        if len(actual) + len(linea) + 1 > 3400:
-            if actual.strip():
-                partes.append(actual.strip())
-            actual = linea + "\n"
-        else:
-            actual += linea + "\n"
-    if actual.strip():
-        partes.append(actual.strip())
+def enviar_mensaje_por_color(num_msg, cat_key, titulo_color, items, total_analizadas):
+    fecha_str = ahora_art().strftime('%Y-%m-%d %H:%M ART')
+    if not items:
+        enviar_texto_telegram(
+            f"🔥 <b>PRE-EXPLOSIÓN ({num_msg}/3)</b>\n{titulo_color}\n📅 <code>{fecha_str}</code>\n\n"
+            f"⏳ <i>Sin monedas en este bloque en este ciclo.</i>"
+        )
+        return
 
-    for parte in partes:
-        payload = {"chat_id": TELEGRAM_CHAT_ID, "text": parte, "parse_mode": "HTML", "disable_web_page_preview": True}
-        if tid:
-            payload["message_thread_id"] = tid
-        try:
-            res = requests.post(url, json=payload, timeout=30).json()
-            if not res.get("ok") and "thread not found" in str(res.get("description", "")).lower():
-                payload.pop("message_thread_id", None)
-                requests.post(url, json=payload, timeout=30)
-        except Exception as e:
-            print(f"⚠️ Error enviando texto: {e}")
-        time.sleep(0.8)
+    fname = f"pre_explosion_{cat_key.lower()}.png"
+    generar_grafico_color(
+        items,
+        f"PRE-EXPLOSION ({num_msg}/3) - {cat_key}",
+        f"Fecha: {fecha_str} | Analizadas: {total_analizadas} Spot | *** = Rojo Tactico",
+        fname
+    )
+    dictamen = generar_dictamen_color(cat_key, items)
+
+    caption = (
+        f"🔥 <b>PRE-EXPLOSIÓN ({num_msg}/3)</b>\n"
+        f"{titulo_color}\n"
+        f"📅 <code>{fecha_str}</code>"
+    )
+    enviar_telegram_foto(fname, caption)
+    time.sleep(1)
+
+    cuerpo = f"💡 <i>{html.escape(dictamen)}</i>\n\n"
+    for item in items:
+        sim = item['ticker']
+        precio_str = formatear_precio(item['precio_f'])
+        unique_id = int(time.time() * 1000) + random.randint(1, 9999)
+        url_ia = f"{BASE_URL_NETLIFY}/?coin={sim}&price={item['precio_f']}&change={item['cambio_f']}&high={item['high_f']}&low={item['low_f']}&v={sim}_{unique_id}"
+        url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
+
+        etiqueta_posta = ""
+        if item.get("desde_posta"):
+            if item.get("var_desde_grad") is not None:
+                etiqueta_posta = f" ⭐⭐⭐ [Posta {item.get('fecha_grad')}: <b>{item['var_desde_grad']:+.2f}%</b>]"
+            else:
+                etiqueta_posta = " ⭐⭐⭐ [Posta Roja]"
+
+        cuerpo += (
+            f"• <b>{sim}</b>{etiqueta_posta} (1h: {item['cambio_1h']:+.1f}% | 4h: {item['cambio_4h']:+.1f}% | 24h: {item['cambio_f']:+.1f}%) | <code>{precio_str}</code>\n"
+            f"  └ <a href=\"{html.escape(url_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n\n"
+        )
+
+    enviar_texto_telegram(cuerpo)
 
 if __name__ == "__main__":
-    print(f"🔥 EJECUTANDO PRE-EXPLOSIÓN ({ahora_art().strftime('%Y-%m-%d %H:%M:%S')} ART)...")
+    print(f"🔥 EJECUTANDO PRE-EXPLOSIÓN POR COLOR ({ahora_art().strftime('%Y-%m-%d %H:%M:%S')} ART)...")
     session = crear_sesion_binance()
     simbolos_activos = obtener_simbolos_spot_activos(session)
     datos = obtener_datos_binance(session)
 
     if datos and simbolos_activos:
         historial = cargar_historial()
-        matriz_15_perlas, total_analizadas, historial = motor_ia_seleccion_tactica(datos, simbolos_activos, session, historial)
+        bloques, total_analizadas, historial = motor_ia_seleccion_tactica(datos, simbolos_activos, session, historial)
 
-        if matriz_15_perlas:
-            filename = generar_grafico_matriz(matriz_15_perlas)
-            dictamen_ia = generar_dictamen_ia(matriz_15_perlas)
+        enviar_mensaje_por_color(1, "ROJO", "🔴 <b>1. EXPLOSIÓN INMINENTE (ROJO)</b>", bloques["ROJO"], total_analizadas)
+        time.sleep(2)
+        enviar_mensaje_por_color(2, "AMARILLO", "🟡 <b>2. CONFIRMACIÓN TÁCTICA (AMARILLO)</b>", bloques["AMARILLO"], total_analizadas)
+        time.sleep(2)
+        enviar_mensaje_por_color(3, "VERDE", "🟢 <b>3. VIGILANCIA / ACUMULACIÓN (VERDE)</b>", bloques["VERDE"], total_analizadas)
 
-            grad_count = sum(1 for x in matriz_15_perlas if x.get("desde_posta"))
-            caption_foto = (
-                f"🔥 <b>RADAR PRE-EXPLOSIÓN MULTITEMPORAL</b>\n"
-                f"📊 <i>Analizadas: {total_analizadas} Spot | Desde Rojo Táctico: {grad_count}</i>"
-            )
-            enviar_telegram_foto(filename, caption_foto)
-
-            mensaje_detalle = f"💡 <b>Dictamen IA:</b>\n{html.escape(dictamen_ia)}\n\n"
-
-            categorias = [
-                ("ROJO", "🔴 <b>EXPLOSIÓN INMINENTE (Top 5)</b>"),
-                ("AMARILLO", "🟡 <b>CONFIRMACIÓN TÁCTICA (Top 5)</b>"),
-                ("VERDE", "🟢 <b>VIGILANCIA / ACUMULACIÓN (Top 5)</b>")
-            ]
-
-            for cat_key, cat_title in categorias:
-                mensaje_detalle += f"{cat_title}\n"
-                for item in matriz_15_perlas:
-                    if item['categoria'] == cat_key:
-                        sim = item['ticker']
-                        precio_str = formatear_precio(item['precio_f'])
-                        unique_id = int(time.time() * 1000) + random.randint(1, 9999)
-                        url_ia = f"{BASE_URL_NETLIFY}/?coin={sim}&price={item['precio_f']}&change={item['cambio_f']}&high={item['high_f']}&low={item['low_f']}&v={sim}_{unique_id}"
-                        url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
-
-                        etiqueta_posta = ""
-                        if item.get("desde_posta"):
-                            if item.get("var_desde_grad") is not None:
-                                etiqueta_posta = f" ⭐⭐⭐ [Posta {item.get('fecha_grad')}: <b>{item['var_desde_grad']:+.2f}%</b>]"
-                            else:
-                                etiqueta_posta = " ⭐⭐⭐ [Posta Roja]"
-
-                        mensaje_detalle += (
-                            f"• <b>{sim}</b>{etiqueta_posta} (1h: {item['cambio_1h']:+.1f}% | 4h: {item['cambio_4h']:+.1f}% | 24h: {item['cambio_f']:+.1f}%) | <code>{precio_str}</code>\n"
-                            f"  └ <a href=\"{html.escape(url_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n"
-                        )
-                mensaje_detalle += "\n"
-
-            enviar_texto_telegram(mensaje_detalle.strip())
-
-            hora_actual = ahora_art().hour
-            if hora_actual >= 21 and not historial.get("resumen_enviado_hoy", False):
-                monedas_dia = [s[:-4] if s.endswith('USDT') else s for s in historial.get("resumen_dia", [])]
-                if monedas_dia:
-                    resumen_texto = (
-                        f"📋 <b>RESUMEN DIARIO PRE-EXPLOSIÓN (21:00 ART)</b>\n"
-                        f"📅 <i>Fecha: {ahora_art().strftime('%Y-%m-%d')}</i>\n\n"
-                        f"Monedas mencionadas hoy:\n<code>{', '.join(monedas_dia)}</code>"
-                    )
-                    enviar_texto_telegram(resumen_texto)
-                    historial["resumen_enviado_hoy"] = True
-                    guardar_historial(historial)
+        hora_actual = ahora_art().hour
+        if hora_actual >= 21 and not historial.get("resumen_enviado_hoy", False):
+            monedas_dia = [s[:-4] if s.endswith('USDT') else s for s in historial.get("resumen_dia", [])]
+            if monedas_dia:
+                resumen_texto = (
+                    f"📋 <b>RESUMEN DIARIO PRE-EXPLOSIÓN (21:00 ART)</b>\n"
+                    f"📅 <i>Fecha: {ahora_art().strftime('%Y-%m-%d')}</i>\n\n"
+                    f"Monedas mencionadas hoy:\n<code>{', '.join(monedas_dia)}</code>"
+                )
+                enviar_texto_telegram(resumen_texto)
+                historial["resumen_enviado_hoy"] = True
+                guardar_historial(historial)
     else:
         print("❌ ERROR: Sin datos o sin símbolos activos de Binance.")
 
