@@ -1,19 +1,19 @@
 [
   [
     "SOPHUSDT",
-    "KITEUSDT",
     "DODOUSDT",
     "AIGENSYNUSDT",
-    "WCTUSDT",
+    "SKYUSDT",
     "ENSOUSDT",
-    "HMSTRUSDT"
+    "HMSTRUSDT",
+    "SAPIENUSDT"
   ],
   [
     "SOPHUSDT",
     "DODOUSDT",
     "AIGENSYNUSDT",
-    "SKYUSDT",
     "ENSOUSDT",
+    "SKYUSDT",
     "HMSTRUSDT",
     "SAPIENUSDT"
   ]
