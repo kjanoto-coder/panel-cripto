@@ -1,9 +1,6 @@
 name: Enviar Alerta Telegram
 
 on:
-  schedule:
-    # Escalonado en minutos 2, 17, 32, 47 (evita choque directo en :00 y :30 con Sentinel Macro)
-    - cron: '2,17,32,47 * * * *'
   workflow_dispatch:
 
 permissions:
