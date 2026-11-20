@@ -3,18 +3,18 @@
     "JSTUSDT",
     "ERAUSDT",
     "BLURUSDT",
+    "HUMAUSDT",
     "SHELLUSDT",
-    "STEEMUSDT",
     "ENSOUSDT",
     "HMSTRUSDT"
   ],
   [
     "JSTUSDT",
+    "HUMAUSDT",
     "ERAUSDT",
     "BLURUSDT",
-    "HUMAUSDT",
     "SHELLUSDT",
     "ENSOUSDT",
-    "HMSTRUSDT"
+    "STEEMUSDT"
   ]
 ]
