@@ -1,27 +1,26 @@
 {
   "fecha": "2026-11-20",
   "mencionadas": {
-    "TREEUSDT": 1,
+    "SOPHUSDT": 1,
     "NEXOUSDT": 1,
     "SENTUSDT": 1,
-    "AIGENSYNUSDT": 1,
     "SAPIENUSDT": 1,
-    "DODOUSDT": 1,
-    "SHELLUSDT": 1,
-    "GLMRUSDT": 1,
-    "OPGUSDT": 1,
+    "PORTALUSDT": 1,
+    "HYPERUSDT": 1,
     "GRAMUSDT": 1,
+    "OPGUSDT": 1,
+    "GLMRUSDT": 1,
     "SKYUSDT": 1,
     "KATUSDT": 1,
-    "ANIMEUSDT": 1,
-    "STEEMUSDT": 1,
-    "KITEUSDT": 1,
-    "ERAUSDT": 1,
+    "AIGENSYNUSDT": 1,
+    "DODOUSDT": 1,
     "WCTUSDT": 1,
-    "WINUSDT": 1,
+    "ERAUSDT": 1,
+    "ANIMEUSDT": 1,
+    "FFUSDT": 1,
+    "STEEMUSDT": 1,
     "JSTUSDT": 1,
-    "BMTUSDT": 1,
-    "THETAUSDT": 1
+    "BMTUSDT": 1
   },
   "resumen_dia": [
     "DODOUSDT",
@@ -70,10 +69,13 @@
       "estrellas": 2,
       "estado_actual": "AMARILLO",
       "ultimo_estado": "VERDE",
-      "ultima_probabilidad": 38,
+      "ultima_probabilidad": 25,
       "alerta_2_estrellas_enviada": true,
       "alerta_3_estrellas_enviada": false,
-      "ultimo_precio": 0.1334
+      "ultimo_precio": 0.1332,
+      "ultimo_rsi": 41.9,
+      "ultimo_vol": 1.02,
+      "ultima_1h": -0.3
     },
     "ERAUSDT": {
       "fecha_iso": "2026-11-20",
@@ -85,7 +87,10 @@
       "ultima_probabilidad": 38,
       "alerta_2_estrellas_enviada": false,
       "alerta_3_estrellas_enviada": false,
-      "ultimo_precio": 0.0749
+      "ultimo_precio": 0.075,
+      "ultimo_rsi": 49.5,
+      "ultimo_vol": 0.49,
+      "ultima_1h": -0.4
     },
     "OPGUSDT": {
       "fecha_iso": "2026-11-20",
@@ -97,7 +102,10 @@
       "ultima_probabilidad": 58,
       "alerta_2_estrellas_enviada": true,
       "alerta_3_estrellas_enviada": false,
-      "ultimo_precio": 0.1325
+      "ultimo_precio": 0.1326,
+      "ultimo_rsi": 51.4,
+      "ultimo_vol": 0.62,
+      "ultima_1h": 0.45
     },
     "GLMRUSDT": {
       "fecha_iso": "2026-11-20",
@@ -106,10 +114,13 @@
       "estrellas": 3,
       "estado_actual": "ROJO",
       "ultimo_estado": "AMARILLO",
-      "ultima_probabilidad": 63,
+      "ultima_probabilidad": 56,
       "alerta_2_estrellas_enviada": true,
       "alerta_3_estrellas_enviada": true,
-      "ultimo_precio": 0.006599
+      "ultimo_precio": 0.006558,
+      "ultimo_rsi": 47.2,
+      "ultimo_vol": 1.39,
+      "ultima_1h": -0.32
     },
     "GRAMUSDT": {
       "fecha_iso": "2026-11-20",
@@ -118,10 +129,13 @@
       "estrellas": 2,
       "estado_actual": "AMARILLO",
       "ultimo_estado": "AMARILLO",
-      "ultima_probabilidad": 56,
+      "ultima_probabilidad": 71,
       "alerta_2_estrellas_enviada": true,
       "alerta_3_estrellas_enviada": false,
-      "ultimo_precio": 1.016
+      "ultimo_precio": 1.017,
+      "ultimo_rsi": 46.4,
+      "ultimo_vol": 1.48,
+      "ultima_1h": 0.1
     },
     "SKYUSDT": {
       "fecha_iso": "2026-11-20",
@@ -133,7 +147,10 @@
       "ultima_probabilidad": 53,
       "alerta_2_estrellas_enviada": true,
       "alerta_3_estrellas_enviada": false,
-      "ultimo_precio": 0.04362
+      "ultimo_precio": 0.04371,
+      "ultimo_rsi": 52.2,
+      "ultimo_vol": 0.55,
+      "ultima_1h": 0.07
     },
     "KAVAUSDT": {
       "fecha_iso": "2026-11-20",
@@ -145,7 +162,10 @@
       "ultima_probabilidad": 25,
       "alerta_2_estrellas_enviada": false,
       "alerta_3_estrellas_enviada": false,
-      "ultimo_precio": 0.0281
+      "ultimo_precio": 0.02807,
+      "ultimo_rsi": 36.9,
+      "ultimo_vol": 0.32,
+      "ultima_1h": -0.57
     },
     "WCTUSDT": {
       "fecha_iso": "2026-11-20",
@@ -156,7 +176,11 @@
       "ultimo_estado": "VERDE",
       "ultima_probabilidad": 43,
       "alerta_2_estrellas_enviada": false,
-      "alerta_3_estrellas_enviada": false
+      "alerta_3_estrellas_enviada": false,
+      "ultimo_precio": 0.02967,
+      "ultimo_rsi": 52.1,
+      "ultimo_vol": 0.82,
+      "ultima_1h": -0.6
     },
     "WINUSDT": {
       "fecha_iso": "2026-11-20",
@@ -165,7 +189,33 @@
       "estrellas": 1,
       "estado_actual": "VERDE",
       "ultimo_estado": "VERDE",
-      "ultima_probabilidad": 40,
+      "ultima_probabilidad": 25,
+      "alerta_2_estrellas_enviada": false,
+      "alerta_3_estrellas_enviada": false,
+      "ultimo_precio": 5.794e-05,
+      "ultimo_rsi": 40.9,
+      "ultimo_vol": 0.33,
+      "ultima_1h": 0.03
+    },
+    "ANIMEUSDT": {
+      "fecha_iso": "2026-11-20",
+      "fecha_corta": "20/11",
+      "precio_deteccion": 0.002156,
+      "estrellas": 1,
+      "estado_actual": "VERDE",
+      "ultimo_estado": "VERDE",
+      "ultima_probabilidad": 48,
+      "alerta_2_estrellas_enviada": false,
+      "alerta_3_estrellas_enviada": false
+    },
+    "FFUSDT": {
+      "fecha_iso": "2026-11-20",
+      "fecha_corta": "20/11",
+      "precio_deteccion": 0.10048,
+      "estrellas": 1,
+      "estado_actual": "VERDE",
+      "ultimo_estado": "VERDE",
+      "ultima_probabilidad": 47,
       "alerta_2_estrellas_enviada": false,
       "alerta_3_estrellas_enviada": false
     }
