@@ -11,7 +11,6 @@ GEMINI_API_KEY = (os.getenv("GEMINI_API_KEY") or "").strip()
 BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
 HISTORIAL_FILE = "historial_perlas.json"
 DIAS_SEGUIMIENTO = 6
-
 ESTRELLAS_POR_ZONA = {"VERDE": 1, "AMARILLO": 2, "ROJO": 3}
 
 def ahora_art():
@@ -145,8 +144,7 @@ def formatear_precio(p):
 
 def curar_con_gemini(rojas, amarillas, verdes):
     def fallback_picks(lista, zona):
-        if not lista:
-            return {}
+        if not lista: return {}
         rank = sorted(
             lista,
             key=lambda x: (
@@ -168,11 +166,7 @@ def curar_con_gemini(rojas, amarillas, verdes):
         return out
 
     r7, a7, v7 = rojas[:7], amarillas[:7], verdes[:7]
-    destacadas = {
-        "ROJO": fallback_picks(r7, "ROJO"),
-        "AMARILLO": fallback_picks(a7, "AMARILLO"),
-        "VERDE": fallback_picks(v7, "VERDE")
-    }
+    destacadas = {"ROJO": fallback_picks(r7, "ROJO"), "AMARILLO": fallback_picks(a7, "AMARILLO"), "VERDE": fallback_picks(v7, "VERDE")}
     dictamen = "Radar IA Spot (-2.5% a +5.8%): 1⭐ base/evolución, 2⭐⭐ estructura, 3⭐⭐⭐ lista Pre-Explosión."
 
     if not GEMINI_API_KEY or not (r7 or a7 or v7):
@@ -180,11 +174,7 @@ def curar_con_gemini(rojas, amarillas, verdes):
 
     try:
         client = genai.Client(api_key=GEMINI_API_KEY)
-        fmt = lambda l: "\n".join([
-            f"- {i['base']}: prob={i['probabilidad_pct']}%, 24h={i['cambio_f']:+.2f}%, 1h={i['var_1h']:+.2f}%, RSI={i['rsi_1h']}, EMAs={i['ema_estado']}, Vol=x{i['vol_surge']}"
-            for i in l
-        ]) or "Vacio"
-
+        fmt = lambda l: "\n".join([f"- {i['base']}: prob={i['probabilidad_pct']}%, 24h={i['cambio_f']:+.2f}%, 1h={i['var_1h']:+.2f}%, RSI={i['rsi_1h']}, EMAs={i['ema_estado']}, Vol=x{i['vol_surge']}" for i in l]) or "Vacio"
         prompt = (
             "Analista cuantitativo Binance Spot. Evalúa estas 3 listas de monedas ocultas:\n"
             f"ROJO (>=72% - 3 estrellas, listas para radar Pre-Explosión):\n{fmt(rojas)}\n"
@@ -216,21 +206,17 @@ def curar_con_gemini(rojas, amarillas, verdes):
                                 picks[s] = (m or dest_def.get(s) or list(dest_def.values())[0])[:95]
                         if not picks:
                             picks = dest_def
-
                         sel = [mapa[s] for s in picks if s in mapa]
                         for s in (orden_ia or []):
                             su = str(s).strip().upper()
                             if su in mapa and mapa[su] not in sel:
                                 sel.append(mapa[su])
                         for x in pool:
-                            if len(sel) >= 7:
-                                break
-                            if x not in sel:
-                                sel.append(x)
+                            if len(sel) >= 7: break
+                            if x not in sel: sel.append(x)
                         f7 = sel[:7]
-                        validos_f7 = {x['base'] for x in f7}
-                        picks_final = {k: v for k, v in picks.items() if k in validos_f7}
-                        return f7, picks_final
+                        validos = {x['base'] for x in f7}
+                        return f7, {k: v for k, v in picks.items() if k in validos}
 
                     r7, dr = procesar_grupo(rojas, data.get("rojas"), data.get("dest_roja"), destacadas["ROJO"])
                     a7, da = procesar_grupo(amarillas, data.get("amarillas"), data.get("dest_amarilla"), destacadas["AMARILLO"])
@@ -250,11 +236,9 @@ def evaluar_evolucion_estrellas(session, mapa_mercado, historial):
 
     for sym, info in list(seg.items()):
         mkt = mapa_mercado.get(sym)
-        if not mkt or int(info.get("estrellas", 0)) < 1:
-            continue
+        if not mkt or int(info.get("estrellas", 0)) < 1: continue
         tec = calcular_probabilidad_inversion(session, sym)
-        if not tec["ok"]:
-            continue
+        if not tec["ok"]: continue
 
         prob = tec["probabilidad_pct"]
         cat, _ = clasificar_semaforo(prob)
@@ -334,4 +318,188 @@ def motor_ia_seleccion_tactica(session, tickers, activos, historial):
             if ck == "VERDE" and eleg and sym not in seg:
                 seg[sym] = {"fecha_iso": hoy_iso, "fecha_corta": hoy_corta, "precio_deteccion": it['precio_f'], "estrellas": 1, "estado_actual": "VERDE", "ultimo_estado": "VERDE", "ultima_probabilidad": it['probabilidad_pct'], "alerta_2_estrellas_enviada": False, "alerta_3_estrellas_enviada": False}
             elif sym in seg and ck in ("AMARILLO", "ROJO"):
-                seg[sym]["estrellas"] = max(int(seg
+                prev_est = int(seg[sym].get("estrellas", 1))
+                seg[sym]["estrellas"] = prev_est if prev_est > it['estrellas'] else it['estrellas']
+                seg[sym]["ultimo_estado"] = ck
+                seg[sym]["ultima_probabilidad"] = it['probabilidad_pct']
+
+            if ck == "ROJO" and eleg:
+                grad[sym] = {"symbol": sym, "base": base, "estrellas": 3, "probabilidad_pct": it['probabilidad_pct'], "precio_ref": it['precio_f'], "fecha_iso": hoy_iso, "fecha_corta": hoy_corta, "origen": "Cazador ROJO (⭐⭐⭐)"}
+
+            menc[sym] = 1
+            if sym not in historial["resumen_dia"]: historial["resumen_dia"].append(sym)
+
+    historial.update({"mencionadas": menc, "seguimiento_verde": seg, "graduadas_pre_explosion": grad})
+    guardar_historial(historial)
+    return grupos, len(cand), historial, dictamen, alertas
+
+def generar_grafico_bloque(items, titulo_graf, subtitulo_graf, filename):
+    sims = [f"{'★'*i.get('estrellas',0)}{i['base']}" for i in items]
+    probs = [i['probabilidad_pct'] for i in items]
+    cols = [i['color_hex'] for i in items]
+    ests = [i.get('estrellas', 0) for i in items]
+
+    fig, ax = plt.subplots(figsize=(9.5, 4.6), facecolor='#0b132b')
+    ax.set_facecolor('#0b132b')
+    bars = ax.bar(sims, probs, color=cols, width=0.52, zorder=3)
+    ax.grid(True, color='#1e293b', linewidth=0.8, zorder=1)
+    ax.set_ylim(0, 122)
+    for sp in ['top', 'right', 'left', 'bottom']: ax.spines[sp].set_visible(False)
+    ax.tick_params(left=False, labelleft=False, bottom=False)
+    ax.tick_params(axis='x', colors='white', labelsize=9.5)
+
+    for bar, it, pr, col, est in zip(bars, items, probs, cols, ests):
+        yv, xv = bar.get_height(), bar.get_x() + bar.get_width() / 2.0
+        if est > 0:
+            bar.set_edgecolor('#ffd700' if est >= 2 else '#ffffff')
+            bar.set_linewidth(2.5 if est == 3 else (2.0 if est == 2 else 1.6))
+            ax.text(xv, yv + 3.0, f"{'★'*est}\n{pr}%", ha='center', va='bottom', color='#ffd700' if est >= 2 else '#ffffff', fontweight='bold', fontsize=8.5)
+        else:
+            ax.text(xv, yv + 2.5, f"{pr}%", ha='center', va='bottom', color=col, fontweight='bold', fontsize=8.5)
+        ax.plot(xv, max(yv / 2.0, 14), marker='o', markersize=17, markerfacecolor='#0f172a', markeredgecolor='#ffd700' if est >= 2 else ('#ffffff' if est == 1 else col), markeredgewidth=2.0 if est > 0 else 1.5, zorder=4)
+        ax.text(xv, max(yv / 2.0, 14), it['base'][:5], ha='center', va='center', color='white', fontsize=6.5, fontweight='bold', zorder=5)
+
+    plt.title(titulo_graf, loc='left', color='#ffab00', fontsize=11.5, fontweight='bold', pad=12)
+    ax.text(0.0, 1.02, subtitulo_graf, transform=ax.transAxes, color='#94a3b8', fontsize=8.5)
+    plt.tight_layout()
+    plt.savefig(filename, dpi=300, facecolor=fig.get_facecolor())
+    plt.close()
+    return filename
+
+def enviar_texto_telegram(texto):
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID: return
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    tid = int(TELEGRAM_TOPIC_ID) if TELEGRAM_TOPIC_ID.isdigit() else None
+    partes, actual = [], ""
+    for linea in texto.split("\n"):
+        if len(actual) + len(linea) + 1 > 3400:
+            if actual.strip(): partes.append(actual.strip())
+            actual = linea + "\n"
+        else:
+            actual += linea + "\n"
+    if actual.strip(): partes.append(actual.strip())
+
+    for parte in partes:
+        payload = {"chat_id": TELEGRAM_CHAT_ID, "text": parte, "parse_mode": "HTML", "disable_web_page_preview": True}
+        if tid: payload["message_thread_id"] = tid
+        try:
+            r = requests.post(url, json=payload, timeout=15).json()
+            if not r.get("ok") and "thread not found" in str(r.get("description", "")).lower():
+                payload.pop("message_thread_id", None)
+                requests.post(url, json=payload, timeout=15)
+        except Exception as e:
+            print(f"⚠️ Error Telegram: {e}")
+        time.sleep(1)
+
+def enviar_alerta_evolucion(al):
+    sim, mkt, tec, niv = al['base'], al['mkt'], al['tec'], al['nivel']
+    uid = int(time.time() * 1000) + random.randint(1, 9999)
+    u_ia = f"{BASE_URL_NETLIFY}/?coin={sim}&price={mkt['precio_f']}&change={mkt['cambio_f']}&high={mkt['high_f']}&low={mkt['low_f']}&v={sim}_{uid}"
+    u_tr = f"https://www.binance.com/es/trade/{sim}_USDT"
+    titulo = "🚨 <b>ALERTA EVOLUCIÓN • ⭐⭐ (2 ESTRELLAS)</b>" if niv == 2 else "🏆 <b>CONFIRMACIÓN INVERSIÓN • ⭐⭐⭐ (3 ESTRELLAS)</b>"
+    zona_txt = f"subió a zona 🟡 <b>AMARILLA</b> (Prob: <b>{al['prob']}%</b>)." if niv == 2 else f"alcanzó zona 🔴 <b>ROJA</b> (Prob: <b>{al['prob']}%</b>) y pasa lista al radar verde de <b>Pre-Explosión</b>."
+    msg = (
+        f"{titulo}\n📅 <code>{ahora_art().strftime('%Y-%m-%d %H:%M ART')}</code>\n\n"
+        f"⚡ <b>*{sim}*</b> (cazada con ⭐ en 🟢 el <code>{al['fecha_corta']}</code> a <code>{formatear_precio(al['p_ini'])}</code>) {zona_txt}\n"
+        f"• <b>Actual:</b> <code>{formatear_precio(al['p_act'])}</code> (<b>{al['var_det']:+.2f}%</b> desde detección)\n"
+        f"• <b>Técnico:</b> <code>1h: {tec['var_1h']:+.2f}% | RSI: {tec['rsi_1h']} | {tec['ema_estado']} | Vol: x{tec['vol_surge']}</code>\n"
+        f"└ <a href=\"{html.escape(u_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(u_tr)}\">🔶 Tradear</a>"
+    )
+    enviar_texto_telegram(msg)
+
+def enviar_bloque_color(num_bloque, titulo_msg, titulo_graf, items, seg, dictamen_global=""):
+    if not items: return
+    fname = f"grafico_cazador_{num_bloque}.png"
+    fecha_str = ahora_art().strftime('%Y-%m-%d %H:%M ART')
+    generar_grafico_bloque(items, titulo_graf, f"Fecha: {fecha_str} | ★ Verde | ★★ Amarillo | ★★★ Rojo", fname)
+
+    msg = f"🔥 <b>CAZADOR TÁCTICO ({num_bloque}/3)</b>\n{titulo_msg}\n📅 <code>{fecha_str}</code>\n"
+    if dictamen_global:
+        msg += f"🧠 <i>{html.escape(dictamen_global)}</i>\n"
+    msg += "\n"
+
+    for it in items:
+        sim, sym, est = it['base'], it['symbol'], it.get('estrellas', 0)
+        uid = int(time.time() * 1000) + random.randint(1, 9999)
+        u_ia = f"{BASE_URL_NETLIFY}/?coin={sim}&price={it['precio_f']}&change={it['cambio_f']}&high={it['high_f']}&low={it['low_f']}&v={sim}_{uid}"
+        u_tr = f"https://www.binance.com/es/trade/{sim}_USDT"
+        tseg = f" <i>[👁️ {seg[sym]['fecha_corta']}]</i>" if (sym in seg and it['categoria'] != "VERDE") else ""
+
+        if est > 0:
+            if it['categoria'] == "ROJO":
+                tag_dest = "LISTA PRE-EXPLOSIÓN"
+            elif it['categoria'] == "AMARILLO":
+                tag_dest = "EVOLUCIÓN ACTIVA" if it.get('es_evolucion') else "ESTRUCTURA ARMADA"
+            else:
+                tag_dest = "DESTACADA INICIAL"
+
+            mot = html.escape(it.get("motivo_ia", ""))
+            msg += (
+                f"{'⭐'*est} <b>*{sim}* [{tag_dest} • Prob: {it['probabilidad_pct']}%]</b> | Base (0%): <code>{formatear_precio(it['base_24h_f'])}</code> ➔ Actual: <code>{formatear_precio(it['precio_f'])}</code> | <b>{it['cambio_f']:+.2f}%</b>\n"
+                f"   📐 <code>1h: {it['var_1h']:+.2f}% | RSI: {it['rsi_1h']} | Vol: x{it['vol_surge']}</code>{tseg}\n"
+            )
+            if mot:
+                msg += f"   💡 <i>{mot}</i>\n"
+            msg += f"   └ <a href=\"{html.escape(u_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(u_tr)}\">🔶 Tradear</a>\n\n"
+        else:
+            msg += (
+                f"• <b>{sim}</b> (Prob: <b>{it['probabilidad_pct']}%</b>) | Base (0%): <code>{formatear_precio(it['base_24h_f'])}</code> ➔ Actual: <code>{formatear_precio(it['precio_f'])}</code> | <b>{it['cambio_f']:+.2f}%</b>\n"
+                f"  └ <a href=\"{html.escape(u_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(u_tr)}\">🔶 Tradear</a>\n\n"
+            )
+
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID: return
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
+    tid = int(TELEGRAM_TOPIC_ID) if TELEGRAM_TOPIC_ID.isdigit() else None
+    texto_limpio = msg.strip()
+    cabe = len(texto_limpio) <= 1020
+
+    for _ in range(3):
+        try:
+            pf = {"chat_id": TELEGRAM_CHAT_ID}
+            if tid: pf["message_thread_id"] = tid
+            if cabe: pf.update({"caption": texto_limpio, "parse_mode": "HTML"})
+            with open(fname, 'rb') as ph:
+                res = requests.post(url, data=pf, files={"photo": ph}, timeout=25).json()
+                if not res.get("ok") and "thread not found" in str(res.get("description", "")).lower():
+                    pf.pop("message_thread_id", None)
+                    ph.seek(0)
+                    res = requests.post(url, data=pf, files={"photo": ph}, timeout=25).json()
+            if res.get("ok"):
+                if not cabe:
+                    enviar_texto_telegram(texto_limpio)
+                print(f"✅ Bloque {num_bloque}/3 entregado en Telegram.")
+                return
+        except Exception as e:
+            print(f"⚠️ Error bloque {num_bloque}: {e}")
+        time.sleep(3)
+
+if __name__ == "__main__":
+    print(f"🔥 INICIANDO CAZADOR TÁCTICO POR BLOQUES ({ahora_art().strftime('%H:%M:%S')} ART)...")
+    s = crear_sesion_binance()
+    activos, datos = obtener_datos_binance(s)
+    if datos and activos:
+        hist = cargar_historial()
+        grupos, tot, hist, dictamen, alertas = motor_ia_seleccion_tactica(s, datos, activos, hist)
+
+        for al in alertas:
+            enviar_alerta_evolucion(al)
+            time.sleep(1.5)
+
+        seg = hist.get("seguimiento_verde", {})
+        enviar_bloque_color(1, "🔴 <b>1. PROBABILIDAD MÁXIMA (72%–98% • ⭐⭐⭐ Pre-Explosión)</b>", "CAZADOR TACTICO (1/3) • PROBABILIDAD MAXIMA (3 ESTRELLAS)", grupos["ROJO"], seg, dictamen)
+        time.sleep(2)
+        enviar_bloque_color(2, "🟡 <b>2. PROBABILIDAD ALTA (52%–71% • ⭐⭐ Estructura Armada)</b>", "CAZADOR TACTICO (2/3) • PROBABILIDAD ALTA (2 ESTRELLAS)", grupos["AMARILLO"], seg)
+        time.sleep(2)
+        enviar_bloque_color(3, "🟢 <b>3. PROBABILIDAD INICIAL (35%–51% • ⭐ Detección Temprana)</b>", "CAZADOR TACTICO (3/3) • PROBABILIDAD INICIAL (1 ESTRELLA)", grupos["VERDE"], seg)
+
+        if ahora_art().hour >= 21 and not hist.get("resumen_enviado_hoy", False):
+            mdia = [x[:-4] for x in hist.get("resumen_dia", [])]
+            eradar = [f"{'⭐'*int(d.get('estrellas',1))} {k[:-4]} ({d['fecha_corta']} ➔ {d.get('ultima_probabilidad',0)}%)" for k, d in seg.items() if int(d.get('estrellas', 0)) >= 1]
+            if mdia or eradar:
+                enviar_texto_telegram(f"📋 <b>RESUMEN DIARIO CAZADOR (21:00 ART)</b>\nHoy: <code>{', '.join(mdia) or 'Ninguna'}</code>\nRadar ⭐: <code>{', '.join(eradar) or 'Vacío'}</code>")
+                hist["resumen_enviado_hoy"] = True
+                guardar_historial(hist)
+    else:
+        print("❌ ERROR: Sin datos de Binance.")
+
+# FIN BOT TACTICO
