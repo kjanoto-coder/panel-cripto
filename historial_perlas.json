@@ -4,12 +4,11 @@
     "DODOUSDT": 1,
     "SHELLUSDT": 1,
     "ENSOUSDT": 1,
-    "SENTUSDT": 1,
     "STEEMUSDT": 1,
     "PORTALUSDT": 1,
     "JSTUSDT": 1,
+    "AIGENSYNUSDT": 1,
     "FFUSDT": 1,
-    "HMSTRUSDT": 1,
     "SXTUSDT": 1,
     "REQUSDT": 1,
     "USUALUSDT": 1,
@@ -18,7 +17,7 @@
     "KITEUSDT": 1,
     "GLMRUSDT": 1,
     "GRAMUSDT": 1,
-    "KATUSDT": 1,
+    "NIGHTUSDT": 1,
     "SAPIENUSDT": 1,
     "BMTUSDT": 1,
     "SKYUSDT": 1
@@ -44,7 +43,9 @@
     "KATUSDT",
     "SAPIENUSDT",
     "BMTUSDT",
-    "SKYUSDT"
+    "SKYUSDT",
+    "AIGENSYNUSDT",
+    "NIGHTUSDT"
   ],
   "resumen_enviado_hoy": false,
   "seguimiento_verde": {
@@ -57,7 +58,8 @@
       "ultimo_estado": "VERDE",
       "ultima_probabilidad": 48,
       "alerta_2_estrellas_enviada": false,
-      "alerta_3_estrellas_enviada": false
+      "alerta_3_estrellas_enviada": false,
+      "ultimo_precio": 0.134
     }
   },
   "graduadas_pre_explosion": {
@@ -66,7 +68,7 @@
       "base": "DODO",
       "estrellas": 1,
       "probabilidad_pct": 96,
-      "precio_ref": 0.03139,
+      "precio_ref": 0.0315,
       "fecha_iso": "2026-11-20",
       "fecha_corta": "20/11",
       "origen": "Cazador Táctico (ROJO ⭐)"
@@ -76,7 +78,7 @@
       "base": "FF",
       "estrellas": 1,
       "probabilidad_pct": 63,
-      "precio_ref": 0.10002,
+      "precio_ref": 0.09996,
       "fecha_iso": "2026-11-20",
       "fecha_corta": "20/11",
       "origen": "Cazador Táctico (AMARILLO ⭐)"
