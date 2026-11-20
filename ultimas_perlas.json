@@ -1,14 +1,5 @@
 [
   [
-    "BTCUSDT",
-    "ETHUSDT",
-    "SOLUSDT",
-    "RWUSDUSDT",
-    "UUSDT",
-    "BNBUSDT",
-    "XRPUSDT"
-  ],
-  [
     "ZECUSDT",
     "XAUTUSDT",
     "TRXUSDT",
@@ -16,5 +7,14 @@
     "NEARUSDT",
     "DOGEUSDT",
     "HYPEUSDT"
+  ],
+  [
+    "ADAUSDT",
+    "SUIUSDT",
+    "PEPEUSDT",
+    "TAOUSDT",
+    "LINKUSDT",
+    "AVAXUSDT",
+    "XLMUSDT"
   ]
 ]
