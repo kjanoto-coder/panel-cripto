@@ -3,18 +3,17 @@
     "DODOUSDT",
     "SOPHUSDT",
     "SKYUSDT",
-    "JSTUSDT",
-    "ENSOUSDT",
-    "ERAUSDT",
-    "HMSTRUSDT"
-  ],
-  [
-    "DODOUSDT",
-    "SOPHUSDT",
-    "SKYUSDT",
     "BLURUSDT",
     "HMSTRUSDT",
     "JSTUSDT",
     "ENSOUSDT"
+  ],
+  [
+    "SKYUSDT",
+    "BLURUSDT",
+    "HMSTRUSDT",
+    "ENSOUSDT",
+    "BMTUSDT",
+    "BARDUSDT"
   ]
 ]
