@@ -1,14 +1,5 @@
 [
   [
-    "ZECUSDT",
-    "XAUTUSDT",
-    "TRXUSDT",
-    "NVDABUSDT",
-    "NEARUSDT",
-    "DOGEUSDT",
-    "HYPEUSDT"
-  ],
-  [
     "ADAUSDT",
     "SUIUSDT",
     "PEPEUSDT",
@@ -16,5 +7,14 @@
     "LINKUSDT",
     "AVAXUSDT",
     "XLMUSDT"
+  ],
+  [
+    "XRPUSDT",
+    "JSTUSDT",
+    "NIGHTUSDT",
+    "RAYUSDT",
+    "KITEUSDT",
+    "MEGAUSDT",
+    "SNXUSDT"
   ]
 ]
