@@ -1,14 +1,5 @@
 [
   [
-    "BLURUSDT",
-    "SKYUSDT",
-    "SOPHUSDT",
-    "DODOUSDT",
-    "ENSOUSDT",
-    "HMSTRUSDT",
-    "ERAUSDT"
-  ],
-  [
     "JSTUSDT",
     "STEEMUSDT",
     "AIGENSYNUSDT",
@@ -16,5 +7,14 @@
     "SAPIENUSDT",
     "BMTUSDT",
     "BARDUSDT"
+  ],
+  [
+    "DODOUSDT",
+    "SOPHUSDT",
+    "SKYUSDT",
+    "JSTUSDT",
+    "ENSOUSDT",
+    "ERAUSDT",
+    "HMSTRUSDT"
   ]
 ]
