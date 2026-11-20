@@ -1,20 +1,20 @@
 [
   [
     "JSTUSDT",
-    "ERAUSDT",
-    "BLURUSDT",
-    "HUMAUSDT",
-    "SHELLUSDT",
-    "ENSOUSDT",
-    "HMSTRUSDT"
-  ],
-  [
-    "JSTUSDT",
     "HUMAUSDT",
     "ERAUSDT",
     "BLURUSDT",
     "SHELLUSDT",
     "ENSOUSDT",
     "STEEMUSDT"
+  ],
+  [
+    "DODOUSDT",
+    "HUMAUSDT",
+    "BLURUSDT",
+    "ERAUSDT",
+    "JSTUSDT",
+    "STEEMUSDT",
+    "HMSTRUSDT"
   ]
 ]
