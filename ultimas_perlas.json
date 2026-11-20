@@ -1,14 +1,5 @@
 [
   [
-    "SAPIENUSDT",
-    "LUNCUSDT",
-    "ZKPUSDT",
-    "HEIUSDT",
-    "ENSOUSDT",
-    "BMTUSDT",
-    "KAVAUSDT"
-  ],
-  [
     "JSTUSDT",
     "BMTUSDT",
     "ERAUSDT",
@@ -16,5 +7,14 @@
     "KITEUSDT",
     "RAREUSDT",
     "SAPIENUSDT"
+  ],
+  [
+    "JSTUSDT",
+    "ERAUSDT",
+    "BLURUSDT",
+    "SHELLUSDT",
+    "ENSOUSDT",
+    "HMSTRUSDT",
+    "BMTUSDT"
   ]
 ]
