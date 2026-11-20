@@ -1,20 +1,20 @@
 [
   [
     "KITEUSDT",
-    "USUALUSDT",
-    "AIGENSYNUSDT",
-    "ENSOUSDT",
-    "ERAUSDT",
-    "RAREUSDT",
-    "SAPIENUSDT"
-  ],
-  [
-    "KITEUSDT",
     "AIGENSYNUSDT",
     "USUALUSDT",
     "ENSOUSDT",
     "ERAUSDT",
     "SAPIENUSDT",
     "BMTUSDT"
+  ],
+  [
+    "KITEUSDT",
+    "AIGENSYNUSDT",
+    "USUALUSDT",
+    "ENSOUSDT",
+    "HMSTRUSDT",
+    "SAPIENUSDT",
+    "ERAUSDT"
   ]
 ]
