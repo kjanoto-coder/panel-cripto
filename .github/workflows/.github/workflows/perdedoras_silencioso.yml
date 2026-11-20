@@ -1,0 +1,61 @@
+name: Perdedoras Silencioso IA
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: escritura-perdedoras-silencioso
+  cancel-in-progress: false
+
+jobs:
+  run-perdedoras-silencioso:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+
+      - name: Ejecutar detector silencioso
+        env:
+          PYTHONUNBUFFERED: "1"
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TOPIC_ID_PERDEDORAS: ${{ secrets.TOPIC_ID_PERDEDORAS }}
+          TOPIC_ID_DIPS: ${{ secrets.TOPIC_ID_DIPS }}
+          TOPIC_ID_CENTRAL: ${{ secrets.TOPIC_ID_CENTRAL }}
+        run: python bot_perdedoras_silencioso.py
+
+      - name: Guardar memoria de caídas sin conflictos
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f perdedoras_silenciosas.json || true
+          if ! git diff --staged --quiet; then
+            git commit -m "Auto-update: Memoria Perdedoras Silencioso"
+            for i in 1 2 3; do
+              if git pull --rebase origin main && git push origin main; then
+                break
+              fi
+              git rebase --abort || true
+              sleep 5
+            done
+          fi
+
+# FIN WORKFLOW PERDEDORAS SILENCIOSO
