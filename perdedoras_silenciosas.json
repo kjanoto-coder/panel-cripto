@@ -1,0 +1,244 @@
+{
+  "fecha": "2026-11-20",
+  "alertadas_hoy": {},
+  "historial_caidas": {
+    "MUUBUSDT": {
+      "eventos": [
+        {
+          "fecha": "2026-11-20",
+          "precio_caida": 9.76,
+          "chg_24h": -27.596,
+          "senal_rebote": false
+        }
+      ]
+    },
+    "KORUBUSDT": {
+      "eventos": [
+        {
+          "fecha": "2026-11-20",
+          "precio_caida": 4.9,
+          "chg_24h": -23.318,
+          "senal_rebote": false
+        }
+      ]
+    },
+    "MEGAUSDT": {
+      "eventos": [
+        {
+          "fecha": "2026-11-20",
+          "precio_caida": 0.04798,
+          "chg_24h": -18.471,
+          "senal_rebote": false
+        }
+      ]
+    },
+    "FTTUSDT": {
+      "eventos": [
+        {
+          "fecha": "2026-11-20",
+          "precio_caida": 0.1728,
+          "chg_24h": -17.753,
+          "senal_rebote": false
+        }
+      ]
+    },
+    "AAOIBUSDT": {
+      "eventos": []
+    },
+    "ZECUSDT": {
+      "eventos": []
+    },
+    "MANTRAUSDT": {
+      "eventos": [
+        {
+          "fecha": "2026-11-20",
+          "precio_caida": 0.00182,
+          "chg_24h": -15.741,
+          "senal_rebote": false
+        }
+      ]
+    },
+    "IRENBUSDT": {
+      "eventos": [
+        {
+          "fecha": "2026-11-20",
+          "precio_caida": 12.17,
+          "chg_24h": -15.545,
+          "senal_rebote": false
+        }
+      ]
+    },
+    "BEBUSDT": {
+      "eventos": []
+    },
+    "NBISBUSDT": {
+      "eventos": []
+    },
+    "TNSRUSDT": {
+      "eventos": [
+        {
+          "fecha": "2026-11-20",
+          "precio_caida": 0.0189,
+          "chg_24h": -14.48,
+          "senal_rebote": false
+        }
+      ]
+    },
+    "YBUSDT": {
+      "eventos": [
+        {
+          "fecha": "2026-11-20",
+          "precio_caida": 0.0478,
+          "chg_24h": -14.337,
+          "senal_rebote": false
+        }
+      ]
+    },
+    "COHRBUSDT": {
+      "eventos": []
+    },
+    "TQQQBUSDT": {
+      "eventos": []
+    },
+    "MITOUSDT": {
+      "eventos": [
+        {
+          "fecha": "2026-11-20",
+          "precio_caida": 0.00514,
+          "chg_24h": -14.047,
+          "senal_rebote": false
+        }
+      ]
+    },
+    "MUBUSDT": {
+      "eventos": []
+    },
+    "CHIPUSDT": {
+      "eventos": [
+        {
+          "fecha": "2026-11-20",
+          "precio_caida": 0.02565,
+          "chg_24h": -13.665,
+          "senal_rebote": false
+        }
+      ]
+    },
+    "ZKPUSDT": {
+      "eventos": [
+        {
+          "fecha": "2026-11-20",
+          "precio_caida": 0.0292,
+          "chg_24h": -13.353,
+          "senal_rebote": false
+        }
+      ]
+    },
+    "OPENUSDT": {
+      "eventos": [
+        {
+          "fecha": "2026-11-20",
+          "precio_caida": 0.0769,
+          "chg_24h": -13.303,
+          "senal_rebote": false
+        }
+      ]
+    },
+    "UNIUSDT": {
+      "eventos": [
+        {
+          "fecha": "2026-11-20",
+          "precio_caida": 4.344,
+          "chg_24h": -13.276,
+          "senal_rebote": false
+        }
+      ]
+    },
+    "ZROUSDT": {
+      "eventos": [
+        {
+          "fecha": "2026-11-20",
+          "precio_caida": 1.171,
+          "chg_24h": -13.195,
+          "senal_rebote": false
+        }
+      ]
+    },
+    "SKHYBUSDT": {
+      "eventos": []
+    },
+    "ZILUSDT": {
+      "eventos": [
+        {
+          "fecha": "2026-11-20",
+          "precio_caida": 0.000826,
+          "chg_24h": -12.961,
+          "senal_rebote": false
+        }
+      ]
+    },
+    "MUBARAKUSDT": {
+      "eventos": [
+        {
+          "fecha": "2026-11-20",
+          "precio_caida": 0.02129,
+          "chg_24h": -12.924,
+          "senal_rebote": false
+        }
+      ]
+    },
+    "INJUSDT": {
+      "eventos": [
+        {
+          "fecha": "2026-11-20",
+          "precio_caida": 6.153,
+          "chg_24h": -12.884,
+          "senal_rebote": false
+        }
+      ]
+    },
+    "ETHFIUSDT": {
+      "eventos": [
+        {
+          "fecha": "2026-11-20",
+          "precio_caida": 0.4333,
+          "chg_24h": -12.747,
+          "senal_rebote": false
+        }
+      ]
+    },
+    "METUSDT": {
+      "eventos": [
+        {
+          "fecha": "2026-11-20",
+          "precio_caida": 0.2352,
+          "chg_24h": -12.598,
+          "senal_rebote": false
+        }
+      ]
+    },
+    "NVDABUSDT": {
+      "eventos": []
+    },
+    "VANAUSDT": {
+      "eventos": [
+        {
+          "fecha": "2026-11-20",
+          "precio_caida": 0.565,
+          "chg_24h": -12.539,
+          "senal_rebote": false
+        }
+      ]
+    },
+    "APTUSDT": {
+      "eventos": [
+        {
+          "fecha": "2026-11-20",
+          "precio_caida": 0.3661,
+          "chg_24h": -12.5,
+          "senal_rebote": false
+        }
+      ]
+    }
+  },
+  "actualizado_art": "2026-11-20 17:03:41"
+}
