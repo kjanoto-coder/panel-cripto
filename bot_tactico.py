@@ -109,7 +109,7 @@ def pasa_requisito_amarillo(tec):
         tec.get("ok")
         and tec.get("probabilidad_pct", 0) >= 58
         and tec.get("rsi_1h", 100) <= 68.0
-        and (tec.get("vol_surge", 0) >= 1.15 or tec.get("var_1h", -99) >= 0.25)
+        and (tec.get("vol_surge", 0) >= 1.10 or tec.get("var_1h", -99) >= 0.30)
     )
 
 def pasa_requisito_rojo(tec):
@@ -117,7 +117,7 @@ def pasa_requisito_rojo(tec):
         tec.get("ok")
         and tec.get("probabilidad_pct", 0) >= 75
         and tec.get("rsi_1h", 100) <= 72.0
-        and (tec.get("vol_surge", 0) >= 1.20 and tec.get("var_1h", -99) > -0.20)
+        and (tec.get("vol_surge", 0) >= 1.15 and tec.get("var_1h", -99) > -0.25)
     )
 
 def calcular_probabilidad_inversion(session, symbol):
@@ -185,46 +185,46 @@ def formatear_precio(p):
         return f"${p:.6f}"
     return f"${p:.8f}"
 
-def curar_con_gemini(rojas, amarillas, verdes, semillero_previo):
-    def picks_verde(lista):
-        if not lista:
-            return {}
-        rank = sorted(
-            lista,
-            key=lambda x: (
-                x['probabilidad_pct']
-                + (6 if 40.0 <= x.get('rsi_1h', 50) <= 62.0 else 0)
-                + (5 if -2.5 <= x.get('cambio_f', 0) <= 2.5 else 0)
-            ),
-            reverse=True
-        )
-        top_n = rank[:2] if len(rank) >= 4 else rank[:1]
-        return {
-            x['base']: f"Base {x['cambio_f']:+.1f}%, 1h {x['var_1h']:+.2f}% y RSI {x['rsi_1h']}: inicia camino ⭐."
-            for x in top_n
-        }
+def picks_verde_base(v7):
+    if not v7:
+        return {}
+    rank = sorted(
+        v7,
+        key=lambda x: (
+            x['probabilidad_pct']
+            + (6 if 40.0 <= x.get('rsi_1h', 50) <= 62.0 else 0)
+            + (5 if -2.5 <= x.get('cambio_f', 0) <= 2.5 else 0)
+        ),
+        reverse=True
+    )
+    top_n = rank[:2] if len(rank) >= 4 else rank[:1]
+    return {
+        x['base']: f"Base {x['cambio_f']:+.1f}%, 1h {x['var_1h']:+.2f}% y RSI {x['rsi_1h']}: inicia camino ⭐."
+        for x in top_n
+    }
 
-    def picks_evolucion(lista, nivel):
+def picks_evolucion_validos(lista, semillero_previo, nivel):
+    if nivel == 2:
+        validas = [x for x in lista if x['base'] in semillero_previo and pasa_requisito_amarillo(x)]
+    else:
+        validas = [x for x in lista if x['base'] in semillero_previo and pasa_requisito_rojo(x)]
+    validas.sort(key=lambda x: x['probabilidad_pct'], reverse=True)
+    out = {}
+    for x in validas[:3]:
         if nivel == 2:
-            validas = [x for x in lista if x['base'] in semillero_previo and pasa_requisito_amarillo(x)]
+            out[x['base']] = f"Vino de ⭐ Verde: 1h {x['var_1h']:+.2f}%, RSI {x['rsi_1h']} y Vol x{x['vol_surge']}: evoluciona ⭐⭐."
         else:
-            validas = [x for x in lista if x['base'] in semillero_previo and pasa_requisito_rojo(x)]
-        validas.sort(key=lambda x: x['probabilidad_pct'], reverse=True)
-        out = {}
-        for x in validas[:3]:
-            if nivel == 2:
-                out[x['base']] = f"Vino de ⭐ Verde: 1h {x['var_1h']:+.2f}%, RSI {x['rsi_1h']} y Vol x{x['vol_surge']}: evoluciona ⭐⭐."
-            else:
-                out[x['base']] = f"Vino de ⭐ Verde: Prob {x['probabilidad_pct']}%, 1h {x['var_1h']:+.2f}% y Vol x{x['vol_surge']}: confirmada ⭐⭐⭐."
-        return out
+            out[x['base']] = f"Vino de ⭐ Verde: Prob {x['probabilidad_pct']}%, 1h {x['var_1h']:+.2f}% y Vol x{x['vol_surge']}: confirmada ⭐⭐⭐."
+    return out
 
+def curar_con_gemini(rojas, amarillas, verdes, semillero_previo):
     r7, a7, v7 = rojas[:7], amarillas[:7], verdes[:7]
     destacadas = {
-        "ROJO": picks_evolucion(r7, 3),
-        "AMARILLO": picks_evolucion(a7, 2),
-        "VERDE": picks_verde(v7)
+        "ROJO": picks_evolucion_validos(r7, semillero_previo, 3),
+        "AMARILLO": picks_evolucion_validos(a7, semillero_previo, 2),
+        "VERDE": picks_verde_base(v7)
     }
-    dictamen = "Camino por etapas: ⭐ Verde inicia ➔ ⭐⭐ Amarillo evoluciona ➔ ⭐⭐⭐ Rojo confirma para Pre-Explosión."
+    dictamen = "Cadena coherente: ⭐ Verde inicia ➔ ⭐⭐ Amarillo evoluciona ➔ ⭐⭐⭐ Rojo confirma para Pre-Explosión."
 
     if not GEMINI_API_KEY or not (r7 or a7 or v7):
         return r7, a7, v7, destacadas, dictamen
@@ -237,11 +237,13 @@ def curar_con_gemini(rojas, amarillas, verdes, semillero_previo):
         ]) or "Vacio"
 
         prompt = (
-            "Analista cuantitativo Binance Spot. Cada moneda debe arrancar en VERDE (1⭐) y evolucionar en etapas:\n"
-            "- VERDE (35-51%): elegí 1 a 2 monedas de base sana y margen para iniciar el camino (1⭐).\n"
-            "- AMARILLO (52-71%): SOLO monedas marcadas [SEMILLERO_PREVIO] que cumplan requisitos técnicos sólidos (RSI<=68 y buen volumen/impulso) reciben 2⭐⭐.\n"
-            "- ROJO (>=72%): SOLO monedas marcadas [SEMILLERO_PREVIO] que cumplan requisitos técnicos sólidos reciben 3⭐⭐⭐ para pasar a Pre-Explosión.\n\n"
+            "Analista cuantitativo Binance Spot. Evaluá estas 3 listas:\n"
             f"ROJO (>=72%):\n{fmt(rojas)}\nAMARILLO (52-71%):\n{fmt(amarillas)}\nVERDE (35-51%):\n{fmt(verdes)}\n\n"
+            "Reglas:\n"
+            "1. Ordená hasta 7 monedas por color.\n"
+            "2. En VERDE elegí 1 o 2 destacadas (1⭐) con base sana y margen.\n"
+            "3. En AMARILLO solo pueden destacarse (2⭐⭐) monedas [SEMILLERO_PREVIO]; en ROJO solo monedas [SEMILLERO_PREVIO] (3⭐⭐⭐).\n"
+            "4. Escribí motivos breves (<85 chars) y un dictamen breve (<120 chars).\n"
             'Responde SOLO JSON válido: {"rojas":["S1"],"amarillas":["S1"],"verdes":["S1"],"dest_roja":[{"symbol":"S1","motivo":"..."}],"dest_amarilla":[{"symbol":"S1","motivo":"..."}],"dest_verde":[{"symbol":"S1","motivo":"..."}],"dictamen":"..."}'
         )
         for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
@@ -253,23 +255,24 @@ def curar_con_gemini(rojas, amarillas, verdes, semillero_previo):
                         raw = raw[raw.find("{"):raw.rfind("}") + 1]
                     data = json.loads(raw)
 
-                    def procesar_grupo(pool, orden_ia, dest_ia, dest_def, exigir_previo=False, nivel=1):
+                    def procesar_grupo(pool, orden_ia, dest_ia, dest_def, nivel):
                         mapa = {x['base']: x for x in pool}
                         picks = {}
                         for d in (dest_ia or [])[:3]:
                             s = str(d.get("symbol", "")).strip().upper()
                             m = str(d.get("motivo", "")).strip()
                             if s in mapa:
-                                ok_req = True
-                                if exigir_previo:
-                                    ok_req = (s in semillero_previo) and (pasa_requisito_rojo(mapa[s]) if nivel == 3 else pasa_requisito_amarillo(mapa[s]))
-                                if ok_req:
+                                if nivel == 1:
                                     picks[s] = (m or dest_def.get(s) or list(dest_def.values())[0])[:95]
-                        if not picks:
+                                elif nivel == 2 and s in semillero_previo and pasa_requisito_amarillo(mapa[s]):
+                                    picks[s] = (m or dest_def.get(s) or list(dest_def.values())[0])[:95]
+                                elif nivel == 3 and s in semillero_previo and pasa_requisito_rojo(mapa[s]):
+                                    picks[s] = (m or dest_def.get(s) or list(dest_def.values())[0])[:95]
+                        if not picks and dest_def:
                             picks = dest_def
 
                         sel = []
-                        if exigir_previo:
+                        if nivel >= 2:
                             for x in pool:
                                 if x['base'] in semillero_previo and x['base'] not in picks and x not in sel:
                                     sel.append(x)
@@ -289,9 +292,9 @@ def curar_con_gemini(rojas, amarillas, verdes, semillero_previo):
                         validos = {x['base'] for x in f7}
                         return f7, {k: v for k, v in picks.items() if k in validos}
 
-                    r7, dr = procesar_grupo(rojas, data.get("rojas"), data.get("dest_roja"), destacadas["ROJO"], exigir_previo=True, nivel=3)
-                    a7, da = procesar_grupo(amarillas, data.get("amarillas"), data.get("dest_amarilla"), destacadas["AMARILLO"], exigir_previo=True, nivel=2)
-                    v7, dv = procesar_grupo(verdes, data.get("verdes"), data.get("dest_verde"), destacadas["VERDE"], exigir_previo=False, nivel=1)
+                    r7, dr = procesar_grupo(rojas, data.get("rojas"), data.get("dest_roja"), destacadas["ROJO"], 3)
+                    a7, da = procesar_grupo(amarillas, data.get("amarillas"), data.get("dest_amarilla"), destacadas["AMARILLO"], 2)
+                    v7, dv = procesar_grupo(verdes, data.get("verdes"), data.get("dest_verde"), destacadas["VERDE"], 1)
                     return r7, a7, v7, {"ROJO": dr, "AMARILLO": da, "VERDE": dv}, str(data.get("dictamen") or dictamen)[:140]
             except Exception:
                 continue
@@ -305,7 +308,6 @@ def evaluar_evolucion_estrellas(session, mapa_mercado, historial, semillero_prev
     alertas = []
     hoy_iso, hoy_corta = ahora_art().strftime('%Y-%m-%d'), ahora_art().strftime('%d/%m')
 
-    # Solo evalúa monedas que ya venían de una corrida anterior (no las recién elegidas en este mismo ciclo)
     for sym in semillero_previo_syms:
         info = seg.get(sym)
         mkt = mapa_mercado.get(sym)
@@ -412,6 +414,10 @@ def motor_ia_seleccion_tactica(session, tickers, activos, historial):
 
     r7, a7, v7, destacadas, dictamen = curar_con_gemini(r_ok, a_ok, v_ok, semillero_previo_bases)
 
+    # Garantiza al menos 1 estrella en VERDE si hay monedas en el bloque verde
+    if v7 and not destacadas.get("VERDE"):
+        destacadas["VERDE"] = picks_verde_base(v7)
+
     grad = historial.get("graduadas_pre_explosion", {})
     hoy_iso, hoy_corta = ahora_art().strftime('%Y-%m-%d'), ahora_art().strftime('%d/%m')
 
@@ -426,7 +432,7 @@ def motor_ia_seleccion_tactica(session, tickers, activos, historial):
             it['motivo_ia'] = picks_ck.get(base, "") if eleg else ""
             it['es_evolucion'] = False
 
-            if ck == "VERDE" and eleg and not vino_de_verde:
+            if ck == "VERDE" and eleg:
                 it['estrellas'] = 1
                 if sym not in seg:
                     seg[sym] = {
