@@ -1,14 +1,5 @@
 [
   [
-    "ADAUSDT",
-    "SUIUSDT",
-    "PEPEUSDT",
-    "TAOUSDT",
-    "LINKUSDT",
-    "AVAXUSDT",
-    "XLMUSDT"
-  ],
-  [
     "XRPUSDT",
     "JSTUSDT",
     "NIGHTUSDT",
@@ -16,5 +7,14 @@
     "KITEUSDT",
     "MEGAUSDT",
     "SNXUSDT"
+  ],
+  [
+    "SAPIENUSDT",
+    "LUNCUSDT",
+    "ZKPUSDT",
+    "HEIUSDT",
+    "ENSOUSDT",
+    "BMTUSDT",
+    "KAVAUSDT"
   ]
 ]
