@@ -1,27 +1,27 @@
 {
   "fecha": "2026-11-20",
   "mencionadas": {
-    "DODOUSDT": 1,
-    "PORTALUSDT": 1,
-    "HYPERUSDT": 1,
-    "BLURUSDT": 1,
-    "WCTUSDT": 1,
-    "KATUSDT": 1,
-    "AIGENSYNUSDT": 1,
-    "JSTUSDT": 1,
-    "SENTUSDT": 1,
-    "SAPIENUSDT": 1,
-    "SHELLUSDT": 1,
-    "STEEMUSDT": 1,
-    "KITEUSDT": 1,
-    "WINUSDT": 1,
-    "GRAMUSDT": 1,
-    "SKYUSDT": 1,
     "GLMRUSDT": 1,
-    "ERAUSDT": 1,
+    "BLURUSDT": 1,
+    "SENTUSDT": 1,
+    "AIGENSYNUSDT": 1,
+    "SAPIENUSDT": 1,
+    "DODOUSDT": 1,
+    "STEEMUSDT": 1,
+    "SKYUSDT": 1,
     "OPGUSDT": 1,
-    "THETAUSDT": 1,
-    "BMTUSDT": 1
+    "GRAMUSDT": 1,
+    "KATUSDT": 1,
+    "NEXOUSDT": 1,
+    "HYPERUSDT": 1,
+    "SHELLUSDT": 1,
+    "ERAUSDT": 1,
+    "KITEUSDT": 1,
+    "KAVAUSDT": 1,
+    "JSTUSDT": 1,
+    "BMTUSDT": 1,
+    "FFUSDT": 1,
+    "REQUSDT": 1
   },
   "resumen_dia": [
     "DODOUSDT",
@@ -55,7 +55,9 @@
     "IOUSDT",
     "HUMAUSDT",
     "HYPERUSDT",
-    "WINUSDT"
+    "WINUSDT",
+    "NEXOUSDT",
+    "KAVAUSDT"
   ],
   "resumen_enviado_hoy": false,
   "seguimiento_verde": {
@@ -65,8 +67,8 @@
       "precio_deteccion": 0.1341,
       "estrellas": 2,
       "estado_actual": "AMARILLO",
-      "ultimo_estado": "AMARILLO",
-      "ultima_probabilidad": 56,
+      "ultimo_estado": "VERDE",
+      "ultima_probabilidad": 38,
       "alerta_2_estrellas_enviada": true,
       "alerta_3_estrellas_enviada": false,
       "ultimo_precio": 0.1334
@@ -81,52 +83,64 @@
       "ultima_probabilidad": 43,
       "alerta_2_estrellas_enviada": false,
       "alerta_3_estrellas_enviada": false,
-      "ultimo_precio": 0.0753
+      "ultimo_precio": 0.0752
     },
     "OPGUSDT": {
       "fecha_iso": "2026-11-20",
       "fecha_corta": "20/11",
       "precio_deteccion": 0.1317,
-      "estrellas": 1,
-      "estado_actual": "VERDE",
-      "ultimo_estado": "VERDE",
-      "ultima_probabilidad": 43,
-      "alerta_2_estrellas_enviada": false,
+      "estrellas": 2,
+      "estado_actual": "AMARILLO",
+      "ultimo_estado": "AMARILLO",
+      "ultima_probabilidad": 58,
+      "alerta_2_estrellas_enviada": true,
       "alerta_3_estrellas_enviada": false,
-      "ultimo_precio": 0.1315
+      "ultimo_precio": 0.1327
     },
     "GLMRUSDT": {
       "fecha_iso": "2026-11-20",
       "fecha_corta": "20/11",
       "precio_deteccion": 0.006639,
-      "estrellas": 1,
-      "estado_actual": "VERDE",
-      "ultimo_estado": "VERDE",
-      "ultima_probabilidad": 48,
-      "alerta_2_estrellas_enviada": false,
-      "alerta_3_estrellas_enviada": false,
-      "ultimo_precio": 0.006595
+      "estrellas": 3,
+      "estado_actual": "ROJO",
+      "ultimo_estado": "ROJO",
+      "ultima_probabilidad": 73,
+      "alerta_2_estrellas_enviada": true,
+      "alerta_3_estrellas_enviada": true,
+      "ultimo_precio": 0.006618
     },
     "GRAMUSDT": {
       "fecha_iso": "2026-11-20",
       "fecha_corta": "20/11",
       "precio_deteccion": 1.013,
-      "estrellas": 1,
-      "estado_actual": "VERDE",
-      "ultimo_estado": "VERDE",
-      "ultima_probabilidad": 50,
-      "alerta_2_estrellas_enviada": false,
+      "estrellas": 2,
+      "estado_actual": "AMARILLO",
+      "ultimo_estado": "AMARILLO",
+      "ultima_probabilidad": 56,
+      "alerta_2_estrellas_enviada": true,
       "alerta_3_estrellas_enviada": false,
-      "ultimo_precio": 1.011
+      "ultimo_precio": 1.015
     },
     "SKYUSDT": {
       "fecha_iso": "2026-11-20",
       "fecha_corta": "20/11",
       "precio_deteccion": 0.04345,
+      "estrellas": 2,
+      "estado_actual": "AMARILLO",
+      "ultimo_estado": "AMARILLO",
+      "ultima_probabilidad": 68,
+      "alerta_2_estrellas_enviada": true,
+      "alerta_3_estrellas_enviada": false,
+      "ultimo_precio": 0.04396
+    },
+    "KAVAUSDT": {
+      "fecha_iso": "2026-11-20",
+      "fecha_corta": "20/11",
+      "precio_deteccion": 0.02837,
       "estrellas": 1,
       "estado_actual": "VERDE",
       "ultimo_estado": "VERDE",
-      "ultima_probabilidad": 48,
+      "ultima_probabilidad": 40,
       "alerta_2_estrellas_enviada": false,
       "alerta_3_estrellas_enviada": false
     }
@@ -211,6 +225,46 @@
       "fecha_iso": "2026-11-20",
       "fecha_corta": "20/11",
       "origen": "Cazador ROJO (⭐⭐⭐)"
+    },
+    "OPGUSDT": {
+      "symbol": "OPGUSDT",
+      "base": "OPG",
+      "estrellas": 2,
+      "probabilidad_pct": 58,
+      "precio_ref": 0.1327,
+      "fecha_iso": "2026-11-20",
+      "fecha_corta": "20/11",
+      "origen": "Evolución desde ⭐ Verde (⭐⭐)"
+    },
+    "GLMRUSDT": {
+      "symbol": "GLMRUSDT",
+      "base": "GLMR",
+      "estrellas": 3,
+      "probabilidad_pct": 73,
+      "precio_ref": 0.006618,
+      "fecha_iso": "2026-11-20",
+      "fecha_corta": "20/11",
+      "origen": "Camino Completo Verde ➔ Rojo (⭐⭐⭐)"
+    },
+    "GRAMUSDT": {
+      "symbol": "GRAMUSDT",
+      "base": "GRAM",
+      "estrellas": 2,
+      "probabilidad_pct": 56,
+      "precio_ref": 1.015,
+      "fecha_iso": "2026-11-20",
+      "fecha_corta": "20/11",
+      "origen": "Evolución desde ⭐ Verde (⭐⭐)"
+    },
+    "SKYUSDT": {
+      "symbol": "SKYUSDT",
+      "base": "SKY",
+      "estrellas": 2,
+      "probabilidad_pct": 68,
+      "precio_ref": 0.04396,
+      "fecha_iso": "2026-11-20",
+      "fecha_corta": "20/11",
+      "origen": "Evolución desde ⭐ Verde (⭐⭐)"
     }
   }
 }
