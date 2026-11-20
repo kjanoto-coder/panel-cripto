@@ -2,25 +2,26 @@
   "fecha": "2026-11-20",
   "mencionadas": {
     "GLMRUSDT": 1,
-    "TREEUSDT": 1,
-    "SOPHUSDT": 1,
-    "PORTALUSDT": 1,
-    "DODOUSDT": 1,
-    "AIGENSYNUSDT": 1,
-    "SKYUSDT": 1,
-    "GRAMUSDT": 1,
-    "KATUSDT": 1,
     "NEXOUSDT": 1,
-    "SENTUSDT": 1,
+    "DODOUSDT": 1,
+    "PORTALUSDT": 1,
+    "SOPHUSDT": 1,
+    "TREEUSDT": 1,
     "USUALUSDT": 1,
-    "REQUSDT": 1,
+    "GRAMUSDT": 1,
+    "OPGUSDT": 1,
+    "SKYUSDT": 1,
+    "FFUSDT": 1,
+    "BMTUSDT": 1,
+    "SAPIENUSDT": 1,
+    "HYPERUSDT": 1,
+    "ANIMEUSDT": 1,
     "KITEUSDT": 1,
     "WCTUSDT": 1,
-    "OPGUSDT": 1,
-    "WINUSDT": 1,
     "ERAUSDT": 1,
-    "FFUSDT": 1,
-    "ANIMEUSDT": 1
+    "JSTUSDT": 1,
+    "THETAUSDT": 1,
+    "BARDUSDT": 1
   },
   "resumen_dia": [
     "DODOUSDT",
@@ -58,7 +59,8 @@
     "NEXOUSDT",
     "KAVAUSDT",
     "TREEUSDT",
-    "ANIMEUSDT"
+    "ANIMEUSDT",
+    "BARDUSDT"
   ],
   "resumen_enviado_hoy": false,
   "seguimiento_verde": {
@@ -74,7 +76,7 @@
       "alerta_3_estrellas_enviada": false,
       "ultimo_precio": 0.1333,
       "ultimo_rsi": 42.4,
-      "ultimo_vol": 1.07,
+      "ultimo_vol": 1.14,
       "ultima_1h": -0.22
     },
     "ERAUSDT": {
@@ -87,10 +89,10 @@
       "ultima_probabilidad": 38,
       "alerta_2_estrellas_enviada": false,
       "alerta_3_estrellas_enviada": false,
-      "ultimo_precio": 0.0742,
-      "ultimo_rsi": 46.4,
-      "ultimo_vol": 0.55,
-      "ultima_1h": -1.46
+      "ultimo_precio": 0.0748,
+      "ultimo_rsi": 48.7,
+      "ultimo_vol": 0.61,
+      "ultima_1h": -0.66
     },
     "OPGUSDT": {
       "fecha_iso": "2026-11-20",
@@ -98,14 +100,14 @@
       "precio_deteccion": 0.1317,
       "estrellas": 2,
       "estado_actual": "AMARILLO",
-      "ultimo_estado": "VERDE",
-      "ultima_probabilidad": 43,
+      "ultimo_estado": "AMARILLO",
+      "ultima_probabilidad": 58,
       "alerta_2_estrellas_enviada": true,
       "alerta_3_estrellas_enviada": false,
-      "ultimo_precio": 0.1321,
-      "ultimo_rsi": 50.0,
-      "ultimo_vol": 0.68,
-      "ultima_1h": 0.15
+      "ultimo_precio": 0.1327,
+      "ultimo_rsi": 51.7,
+      "ultimo_vol": 0.97,
+      "ultima_1h": 0.53
     },
     "GLMRUSDT": {
       "fecha_iso": "2026-11-20",
@@ -114,13 +116,13 @@
       "estrellas": 3,
       "estado_actual": "ROJO",
       "ultimo_estado": "ROJO",
-      "ultima_probabilidad": 87,
+      "ultima_probabilidad": 97,
       "alerta_2_estrellas_enviada": true,
       "alerta_3_estrellas_enviada": true,
-      "ultimo_precio": 0.00674,
-      "ultimo_rsi": 54.7,
-      "ultimo_vol": 1.68,
-      "ultima_1h": 2.45
+      "ultimo_precio": 0.006755,
+      "ultimo_rsi": 55.2,
+      "ultimo_vol": 2.03,
+      "ultima_1h": 2.68
     },
     "GRAMUSDT": {
       "fecha_iso": "2026-11-20",
@@ -129,12 +131,12 @@
       "estrellas": 2,
       "estado_actual": "AMARILLO",
       "ultimo_estado": "AMARILLO",
-      "ultima_probabilidad": 56,
+      "ultima_probabilidad": 65,
       "alerta_2_estrellas_enviada": true,
       "alerta_3_estrellas_enviada": false,
       "ultimo_precio": 1.015,
       "ultimo_rsi": 44.9,
-      "ultimo_vol": 1.54,
+      "ultimo_vol": 1.58,
       "ultima_1h": -0.1
     },
     "SKYUSDT": {
@@ -144,13 +146,13 @@
       "estrellas": 2,
       "estado_actual": "AMARILLO",
       "ultimo_estado": "AMARILLO",
-      "ultima_probabilidad": 68,
+      "ultima_probabilidad": 63,
       "alerta_2_estrellas_enviada": true,
       "alerta_3_estrellas_enviada": false,
-      "ultimo_precio": 0.04434,
-      "ultimo_rsi": 54.8,
-      "ultimo_vol": 0.8,
-      "ultima_1h": 1.51
+      "ultimo_precio": 0.04416,
+      "ultimo_rsi": 54.1,
+      "ultimo_vol": 1.15,
+      "ultima_1h": 1.1
     },
     "WCTUSDT": {
       "fecha_iso": "2026-11-20",
@@ -162,25 +164,10 @@
       "ultima_probabilidad": 43,
       "alerta_2_estrellas_enviada": false,
       "alerta_3_estrellas_enviada": false,
-      "ultimo_precio": 0.02956,
-      "ultimo_rsi": 50.8,
-      "ultimo_vol": 0.91,
-      "ultima_1h": -0.84
-    },
-    "WINUSDT": {
-      "fecha_iso": "2026-11-20",
-      "fecha_corta": "20/11",
-      "precio_deteccion": 5.796e-05,
-      "estrellas": 1,
-      "estado_actual": "VERDE",
-      "ultimo_estado": "VERDE",
-      "ultima_probabilidad": 40,
-      "alerta_2_estrellas_enviada": false,
-      "alerta_3_estrellas_enviada": false,
-      "ultimo_precio": 5.805e-05,
-      "ultimo_rsi": 41.9,
-      "ultimo_vol": 0.35,
-      "ultima_1h": 0.22
+      "ultimo_precio": 0.02969,
+      "ultimo_rsi": 52.5,
+      "ultimo_vol": 0.97,
+      "ultima_1h": -0.54
     },
     "ANIMEUSDT": {
       "fecha_iso": "2026-11-20",
@@ -189,13 +176,13 @@
       "estrellas": 1,
       "estado_actual": "VERDE",
       "ultimo_estado": "VERDE",
-      "ultima_probabilidad": 38,
+      "ultima_probabilidad": 47,
       "alerta_2_estrellas_enviada": false,
       "alerta_3_estrellas_enviada": false,
-      "ultimo_precio": 0.002148,
-      "ultimo_rsi": 46.7,
-      "ultimo_vol": 0.32,
-      "ultima_1h": 0.23
+      "ultimo_precio": 0.002139,
+      "ultimo_rsi": 44.0,
+      "ultimo_vol": 0.35,
+      "ultima_1h": -0.19
     },
     "FFUSDT": {
       "fecha_iso": "2026-11-20",
@@ -203,14 +190,14 @@
       "precio_deteccion": 0.10048,
       "estrellas": 1,
       "estado_actual": "VERDE",
-      "ultimo_estado": "VERDE",
-      "ultima_probabilidad": 38,
+      "ultimo_estado": "AMARILLO",
+      "ultima_probabilidad": 53,
       "alerta_2_estrellas_enviada": false,
       "alerta_3_estrellas_enviada": false,
-      "ultimo_precio": 0.10038,
-      "ultimo_rsi": 45.2,
-      "ultimo_vol": 0.42,
-      "ultima_1h": 0.01
+      "ultimo_precio": 0.10096,
+      "ultimo_rsi": 48.3,
+      "ultimo_vol": 0.58,
+      "ultima_1h": 0.5
     }
   },
   "graduadas_pre_explosion": {
@@ -308,8 +295,8 @@
       "symbol": "GLMRUSDT",
       "base": "GLMR",
       "estrellas": 3,
-      "probabilidad_pct": 87,
-      "precio_ref": 0.00674,
+      "probabilidad_pct": 97,
+      "precio_ref": 0.006755,
       "fecha_iso": "2026-11-20",
       "fecha_corta": "20/11",
       "origen": "Confirmada para Pre-Explosión (⭐⭐⭐)"
@@ -337,42 +324,44 @@
   },
   "historia_monedas": {
     "ERAUSDT": {
-      "apariciones": 1,
+      "apariciones": 2,
       "ultima_prob": 38,
-      "ultimo_precio": 0.0742,
-      "ultimo_chg_24h": 1.644,
-      "ultimo_rsi": 46.4,
-      "ultimo_vol": 0.55,
+      "ultimo_precio": 0.0748,
+      "ultimo_chg_24h": 1.63,
+      "ultimo_rsi": 48.7,
+      "ultimo_vol": 0.61,
       "ultimo_estado": "VERDE",
       "picos_prob": [
+        38,
         38
       ],
       "precio_min_visto": 0.0742,
-      "precio_max_visto": 0.0742,
-      "subidas_consistentes": 1,
+      "precio_max_visto": 0.0748,
+      "subidas_consistentes": 2,
       "caidas_fuertes": 0,
-      "score_historia": 3,
+      "score_historia": 6,
       "ultima_fecha_iso": "2026-11-20",
-      "ultima_hora": "11:32"
+      "ultima_hora": "11:48"
     },
     "KITEUSDT": {
-      "apariciones": 1,
+      "apariciones": 2,
       "ultima_prob": 48,
       "ultimo_precio": 0.1333,
       "ultimo_chg_24h": -1.478,
       "ultimo_rsi": 42.4,
-      "ultimo_vol": 1.07,
+      "ultimo_vol": 1.14,
       "ultimo_estado": "VERDE",
       "picos_prob": [
+        48,
         48
       ],
       "precio_min_visto": 0.1333,
       "precio_max_visto": 0.1333,
-      "subidas_consistentes": 1,
+      "subidas_consistentes": 2,
       "caidas_fuertes": 0,
-      "score_historia": 3,
+      "score_historia": 6,
       "ultima_fecha_iso": "2026-11-20",
-      "ultima_hora": "11:32"
+      "ultima_hora": "11:48"
     },
     "WINUSDT": {
       "apariciones": 1,
@@ -394,308 +383,324 @@
       "ultima_hora": "11:32"
     },
     "FFUSDT": {
-      "apariciones": 1,
-      "ultima_prob": 38,
-      "ultimo_precio": 0.10038,
-      "ultimo_chg_24h": -1.385,
-      "ultimo_rsi": 45.2,
-      "ultimo_vol": 0.42,
-      "ultimo_estado": "VERDE",
+      "apariciones": 2,
+      "ultima_prob": 53,
+      "ultimo_precio": 0.10096,
+      "ultimo_chg_24h": -0.532,
+      "ultimo_rsi": 48.3,
+      "ultimo_vol": 0.58,
+      "ultimo_estado": "AMARILLO",
       "picos_prob": [
-        38
+        38,
+        53
       ],
       "precio_min_visto": 0.10038,
-      "precio_max_visto": 0.10038,
-      "subidas_consistentes": 1,
+      "precio_max_visto": 0.10096,
+      "subidas_consistentes": 2,
       "caidas_fuertes": 0,
-      "score_historia": 3,
+      "score_historia": 12,
       "ultima_fecha_iso": "2026-11-20",
-      "ultima_hora": "11:32"
+      "ultima_hora": "11:48"
     },
     "WCTUSDT": {
-      "apariciones": 1,
+      "apariciones": 2,
       "ultima_prob": 43,
-      "ultimo_precio": 0.02956,
-      "ultimo_chg_24h": 0.819,
-      "ultimo_rsi": 50.8,
-      "ultimo_vol": 0.91,
+      "ultimo_precio": 0.02969,
+      "ultimo_chg_24h": 1.296,
+      "ultimo_rsi": 52.5,
+      "ultimo_vol": 0.97,
       "ultimo_estado": "VERDE",
       "picos_prob": [
+        43,
         43
       ],
       "precio_min_visto": 0.02956,
-      "precio_max_visto": 0.02956,
-      "subidas_consistentes": 1,
+      "precio_max_visto": 0.02969,
+      "subidas_consistentes": 2,
       "caidas_fuertes": 0,
-      "score_historia": 3,
+      "score_historia": 6,
       "ultima_fecha_iso": "2026-11-20",
-      "ultima_hora": "11:32"
+      "ultima_hora": "11:48"
     },
     "GRAMUSDT": {
-      "apariciones": 1,
-      "ultima_prob": 56,
+      "apariciones": 2,
+      "ultima_prob": 65,
       "ultimo_precio": 1.015,
-      "ultimo_chg_24h": -1.552,
+      "ultimo_chg_24h": -1.265,
       "ultimo_rsi": 44.9,
-      "ultimo_vol": 1.54,
+      "ultimo_vol": 1.58,
       "ultimo_estado": "AMARILLO",
       "picos_prob": [
-        56
+        56,
+        65
       ],
       "precio_min_visto": 1.015,
       "precio_max_visto": 1.015,
-      "subidas_consistentes": 1,
+      "subidas_consistentes": 2,
       "caidas_fuertes": 0,
-      "score_historia": 3,
+      "score_historia": 12,
       "ultima_fecha_iso": "2026-11-20",
-      "ultima_hora": "11:32"
+      "ultima_hora": "11:48"
     },
     "SKYUSDT": {
-      "apariciones": 1,
-      "ultima_prob": 68,
-      "ultimo_precio": 0.04434,
-      "ultimo_chg_24h": 2.544,
-      "ultimo_rsi": 54.7,
-      "ultimo_vol": 0.8,
+      "apariciones": 2,
+      "ultima_prob": 63,
+      "ultimo_precio": 0.04416,
+      "ultimo_chg_24h": 2.412,
+      "ultimo_rsi": 54.1,
+      "ultimo_vol": 1.15,
       "ultimo_estado": "AMARILLO",
       "picos_prob": [
-        68
+        68,
+        63
       ],
-      "precio_min_visto": 0.04434,
+      "precio_min_visto": 0.04416,
       "precio_max_visto": 0.04434,
       "subidas_consistentes": 1,
       "caidas_fuertes": 0,
       "score_historia": 3,
       "ultima_fecha_iso": "2026-11-20",
-      "ultima_hora": "11:32"
+      "ultima_hora": "11:48"
     },
     "ANIMEUSDT": {
-      "apariciones": 1,
-      "ultima_prob": 38,
-      "ultimo_precio": 0.002148,
-      "ultimo_chg_24h": -1.332,
-      "ultimo_rsi": 46.7,
-      "ultimo_vol": 0.32,
+      "apariciones": 2,
+      "ultima_prob": 47,
+      "ultimo_precio": 0.002139,
+      "ultimo_chg_24h": -1.791,
+      "ultimo_rsi": 44.0,
+      "ultimo_vol": 0.35,
       "ultimo_estado": "VERDE",
       "picos_prob": [
-        38
+        38,
+        47
       ],
-      "precio_min_visto": 0.002148,
+      "precio_min_visto": 0.002139,
       "precio_max_visto": 0.002148,
-      "subidas_consistentes": 1,
+      "subidas_consistentes": 2,
       "caidas_fuertes": 0,
-      "score_historia": 3,
+      "score_historia": 12,
       "ultima_fecha_iso": "2026-11-20",
-      "ultima_hora": "11:32"
+      "ultima_hora": "11:48"
     },
     "GLMRUSDT": {
-      "apariciones": 1,
-      "ultima_prob": 87,
-      "ultimo_precio": 0.00674,
-      "ultimo_chg_24h": 0.447,
-      "ultimo_rsi": 54.2,
-      "ultimo_vol": 1.68,
+      "apariciones": 2,
+      "ultima_prob": 97,
+      "ultimo_precio": 0.006755,
+      "ultimo_chg_24h": 1.366,
+      "ultimo_rsi": 55.2,
+      "ultimo_vol": 2.03,
       "ultimo_estado": "ROJO",
       "picos_prob": [
-        87
+        87,
+        97
       ],
       "precio_min_visto": 0.00674,
-      "precio_max_visto": 0.00674,
-      "subidas_consistentes": 1,
+      "precio_max_visto": 0.006755,
+      "subidas_consistentes": 2,
       "caidas_fuertes": 0,
-      "score_historia": 3,
+      "score_historia": 12,
       "ultima_fecha_iso": "2026-11-20",
-      "ultima_hora": "11:32"
+      "ultima_hora": "11:48"
     },
     "OPGUSDT": {
-      "apariciones": 1,
-      "ultima_prob": 43,
-      "ultimo_precio": 0.1321,
-      "ultimo_chg_24h": 0.84,
-      "ultimo_rsi": 50.0,
-      "ultimo_vol": 0.68,
-      "ultimo_estado": "VERDE",
+      "apariciones": 2,
+      "ultima_prob": 58,
+      "ultimo_precio": 0.1327,
+      "ultimo_chg_24h": 0.454,
+      "ultimo_rsi": 51.7,
+      "ultimo_vol": 0.97,
+      "ultimo_estado": "AMARILLO",
       "picos_prob": [
-        43
+        43,
+        58
       ],
       "precio_min_visto": 0.1321,
-      "precio_max_visto": 0.1321,
-      "subidas_consistentes": 1,
+      "precio_max_visto": 0.1327,
+      "subidas_consistentes": 2,
       "caidas_fuertes": 0,
-      "score_historia": 3,
+      "score_historia": 12,
       "ultima_fecha_iso": "2026-11-20",
-      "ultima_hora": "11:32"
+      "ultima_hora": "11:48"
     },
     "JSTUSDT": {
-      "apariciones": 1,
+      "apariciones": 2,
       "ultima_prob": 48,
-      "ultimo_precio": 0.14605,
-      "ultimo_chg_24h": 0.089,
-      "ultimo_rsi": 43.2,
-      "ultimo_vol": 1.14,
+      "ultimo_precio": 0.14607,
+      "ultimo_chg_24h": 0.22,
+      "ultimo_rsi": 43.9,
+      "ultimo_vol": 1.2,
       "ultimo_estado": "VERDE",
       "picos_prob": [
+        48,
         48
       ],
       "precio_min_visto": 0.14605,
-      "precio_max_visto": 0.14605,
-      "subidas_consistentes": 1,
+      "precio_max_visto": 0.14607,
+      "subidas_consistentes": 2,
       "caidas_fuertes": 0,
-      "score_historia": 3,
+      "score_historia": 6,
       "ultima_fecha_iso": "2026-11-20",
-      "ultima_hora": "11:32"
+      "ultima_hora": "11:48"
     },
     "BMTUSDT": {
-      "apariciones": 1,
-      "ultima_prob": 38,
-      "ultimo_precio": 0.02049,
-      "ultimo_chg_24h": 1.185,
-      "ultimo_rsi": 45.2,
-      "ultimo_vol": 0.15,
-      "ultimo_estado": "VERDE",
-      "picos_prob": [
-        38
-      ],
-      "precio_min_visto": 0.02049,
-      "precio_max_visto": 0.02049,
-      "subidas_consistentes": 1,
-      "caidas_fuertes": 0,
-      "score_historia": 3,
-      "ultima_fecha_iso": "2026-11-20",
-      "ultima_hora": "11:32"
-    },
-    "SENTUSDT": {
-      "apariciones": 1,
-      "ultima_prob": 63,
-      "ultimo_precio": 0.02213,
-      "ultimo_chg_24h": 0.728,
-      "ultimo_rsi": 57.3,
-      "ultimo_vol": 0.9,
+      "apariciones": 2,
+      "ultima_prob": 58,
+      "ultimo_precio": 0.02106,
+      "ultimo_chg_24h": 3.54,
+      "ultimo_rsi": 50.3,
+      "ultimo_vol": 0.21,
       "ultimo_estado": "AMARILLO",
       "picos_prob": [
-        63
+        38,
+        58
       ],
-      "precio_min_visto": 0.02213,
+      "precio_min_visto": 0.02049,
+      "precio_max_visto": 0.02106,
+      "subidas_consistentes": 2,
+      "caidas_fuertes": 0,
+      "score_historia": 12,
+      "ultima_fecha_iso": "2026-11-20",
+      "ultima_hora": "11:48"
+    },
+    "SENTUSDT": {
+      "apariciones": 2,
+      "ultima_prob": 73,
+      "ultimo_precio": 0.02195,
+      "ultimo_chg_24h": -0.992,
+      "ultimo_rsi": 56.0,
+      "ultimo_vol": 1.07,
+      "ultimo_estado": "ROJO",
+      "picos_prob": [
+        63,
+        73
+      ],
+      "precio_min_visto": 0.02195,
       "precio_max_visto": 0.02213,
       "subidas_consistentes": 1,
       "caidas_fuertes": 0,
-      "score_historia": 3,
+      "score_historia": 9,
       "ultima_fecha_iso": "2026-11-20",
-      "ultima_hora": "11:32"
+      "ultima_hora": "11:48"
     },
     "SOPHUSDT": {
-      "apariciones": 1,
-      "ultima_prob": 88,
-      "ultimo_precio": 0.00103,
-      "ultimo_chg_24h": 0.0,
-      "ultimo_rsi": 54.1,
-      "ultimo_vol": 1.94,
+      "apariciones": 2,
+      "ultima_prob": 95,
+      "ultimo_precio": 0.00104,
+      "ultimo_chg_24h": 0.971,
+      "ultimo_rsi": 57.8,
+      "ultimo_vol": 2.25,
       "ultimo_estado": "ROJO",
       "picos_prob": [
-        88
+        88,
+        95
       ],
       "precio_min_visto": 0.00103,
-      "precio_max_visto": 0.00103,
-      "subidas_consistentes": 1,
+      "precio_max_visto": 0.00104,
+      "subidas_consistentes": 2,
       "caidas_fuertes": 0,
-      "score_historia": 3,
+      "score_historia": 6,
       "ultima_fecha_iso": "2026-11-20",
-      "ultima_hora": "11:32"
+      "ultima_hora": "11:48"
     },
     "AIGENSYNUSDT": {
-      "apariciones": 1,
-      "ultima_prob": 72,
-      "ultimo_precio": 0.01341,
-      "ultimo_chg_24h": -0.149,
-      "ultimo_rsi": 52.0,
-      "ultimo_vol": 0.14,
+      "apariciones": 2,
+      "ultima_prob": 78,
+      "ultimo_precio": 0.01353,
+      "ultimo_chg_24h": 0.895,
+      "ultimo_rsi": 54.4,
+      "ultimo_vol": 0.15,
       "ultimo_estado": "ROJO",
       "picos_prob": [
-        72
+        72,
+        78
       ],
       "precio_min_visto": 0.01341,
-      "precio_max_visto": 0.01341,
-      "subidas_consistentes": 1,
+      "precio_max_visto": 0.01353,
+      "subidas_consistentes": 2,
       "caidas_fuertes": 0,
-      "score_historia": 3,
+      "score_historia": 6,
       "ultima_fecha_iso": "2026-11-20",
-      "ultima_hora": "11:32"
+      "ultima_hora": "11:48"
     },
     "KATUSDT": {
-      "apariciones": 1,
-      "ultima_prob": 71,
-      "ultimo_precio": 0.00309,
-      "ultimo_chg_24h": -1.592,
-      "ultimo_rsi": 50.9,
-      "ultimo_vol": 1.48,
-      "ultimo_estado": "AMARILLO",
+      "apariciones": 2,
+      "ultima_prob": 73,
+      "ultimo_precio": 0.00308,
+      "ultimo_chg_24h": -1.597,
+      "ultimo_rsi": 49.6,
+      "ultimo_vol": 1.68,
+      "ultimo_estado": "ROJO",
       "picos_prob": [
-        71
+        71,
+        73
       ],
-      "precio_min_visto": 0.00309,
+      "precio_min_visto": 0.00308,
       "precio_max_visto": 0.00309,
-      "subidas_consistentes": 1,
+      "subidas_consistentes": 2,
       "caidas_fuertes": 0,
-      "score_historia": 3,
+      "score_historia": 6,
       "ultima_fecha_iso": "2026-11-20",
-      "ultima_hora": "11:32"
+      "ultima_hora": "11:48"
     },
     "THETAUSDT": {
-      "apariciones": 1,
+      "apariciones": 2,
       "ultima_prob": 38,
-      "ultimo_precio": 0.1305,
-      "ultimo_chg_24h": -1.953,
-      "ultimo_rsi": 43.5,
-      "ultimo_vol": 0.57,
+      "ultimo_precio": 0.1308,
+      "ultimo_chg_24h": -1.208,
+      "ultimo_rsi": 44.5,
+      "ultimo_vol": 0.73,
       "ultimo_estado": "VERDE",
       "picos_prob": [
+        38,
         38
       ],
       "precio_min_visto": 0.1305,
-      "precio_max_visto": 0.1305,
-      "subidas_consistentes": 1,
+      "precio_max_visto": 0.1308,
+      "subidas_consistentes": 2,
       "caidas_fuertes": 0,
-      "score_historia": 3,
+      "score_historia": 6,
       "ultima_fecha_iso": "2026-11-20",
-      "ultima_hora": "11:32"
+      "ultima_hora": "11:48"
     },
     "BARDUSDT": {
-      "apariciones": 1,
+      "apariciones": 2,
       "ultima_prob": 38,
       "ultimo_precio": 0.0892,
-      "ultimo_chg_24h": 5.189,
+      "ultimo_chg_24h": 5.437,
       "ultimo_rsi": 47.0,
-      "ultimo_vol": 0.16,
+      "ultimo_vol": 0.22,
       "ultimo_estado": "VERDE",
       "picos_prob": [
+        38,
         38
       ],
       "precio_min_visto": 0.0892,
       "precio_max_visto": 0.0892,
-      "subidas_consistentes": 1,
+      "subidas_consistentes": 2,
       "caidas_fuertes": 0,
-      "score_historia": 3,
+      "score_historia": 6,
       "ultima_fecha_iso": "2026-11-20",
-      "ultima_hora": "11:32"
+      "ultima_hora": "11:48"
     },
     "DODOUSDT": {
-      "apariciones": 1,
-      "ultima_prob": 73,
-      "ultimo_precio": 0.03142,
-      "ultimo_chg_24h": 1.388,
-      "ultimo_rsi": 57.3,
-      "ultimo_vol": 1.16,
+      "apariciones": 2,
+      "ultima_prob": 90,
+      "ultimo_precio": 0.0315,
+      "ultimo_chg_24h": 0.832,
+      "ultimo_rsi": 58.7,
+      "ultimo_vol": 1.48,
       "ultimo_estado": "ROJO",
       "picos_prob": [
-        73
+        73,
+        90
       ],
       "precio_min_visto": 0.03142,
-      "precio_max_visto": 0.03142,
-      "subidas_consistentes": 1,
+      "precio_max_visto": 0.0315,
+      "subidas_consistentes": 2,
       "caidas_fuertes": 0,
-      "score_historia": 3,
+      "score_historia": 12,
       "ultima_fecha_iso": "2026-11-20",
-      "ultima_hora": "11:32"
+      "ultima_hora": "11:48"
     },
     "IOUSDT": {
       "apariciones": 1,
@@ -717,137 +722,201 @@
       "ultima_hora": "11:32"
     },
     "SHELLUSDT": {
-      "apariciones": 1,
+      "apariciones": 2,
       "ultima_prob": 38,
-      "ultimo_precio": 0.02502,
-      "ultimo_chg_24h": -1.068,
-      "ultimo_rsi": 46.1,
-      "ultimo_vol": 0.79,
+      "ultimo_precio": 0.02481,
+      "ultimo_chg_24h": -1.743,
+      "ultimo_rsi": 43.2,
+      "ultimo_vol": 0.97,
       "ultimo_estado": "VERDE",
       "picos_prob": [
+        38,
         38
       ],
-      "precio_min_visto": 0.02502,
+      "precio_min_visto": 0.02481,
       "precio_max_visto": 0.02502,
       "subidas_consistentes": 1,
       "caidas_fuertes": 0,
       "score_historia": 3,
       "ultima_fecha_iso": "2026-11-20",
-      "ultima_hora": "11:32"
+      "ultima_hora": "11:48"
     },
     "STEEMUSDT": {
-      "apariciones": 1,
+      "apariciones": 2,
       "ultima_prob": 38,
-      "ultimo_precio": 0.04257,
-      "ultimo_chg_24h": 0.165,
-      "ultimo_rsi": 49.6,
-      "ultimo_vol": 0.1,
+      "ultimo_precio": 0.04259,
+      "ultimo_chg_24h": 0.094,
+      "ultimo_rsi": 49.8,
+      "ultimo_vol": 0.17,
       "ultimo_estado": "VERDE",
       "picos_prob": [
+        38,
         38
       ],
       "precio_min_visto": 0.04257,
-      "precio_max_visto": 0.04257,
-      "subidas_consistentes": 1,
+      "precio_max_visto": 0.04259,
+      "subidas_consistentes": 2,
       "caidas_fuertes": 0,
-      "score_historia": 3,
+      "score_historia": 6,
       "ultima_fecha_iso": "2026-11-20",
-      "ultima_hora": "11:32"
+      "ultima_hora": "11:48"
     },
     "NEXOUSDT": {
-      "apariciones": 1,
-      "ultima_prob": 71,
-      "ultimo_precio": 0.647,
-      "ultimo_chg_24h": -1.97,
-      "ultimo_rsi": 51.4,
-      "ultimo_vol": 1.52,
-      "ultimo_estado": "AMARILLO",
-      "picos_prob": [
-        71
-      ],
-      "precio_min_visto": 0.647,
-      "precio_max_visto": 0.647,
-      "subidas_consistentes": 1,
-      "caidas_fuertes": 0,
-      "score_historia": 3,
-      "ultima_fecha_iso": "2026-11-20",
-      "ultima_hora": "11:32"
-    },
-    "PORTALUSDT": {
-      "apariciones": 1,
-      "ultima_prob": 81,
-      "ultimo_precio": 0.01241,
-      "ultimo_chg_24h": 1.805,
-      "ultimo_rsi": 57.3,
-      "ultimo_vol": 1.31,
+      "apariciones": 2,
+      "ultima_prob": 93,
+      "ultimo_precio": 0.648,
+      "ultimo_chg_24h": -1.818,
+      "ultimo_rsi": 52.9,
+      "ultimo_vol": 1.83,
       "ultimo_estado": "ROJO",
       "picos_prob": [
-        81
+        71,
+        93
       ],
-      "precio_min_visto": 0.01241,
-      "precio_max_visto": 0.01241,
-      "subidas_consistentes": 1,
+      "precio_min_visto": 0.647,
+      "precio_max_visto": 0.648,
+      "subidas_consistentes": 2,
       "caidas_fuertes": 0,
-      "score_historia": 3,
+      "score_historia": 12,
       "ultima_fecha_iso": "2026-11-20",
-      "ultima_hora": "11:32"
+      "ultima_hora": "11:48"
+    },
+    "PORTALUSDT": {
+      "apariciones": 2,
+      "ultima_prob": 90,
+      "ultimo_precio": 0.01239,
+      "ultimo_chg_24h": 1.391,
+      "ultimo_rsi": 56.6,
+      "ultimo_vol": 1.41,
+      "ultimo_estado": "ROJO",
+      "picos_prob": [
+        81,
+        90
+      ],
+      "precio_min_visto": 0.01239,
+      "precio_max_visto": 0.01241,
+      "subidas_consistentes": 2,
+      "caidas_fuertes": 0,
+      "score_historia": 12,
+      "ultima_fecha_iso": "2026-11-20",
+      "ultima_hora": "11:48"
     },
     "USUALUSDT": {
+      "apariciones": 2,
+      "ultima_prob": 78,
+      "ultimo_precio": 0.01061,
+      "ultimo_chg_24h": 2.216,
+      "ultimo_rsi": 56.5,
+      "ultimo_vol": 0.59,
+      "ultimo_estado": "ROJO",
+      "picos_prob": [
+        63,
+        78
+      ],
+      "precio_min_visto": 0.01061,
+      "precio_max_visto": 0.01061,
+      "subidas_consistentes": 2,
+      "caidas_fuertes": 0,
+      "score_historia": 12,
+      "ultima_fecha_iso": "2026-11-20",
+      "ultima_hora": "11:48"
+    },
+    "TREEUSDT": {
+      "apariciones": 2,
+      "ultima_prob": 95,
+      "ultimo_precio": 0.0309,
+      "ultimo_chg_24h": 0.325,
+      "ultimo_rsi": 53.0,
+      "ultimo_vol": 33.63,
+      "ultimo_estado": "ROJO",
+      "picos_prob": [
+        95,
+        95
+      ],
+      "precio_min_visto": 0.0309,
+      "precio_max_visto": 0.031,
+      "subidas_consistentes": 2,
+      "caidas_fuertes": 0,
+      "score_historia": 6,
+      "ultima_fecha_iso": "2026-11-20",
+      "ultima_hora": "11:48"
+    },
+    "REQUSDT": {
+      "apariciones": 2,
+      "ultima_prob": 38,
+      "ultimo_precio": 0.043,
+      "ultimo_chg_24h": -1.602,
+      "ultimo_rsi": 45.6,
+      "ultimo_vol": 0.25,
+      "ultimo_estado": "VERDE",
+      "picos_prob": [
+        53,
+        38
+      ],
+      "precio_min_visto": 0.043,
+      "precio_max_visto": 0.0431,
+      "subidas_consistentes": 1,
+      "caidas_fuertes": 1,
+      "score_historia": -4,
+      "ultima_fecha_iso": "2026-11-20",
+      "ultima_hora": "11:48"
+    },
+    "SAPIENUSDT": {
       "apariciones": 1,
       "ultima_prob": 63,
-      "ultimo_precio": 0.01061,
-      "ultimo_chg_24h": 2.413,
-      "ultimo_rsi": 56.5,
-      "ultimo_vol": 0.53,
+      "ultimo_precio": 0.04102,
+      "ultimo_chg_24h": 5.613,
+      "ultimo_rsi": 58.3,
+      "ultimo_vol": 0.84,
       "ultimo_estado": "AMARILLO",
       "picos_prob": [
         63
       ],
-      "precio_min_visto": 0.01061,
-      "precio_max_visto": 0.01061,
+      "precio_min_visto": 0.04102,
+      "precio_max_visto": 0.04102,
       "subidas_consistentes": 1,
       "caidas_fuertes": 0,
       "score_historia": 3,
       "ultima_fecha_iso": "2026-11-20",
-      "ultima_hora": "11:32"
+      "ultima_hora": "11:48"
     },
-    "TREEUSDT": {
+    "ATUSDT": {
       "apariciones": 1,
-      "ultima_prob": 95,
-      "ultimo_precio": 0.031,
-      "ultimo_chg_24h": 0.649,
-      "ultimo_rsi": 55.5,
-      "ultimo_vol": 31.57,
-      "ultimo_estado": "ROJO",
-      "picos_prob": [
-        95
-      ],
-      "precio_min_visto": 0.031,
-      "precio_max_visto": 0.031,
-      "subidas_consistentes": 1,
-      "caidas_fuertes": 0,
-      "score_historia": 3,
-      "ultima_fecha_iso": "2026-11-20",
-      "ultima_hora": "11:32"
-    },
-    "REQUSDT": {
-      "apariciones": 1,
-      "ultima_prob": 53,
-      "ultimo_precio": 0.0431,
-      "ultimo_chg_24h": -0.92,
-      "ultimo_rsi": 46.6,
-      "ultimo_vol": 0.21,
+      "ultima_prob": 58,
+      "ultimo_precio": 0.0799,
+      "ultimo_chg_24h": -2.203,
+      "ultimo_rsi": 48.3,
+      "ultimo_vol": 0.38,
       "ultimo_estado": "AMARILLO",
       "picos_prob": [
-        53
+        58
       ],
-      "precio_min_visto": 0.0431,
-      "precio_max_visto": 0.0431,
+      "precio_min_visto": 0.0799,
+      "precio_max_visto": 0.0799,
       "subidas_consistentes": 1,
       "caidas_fuertes": 0,
       "score_historia": 3,
       "ultima_fecha_iso": "2026-11-20",
-      "ultima_hora": "11:32"
+      "ultima_hora": "11:48"
+    },
+    "HYPERUSDT": {
+      "apariciones": 1,
+      "ultima_prob": 63,
+      "ultimo_precio": 0.0428,
+      "ultimo_chg_24h": -1.835,
+      "ultimo_rsi": 51.0,
+      "ultimo_vol": 0.95,
+      "ultimo_estado": "AMARILLO",
+      "picos_prob": [
+        63
+      ],
+      "precio_min_visto": 0.0428,
+      "precio_max_visto": 0.0428,
+      "subidas_consistentes": 1,
+      "caidas_fuertes": 0,
+      "score_historia": 3,
+      "ultima_fecha_iso": "2026-11-20",
+      "ultima_hora": "11:48"
     }
   }
 }
