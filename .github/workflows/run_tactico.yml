@@ -1,13 +1,19 @@
-name: Cazador Táctico IA (Bajo Valor)
+name: Cazador Tactico IA
 
 on:
-  schedule:
-    - cron: "*/15 * * * *" # Se ejecuta automáticamente cada 15 minutos
-  workflow_dispatch:      # Permite ejecución manual desde la pestaña Actions
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: escritura-repositorio-cripto
+  cancel-in-progress: false
 
 jobs:
-  run-tactical-hunter:
+  run-tactico:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repositorio
         uses: actions/checkout@v4
@@ -15,19 +21,34 @@ jobs:
       - name: Configurar Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: "3.11"
 
-      - name: Instalar dependencias
+      - name: Instalar dependencias (incluye Gemini IA)
         run: |
-          pip install requests google-genai matplotlib numpy pandas
+          python -m pip install --upgrade pip
+          pip install requests matplotlib google-genai
 
-      - name: Ejecutar Cazador Táctico
+      - name: Ejecutar Cazador Táctico IA
         env:
+          PYTHONUNBUFFERED: "1"
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN || secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          CHAT_ID: ${{ secrets.CHAT_ID || secrets.TELEGRAM_CHAT_ID }}
+          CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           TOPIC_ID_TACTICO: ${{ secrets.TOPIC_ID_TACTICO }}
+          TOPIC_ID_CENTRAL: ${{ secrets.TOPIC_ID_CENTRAL }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python bot_tactico.py
+
+      - name: Guardar historial de estrellas y graduadas sin conflictos
         run: |
-          python bot_tactico.py
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add historial_perlas.json || true
+          if ! git diff --staged --quiet; then
+            git commit -m "Auto-update: Radar Cazador Táctico"
+            for i in 1 2 3; do
+              git pull --rebase origin main && git push origin main && break
+              sleep 5
+            done
+          fi
