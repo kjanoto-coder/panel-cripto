@@ -1,11 +1,21 @@
 {
   "fecha": "2026-11-20",
   "mencionadas": {
-    "BARDUSDT": 1,
-    "SHELLUSDT": 1,
-    "STEEMUSDT": 1,
-    "ATUSDT": 1,
-    "WINUSDT": 1
+    "DODOUSDT": 2,
+    "KITEUSDT": 2,
+    "FFUSDT": 2,
+    "SKYUSDT": 2,
+    "BLURUSDT": 2,
+    "PORTALUSDT": 2,
+    "GRAMUSDT": 2,
+    "GLMRUSDT": 2,
+    "SHELLUSDT": 2,
+    "OPGUSDT": 2,
+    "SENTUSDT": 2,
+    "WCTUSDT": 2,
+    "USD1USDT": 2,
+    "RLUSDUSDT": 2,
+    "UUSDT": 2
   },
   "resumen_dia": [
     "DODOUSDT",
@@ -46,7 +56,10 @@
     "ANIMEUSDT",
     "BARDUSDT",
     "RAYUSDT",
-    "ATUSDT"
+    "ATUSDT",
+    "USD1USDT",
+    "RLUSDUSDT",
+    "UUSDT"
   ],
   "resumen_enviado_hoy": false,
   "posta": {
