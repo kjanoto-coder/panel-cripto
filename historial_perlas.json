@@ -2,26 +2,26 @@
   "fecha": "2026-11-20",
   "mencionadas": {
     "TREEUSDT": 1,
-    "SOPHUSDT": 1,
+    "NEXOUSDT": 1,
     "SENTUSDT": 1,
-    "SAPIENUSDT": 1,
     "AIGENSYNUSDT": 1,
+    "SAPIENUSDT": 1,
     "DODOUSDT": 1,
-    "WCTUSDT": 1,
-    "SKYUSDT": 1,
-    "OPGUSDT": 1,
-    "GRAMUSDT": 1,
-    "KATUSDT": 1,
-    "STEEMUSDT": 1,
-    "ANIMEUSDT": 1,
     "SHELLUSDT": 1,
     "GLMRUSDT": 1,
-    "ERAUSDT": 1,
+    "OPGUSDT": 1,
+    "GRAMUSDT": 1,
+    "SKYUSDT": 1,
+    "KATUSDT": 1,
+    "ANIMEUSDT": 1,
+    "STEEMUSDT": 1,
     "KITEUSDT": 1,
+    "ERAUSDT": 1,
+    "WCTUSDT": 1,
+    "WINUSDT": 1,
     "JSTUSDT": 1,
     "BMTUSDT": 1,
-    "FFUSDT": 1,
-    "REQUSDT": 1
+    "THETAUSDT": 1
   },
   "resumen_dia": [
     "DODOUSDT",
@@ -73,7 +73,7 @@
       "ultima_probabilidad": 38,
       "alerta_2_estrellas_enviada": true,
       "alerta_3_estrellas_enviada": false,
-      "ultimo_precio": 0.1336
+      "ultimo_precio": 0.1334
     },
     "ERAUSDT": {
       "fecha_iso": "2026-11-20",
@@ -82,10 +82,10 @@
       "estrellas": 1,
       "estado_actual": "VERDE",
       "ultimo_estado": "VERDE",
-      "ultima_probabilidad": 43,
+      "ultima_probabilidad": 38,
       "alerta_2_estrellas_enviada": false,
       "alerta_3_estrellas_enviada": false,
-      "ultimo_precio": 0.0752
+      "ultimo_precio": 0.0749
     },
     "OPGUSDT": {
       "fecha_iso": "2026-11-20",
@@ -105,11 +105,11 @@
       "precio_deteccion": 0.006639,
       "estrellas": 3,
       "estado_actual": "ROJO",
-      "ultimo_estado": "VERDE",
-      "ultima_probabilidad": 48,
+      "ultimo_estado": "AMARILLO",
+      "ultima_probabilidad": 63,
       "alerta_2_estrellas_enviada": true,
       "alerta_3_estrellas_enviada": true,
-      "ultimo_precio": 0.006571
+      "ultimo_precio": 0.006599
     },
     "GRAMUSDT": {
       "fecha_iso": "2026-11-20",
@@ -130,10 +130,10 @@
       "estrellas": 2,
       "estado_actual": "AMARILLO",
       "ultimo_estado": "AMARILLO",
-      "ultima_probabilidad": 68,
+      "ultima_probabilidad": 53,
       "alerta_2_estrellas_enviada": true,
       "alerta_3_estrellas_enviada": false,
-      "ultimo_precio": 0.04386
+      "ultimo_precio": 0.04362
     },
     "KAVAUSDT": {
       "fecha_iso": "2026-11-20",
@@ -145,7 +145,29 @@
       "ultima_probabilidad": 25,
       "alerta_2_estrellas_enviada": false,
       "alerta_3_estrellas_enviada": false,
-      "ultimo_precio": 0.02814
+      "ultimo_precio": 0.0281
+    },
+    "WCTUSDT": {
+      "fecha_iso": "2026-11-20",
+      "fecha_corta": "20/11",
+      "precio_deteccion": 0.02974,
+      "estrellas": 1,
+      "estado_actual": "VERDE",
+      "ultimo_estado": "VERDE",
+      "ultima_probabilidad": 43,
+      "alerta_2_estrellas_enviada": false,
+      "alerta_3_estrellas_enviada": false
+    },
+    "WINUSDT": {
+      "fecha_iso": "2026-11-20",
+      "fecha_corta": "20/11",
+      "precio_deteccion": 5.796e-05,
+      "estrellas": 1,
+      "estado_actual": "VERDE",
+      "ultimo_estado": "VERDE",
+      "ultima_probabilidad": 40,
+      "alerta_2_estrellas_enviada": false,
+      "alerta_3_estrellas_enviada": false
     }
   },
   "graduadas_pre_explosion": {
