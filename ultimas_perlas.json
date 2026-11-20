@@ -1,7 +1,7 @@
 [
   [
+    "MMTUSDT",
     "KITEUSDT",
-    "AIGENSYNUSDT",
     "USUALUSDT",
     "HOTUSDT",
     "SAPIENUSDT",
@@ -11,10 +11,10 @@
   [
     "MMTUSDT",
     "KITEUSDT",
+    "AIGENSYNUSDT",
     "USUALUSDT",
     "HOTUSDT",
-    "SAPIENUSDT",
     "ENSOUSDT",
-    "HMSTRUSDT"
+    "SAPIENUSDT"
   ]
 ]
