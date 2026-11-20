@@ -20,6 +20,7 @@ GEMINI_API_KEY = (os.getenv("GEMINI_API_KEY") or "").strip()
 BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
 
 ARCHIVO_MEMORIA = "ultimas_perlas.json"
+PRECIO_MAX_SILENCIOSA = 5.00  # Tope máximo en USD para altcoins accesibles en Bloque 4
 
 def ahora_art():
     return datetime.now(TZ_ART)
@@ -60,7 +61,6 @@ def obtener_simbolos_spot_activos(session):
             if res.status_code == 200:
                 simbolos_activos = set()
                 for s in res.json().get('symbols', []):
-                    # Solo pares Spot USDT activos en el tablero principal (excluye permisos especiales o deslistados)
                     if (s.get('status') == 'TRADING' and
                         s.get('isSpotTradingAllowed', True) and
                         s.get('quoteAsset') == 'USDT'):
@@ -130,16 +130,20 @@ def generar_barra_progreso(cambio, tipo_bloque=""):
 
 def seleccionar_silenciosas_con_gemini(candidatas, historial_previo):
     """
-    Usa Gemini IA para elegir las 7 mejores monedas en acumulación silenciosa
-    analizando compresión de rango, liquidez y rotación.
+    Usa Gemini IA para elegir las 7 mejores altcoins económicas (< $5 USD)
+    en acumulación silenciosa alcista (sin BTC/ETH/SOL, sin stablecoins y sin monedas en caída).
     """
     simbolos_bloqueados = {item for reporte in historial_previo for item in reporte}
     pool = [c for c in candidatas if c['symbol'] not in simbolos_bloqueados]
     if len(pool) < 7:
         pool = candidatas
 
-    # Orden base por presión de volumen sobre rango estrecho
-    pool_ordenado = sorted(pool, key=lambda x: x['factor_vol'], reverse=True)[:20]
+    # Ordena combinando presión de volumen y fortaleza cerca del máximo intradía
+    pool_ordenado = sorted(
+        pool,
+        key=lambda x: (x['factor_vol'] * (0.5 + x['pos_rango'])),
+        reverse=True
+    )[:22]
 
     if not GEMINI_API_KEY or not pool_ordenado:
         return pool_ordenado[:7]
@@ -151,14 +155,16 @@ def seleccionar_silenciosas_con_gemini(candidatas, historial_previo):
             sim = c['base_asset']
             resumen_candidatas.append(
                 f"{sim}: precio={formatear_precio(c['lastPrice_f'])}, var24h={c['priceChangePercent_f']:+.2f}%, "
-                f"rango24h={c['pct_rango']:.2f}%, volUSDT={int(c['quoteVolume_f']):,}, presion=x{c['factor_vol']}"
+                f"posEnRango24h={int(c['pos_rango']*100)}%, rango24h={c['pct_rango']:.2f}%, "
+                f"volUSDT={int(c['quoteVolume_f']):,}, presion=x{c['factor_vol']:.1f}"
             )
 
         prompt = (
-            "Eres un analista cuantitativo de criptomonedas en Binance Spot. "
-            "De la siguiente lista de activos con alta liquidez y movimiento lateral/contenido, "
-            "selecciona exactamente los 7 símbolos con mayor probabilidad de acumulación silenciosa institucional "
-            "antes de una ruptura alcista. Devuelve ÚNICAMENTE los 7 tickers separados por coma (ejemplo: ARB,OP,NEAR,SEI,TIA,IMX,INJ) "
+            "Eres un analista cuantitativo especialista en altcoins económicas en Binance Spot. "
+            "De la siguiente lista (todas menores a $5 USD, en verde y sin stablecoins), "
+            "selecciona exactamente los 7 tickers con mejor estructura de acumulación silenciosa alcista "
+            "(buena liquidez, sosteniéndose en la parte alta de su rango diario y absorbiendo compras antes de romper al alza). "
+            "Devuelve ÚNICAMENTE los 7 tickers separados por coma (ejemplo: ARB,OP,SEI,TIA,IMX,PYTH,FET) "
             "sin texto adicional.\n\nCandidatas:\n" + "\n".join(resumen_candidatas)
         )
 
@@ -172,13 +178,12 @@ def seleccionar_silenciosas_con_gemini(candidatas, historial_previo):
                     for sym in elegidos_raw:
                         if sym in mapa and mapa[sym] not in seleccion:
                             seleccion.append(mapa[sym])
-                    # Completar hasta 7 si Gemini devolvió menos
                     for c in pool_ordenado:
                         if len(seleccion) >= 7:
                             break
                         if c not in seleccion:
                             seleccion.append(c)
-                    print(f"🧠 Gemini IA seleccionó acumulación silenciosa: {[x['base_asset'] for x in seleccion[:7]]}")
+                    print(f"🧠 Gemini IA seleccionó altcoins económicas en acumulación: {[x['base_asset'] for x in seleccion[:7]]}")
                     return seleccion[:7]
             except Exception:
                 continue
@@ -191,12 +196,13 @@ def preparar_datos(tickers, simbolos_activos):
     usdt_pairs_todos = {}
     usdt_pairs_spot_web = []
 
-    # Excluir monedas estables, fiat y tokens apalancados/anómalos fuera del tablero principal
+    # Bloqueo estricto de stablecoins, pares fiat, oro tokenizado y tokens deslistados/anómalos
     EXCLUIDOS = {
         'USDT', 'USDC', 'FDUSD', 'DAI', 'TUSD', 'USDP', 'EUR', 'BUSD',
-        'AEUR', 'EURI', 'USD1', 'USDE', 'RLUSD', 'XUSD', 'BFUSD', 'PAXG',
+        'AEUR', 'EURI', 'USD1', 'USDE', 'RLUSD', 'RWUSD', 'XUSD', 'BFUSD',
+        'PAXG', 'XAUT', 'U', 'USDG', 'USDS', 'PYUSD', 'GUSD', 'SUSD', 'FRAX',
         'CREAM', 'EPX', 'FOR', 'VGX', 'WNXM', 'BOND', 'LOOM', 'OAX',
-        'MULTI', 'KP3R', 'AKRO', 'BLZ', 'WRX', 'SNXXB', 'MSTRB'
+        'MULTI', 'KP3R', 'AKRO', 'BLZ', 'WRX', 'SNXXB', 'MSTRB', 'GBP', 'TRY', 'BRL', 'ARS'
     }
 
     for t in tickers:
@@ -205,7 +211,6 @@ def preparar_datos(tickers, simbolos_activos):
             continue
         base_name = symbol[:-4]
 
-        # Filtrar caracteres no latinos (ej. tickers chinos) y tokens apalancados
         if not re.match(r'^[A-Z0-9]+$', base_name):
             continue
         if any(x in base_name for x in ['UP', 'DOWN', 'BULL', 'BEAR']):
@@ -226,6 +231,7 @@ def preparar_datos(tickers, simbolos_activos):
                 pct_real = ((last_p - open_p) / open_p) * 100
                 rango_precio = high_p - low_p
                 pct_rango = (rango_precio / last_p) * 100 if last_p > 0 else 1.0
+                pos_rango = ((last_p - low_p) / rango_precio) if rango_precio > 0 else 0.5
 
                 t['base_asset'] = base_name
                 t['openPrice_f'] = open_p
@@ -236,206 +242,78 @@ def preparar_datos(tickers, simbolos_activos):
                 t['highPrice_f'] = high_p
                 t['lowPrice_f'] = low_p
                 t['pct_rango'] = pct_rango
+                t['pos_rango'] = pos_rango
 
                 usdt_pairs_todos[symbol] = t
 
-                # Universo espejo de Binance Web Rankings (excluyendo estables)
                 if base_name not in EXCLUIDOS and vol_q >= 100_000:
                     usdt_pairs_spot_web.append(t)
             except (ValueError, TypeError):
                 continue
 
-    # 1. TOP 7 GANADORAS (Espejo web Binance)
+    # 1. TOP 7 GANADORAS
     ganadoras = sorted(
         [t for t in usdt_pairs_spot_web if t['priceChangePercent_f'] > 0],
         key=lambda x: x['pct_api_f'],
         reverse=True
     )[:7]
 
-    # 2. TOP 7 PERDEDORAS (Espejo web Binance)
+    # 2. TOP 7 PERDEDORAS
     perdedoras = sorted(
         [t for t in usdt_pairs_spot_web if t['priceChangePercent_f'] < 0],
         key=lambda x: x['pct_api_f']
     )[:7]
 
-    # 3. TOP 7 ACUMULACIÓN 24H (Espejo de mayor volumen real en 24h en Binance Spot)
+    # 3. TOP 7 ACUMULACIÓN 24H (Mayor volumen Spot global)
     acumulacion_24h = sorted(
         usdt_pairs_spot_web,
         key=lambda x: x['quoteVolume_f'],
         reverse=True
     )[:7]
 
-    # 4. TOP 7 ACUMULACIÓN SILENCIOSA (Seleccionadas con Gemini IA)
+    # 4. TOP 7 ACUMULACIÓN SILENCIOSA (IA) — Solo altcoins < $5 USD, en positivo y sin stablecoins
     historial_previo = cargar_memoria_perlas()
     candidatas_silenciosas = []
     for t in usdt_pairs_spot_web:
-        if -3.0 <= t['priceChangePercent_f'] <= 3.5 and t['quoteVolume_f'] >= 1_500_000:
-            factor_acum = round((t['quoteVolume_f'] / 1_000_000) / max(t['pct_rango'], 0.5), 2)
-            t['factor_vol'] = max(1.2, round(1.0 + (factor_acum * 0.12), 1))
+        precio = t['lastPrice_f']
+        var = t['priceChangePercent_f']
+        vol = t['quoteVolume_f']
+        rango = t['pct_rango']
+        pos = t['pos_rango']
+
+        # Filtro estricto:
+        # - Precio accesible (< $5 USD, descarta BTC, ETH, SOL, BNB, etc.)
+        # - En verde controlado (+0.40% a +7.50%, nunca cayendo ni estable en 0.00%)
+        # - Movimiento real (rango > 1.2% para descartar monedas pegadas a $1)
+        # - Sosteniéndose en la mitad superior del rango diario (pos >= 0.50)
+        # - Liquidez saludable (>= 1.5M USDT)
+        if (precio < PRECIO_MAX_SILENCIOSA and
+            0.40 <= var <= 7.50 and
+            rango >= 1.20 and
+            pos >= 0.50 and
+            vol >= 1_500_000):
+
+            # Presión relativa normalizada (evita que un solo gigante acapare todo)
+            vol_millones = min(vol / 1_000_000, 60.0)
+            factor_acum = round(vol_millones / max(rango, 1.0), 2)
+            t['factor_vol'] = max(1.3, round(1.2 + (factor_acum * 0.25), 1))
             candidatas_silenciosas.append(t)
+
+    # Respaldo si el mercado está muy rojo y hay pocas en verde: amplia ligeramente el rango positivo
+    if len(candidatas_silenciosas) < 7:
+        for t in usdt_pairs_spot_web:
+            if (t not in candidatas_silenciosas and
+                t['lastPrice_f'] < PRECIO_MAX_SILENCIOSA and
+                0.15 <= t['priceChangePercent_f'] <= 9.0 and
+                t['pct_rango'] >= 1.0 and
+                t['quoteVolume_f'] >= 1_000_000):
+                vol_millones = min(t['quoteVolume_f'] / 1_000_000, 60.0)
+                t['factor_vol'] = max(1.2, round(1.1 + ((vol_millones / max(t['pct_rango'], 1.0)) * 0.25), 1))
+                candidatas_silenciosas.append(t)
 
     acumulacion_silenciosa = seleccionar_silenciosas_con_gemini(candidatas_silenciosas, historial_previo)
     guardar_memoria_perlas(historial_previo + [[t['symbol'] for t in acumulacion_silenciosa]])
 
     # 5. TUS 5 FAVORITAS
     favoritas_simbolos = ['QI', 'TUT', 'NEIRO', 'LUNC', 'BANK']
-    favoritas = [usdt_pairs_todos[f"{sim}USDT"] for sim in favoritas_simbolos if f"{sim}USDT" in usdt_pairs_todos]
-
-    return ganadoras, perdedoras, acumulacion_24h, acumulacion_silenciosa, favoritas
-
-def generar_grafico_tema(lista_items, titulo_grafico, color_barra, filename):
-    items_ordenados = sorted(lista_items, key=lambda x: x['priceChangePercent_f'])
-    simbolos = [item['base_asset'] for item in items_ordenados]
-    cambios = [item['priceChangePercent_f'] for item in items_ordenados]
-
-    fig, ax = plt.subplots(figsize=(8, 4.5), facecolor='#0b132b')
-    ax.set_facecolor('#0b132b')
-
-    bars = ax.bar(simbolos, cambios, color=color_barra, width=0.5, zorder=3)
-    ax.grid(True, color='#1e293b', linestyle='-', linewidth=0.8, zorder=1)
-    ax.set_axisbelow(True)
-
-    for spine in ['top', 'right', 'left', 'bottom']:
-        ax.spines[spine].set_visible(False)
-
-    ax.tick_params(left=False, labelleft=False, bottom=False)
-    ax.tick_params(axis='x', colors='white', labelsize=10)
-
-    for bar, sim, cambio in zip(bars, simbolos, cambios):
-        yval = bar.get_height()
-        xval = bar.get_x() + bar.get_width() / 2.0
-        offset = 2.5 if yval >= 0 else -5.5
-
-        ax.text(xval, yval + offset, f"+{cambio:.2f}%" if cambio >= 0 else f"{cambio:.2f}%",
-                ha='center', va='bottom' if yval >= 0 else 'top', color=color_barra, fontweight='bold', fontsize=9)
-
-        ax.plot(xval, yval + (1.2 if yval >= 0 else -1.2), marker='o', markersize=18, markerfacecolor='#0f172a', markeredgecolor=color_barra, markeredgewidth=1.5, zorder=4)
-        ax.text(xval, yval + (1.2 if yval >= 0 else -1.2), sim[:5], ha='center', va='center', color='white', fontsize=7, fontweight='bold', zorder=5)
-
-    fecha_str = ahora_art().strftime('%Y-%m-%d %H:%M ART')
-    plt.title(titulo_grafico, loc='left', color='#ffab00', fontsize=12, fontweight='bold', pad=12)
-    ax.text(0.0, 1.02, f"Fecha: {fecha_str}", transform=ax.transAxes, color='#94a3b8', fontsize=8)
-
-    plt.tight_layout()
-    plt.savefig(filename, dpi=300, facecolor=fig.get_facecolor(), edgecolor='none')
-    plt.close()
-    return filename
-
-def enviar_foto_y_detalle_blindado(image_path, texto_detalle, max_reintentos=3):
-    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        print("⚠️ Faltan credenciales de Telegram.")
-        return False
-
-    url_base = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
-    thread_id = int(TELEGRAM_TOPIC_ID) if TELEGRAM_TOPIC_ID.isdigit() else None
-    esperas = [2, 5, 10]
-    cabe_en_caption = len(texto_detalle) <= 1020
-
-    for intento in range(1, max_reintentos + 1):
-        try:
-            payload_foto = {"chat_id": TELEGRAM_CHAT_ID}
-            if thread_id:
-                payload_foto["message_thread_id"] = thread_id
-            if cabe_en_caption:
-                payload_foto["caption"] = texto_detalle
-                payload_foto["parse_mode"] = "HTML"
-
-            with open(image_path, 'rb') as photo:
-                res = requests.post(f"{url_base}/sendPhoto", data=payload_foto, files={"photo": photo}, timeout=20).json()
-                if not res.get("ok") and "thread not found" in str(res.get("description", "")).lower():
-                    payload_foto.pop("message_thread_id", None)
-                    photo.seek(0)
-                    res = requests.post(f"{url_base}/sendPhoto", data=payload_foto, files={"photo": photo}, timeout=20).json()
-
-            if res.get("ok"):
-                if not cabe_en_caption:
-                    payload_msg = {
-                        "chat_id": TELEGRAM_CHAT_ID,
-                        "text": texto_detalle,
-                        "parse_mode": "HTML",
-                        "disable_web_page_preview": True
-                    }
-                    if thread_id:
-                        payload_msg["message_thread_id"] = thread_id
-                    res_m = requests.post(f"{url_base}/sendMessage", json=payload_msg, timeout=15).json()
-                    if not res_m.get("ok") and "thread not found" in str(res_m.get("description", "")).lower():
-                        payload_msg.pop("message_thread_id", None)
-                        requests.post(f"{url_base}/sendMessage", json=payload_msg, timeout=15)
-                print("✅ Bloque enviado exitosamente.")
-                return True
-        except Exception as e:
-            print(f"⚠️ Error envío intento {intento}: {e}")
-
-        if intento < max_reintentos:
-            time.sleep(esperas[intento - 1])
-
-    return False
-
-def procesar_y_enviar_bloque_unificado(num_bloque, titulo_bloque, icono, lista_items, color_grafico, filename_grafico, tipo_bloque=""):
-    if not lista_items:
-        return
-
-    print(f"Generando Bloque {num_bloque}/5: {titulo_bloque}...")
-    generar_grafico_tema(lista_items, f"{icono} {titulo_bloque.upper()} • Ranking 24h", color_grafico, filename_grafico)
-
-    fecha_str = ahora_art().strftime('%Y-%m-%d %H:%M ART')
-    titulo_seguro = html.escape(titulo_bloque.upper())
-
-    detalle = (
-        f"🧠 <b>CENTRAL DE INTELIGENCIA DE MERCADO ({num_bloque}/5)</b>\n"
-        f"{icono} <b>{num_bloque}. {titulo_seguro} (Detalle)</b>\n"
-        f"📅 Fecha: <code>{fecha_str}</code>\n\n"
-    )
-
-    for item in lista_items:
-        sim = item['base_asset']
-        base_str = formatear_precio(item['openPrice_f'])
-        actual_str = formatear_precio(item['lastPrice_f'])
-        cambio = item['priceChangePercent_f']
-        high = item['highPrice_f']
-        low = item['lowPrice_f']
-
-        barra = generar_barra_progreso(cambio, tipo_bloque=tipo_bloque)
-        unique_id = int(time.time() * 1000) + random.randint(1, 99999)
-
-        url_ia = f"{BASE_URL_NETLIFY}/?coin={sim}&price={item['lastPrice_f']}&change={cambio:.2f}&high={high}&low={low}&v={sim}_{unique_id}"
-        url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
-
-        cambio_fmt = f"+{cambio:.2f}%" if cambio >= 0 else f"{cambio:.2f}%"
-
-        if tipo_bloque == "silenciosa":
-            vol_rel = item.get('factor_vol', 1.2)
-            detalle += (
-                f"• <b>{sim}</b> | Base (0%): <code>{base_str}</code> ➔ Actual: <code>{actual_str}</code> | <b>{cambio_fmt}</b>\n"
-                f"{barra} <i>[IA Gemini • Presión x{vol_rel:.1f}]</i>\n"
-                f"└ <a href=\"{html.escape(url_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n\n"
-            )
-        else:
-            detalle += (
-                f"• <b>{sim}</b> | Base (0%): <code>{base_str}</code> ➔ Actual: <code>{actual_str}</code> | <b>{cambio_fmt}</b>\n"
-                f"{barra}\n"
-                f"└ <a href=\"{html.escape(url_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n\n"
-            )
-
-    enviar_foto_y_detalle_blindado(filename_grafico, detalle.strip())
-    time.sleep(2)
-
-if __name__ == "__main__":
-    print(f"🚀 INICIANDO CENTRAL DE INTELIGENCIA ({ahora_art().strftime('%H:%M:%S')} ART)...")
-
-    session = crear_sesion_binance()
-    simbolos_activos = obtener_simbolos_spot_activos(session)
-    datos = obtener_datos_binance(session)
-
-    if datos and simbolos_activos:
-        ganadoras, perdedoras, acumulacion_24h, acumulacion_silenciosa, favoritas = preparar_datos(datos, simbolos_activos)
-
-        procesar_y_enviar_bloque_unificado(1, "TOP 7 GANADORAS", "🚀", ganadoras, "#00c853", "grafico_ganadoras.png")
-        procesar_y_enviar_bloque_unificado(2, "TOP 7 PERDEDORAS", "📉", perdedoras, "#f6465d", "grafico_perdedoras.png")
-        procesar_y_enviar_bloque_unificado(3, "TOP 7 ACUMULACION 24H", "💎", acumulacion_24h, "#ffab00", "grafico_acumulacion_24h.png", tipo_bloque="acumulacion_24h")
-        procesar_y_enviar_bloque_unificado(4, "TOP 7 ACUMULACION SILENCIOSA (IA)", "🕵️‍♂️", acumulacion_silenciosa, "#00bcd4", "grafico_silenciosa.png", tipo_bloque="silenciosa")
-        procesar_y_enviar_bloque_unificado(5, "TUS 5 FAVORITAS", "⭐", favoritas, "#3861fb", "grafico_favoritas.png")
-
-        print("🎉 ¡Los 5 bloques se enviaron en el nuevo orden y formato!")
-    else:
-        print("❌ ERROR CRÍTICO: No se pudieron obtener los datos de Binance.")
+    favoritas = [usdt_pairs_todos[f"{sim}USDT"] for sim in favoritas_simbolos if f"{sim}USDT" in usdt_pairs_
