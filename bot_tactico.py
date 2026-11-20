@@ -10,7 +10,7 @@ TELEGRAM_TOPIC_ID = (os.getenv("TOPIC_ID_TACTICO") or os.getenv("TOPIC_ID_CENTRA
 GEMINI_API_KEY = (os.getenv("GEMINI_API_KEY") or "").strip()
 BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
 HISTORIAL_FILE = "historial_perlas.json"
-DIAS_SEGUIMIENTO = 6
+DIAS_SEGUIMIENTO = 21
 
 def ahora_art():
     return datetime.now(TZ_ART)
@@ -22,7 +22,7 @@ def cargar_historial():
         "mencionadas": {},
         "resumen_dia": [],
         "resumen_enviado_hoy": False,
-        "secuencia": {},
+        "posta": {},
         "graduadas_pre_explosion": {}
     }
     if os.path.exists(HISTORIAL_FILE):
@@ -30,20 +30,23 @@ def cargar_historial():
             with open(HISTORIAL_FILE, 'r', encoding='utf-8') as f:
                 data = json.load(f)
 
-            # Compatibilidad con claves anteriores si existían
-            raw_sec = data.get("secuencia") or data.get("seguimiento_verde") or {}
-            sec_limpia = {}
-            for sym, info in raw_sec.items():
+            raw_posta = data.get("posta") or data.get("secuencia") or data.get("seguimiento_verde") or {}
+            posta_limpia = {}
+            for sym, info in raw_posta.items():
                 try:
                     f_det = datetime.strptime(info.get("fecha_iso", hoy), '%Y-%m-%d').date()
                     if (ahora_art().date() - f_det).days <= DIAS_SEGUIMIENTO:
-                        paso = int(info.get("paso", info.get("estrellas", 1)))
-                        if paso >= 1:
-                            info["paso"] = min(3, paso)
-                            sec_limpia[sym] = info
+                        p_ini = float(info.get("precio_inicio", info.get("precio_deteccion", 0.0)))
+                        etapa = int(info.get("etapa", info.get("paso", info.get("estrellas", 1))))
+                        if p_ini > 0 and etapa >= 1:
+                            info["precio_inicio"] = p_ini
+                            info["etapa"] = min(3, etapa)
+                            info["paso"] = info["etapa"]
+                            info["estrellas"] = info["etapa"]
+                            posta_limpia[sym] = info
                 except Exception:
                     continue
-            base["secuencia"] = sec_limpia
+            base["posta"] = posta_limpia
 
             grad_limpia = {}
             for sym, info in data.get("graduadas_pre_explosion", {}).items():
@@ -120,13 +123,40 @@ def calcular_rsi(cierres, p=14):
         ap = (ap * (p - 1) + per[i]) / p
     return 100.0 if ap == 0 else round(100.0 - (100.0 / (1.0 + (ag / ap))), 1)
 
-def calcular_metricas_tecnicas(session, symbol):
+def analizar_historia_y_tecnico(session, symbol):
     for base_url in ["https://api.binance.com", "https://data-api.binance.vision"]:
         try:
+            r1d = session.get(f"{base_url}/api/v3/klines", params={"symbol": symbol, "interval": "1d", "limit": 150}, timeout=8)
             r1h = session.get(f"{base_url}/api/v3/klines", params={"symbol": symbol, "interval": "1h", "limit": 25}, timeout=7)
             r15m = session.get(f"{base_url}/api/v3/klines", params={"symbol": symbol, "interval": "15m", "limit": 10}, timeout=7)
-            if r1h.status_code == 200 and r15m.status_code == 200:
-                k1h, k15m = r1h.json(), r15m.json()
+            if r1d.status_code == 200 and r1h.status_code == 200 and r15m.status_code == 200:
+                k1d, k1h, k15m = r1d.json(), r1h.json(), r15m.json()
+                if len(k1d) < 20 or len(k1h) < 15:
+                    continue
+
+                c1d = [float(x[4]) for x in k1d]
+                l1d = [float(x[3]) for x in k1d]
+                h1d = [float(x[2]) for x in k1d]
+                v1d = [float(x[7]) for x in k1d]
+
+                p_act = c1d[-1]
+                min_hist = min(l1d)
+                max_hist = max(h1d)
+                dist_min_pct = round(((p_act - min_hist) / min_hist) * 100, 1) if min_hist > 0 else 0.0
+                rango_hist = max_hist - min_hist
+                pos_rango_pct = round(((p_act - min_hist) / rango_hist) * 100, 1) if rango_hist > 0 else 50.0
+
+                vol_1d_rec = sum(v1d[-3:]) / 3.0
+                vol_1d_base = sum(v1d[-23:-3]) / 20.0 if len(v1d) >= 23 else vol_1d_rec
+                vol_1d_ratio = round(vol_1d_rec / vol_1d_base, 2) if vol_1d_base > 0 else 1.0
+
+                if pos_rango_pct <= 35:
+                    estructura_1d = "Suelo / Base 1d"
+                elif pos_rango_pct <= 60:
+                    estructura_1d = "Recuperación 1d"
+                else:
+                    estructura_1d = "Tramo Alto 1d"
+
                 c1h = [float(x[4]) for x in k1h]
                 v1h = [float(x[7]) for x in k1h]
                 o1h, cl1h = float(k1h[-1][1]), c1h[-1]
@@ -142,15 +172,16 @@ def calcular_metricas_tecnicas(session, symbol):
                 vol_surge = round(v_rec / v_prev, 2) if v_prev > 0 else 1.0
 
                 prob = 20.0
-                prob += 32 if vol_surge >= 2.2 else (25 if vol_surge >= 1.6 else (18 if vol_surge >= 1.25 else (10 if vol_surge >= 1.05 else 0)))
+                prob += 28 if vol_surge >= 1.8 else (20 if vol_surge >= 1.3 else (12 if vol_surge >= 1.05 else 0))
+                prob += 15 if vol_1d_ratio >= 1.25 else (8 if vol_1d_ratio >= 0.95 else 0)
                 if cl1h > ema7 > ema21:
-                    ema_est, prob = "Alcista (P>EMA7>EMA21)", prob + 25
+                    ema_est, prob = "Alcista (P>EMA7>EMA21)", prob + 18
                 elif cl1h > ema7:
-                    ema_est, prob = "Cruce Inicial (>EMA7)", prob + 15
+                    ema_est, prob = "Cruce Inicial (>EMA7)", prob + 11
                 else:
                     ema_est, prob = "Acumulando Base", prob + 5
-                prob += 18 if 50.0 <= rsi_1h <= 66.0 else (13 if 42.0 <= rsi_1h < 50.0 else (8 if 66.0 < rsi_1h <= 74.0 else 0))
-                prob += 15 if (0.05 <= var_1h <= 2.2 and var_15m >= 0.0) else (9 if (var_1h >= -0.20 and var_15m > 0.05) else 0)
+                prob += 12 if 45.0 <= rsi_1h <= 66.0 else (7 if 38.0 <= rsi_1h < 45.0 else 0)
+                prob += 10 if (var_1h > 0.0 and var_15m >= 0.0) else (4 if var_1h >= -0.3 else 0)
 
                 return {
                     "ok": True,
@@ -159,7 +190,11 @@ def calcular_metricas_tecnicas(session, symbol):
                     "var_15m": var_15m,
                     "rsi_1h": rsi_1h,
                     "ema_estado": ema_est,
-                    "vol_surge": vol_surge
+                    "vol_surge": vol_surge,
+                    "estructura_1d": estructura_1d,
+                    "pos_rango_pct": pos_rango_pct,
+                    "dist_min_pct": dist_min_pct,
+                    "vol_1d_ratio": vol_1d_ratio
                 }
         except Exception:
             continue
@@ -178,36 +213,32 @@ def formatear_precio(p):
         return f"${p:.6f}"
     return f"${p:.8f}"
 
-def elegir_inicio_verde_ia(candidatos_verdes):
-    # Selecciona hasta 2 monedas crudas sanas para iniciar Paso 1 (🟢 Verde)
-    aptas = [
-        x for x in candidatos_verdes
-        if 35 <= x.get("probabilidad_pct", 0) <= 55
-        and 38.0 <= x.get("rsi_1h", 50.0) <= 65.0
-        and -2.5 <= x.get("cambio_f", 0.0) <= 4.0
-    ]
-    if not aptas:
-        aptas = sorted(candidatos_verdes, key=lambda x: x.get("probabilidad_pct", 0), reverse=True)
-    aptas.sort(key=lambda x: (x.get("probabilidad_pct", 0), x.get("vol_surge", 0.0)), reverse=True)
-    defecto = {
-        x["base"]: f"Paso 1 ⭐: base {x['cambio_f']:+.1f}%, 1h {x['var_1h']:+.2f}%, RSI {x['rsi_1h']}."
-        for x in aptas[:2]
-    }
-    dictamen = "Secuencia activa: Paso 1 (⭐ Verde) inicia ➔ Paso 2 (⭐⭐ Amarillo) evoluciona ➔ Paso 3 (⭐⭐⭐ Rojo) confirma."
+def gemini_destacar_verdes(candidatos):
+    # Gemini elige con estrellas (1⭐) las monedas verdes que se destacan para iniciar la posta
+    if not candidatos:
+        return {}, "Sin monedas verdes candidatas en este ciclo."
 
-    if not GEMINI_API_KEY or not aptas:
+    ordenados = sorted(candidatos, key=lambda x: (x.get("probabilidad_pct", 0), x.get("vol_1d_ratio", 1.0)), reverse=True)
+    defecto = {
+        x["base"]: f"Destacada 1⭐ ({x['estructura_1d']}, +{x['dist_min_pct']}% vs suelo 1d, RSI {x['rsi_1h']})."
+        for x in ordenados[:2]
+    }
+    dictamen = "Posta obligatoria: 1⭐ Verde (Gemini) -> pasa filtro 2⭐⭐ Amarillo -> pasa filtro 3⭐⭐⭐ Rojo."
+
+    if not GEMINI_API_KEY:
         return defecto, dictamen
 
     try:
         client = genai.Client(api_key=GEMINI_API_KEY)
         lineas = "\n".join([
-            f"- {x['base']}: prob={x['probabilidad_pct']}%, 24h={x['cambio_f']:+.2f}%, 1h={x['var_1h']:+.2f}%, RSI={x['rsi_1h']}, Vol=x{x['vol_surge']}"
-            for x in aptas[:10]
+            f"- {x['base']}: prob={x['probabilidad_pct']}%, 1d={x['estructura_1d']} (rango {x['pos_rango_pct']}%, +{x['dist_min_pct']}% vs min), vol1d=x{x['vol_1d_ratio']}, vol1h=x{x['vol_surge']}, 1h={x['var_1h']:+.2f}%, RSI={x['rsi_1h']}"
+            for x in ordenados[:10]
         ])
         prompt = (
-            "Elegí hasta 2 monedas crudas en base para iniciar el Paso 1 (Verde 1⭐) de una secuencia de inversión.\n"
-            f"Candidatas:\n{lineas}\n\n"
-            'Responde SOLO JSON válido: {"inicio_verde":[{"symbol":"S1","motivo":"..."}],"dictamen":"..."}'
+            "Sos un analista cuantitativo. De estas monedas en VERDE, marcá con 1 estrella (hasta 2 monedas) "
+            "las que más se destacan por su historia y estructura actual para iniciar la posta (Verde -> Amarillo -> Rojo).\n"
+            f"Monedas verdes:\n{lineas}\n\n"
+            'Responde SOLO JSON válido: {"destacadas_verde":[{"symbol":"S1","motivo":"..."}],"dictamen":"..."}'
         )
         for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
             try:
@@ -217,13 +248,13 @@ def elegir_inicio_verde_ia(candidatos_verdes):
                     if "{" in raw and "}" in raw:
                         raw = raw[raw.find("{"):raw.rfind("}") + 1]
                     data = json.loads(raw)
-                    mapa = {x["base"]: x for x in aptas}
+                    mapa = {x["base"]: x for x in ordenados}
                     picks = {}
-                    for item in (data.get("inicio_verde") or [])[:2]:
-                        s = str(item.get("symbol", "")).strip().upper()
-                        m = str(item.get("motivo", "")).strip()
+                    for d in (data.get("destacadas_verde") or [])[:2]:
+                        s = str(d.get("symbol", "")).strip().upper()
+                        m = str(d.get("motivo", "")).strip()
                         if s in mapa:
-                            picks[s] = (m or defecto.get(s) or "Inicia secuencia ⭐")[:95]
+                            picks[s] = (m or defecto.get(s) or "Destacada por Gemini (1⭐)")[:95]
                     if picks:
                         return picks, str(data.get("dictamen") or dictamen)[:140]
             except Exception:
@@ -232,7 +263,29 @@ def elegir_inicio_verde_ia(candidatos_verdes):
         print(f"⚠️ Fallback Gemini: {e}")
     return defecto, dictamen
 
-def construir_secuencia(session, tickers, activos, historial):
+def pasa_filtro_amarillo(tec, var_seq):
+    # Filtro Amarillo (2⭐⭐): evolución verificada en volumen/impulso/estructura con RSI sano
+    return (
+        var_seq >= -3.0
+        and tec["rsi_1h"] <= 70.0
+        and (
+            tec["probabilidad_pct"] >= 52
+            or tec["vol_surge"] >= 1.20
+            or tec["vol_1d_ratio"] >= 1.15
+            or tec["var_1h"] >= 0.30
+        )
+    )
+
+def pasa_filtro_rojo(tec, var_seq):
+    # Filtro Rojo (3⭐⭐⭐): solo para monedas que ya pasaron por Amarillo (etapa >= 2)
+    return (
+        var_seq >= -1.0
+        and tec["rsi_1h"] <= 73.0
+        and tec["probabilidad_pct"] >= 68
+        and (tec["vol_surge"] >= 1.15 or tec["vol_1d_ratio"] >= 1.15)
+    )
+
+def ejecutar_posta_colores(session, tickers, activos, historial):
     EXCL = {'USDT','USDC','FDUSD','DAI','TUSD','USDP','EUR','BUSD','USD1','AEUR','EURI','USDE','RLUSD','RWUSD','XUSD','BFUSD','U','USDG','USDS','PYUSD','PAXG','XAUT','BTC','ETH','SOL','ADA','XRP','DOGE','TRX','SHIB','AVAX','LINK','BNB','DOT','NEAR','SUI','PEPE','GBP','TRY','BRL','ARS'}
     menc = historial.get("mencionadas", {})
     for sym in list(menc.keys()):
@@ -257,97 +310,100 @@ def construir_secuencia(session, tickers, activos, historial):
             pres = (vol / 1_000_000) / max(((hi - lo) / p) * 100, 1.0)
             it = {'symbol': sym, 'base': base, 'base_24h_f': b24, 'precio_f': p, 'cambio_f': chg, 'vol_f': vol, 'high_f': hi, 'low_f': lo, 'presion': pres}
             mapa[sym] = it
-            if sym not in menc and (0.000001 <= p < 5.00 and 600_000 <= vol <= 45_000_000 and -2.5 <= chg <= 5.8):
+            if sym not in menc and (0.000001 <= p < 5.00 and 600_000 <= vol <= 45_000_000 and -3.0 <= chg <= 6.5):
                 cand.append(it)
         except Exception:
             continue
 
-    sec = historial.get("secuencia", {})
+    posta = historial.get("posta", {})
     grad = historial.get("graduadas_pre_explosion", {})
     hoy_iso, hoy_corta = ahora_art().strftime('%Y-%m-%d'), ahora_art().strftime('%d/%m')
     alertas = []
 
-    # 1) Evalúa monedas ya iniciadas en la secuencia (Paso 1 -> Paso 2 -> Paso 3)
-    for sym in list(sec.keys()):
-        info = sec[sym]
+    # 1) Procesa EXCLUSIVAMENTE monedas que están en la posta (destacadas con 1⭐ en Verde)
+    # Regla estricta: nunca salta etapas (1 -> 2 -> 3)
+    for sym in list(posta.keys()):
+        info = posta[sym]
         mkt = mapa.get(sym)
         if not mkt:
             continue
-        tec = calcular_metricas_tecnicas(session, sym)
+        tec = analizar_historia_y_tecnico(session, sym)
         if not tec["ok"]:
             continue
 
-        prob = tec["probabilidad_pct"]
-        p_act = mkt["precio_f"]
+        p_act = float(mkt["precio_f"])
         p_ini = float(info.get("precio_inicio", p_act))
         var_seq = ((p_act - p_ini) / p_ini) * 100 if p_ini > 0 else 0.0
-        paso_prev = int(info.get("paso", 1))
 
-        # Si cae fuerte (< -6% desde inicio o prob < 30%), sale de la secuencia
-        if var_seq < -6.0 or prob < 30:
-            del sec[sym]
+        # Si cae más de 8% desde su entrada en Verde, queda descartada de la posta
+        if var_seq < -8.0:
+            del posta[sym]
             continue
 
-        # Avance a Paso 2 (Amarillo ⭐⭐): prob >= 52 o mejora >= +6 pts desde inicio con RSI <= 70
-        cumple_p2 = (prob >= 52 or prob >= int(info.get("prob_inicio", prob)) + 6) and tec["rsi_1h"] <= 70.0
-        # Avance a Paso 3 (Rojo ⭐⭐⭐): ya estuvo en Paso 2 y alcanza prob >= 70 con RSI <= 74
-        cumple_p3 = paso_prev >= 2 and prob >= 70 and tec["rsi_1h"] <= 74.0
+        etapa_prev = int(info.get("etapa", 1))
+        etapa_nueva = etapa_prev
+        motivo_etapa = info.get("motivo", "")
 
-        paso_nuevo = paso_prev
-        if cumple_p3:
-            paso_nuevo = 3
-            if paso_prev < 3 and not info.get("alerta_p3", False):
-                info["alerta_p3"] = True
-                alertas.append({
-                    "base": sym[:-4], "paso": 3, "prob": prob,
-                    "fecha_corta": info.get("fecha_corta", hoy_corta),
-                    "p_ini": p_ini, "p_act": p_act, "var_seq": var_seq,
-                    "mkt": mkt, "tec": tec
-                })
-            grad[sym] = {
-                "symbol": sym, "base": sym[:-4], "estrellas": 3,
-                "probabilidad_pct": prob, "precio_ref": p_act,
-                "fecha_iso": hoy_iso, "fecha_corta": hoy_corta,
-                "origen": "Secuencia Completa Paso 1 ➔ Paso 2 ➔ Paso 3"
-            }
-        elif cumple_p2:
-            paso_nuevo = max(paso_prev, 2)
-            if paso_prev < 2 and not info.get("alerta_p2", False):
-                info["alerta_p2"] = True
-                alertas.append({
-                    "base": sym[:-4], "paso": 2, "prob": prob,
-                    "fecha_corta": info.get("fecha_corta", hoy_corta),
-                    "p_ini": p_ini, "p_act": p_act, "var_seq": var_seq,
-                    "mkt": mkt, "tec": tec
-                })
+        if etapa_prev == 1:
+            if pasa_filtro_amarillo(tec, var_seq):
+                etapa_nueva = 2
+                motivo_etapa = f"Pasó filtro Amarillo (2⭐⭐): {var_seq:+.1f}% vs base, Vol 1h x{tec['vol_surge']} / 1d x{tec['vol_1d_ratio']}."
+                if not info.get("alerta_a2", False):
+                    info["alerta_a2"] = True
+                    alertas.append({
+                        "base": sym[:-4], "etapa": 2, "prob": tec["probabilidad_pct"],
+                        "fecha_corta": info.get("fecha_corta", hoy_corta),
+                        "p_ini": p_ini, "p_act": p_act, "var_seq": var_seq,
+                        "mkt": mkt, "tec": tec, "motivo": motivo_etapa
+                    })
+        elif etapa_prev == 2:
+            if pasa_filtro_rojo(tec, var_seq):
+                etapa_nueva = 3
+                motivo_etapa = f"Pasó filtro Rojo (3⭐⭐⭐): alineada ({var_seq:+.1f}% vs base, prob {tec['probabilidad_pct']}%) -> Pre-Explosión."
+                if not info.get("alerta_a3", False):
+                    info["alerta_a3"] = True
+                    alertas.append({
+                        "base": sym[:-4], "etapa": 3, "prob": tec["probabilidad_pct"],
+                        "fecha_corta": info.get("fecha_corta", hoy_corta),
+                        "p_ini": p_ini, "p_act": p_act, "var_seq": var_seq,
+                        "mkt": mkt, "tec": tec, "motivo": motivo_etapa
+                    })
+                grad[sym] = {
+                    "symbol": sym, "base": sym[:-4], "estrellas": 3,
+                    "probabilidad_pct": tec["probabilidad_pct"], "precio_ref": p_act,
+                    "fecha_iso": hoy_iso, "fecha_corta": hoy_corta,
+                    "origen": motivo_etapa
+                }
 
         info.update({
-            "paso": paso_nuevo,
-            "estrellas": paso_nuevo,
-            "prob_actual": prob,
+            "etapa": etapa_nueva,
+            "paso": etapa_nueva,
+            "estrellas": etapa_nueva,
+            "prob_actual": tec["probabilidad_pct"],
             "precio_actual": p_act,
             "var_seq": round(var_seq, 2),
+            "motivo": motivo_etapa,
             "tec": tec
         })
-        sec[sym] = info
+        posta[sym] = info
 
-    # 2) Si hay menos de 2 monedas activas en Paso 1/2, selecciona nuevas candidatas crudas para iniciar Paso 1
-    activos_iniciales = [s for s, d in sec.items() if int(d.get("paso", 1)) == 1]
+    # 2) Selecciona nuevas monedas en VERDE y pide a Gemini que marque cuáles se destacan con 1⭐
     cand_verdes = []
-    if len(activos_iniciales) < 2:
-        for it in sorted(cand, key=lambda x: x["presion"], reverse=True)[:24]:
-            if it["symbol"] in sec:
-                continue
-            tec = calcular_metricas_tecnicas(session, it["symbol"])
-            if tec["ok"] and 35 <= tec["probabilidad_pct"] <= 55:
-                it.update(tec)
-                cand_verdes.append(it)
+    for it in sorted(cand, key=lambda x: x["presion"], reverse=True)[:24]:
+        if it["symbol"] in posta:
+            continue
+        tec = analizar_historia_y_tecnico(session, it["symbol"])
+        if tec["ok"] and 35 <= tec["probabilidad_pct"] <= 55:
+            it.update(tec)
+            cand_verdes.append(it)
 
-    picks_verde, dictamen = elegir_inicio_verde_ia(cand_verdes)
+    picks_1star, dictamen = gemini_destacar_verdes(cand_verdes)
+
+    # Registra en la posta SOLO las monedas verdes marcadas con 1⭐ por Gemini
     for it in cand_verdes:
         sym, base = it["symbol"], it["base"]
-        if base in picks_verde and len([s for s, d in sec.items() if int(d.get("paso", 1)) == 1]) < 2:
-            sec[sym] = {
+        if base in picks_1star and sym not in posta:
+            posta[sym] = {
                 "symbol": sym,
                 "base": base,
                 "fecha_iso": hoy_iso,
@@ -357,89 +413,126 @@ def construir_secuencia(session, tickers, activos, historial):
                 "prob_inicio": it["probabilidad_pct"],
                 "prob_actual": it["probabilidad_pct"],
                 "var_seq": 0.0,
+                "etapa": 1,
                 "paso": 1,
                 "estrellas": 1,
-                "motivo": picks_verde[base],
+                "motivo": picks_1star[base],
                 "tec": {
                     "var_1h": it["var_1h"],
                     "rsi_1h": it["rsi_1h"],
                     "ema_estado": it["ema_estado"],
-                    "vol_surge": it["vol_surge"]
+                    "vol_surge": it["vol_surge"],
+                    "estructura_1d": it["estructura_1d"],
+                    "vol_1d_ratio": it["vol_1d_ratio"]
                 },
-                "alerta_p2": False,
-                "alerta_p3": False
+                "alerta_a2": False,
+                "alerta_a3": False
             }
         menc[sym] = 1
         if sym not in historial["resumen_dia"]:
             historial["resumen_dia"].append(sym)
 
-    # Arma los 3 pasos de la secuencia real
-    paso3_items, paso2_items, paso1_items = [], [], []
-    for sym, d in sec.items():
+    # Construye los 3 bloques de la posta (ninguna moneda salta colores ni queda suelta)
+    verdes_fmt, amarillas_fmt, rojas_fmt = [], [], []
+
+    # En Verde: mostramos las candidatas verdes, destacando con 1⭐ las elegidas por Gemini (etapa 1)
+    for it in cand_verdes[:7]:
+        sym, base = it["symbol"], it["base"]
+        en_p1 = sym in posta and int(posta[sym].get("etapa", 1)) == 1
+        d_p = posta.get(sym, {})
+        verdes_fmt.append({
+            "symbol": sym,
+            "base": base,
+            "estrellas": 1 if en_p1 else 0,
+            "probabilidad_pct": it["probabilidad_pct"],
+            "precio_inicio": float(d_p.get("precio_inicio", it["precio_f"])),
+            "precio_f": it["precio_f"],
+            "base_24h_f": it["base_24h_f"],
+            "cambio_f": it["cambio_f"],
+            "high_f": it["high_f"],
+            "low_f": it["low_f"],
+            "var_seq": float(d_p.get("var_seq", 0.0)),
+            "fecha_corta": d_p.get("fecha_corta", hoy_corta),
+            "motivo_ia": d_p.get("motivo", "") if en_p1 else "",
+            "var_1h": it["var_1h"],
+            "rsi_1h": it["rsi_1h"],
+            "vol_surge": it["vol_surge"],
+            "estructura_1d": it["estructura_1d"],
+            "color_hex": "#00e676"
+        })
+
+    # En Amarillo (2⭐⭐) y Rojo (3⭐⭐⭐): SOLO monedas que vienen de la posta de Gemini
+    for sym, d in posta.items():
         mkt = mapa.get(sym)
         if not mkt:
             continue
-        tec = d.get("tec") or calcular_metricas_tecnicas(session, sym)
-        item_fmt = {
+        tec = d.get("tec") or analizar_historia_y_tecnico(session, sym)
+        p_ini = float(d.get("precio_inicio", mkt["precio_f"]))
+        p_act = float(mkt["precio_f"])
+        var_real = ((p_act - p_ini) / p_ini) * 100 if p_ini > 0 else 0.0
+        etapa = int(d.get("etapa", 1))
+
+        item_posta = {
             "symbol": sym,
             "base": sym[:-4],
-            "paso": int(d.get("paso", 1)),
-            "estrellas": int(d.get("paso", 1)),
-            "probabilidad_pct": int(d.get("prob_actual", tec.get("probabilidad_pct", 40))),
-            "precio_inicio": float(d.get("precio_inicio", mkt["precio_f"])),
-            "precio_f": mkt["precio_f"],
+            "estrellas": etapa,
+            "probabilidad_pct": int(d.get("prob_actual", tec.get("probabilidad_pct", 50))),
+            "precio_inicio": p_ini,
+            "precio_f": p_act,
             "base_24h_f": mkt["base_24h_f"],
             "cambio_f": mkt["cambio_f"],
             "high_f": mkt["high_f"],
             "low_f": mkt["low_f"],
-            "var_seq": float(d.get("var_seq", 0.0)),
+            "var_seq": round(var_real, 2),
             "fecha_corta": d.get("fecha_corta", hoy_corta),
             "motivo_ia": d.get("motivo", ""),
             "var_1h": tec.get("var_1h", 0.0),
             "rsi_1h": tec.get("rsi_1h", 50.0),
             "vol_surge": tec.get("vol_surge", 1.0),
-            "color_hex": "#ff1744" if int(d.get("paso", 1)) == 3 else ("#ffd600" if int(d.get("paso", 1)) == 2 else "#00e676")
+            "estructura_1d": tec.get("estructura_1d", "1d"),
+            "color_hex": "#ffd600" if etapa == 2 else "#ff1744"
         }
-        if item_fmt["paso"] == 3:
-            paso3_items.append(item_fmt)
-        elif item_fmt["paso"] == 2:
-            paso2_items.append(item_fmt)
-        else:
-            paso1_items.append(item_fmt)
+        if etapa == 2:
+            amarillas_fmt.append(item_posta)
+        elif etapa == 3:
+            rojas_fmt.append(item_posta)
 
     historial.update({
         "mencionadas": menc,
-        "secuencia": sec,
+        "posta": posta,
         "graduadas_pre_explosion": grad
     })
     guardar_historial(historial)
-    return {"PASO_3": paso3_items, "PASO_2": paso2_items, "PASO_1": paso1_items}, historial, dictamen, alertas
+    return {"ROJO": rojas_fmt, "AMARILLO": amarillas_fmt, "VERDE": verdes_fmt}, historial, dictamen, alertas
 
-def generar_grafico_secuencia(items, titulo_graf, subtitulo_graf, filename):
+def generar_grafico_bloque(items, titulo_graf, subtitulo_graf, filename):
     if not items:
         return None
-    sims = [f"{'★'*i['estrellas']}{i['base']}" for i in items]
+    sims = [f"[{'*' * i['estrellas'] if i['estrellas']>0 else '-'}]{i['base']}" for i in items]
     probs = [i['probabilidad_pct'] for i in items]
     cols = [i['color_hex'] for i in items]
     ests = [i['estrellas'] for i in items]
 
-    fig, ax = plt.subplots(figsize=(8.5, 4.2), facecolor='#0b132b')
+    fig, ax = plt.subplots(figsize=(9.0, 4.3), facecolor='#0b132b')
     ax.set_facecolor('#0b132b')
-    bars = ax.bar(sims, probs, color=cols, width=0.45, zorder=3)
+    bars = ax.bar(sims, probs, color=cols, width=0.48, zorder=3)
     ax.grid(True, color='#1e293b', linewidth=0.8, zorder=1)
     ax.set_ylim(0, 122)
     for sp in ['top', 'right', 'left', 'bottom']:
         ax.spines[sp].set_visible(False)
     ax.tick_params(left=False, labelleft=False, bottom=False)
-    ax.tick_params(axis='x', colors='white', labelsize=10)
+    ax.tick_params(axis='x', colors='white', labelsize=9.5)
 
     for bar, it, pr, col, est in zip(bars, items, probs, cols, ests):
         yv, xv = bar.get_height(), bar.get_x() + bar.get_width() / 2.0
-        bar.set_edgecolor('#ffd700' if est >= 2 else '#ffffff')
-        bar.set_linewidth(2.2)
-        ax.text(xv, yv + 3.0, f"{'★'*est}\n{pr}%", ha='center', va='bottom', color='#ffd700' if est >= 2 else '#ffffff', fontweight='bold', fontsize=9)
-        ax.plot(xv, max(yv / 2.0, 14), marker='o', markersize=18, markerfacecolor='#0f172a', markeredgecolor='#ffd700' if est >= 2 else '#ffffff', markeredgewidth=2.0, zorder=4)
-        ax.text(xv, max(yv / 2.0, 14), it['base'][:5], ha='center', va='center', color='white', fontsize=7, fontweight='bold', zorder=5)
+        if est > 0:
+            bar.set_edgecolor('#ffd700' if est >= 2 else '#ffffff')
+            bar.set_linewidth(2.2)
+            ax.text(xv, yv + 3.0, f"{'*' * est}\n{pr}%", ha='center', va='bottom', color='#ffd700' if est >= 2 else '#ffffff', fontweight='bold', fontsize=9)
+        else:
+            ax.text(xv, yv + 2.5, f"{pr}%", ha='center', va='bottom', color=col, fontweight='bold', fontsize=8.5)
+        ax.plot(xv, max(yv / 2.0, 14), marker='o', markersize=17, markerfacecolor='#0f172a', markeredgecolor='#ffd700' if est >= 2 else ('#ffffff' if est == 1 else col), markeredgewidth=2.0 if est > 0 else 1.5, zorder=4)
+        ax.text(xv, max(yv / 2.0, 14), it['base'][:5], ha='center', va='center', color='white', fontsize=6.5, fontweight='bold', zorder=5)
 
     plt.title(titulo_graf, loc='left', color='#ffab00', fontsize=11, fontweight='bold', pad=12)
     ax.text(0.0, 1.02, subtitulo_graf, transform=ax.transAxes, color='#94a3b8', fontsize=8.5)
@@ -464,57 +557,65 @@ def enviar_texto_telegram(texto):
     except Exception as e:
         print(f"⚠️ Error Telegram: {e}")
 
-def enviar_alerta_secuencia(al):
-    sim, mkt, tec, paso = al['base'], al['mkt'], al['tec'], al['paso']
+def enviar_alerta_posta(al):
+    sim, mkt, tec, etapa = al['base'], al['mkt'], al['tec'], al['etapa']
     uid = int(time.time() * 1000) + random.randint(1, 9999)
     u_ia = f"{BASE_URL_NETLIFY}/?coin={sim}&price={mkt['precio_f']}&change={mkt['cambio_f']}&high={mkt['high_f']}&low={mkt['low_f']}&v={sim}_{uid}"
     u_tr = f"https://www.binance.com/es/trade/{sim}_USDT"
-    if paso == 2:
-        titulo = "🚨 <b>SECUENCIA • AVANCE A PASO 2 (⭐⭐ AMARILLO)</b>"
-        desc = f"avanzó desde <b>Paso 1 (⭐ Verde)</b> ({al['fecha_corta']} @ <code>{formatear_precio(al['p_ini'])}</code>) a <b>Paso 2 (⭐⭐)</b> con Prob <b>{al['prob']}%</b>."
+    if etapa == 2:
+        titulo = "🚨 <b>POSTA • AVANCE A AMARILLO (⭐⭐)</b>"
+        desc = f"destacada con ⭐ en Verde ({al['fecha_corta']} @ <code>{formatear_precio(al['p_ini'])}</code>) pasó el filtro Amarillo (<b>⭐⭐</b>)."
     else:
-        titulo = "🏆 <b>SECUENCIA • PASO 3 CONFIRMADO (⭐⭐⭐ PRE-EXPLOSIÓN)</b>"
-        desc = f"completó Paso 1 ➔ Paso 2 y alcanzó <b>Paso 3 (⭐⭐⭐)</b> con Prob <b>{al['prob']}%</b>."
+        titulo = "🏆 <b>POSTA • CONFIRMADA EN ROJO (⭐⭐⭐ PRE-EXPLOSIÓN)</b>"
+        desc = f"pasó por Verde (⭐) y Amarillo (⭐⭐) y superó el filtro Rojo (<b>⭐⭐⭐</b>) para <b>Pre-Explosión</b>."
     msg = (
         f"{titulo}\n📅 <code>{ahora_art().strftime('%Y-%m-%d %H:%M ART')}</code>\n\n"
         f"⚡ <b>{sim}</b> {desc}\n"
-        f"• <b>Actual:</b> <code>{formatear_precio(al['p_act'])}</code> (<b>{al['var_seq']:+.2f}%</b> en secuencia)\n"
-        f"• <b>Técnico:</b> <code>1h: {tec['var_1h']:+.2f}% | RSI: {tec['rsi_1h']} | Vol: x{tec['vol_surge']}</code>\n"
+        f"• <b>Actual:</b> <code>{formatear_precio(al['p_act'])}</code> (<b>{al['var_seq']:+.2f}%</b> vs inicio)\n"
+        f"• <b>Técnico:</b> <code>{tec['estructura_1d']} | 1h: {tec['var_1h']:+.2f}% | RSI: {tec['rsi_1h']} | Vol 1h: x{tec['vol_surge']}</code>\n"
+        f"• <b>Filtro:</b> <i>{html.escape(al.get('motivo', ''))}</i>\n"
         f"└ <a href=\"{html.escape(u_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(u_tr)}\">🔶 Tradear</a>"
     )
     enviar_texto_telegram(msg)
 
-def enviar_paso_secuencia(num_paso, titulo_paso, items, mensaje_vacio, dictamen=""):
+def enviar_bloque_posta(num_bloque, titulo_bloque, items, msg_vacio, dictamen=""):
     fecha_str = ahora_art().strftime('%Y-%m-%d %H:%M ART')
     if not items:
-        txt = f"🔗 <b>SECUENCIA TÁCTICA • PASO {num_paso}/3</b>\n{titulo_paso}\n📅 <code>{fecha_str}</code>\n"
+        txt = f"🔥 <b>CAZADOR TÁCTICO ({num_bloque}/3)</b>\n{titulo_bloque}\n📅 <code>{fecha_str}</code>\n"
         if dictamen:
             txt += f"🧠 <i>{html.escape(dictamen)}</i>\n"
-        txt += f"\n⏳ <i>{html.escape(mensaje_vacio)}</i>"
+        txt += f"\n⏳ <i>{html.escape(msg_vacio)}</i>"
         enviar_texto_telegram(txt)
         return
 
-    fname = f"secuencia_paso_{num_paso}.png"
-    generar_grafico_secuencia(items, f"SECUENCIA PASO {num_paso}/3", f"Fecha: {fecha_str} | Cadena: Paso 1 ⭐ ➔ Paso 2 ⭐⭐ ➔ Paso 3 ⭐⭐⭐", fname)
+    fname = f"posta_bloque_{num_bloque}.png"
+    generar_grafico_bloque(items, f"CAZADOR TACTICO ({num_bloque}/3)", f"Fecha: {fecha_str} | Posta: 1* Verde -> 2** Amarillo -> 3*** Rojo", fname)
 
-    msg = f"🔗 <b>SECUENCIA TÁCTICA • PASO {num_paso}/3</b>\n{titulo_paso}\n📅 <code>{fecha_str}</code>\n"
+    msg = f"🔥 <b>CAZADOR TÁCTICO ({num_bloque}/3)</b>\n{titulo_bloque}\n📅 <code>{fecha_str}</code>\n"
     if dictamen:
         msg += f"🧠 <i>{html.escape(dictamen)}</i>\n"
     msg += "\n"
 
     for it in items:
-        sim, est = it["base"], it["estrellas"]
+        sim, est = it["base"], int(it["estrellas"])
         uid = int(time.time() * 1000) + random.randint(1, 9999)
         u_ia = f"{BASE_URL_NETLIFY}/?coin={sim}&price={it['precio_f']}&change={it['cambio_f']}&high={it['high_f']}&low={it['low_f']}&v={sim}_{uid}"
         u_tr = f"https://www.binance.com/es/trade/{sim}_USDT"
         mot = html.escape(it.get("motivo_ia", ""))
-        msg += (
-            f"{'⭐'*est} <b>{sim} [Paso {num_paso} • Prob: {it['probabilidad_pct']}%]</b> | Inicio ({it['fecha_corta']}): <code>{formatear_precio(it['precio_inicio'])}</code> ➔ Actual: <code>{formatear_precio(it['precio_f'])}</code> (<b>{it['var_seq']:+.2f}%</b>)\n"
-            f"   📐 <code>1h: {it['var_1h']:+.2f}% | RSI: {it['rsi_1h']} | Vol: x{it['vol_surge']}</code>\n"
-        )
-        if mot:
-            msg += f"   💡 <i>{mot}</i>\n"
-        msg += f"   └ <a href=\"{html.escape(u_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(u_tr)}\">🔶 Tradear</a>\n\n"
+
+        if est > 0:
+            msg += (
+                f"{'⭐'*est} <b>{sim} [Prob: {it['probabilidad_pct']}%]</b> | Inicio ({it['fecha_corta']}): <code>{formatear_precio(it['precio_inicio'])}</code> ➔ Actual: <code>{formatear_precio(it['precio_f'])}</code> (<b>{it['var_seq']:+.2f}%</b>)\n"
+                f"   📐 <code>{it['estructura_1d']} | 1h: {it['var_1h']:+.2f}% | RSI: {it['rsi_1h']} | Vol: x{it['vol_surge']}</code>\n"
+            )
+            if mot:
+                msg += f"   💡 <i>{mot}</i>\n"
+            msg += f"   └ <a href=\"{html.escape(u_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(u_tr)}\">🔶 Tradear</a>\n\n"
+        else:
+            msg += (
+                f"• <b>{sim}</b> (Prob: <b>{it['probabilidad_pct']}%</b>) | Actual: <code>{formatear_precio(it['precio_f'])}</code> | <b>{it['cambio_f']:+.2f}%</b>\n"
+                f"  └ <a href=\"{html.escape(u_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(u_tr)}\">🔶 Tradear</a>\n\n"
+            )
 
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         return
@@ -541,26 +642,26 @@ def enviar_paso_secuencia(num_paso, titulo_paso, items, mensaje_vacio, dictamen=
                     enviar_texto_telegram(texto_limpio)
                 return
         except Exception as e:
-            print(f"⚠️ Error enviando paso {num_paso}: {e}")
+            print(f"⚠️ Error bloque {num_bloque}: {e}")
         time.sleep(3)
 
 if __name__ == "__main__":
-    print(f"🔗 INICIANDO SECUENCIA TÁCTICA ({ahora_art().strftime('%H:%M:%S')} ART)...")
+    print(f"🔥 INICIANDO CAZADOR TÁCTICO POR POSTA ({ahora_art().strftime('%H:%M:%S')} ART)...")
     s = crear_sesion_binance()
     activos, datos = obtener_datos_binance(s)
     if datos and activos:
         hist = cargar_historial()
-        pasos, hist, dictamen, alertas = construir_secuencia(s, datos, activos, hist)
+        grupos, hist, dictamen, alertas = ejecutar_posta_colores(s, datos, activos, hist)
 
         for al in alertas:
-            enviar_alerta_secuencia(al)
+            enviar_alerta_posta(al)
             time.sleep(1.5)
 
-        enviar_paso_secuencia(3, "🔴 <b>PASO 3: CONFIRMADA PARA INVERSIÓN (⭐⭐⭐)</b>", pasos["PASO_3"], "Ninguna moneda de la secuencia completó Paso 1 ➔ Paso 2 ➔ Paso 3 aún.", dictamen)
+        enviar_bloque_posta(1, "🔴 <b>1. ROJO • CONFIRMADA PRE-EXPLOSIÓN (⭐⭐⭐)</b>", grupos["ROJO"], "Ninguna moneda de la posta pasó aún por Verde (⭐) -> Amarillo (⭐⭐) -> Rojo (⭐⭐⭐).", dictamen)
         time.sleep(2)
-        enviar_paso_secuencia(2, "🟡 <b>PASO 2: EVOLUCIÓN / EN OBSERVACIÓN (⭐⭐)</b>", pasos["PASO_2"], "Ninguna moneda de Paso 1 cumplió aún el avance a Paso 2.")
+        enviar_bloque_posta(2, "🟡 <b>2. AMARILLO • FILTRO DE EVOLUCIÓN (⭐⭐)</b>", grupos["AMARILLO"], "Ninguna moneda destacada en Verde (⭐) pasó aún el filtro Amarillo.")
         time.sleep(2)
-        enviar_paso_secuencia(1, "🟢 <b>PASO 1: INICIO / CRUDA POTENCIAL (⭐)</b>", pasos["PASO_1"], "Sin candidatas crudas nuevas en este ciclo.")
+        enviar_bloque_posta(3, "🟢 <b>3. VERDE • DESTACADAS POR GEMINI (⭐)</b>", grupos["VERDE"], "Sin monedas verdes en este ciclo.")
     else:
         print("❌ ERROR: Sin datos de Binance.")
 
