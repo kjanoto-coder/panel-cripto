@@ -12,6 +12,8 @@ BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
 HISTORIAL_FILE = "historial_perlas.json"
 DIAS_SEGUIMIENTO = 6
 
+ESTRELLAS_POR_ZONA = {"VERDE": 1, "AMARILLO": 2, "ROJO": 3}
+
 def ahora_art():
     return datetime.now(TZ_ART)
 
@@ -152,7 +154,7 @@ def curar_con_gemini(rojas, amarillas, verdes):
         "AMARILLO": fallback_picks(a7, "Estructura alcista armándose en 1h con presión compradora sostenida."),
         "VERDE": fallback_picks(v7, "Acumulación temprana superior al resto del grupo; inicia seguimiento evolutivo.")
     }
-    dictamen = "Curaduría IA Spot en monedas ocultas (-2.5% a +5.8%): 1 a 3 destacadas por zona."
+    dictamen = "Radar IA Spot en monedas ocultas (-2.5% a +5.8%): 1⭐ Verde, 2⭐⭐ Amarillo, 3⭐⭐⭐ Rojo."
 
     if not GEMINI_API_KEY or not (r7 or a7 or v7):
         return r7, a7, v7, destacadas, dictamen
@@ -162,12 +164,12 @@ def curar_con_gemini(rojas, amarillas, verdes):
         fmt = lambda l: "\n".join([f"- {i['base']}: prob={i['probabilidad_pct']}%, 24h={i['cambio_f']:+.2f}%, 1h={i['var_1h']:+.2f}%, RSI={i['rsi_1h']}, EMAs={i['ema_estado']}, Vol=x{i['vol_surge']}" for i in l]) or "Vacio"
         prompt = (
             "Analista Binance Spot. Evalúa estas 3 listas de monedas ocultas por PROBABILIDAD DE DESPEGUE:\n"
-            f"ROJO (>=72% - Listas para radar Pre-Explosión):\n{fmt(rojas)}\n"
-            f"AMARILLO (52-71% - Estructura armada):\n{fmt(amarillas)}\n"
-            f"VERDE (35-51% - Acumulación silenciosa):\n{fmt(verdes)}\n\n"
+            f"ROJO (>=72% - 3 estrellas, listas para radar Pre-Explosión):\n{fmt(rojas)}\n"
+            f"AMARILLO (52-71% - 2 estrellas, estructura armada):\n{fmt(amarillas)}\n"
+            f"VERDE (35-51% - 1 estrella, acumulación silenciosa):\n{fmt(verdes)}\n\n"
             "Tareas:\n"
             "1. Ordena hasta las mejores 7 monedas de cada color.\n"
-            "2. En cada color, elige entre 1 y 3 monedas superiores al resto (las mejores oportunidades reales, no hace falta que sea solo 1) y da un motivo técnico breve (<85 chars) para cada elegida.\n"
+            "2. En cada color, elige entre 1 y 3 monedas superiores al resto y da un motivo técnico breve (<85 chars) para cada elegida.\n"
             "3. Escribe un dictamen táctico breve (<120 chars).\n"
             'Responde SOLO JSON válido: {"rojas":["S1"],"amarillas":["S1"],"verdes":["S1"],"dest_roja":[{"symbol":"S1","motivo":"..."}],"dest_amarilla":[{"symbol":"S1","motivo":"..."}],"dest_verde":[{"symbol":"S1","motivo":"..."}],"dictamen":"..."}'
         )
@@ -234,7 +236,8 @@ def evaluar_evolucion_estrellas(session, mapa_mercado, historial):
         p_act, p_ini = mkt['precio_f'], float(info.get("precio_deteccion", mkt['precio_f']))
         var_det = ((p_act - p_ini) / p_ini) * 100 if p_ini > 0 else 0.0
 
-        if cat == "AMARILLO" and est_prev == 1 and not info.get("alerta_2_estrellas_enviada", False):
+        # Solo evoluciona hacia arriba (AMARILLO = 2 estrellas, ROJO = 3 estrellas)
+        if cat == "AMARILLO" and est_prev < 2 and not info.get("alerta_2_estrellas_enviada", False):
             info.update({"estrellas": 2, "estado_actual": "AMARILLO", "alerta_2_estrellas_enviada": True})
             grad[sym] = {"symbol": sym, "base": sym[:-4], "estrellas": 2, "probabilidad_pct": prob, "precio_ref": p_act, "fecha_iso": hoy_iso, "fecha_corta": hoy_corta, "origen": "Evolución Cazador (⭐⭐)"}
             alertas.append({"base": sym[:-4], "nivel": 2, "prob": prob, "fecha_corta": info.get("fecha_corta", ""), "p_ini": p_ini, "p_act": p_act, "var_det": var_det, "mkt": mkt, "tec": tec})
@@ -295,21 +298,23 @@ def motor_ia_seleccion_tactica(session, tickers, activos, historial):
     grupos = {"ROJO": r7, "AMARILLO": a7, "VERDE": v7}
     for ck, lista_g in grupos.items():
         picks_ck = destacadas.get(ck, {})
+        est_zona = ESTRELLAS_POR_ZONA[ck]
         for it in lista_g:
             sym, base = it['symbol'], it['base']
             eleg = base in picks_ck
-            it['motivo_ia'] = picks_ck.get(base, "")
-            est_seg = int(seg.get(sym, {}).get("estrellas", 0))
+            it['motivo_ia'] = picks_ck.get(base, "") if eleg else ""
+            it['estrellas'] = est_zona if eleg else 0
+            it['es_evolucion'] = bool(eleg and ck in ("AMARILLO", "ROJO") and int(seg.get(sym, {}).get("estrellas", 0)) >= 2)
 
-            if ck == "VERDE" and eleg and (sym not in seg or est_seg < 1):
+            if ck == "VERDE" and eleg and sym not in seg:
                 seg[sym] = {"fecha_iso": hoy_iso, "fecha_corta": hoy_corta, "precio_deteccion": it['precio_f'], "estrellas": 1, "estado_actual": "VERDE", "ultimo_estado": "VERDE", "ultima_probabilidad": it['probabilidad_pct'], "alerta_2_estrellas_enviada": False, "alerta_3_estrellas_enviada": False}
-                est_seg = 1
+            elif sym in seg and ck in ("AMARILLO", "ROJO"):
+                seg[sym]["estrellas"] = max(int(seg[sym].get("estrellas", 1)), it['estrellas'])
+                seg[sym]["ultimo_estado"] = ck
+                seg[sym]["ultima_probabilidad"] = it['probabilidad_pct']
 
-            it['estrellas'] = est_seg if est_seg >= 2 else (max(est_seg, 1) if eleg else 0)
-
-            # Todas las destacadas en ROJO (y las que tengan >=2 estrellas) pasan listas a Pre-Explosión
-            if (ck == "ROJO" and eleg) or it['estrellas'] >= 2:
-                grad[sym] = {"symbol": sym, "base": base, "estrellas": max(it['estrellas'], 1), "probabilidad_pct": it['probabilidad_pct'], "precio_ref": it['precio_f'], "fecha_iso": hoy_iso, "fecha_corta": hoy_corta, "origen": f"Cazador {ck} ({'⭐'*max(it['estrellas'],1)})"}
+            if ck == "ROJO" and eleg:
+                grad[sym] = {"symbol": sym, "base": base, "estrellas": 3, "probabilidad_pct": it['probabilidad_pct'], "precio_ref": it['precio_f'], "fecha_iso": hoy_iso, "fecha_corta": hoy_corta, "origen": "Cazador ROJO (⭐⭐⭐)"}
 
             menc[sym] = 1
             if sym not in historial["resumen_dia"]: historial["resumen_dia"].append(sym)
@@ -337,7 +342,7 @@ def generar_grafico_bloque(items, titulo_graf, subtitulo_graf, filename):
         yv, xv = bar.get_height(), bar.get_x() + bar.get_width() / 2.0
         if est > 0:
             bar.set_edgecolor('#ffd700' if est >= 2 else '#ffffff')
-            bar.set_linewidth(2.3 if est == 3 else 1.7)
+            bar.set_linewidth(2.5 if est == 3 else (2.0 if est == 2 else 1.6))
             ax.text(xv, yv + 3.0, f"{'★'*est}\n{pr}%", ha='center', va='bottom', color='#ffd700' if est >= 2 else '#ffffff', fontweight='bold', fontsize=8.5)
         else:
             ax.text(xv, yv + 2.5, f"{pr}%", ha='center', va='bottom', color=col, fontweight='bold', fontsize=8.5)
@@ -396,7 +401,7 @@ def enviar_bloque_color(num_bloque, titulo_msg, titulo_graf, items, seg, dictame
     if not items: return
     fname = f"grafico_cazador_{num_bloque}.png"
     fecha_str = ahora_art().strftime('%Y-%m-%d %H:%M ART')
-    generar_grafico_bloque(items, titulo_graf, f"Fecha: {fecha_str} | ★ = Destacada IA", fname)
+    generar_grafico_bloque(items, titulo_graf, f"Fecha: {fecha_str} | ★ Verde | ★★ Amarillo | ★★★ Rojo", fname)
 
     msg = f"🔥 <b>CAZADOR TÁCTICO ({num_bloque}/3)</b>\n{titulo_msg}\n📅 <code>{fecha_str}</code>\n"
     if dictamen_global:
@@ -408,10 +413,16 @@ def enviar_bloque_color(num_bloque, titulo_msg, titulo_graf, items, seg, dictame
         uid = int(time.time() * 1000) + random.randint(1, 9999)
         u_ia = f"{BASE_URL_NETLIFY}/?coin={sim}&price={it['precio_f']}&change={it['cambio_f']}&high={it['high_f']}&low={it['low_f']}&v={sim}_{uid}"
         u_tr = f"https://www.binance.com/es/trade/{sim}_USDT"
-        tseg = f" <i>[👁️ {seg[sym]['fecha_corta']}]</i>" if sym in seg else ""
+        tseg = f" <i>[👁️ {seg[sym]['fecha_corta']}]</i>" if (sym in seg and it['categoria'] != "VERDE") else ""
 
         if est > 0:
-            tag_dest = "LISTA PRE-EXPLOSIÓN" if it['categoria'] == "ROJO" else ("EVOLUCIÓN ACTIVA" if est == 2 else "DESTACADA IA")
+            if it['categoria'] == "ROJO":
+                tag_dest = "LISTA PRE-EXPLOSIÓN"
+            elif it['categoria'] == "AMARILLO":
+                tag_dest = "EVOLUCIÓN ACTIVA" if it.get('es_evolucion') else "ESTRUCTURA ARMADA"
+            else:
+                tag_dest = "DESTACADA INICIAL"
+
             mot = html.escape(it.get("motivo_ia", ""))
             msg += (
                 f"{'⭐'*est} <b>*{sim}* [{tag_dest} • Prob: {it['probabilidad_pct']}%]</b> | Base (0%): <code>{formatear_precio(it['base_24h_f'])}</code> ➔ Actual: <code>{formatear_precio(it['precio_f'])}</code> | <b>{it['cambio_f']:+.2f}%</b>\n"
@@ -422,7 +433,7 @@ def enviar_bloque_color(num_bloque, titulo_msg, titulo_graf, items, seg, dictame
             msg += f"   └ <a href=\"{html.escape(u_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(u_tr)}\">🔶 Tradear</a>\n\n"
         else:
             msg += (
-                f"• <b>{sim}</b> (Prob: <b>{it['probabilidad_pct']}%</b>) | Base (0%): <code>{formatear_precio(it['base_24h_f'])}</code> ➔ Actual: <code>{formatear_precio(it['precio_f'])}</code> | <b>{it['cambio_f']:+.2f}%</b>{tseg}\n"
+                f"• <b>{sim}</b> (Prob: <b>{it['probabilidad_pct']}%</b>) | Base (0%): <code>{formatear_precio(it['base_24h_f'])}</code> ➔ Actual: <code>{formatear_precio(it['precio_f'])}</code> | <b>{it['cambio_f']:+.2f}%</b>\n"
                 f"  └ <a href=\"{html.escape(u_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(u_tr)}\">🔶 Tradear</a>\n\n"
             )
 
@@ -465,11 +476,11 @@ if __name__ == "__main__":
             time.sleep(1.5)
 
         seg = hist.get("seguimiento_verde", {})
-        enviar_bloque_color(1, "🔴 <b>1. PROBABILIDAD MÁXIMA (72%–98% • Listas Pre-Explosión)</b>", "CAZADOR TACTICO (1/3) • PROBABILIDAD MAXIMA (ROJO)", grupos["ROJO"], seg, dictamen)
+        enviar_bloque_color(1, "🔴 <b>1. PROBABILIDAD MÁXIMA (72%–98% • ⭐⭐⭐ Pre-Explosión)</b>", "CAZADOR TACTICO (1/3) • PROBABILIDAD MAXIMA (3 ESTRELLAS)", grupos["ROJO"], seg, dictamen)
         time.sleep(2)
-        enviar_bloque_color(2, "🟡 <b>2. PROBABILIDAD ALTA (52%–71% • Estructura Armada)</b>", "CAZADOR TACTICO (2/3) • PROBABILIDAD ALTA (AMARILLO)", grupos["AMARILLO"], seg)
+        enviar_bloque_color(2, "🟡 <b>2. PROBABILIDAD ALTA (52%–71% • ⭐⭐ Estructura Armada)</b>", "CAZADOR TACTICO (2/3) • PROBABILIDAD ALTA (2 ESTRELLAS)", grupos["AMARILLO"], seg)
         time.sleep(2)
-        enviar_bloque_color(3, "🟢 <b>3. PROBABILIDAD INICIAL (35%–51% • Detección Temprana)</b>", "CAZADOR TACTICO (3/3) • PROBABILIDAD INICIAL (VERDE)", grupos["VERDE"], seg)
+        enviar_bloque_color(3, "🟢 <b>3. PROBABILIDAD INICIAL (35%–51% • ⭐ Detección Temprana)</b>", "CAZADOR TACTICO (3/3) • PROBABILIDAD INICIAL (1 ESTRELLA)", grupos["VERDE"], seg)
 
         if ahora_art().hour >= 21 and not hist.get("resumen_enviado_hoy", False):
             mdia = [x[:-4] for x in hist.get("resumen_dia", [])]
