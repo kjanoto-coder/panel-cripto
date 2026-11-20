@@ -1,20 +1,20 @@
 [
   [
     "SENTUSDT",
-    "SHELLUSDT",
-    "ENSOUSDT",
-    "AIGENSYNUSDT",
-    "SAPIENUSDT",
-    "MMTUSDT",
-    "BMTUSDT"
-  ],
-  [
-    "SENTUSDT",
     "BLURUSDT",
     "SKYUSDT",
     "DODOUSDT",
     "SOPHUSDT",
     "ENSOUSDT",
     "HMSTRUSDT"
+  ],
+  [
+    "BLURUSDT",
+    "SKYUSDT",
+    "SOPHUSDT",
+    "DODOUSDT",
+    "ENSOUSDT",
+    "HMSTRUSDT",
+    "ERAUSDT"
   ]
 ]
