@@ -1,6 +1,8 @@
 name: Cazador Tactico IA
 
 on:
+  schedule:
+    - cron: "*/30 * * * *"
   workflow_dispatch:
 
 permissions:
