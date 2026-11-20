@@ -11,7 +11,6 @@ GEMINI_API_KEY = (os.getenv("GEMINI_API_KEY") or "").strip()
 BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
 HISTORIAL_FILE = "historial_perlas.json"
 DIAS_SEGUIMIENTO = 6
-ESTRELLAS_POR_ZONA = {"VERDE": 1, "AMARILLO": 2, "ROJO": 3}
 
 def ahora_art():
     return datetime.now(TZ_ART)
@@ -92,6 +91,14 @@ def calcular_rsi(cierres, p=14):
         ap = (ap * (p - 1) + per[i]) / p
     return 100.0 if ap == 0 else round(100.0 - (100.0 / (1.0 + (ag / ap))), 1)
 
+def cumple_requisito_evolucion(tec):
+    return (
+        tec.get("ok")
+        and tec.get("probabilidad_pct", 0) >= 52
+        and tec.get("rsi_1h", 100) <= 72.0
+        and (tec.get("var_1h", -99) >= -0.50 or tec.get("vol_surge", 0) >= 1.15)
+    )
+
 def calcular_probabilidad_inversion(session, symbol):
     for base_url in ["https://api.binance.com", "https://data-api.binance.vision"]:
         try:
@@ -142,8 +149,8 @@ def formatear_precio(p):
     if p >= 0.0001: return f"${p:.6f}"
     return f"${p:.8f}"
 
-def curar_con_gemini(rojas, amarillas, verdes):
-    def fallback_picks(lista, zona):
+def curar_con_gemini(rojas, amarillas, verdes, semillero_verde):
+    def picks_desde_verde(lista):
         if not lista: return {}
         rank = sorted(
             lista,
@@ -155,36 +162,44 @@ def curar_con_gemini(rojas, amarillas, verdes):
             reverse=True
         )
         top_n = rank[:2] if len(rank) >= 4 else rank[:1]
+        return {x['base']: f"Base {x['cambio_f']:+.1f}%, 1h {x['var_1h']:+.2f}% y RSI {x['rsi_1h']}: arranca camino ⭐." for x in top_n}
+
+    def picks_evolucion_verde(lista, nivel):
+        # Solo monedas que nacieron en VERDE (semillero_verde) y pasan requisitos técnicos
+        validas = [x for x in lista if x['base'] in semillero_verde and cumple_requisito_evolucion(x)]
+        validas.sort(key=lambda x: x['probabilidad_pct'], reverse=True)
         out = {}
-        for x in top_n:
-            if zona == "VERDE":
-                out[x['base']] = f"Base {x['cambio_f']:+.1f}%, 1h {x['var_1h']:+.2f}% y RSI {x['rsi_1h']}: margen limpio para escalar."
-            elif zona == "AMARILLO":
-                out[x['base']] = f"Estructura 1h {x['var_1h']:+.2f}%, RSI {x['rsi_1h']} y Vol x{x['vol_surge']}: ganando tracción."
+        for x in validas[:3]:
+            if nivel == 2:
+                out[x['base']] = f"Vino de ⭐ Verde: 1h {x['var_1h']:+.2f}%, RSI {x['rsi_1h']} y Vol x{x['vol_surge']}: evoluciona ⭐⭐."
             else:
-                out[x['base']] = f"Prob {x['probabilidad_pct']}%, 1h {x['var_1h']:+.2f}% y Vol x{x['vol_surge']}: lista para Pre-Explosión."
+                out[x['base']] = f"Vino de ⭐ Verde: Prob {x['probabilidad_pct']}%, 1h {x['var_1h']:+.2f}% y Vol x{x['vol_surge']}: confirmada ⭐⭐⭐ Pre-Explosión."
         return out
 
     r7, a7, v7 = rojas[:7], amarillas[:7], verdes[:7]
-    destacadas = {"ROJO": fallback_picks(r7, "ROJO"), "AMARILLO": fallback_picks(a7, "AMARILLO"), "VERDE": fallback_picks(v7, "VERDE")}
-    dictamen = "Radar IA Spot (-2.5% a +5.8%): 1⭐ base/evolución, 2⭐⭐ estructura, 3⭐⭐⭐ lista Pre-Explosión."
+    destacadas = {
+        "ROJO": picks_evolucion_verde(r7, 3),
+        "AMARILLO": picks_evolucion_verde(a7, 2),
+        "VERDE": picks_desde_verde(v7)
+    }
+    dictamen = "Camino por etapas: todo arranca en ⭐ Verde y evoluciona a ⭐⭐ Amarillo y ⭐⭐⭐ Rojo para Pre-Explosión."
 
     if not GEMINI_API_KEY or not (r7 or a7 or v7):
         return r7, a7, v7, destacadas, dictamen
 
     try:
         client = genai.Client(api_key=GEMINI_API_KEY)
-        fmt = lambda l: "\n".join([f"- {i['base']}: prob={i['probabilidad_pct']}%, 24h={i['cambio_f']:+.2f}%, 1h={i['var_1h']:+.2f}%, RSI={i['rsi_1h']}, EMAs={i['ema_estado']}, Vol=x{i['vol_surge']}" for i in l]) or "Vacio"
+        fmt = lambda l: "\n".join([
+            f"- {i['base']}{' [NACIO_EN_VERDE]' if i['base'] in semillero_verde else ''}: prob={i['probabilidad_pct']}%, 24h={i['cambio_f']:+.2f}%, 1h={i['var_1h']:+.2f}%, RSI={i['rsi_1h']}, EMAs={i['ema_estado']}, Vol=x{i['vol_surge']}"
+            for i in l
+        ]) or "Vacio"
+
         prompt = (
-            "Analista cuantitativo Binance Spot. Evalúa estas 3 listas de monedas ocultas:\n"
-            f"ROJO (>=72% - 3 estrellas, listas para radar Pre-Explosión):\n{fmt(rojas)}\n"
-            f"AMARILLO (52-71% - 2 estrellas, estructura armada):\n{fmt(amarillas)}\n"
-            f"VERDE (35-51% - 1 estrella, base temprana con margen antes de subir):\n{fmt(verdes)}\n\n"
-            "Reglas estrictas:\n"
-            "1. Ordena las mejores 7 de cada color.\n"
-            "2. Elige entre 1 y 3 monedas destacadas por color.\n"
-            "3. En VERDE, prioriza monedas que no estén ya disparadas en 24h y tengan RSI/estructura sana para poder escalar; escribe un motivo DISTINTO y específico para cada moneda elegida citando sus datos reales (<85 chars).\n"
-            "4. Escribe un dictamen breve (<120 chars).\n"
+            "Analista cuantitativo Binance Spot. Cada moneda debe arrancar en VERDE (1⭐) y evolucionar según el día:\n"
+            "- En VERDE (35-51%): elegí 1 a 3 monedas con base sana y margen para iniciar el camino (1⭐).\n"
+            "- En AMARILLO (52-71%): SOLO monedas marcadas [NACIO_EN_VERDE] que cumplan requisitos técnicos pueden recibir 2⭐⭐ de evolución.\n"
+            "- En ROJO (>=72%): SOLO monedas marcadas [NACIO_EN_VERDE] que cumplan requisitos técnicos pueden recibir 3⭐⭐⭐ de confirmación final hacia Pre-Explosión.\n\n"
+            f"ROJO (>=72%):\n{fmt(rojas)}\nAMARILLO (52-71%):\n{fmt(amarillas)}\nVERDE (35-51%):\n{fmt(verdes)}\n\n"
             'Responde SOLO JSON válido: {"rojas":["S1"],"amarillas":["S1"],"verdes":["S1"],"dest_roja":[{"symbol":"S1","motivo":"..."}],"dest_amarilla":[{"symbol":"S1","motivo":"..."}],"dest_verde":[{"symbol":"S1","motivo":"..."}],"dictamen":"..."}'
         )
         for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
@@ -196,17 +211,27 @@ def curar_con_gemini(rojas, amarillas, verdes):
                         raw = raw[raw.find("{"):raw.rfind("}") + 1]
                     data = json.loads(raw)
 
-                    def procesar_grupo(pool, orden_ia, dest_ia, dest_def):
+                    def procesar_grupo(pool, orden_ia, dest_ia, dest_def, exigir_verde=False):
                         mapa = {x['base']: x for x in pool}
                         picks = {}
                         for d in (dest_ia or [])[:3]:
                             s = str(d.get("symbol", "")).strip().upper()
                             m = str(d.get("motivo", "")).strip()
-                            if s in mapa:
+                            if s in mapa and (not exigir_verde or (s in semillero_verde and cumple_requisito_evolucion(mapa[s]))):
                                 picks[s] = (m or dest_def.get(s) or list(dest_def.values())[0])[:95]
-                        if not picks:
+                        if not picks and not exigir_verde:
                             picks = dest_def
-                        sel = [mapa[s] for s in picks if s in mapa]
+                        elif exigir_verde and not picks:
+                            picks = dest_def
+
+                        sel = []
+                        if exigir_verde:
+                            for x in pool:
+                                if x['base'] in semillero_verde and x['base'] not in picks and x not in sel:
+                                    sel.append(x)
+                        for s in picks:
+                            if s in mapa and mapa[s] not in sel:
+                                sel.append(mapa[s])
                         for s in (orden_ia or []):
                             su = str(s).strip().upper()
                             if su in mapa and mapa[su] not in sel:
@@ -218,9 +243,9 @@ def curar_con_gemini(rojas, amarillas, verdes):
                         validos = {x['base'] for x in f7}
                         return f7, {k: v for k, v in picks.items() if k in validos}
 
-                    r7, dr = procesar_grupo(rojas, data.get("rojas"), data.get("dest_roja"), destacadas["ROJO"])
-                    a7, da = procesar_grupo(amarillas, data.get("amarillas"), data.get("dest_amarilla"), destacadas["AMARILLO"])
-                    v7, dv = procesar_grupo(verdes, data.get("verdes"), data.get("dest_verde"), destacadas["VERDE"])
+                    r7, dr = procesar_grupo(rojas, data.get("rojas"), data.get("dest_roja"), destacadas["ROJO"], exigir_verde=True)
+                    a7, da = procesar_grupo(amarillas, data.get("amarillas"), data.get("dest_amarilla"), destacadas["AMARILLO"], exigir_verde=True)
+                    v7, dv = procesar_grupo(verdes, data.get("verdes"), data.get("dest_verde"), destacadas["VERDE"], exigir_verde=False)
                     return r7, a7, v7, {"ROJO": dr, "AMARILLO": da, "VERDE": dv}, str(data.get("dictamen") or dictamen)[:140]
             except Exception:
                 continue
@@ -246,13 +271,13 @@ def evaluar_evolucion_estrellas(session, mapa_mercado, historial):
         p_act, p_ini = mkt['precio_f'], float(info.get("precio_deteccion", mkt['precio_f']))
         var_det = ((p_act - p_ini) / p_ini) * 100 if p_ini > 0 else 0.0
 
-        if cat == "AMARILLO" and est_prev < 2 and not info.get("alerta_2_estrellas_enviada", False):
+        if cat == "AMARILLO" and cumple_requisito_evolucion(tec) and est_prev < 2 and not info.get("alerta_2_estrellas_enviada", False):
             info.update({"estrellas": 2, "estado_actual": "AMARILLO", "alerta_2_estrellas_enviada": True})
-            grad[sym] = {"symbol": sym, "base": sym[:-4], "estrellas": 2, "probabilidad_pct": prob, "precio_ref": p_act, "fecha_iso": hoy_iso, "fecha_corta": hoy_corta, "origen": "Evolución Cazador (⭐⭐)"}
+            grad[sym] = {"symbol": sym, "base": sym[:-4], "estrellas": 2, "probabilidad_pct": prob, "precio_ref": p_act, "fecha_iso": hoy_iso, "fecha_corta": hoy_corta, "origen": "Evolución desde ⭐ Verde (⭐⭐)"}
             alertas.append({"base": sym[:-4], "nivel": 2, "prob": prob, "fecha_corta": info.get("fecha_corta", ""), "p_ini": p_ini, "p_act": p_act, "var_det": var_det, "mkt": mkt, "tec": tec})
-        elif cat == "ROJO" and est_prev < 3 and not info.get("alerta_3_estrellas_enviada", False):
+        elif cat == "ROJO" and cumple_requisito_evolucion(tec) and est_prev < 3 and not info.get("alerta_3_estrellas_enviada", False):
             info.update({"estrellas": 3, "estado_actual": "ROJO", "alerta_2_estrellas_enviada": True, "alerta_3_estrellas_enviada": True})
-            grad[sym] = {"symbol": sym, "base": sym[:-4], "estrellas": 3, "probabilidad_pct": prob, "precio_ref": p_act, "fecha_iso": hoy_iso, "fecha_corta": hoy_corta, "origen": "Confirmación Máxima (⭐⭐⭐)"}
+            grad[sym] = {"symbol": sym, "base": sym[:-4], "estrellas": 3, "probabilidad_pct": prob, "precio_ref": p_act, "fecha_iso": hoy_iso, "fecha_corta": hoy_corta, "origen": "Confirmada desde ⭐ Verde (⭐⭐⭐)"}
             alertas.append({"base": sym[:-4], "nivel": 3, "prob": prob, "fecha_corta": info.get("fecha_corta", ""), "p_ini": p_ini, "p_act": p_act, "var_det": var_det, "mkt": mkt, "tec": tec})
 
         info.update({"ultimo_precio": p_act, "ultimo_estado": cat, "ultima_probabilidad": prob})
@@ -289,8 +314,17 @@ def motor_ia_seleccion_tactica(session, tickers, activos, historial):
             continue
 
     alertas = evaluar_evolucion_estrellas(session, mapa, historial)
+    seg = historial.get("seguimiento_verde", {})
+    semillero_verde = {sym[:-4] for sym, d in seg.items() if int(d.get("estrellas", 0)) >= 1}
+
     r_ok, a_ok, v_ok = [], [], []
-    for it in sorted(cand, key=lambda x: x['presion'], reverse=True)[:36]:
+    vistos_sym = set()
+    prioritarios = [mapa[sym] for sym in seg if sym in mapa]
+    resto = sorted(cand, key=lambda x: x['presion'], reverse=True)[:36]
+
+    for it in prioritarios + resto:
+        if it['symbol'] in vistos_sym: continue
+        vistos_sym.add(it['symbol'])
         tec = calcular_probabilidad_inversion(session, it['symbol'])
         if not tec["ok"] or tec["probabilidad_pct"] < 35: continue
         it.update(tec)
@@ -298,33 +332,42 @@ def motor_ia_seleccion_tactica(session, tickers, activos, historial):
         it['categoria'], it['color_hex'] = cat, col
         (r_ok if cat == "ROJO" else (a_ok if cat == "AMARILLO" else v_ok)).append(it)
 
-    for l in (r_ok, a_ok, v_ok): l.sort(key=lambda x: x['probabilidad_pct'], reverse=True)
-    r7, a7, v7, destacadas, dictamen = curar_con_gemini(r_ok, a_ok, v_ok)
+    for l in (r_ok, a_ok, v_ok): l.sort(key=lambda x: (1 if x['base'] in semillero_verde else 0, x['probabilidad_pct']), reverse=True)
+    r7, a7, v7, destacadas, dictamen = curar_con_gemini(r_ok, a_ok, v_ok, semillero_verde)
 
-    seg, grad = historial.get("seguimiento_verde", {}), historial.get("graduadas_pre_explosion", {})
+    grad = historial.get("graduadas_pre_explosion", {})
     hoy_iso, hoy_corta = ahora_art().strftime('%Y-%m-%d'), ahora_art().strftime('%d/%m')
 
     grupos = {"ROJO": r7, "AMARILLO": a7, "VERDE": v7}
     for ck, lista_g in grupos.items():
         picks_ck = destacadas.get(ck, {})
-        est_zona = ESTRELLAS_POR_ZONA[ck]
         for it in lista_g:
             sym, base = it['symbol'], it['base']
+            nacio_verde = sym in seg and int(seg[sym].get("estrellas", 0)) >= 1
             eleg = base in picks_ck
+
             it['motivo_ia'] = picks_ck.get(base, "") if eleg else ""
-            it['estrellas'] = est_zona if eleg else 0
-            it['es_evolucion'] = bool(eleg and ck in ("AMARILLO", "ROJO") and int(seg.get(sym, {}).get("estrellas", 0)) >= 2)
+            it['es_evolucion'] = False
 
-            if ck == "VERDE" and eleg and sym not in seg:
-                seg[sym] = {"fecha_iso": hoy_iso, "fecha_corta": hoy_corta, "precio_deteccion": it['precio_f'], "estrellas": 1, "estado_actual": "VERDE", "ultimo_estado": "VERDE", "ultima_probabilidad": it['probabilidad_pct'], "alerta_2_estrellas_enviada": False, "alerta_3_estrellas_enviada": False}
-            elif sym in seg and ck in ("AMARILLO", "ROJO"):
-                prev_est = int(seg[sym].get("estrellas", 1))
-                seg[sym]["estrellas"] = prev_est if prev_est > it['estrellas'] else it['estrellas']
-                seg[sym]["ultimo_estado"] = ck
+            if ck == "VERDE" and eleg:
+                it['estrellas'] = 1
+                if sym not in seg:
+                    seg[sym] = {"fecha_iso": hoy_iso, "fecha_corta": hoy_corta, "precio_deteccion": it['precio_f'], "estrellas": 1, "estado_actual": "VERDE", "ultimo_estado": "VERDE", "ultima_probabilidad": it['probabilidad_pct'], "alerta_2_estrellas_enviada": False, "alerta_3_estrellas_enviada": False}
+            elif ck == "AMARILLO" and eleg and nacio_verde and cumple_requisito_evolucion(it):
+                it['estrellas'] = 2
+                it['es_evolucion'] = True
+                seg[sym]["estrellas"] = max(int(seg[sym].get("estrellas", 1)), 2)
+                seg[sym]["ultimo_estado"] = "AMARILLO"
                 seg[sym]["ultima_probabilidad"] = it['probabilidad_pct']
-
-            if ck == "ROJO" and eleg:
-                grad[sym] = {"symbol": sym, "base": base, "estrellas": 3, "probabilidad_pct": it['probabilidad_pct'], "precio_ref": it['precio_f'], "fecha_iso": hoy_iso, "fecha_corta": hoy_corta, "origen": "Cazador ROJO (⭐⭐⭐)"}
+            elif ck == "ROJO" and eleg and nacio_verde and cumple_requisito_evolucion(it):
+                it['estrellas'] = 3
+                it['es_evolucion'] = True
+                seg[sym]["estrellas"] = 3
+                seg[sym]["ultimo_estado"] = "ROJO"
+                seg[sym]["ultima_probabilidad"] = it['probabilidad_pct']
+                grad[sym] = {"symbol": sym, "base": base, "estrellas": 3, "probabilidad_pct": it['probabilidad_pct'], "precio_ref": it['precio_f'], "fecha_iso": hoy_iso, "fecha_corta": hoy_corta, "origen": "Camino Completo Verde ➔ Rojo (⭐⭐⭐)"}
+            else:
+                it['estrellas'] = 0
 
             menc[sym] = 1
             if sym not in historial["resumen_dia"]: historial["resumen_dia"].append(sym)
@@ -397,10 +440,10 @@ def enviar_alerta_evolucion(al):
     u_ia = f"{BASE_URL_NETLIFY}/?coin={sim}&price={mkt['precio_f']}&change={mkt['cambio_f']}&high={mkt['high_f']}&low={mkt['low_f']}&v={sim}_{uid}"
     u_tr = f"https://www.binance.com/es/trade/{sim}_USDT"
     titulo = "🚨 <b>ALERTA EVOLUCIÓN • ⭐⭐ (2 ESTRELLAS)</b>" if niv == 2 else "🏆 <b>CONFIRMACIÓN INVERSIÓN • ⭐⭐⭐ (3 ESTRELLAS)</b>"
-    zona_txt = f"subió a zona 🟡 <b>AMARILLA</b> (Prob: <b>{al['prob']}%</b>)." if niv == 2 else f"alcanzó zona 🔴 <b>ROJA</b> (Prob: <b>{al['prob']}%</b>) y pasa lista al radar verde de <b>Pre-Explosión</b>."
+    zona_txt = f"evolucionó desde ⭐ Verde a zona 🟡 <b>AMARILLA</b> (Prob: <b>{al['prob']}%</b>)." if niv == 2 else f"alcanzó zona 🔴 <b>ROJA</b> (Prob: <b>{al['prob']}%</b>) y pasa confirmada al radar verde de <b>Pre-Explosión</b>."
     msg = (
         f"{titulo}\n📅 <code>{ahora_art().strftime('%Y-%m-%d %H:%M ART')}</code>\n\n"
-        f"⚡ <b>{sim}</b> (cazada con ⭐ en 🟢 el <code>{al['fecha_corta']}</code> a <code>{formatear_precio(al['p_ini'])}</code>) {zona_txt}\n"
+        f"⚡ <b>{sim}</b> (iniciada con ⭐ en 🟢 el <code>{al['fecha_corta']}</code> a <code>{formatear_precio(al['p_ini'])}</code>) {zona_txt}\n"
         f"• <b>Actual:</b> <code>{formatear_precio(al['p_act'])}</code> (<b>{al['var_det']:+.2f}%</b> desde detección)\n"
         f"• <b>Técnico:</b> <code>1h: {tec['var_1h']:+.2f}% | RSI: {tec['rsi_1h']} | {tec['ema_estado']} | Vol: x{tec['vol_surge']}</code>\n"
         f"└ <a href=\"{html.escape(u_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(u_tr)}\">🔶 Tradear</a>"
@@ -411,7 +454,7 @@ def enviar_bloque_color(num_bloque, titulo_msg, titulo_graf, items, seg, dictame
     if not items: return
     fname = f"grafico_cazador_{num_bloque}.png"
     fecha_str = ahora_art().strftime('%Y-%m-%d %H:%M ART')
-    generar_grafico_bloque(items, titulo_graf, f"Fecha: {fecha_str} | ★ Verde | ★★ Amarillo | ★★★ Rojo", fname)
+    generar_grafico_bloque(items, titulo_graf, f"Fecha: {fecha_str} | Camino: ★ Verde ➔ ★★ Amarillo ➔ ★★★ Rojo", fname)
 
     msg = f"🔥 <b>CAZADOR TÁCTICO ({num_bloque}/3)</b>\n{titulo_msg}\n📅 <code>{fecha_str}</code>\n"
     if dictamen_global:
@@ -427,11 +470,11 @@ def enviar_bloque_color(num_bloque, titulo_msg, titulo_graf, items, seg, dictame
 
         if est > 0:
             if it['categoria'] == "ROJO":
-                tag_dest = "LISTA PRE-EXPLOSIÓN"
+                tag_dest = "CONFIRMADA PRE-EXPLOSIÓN"
             elif it['categoria'] == "AMARILLO":
-                tag_dest = "EVOLUCIÓN ACTIVA" if it.get('es_evolucion') else "ESTRUCTURA ARMADA"
+                tag_dest = "EVOLUCIÓN CONFIRMADA"
             else:
-                tag_dest = "DESTACADA INICIAL"
+                tag_dest = "INICIO CAMINO VERDE"
 
             mot = html.escape(it.get("motivo_ia", ""))
             msg += (
@@ -474,7 +517,7 @@ def enviar_bloque_color(num_bloque, titulo_msg, titulo_graf, items, seg, dictame
         time.sleep(3)
 
 if __name__ == "__main__":
-    print(f"🔥 INICIANDO CAZADOR TÁCTICO POR BLOQUES ({ahora_art().strftime('%H:%M:%S')} ART)...")
+    print(f"🔥 INICIANDO CAZADOR TÁCTICO POR ETAPAS ({ahora_art().strftime('%H:%M:%S')} ART)...")
     s = crear_sesion_binance()
     activos, datos = obtener_datos_binance(s)
     if datos and activos:
@@ -486,11 +529,11 @@ if __name__ == "__main__":
             time.sleep(1.5)
 
         seg = hist.get("seguimiento_verde", {})
-        enviar_bloque_color(1, "🔴 <b>1. PROBABILIDAD MÁXIMA (72%–98% • ⭐⭐⭐ Pre-Explosión)</b>", "CAZADOR TACTICO (1/3) • PROBABILIDAD MAXIMA (3 ESTRELLAS)", grupos["ROJO"], seg, dictamen)
+        enviar_bloque_color(1, "🔴 <b>1. CONFIRMADA PRE-EXPLOSIÓN (72%–98% • ⭐⭐⭐)</b>", "CAZADOR TACTICO (1/3) • CONFIRMADA PRE-EXPLOSION (3 ESTRELLAS)", grupos["ROJO"], seg, dictamen)
         time.sleep(2)
-        enviar_bloque_color(2, "🟡 <b>2. PROBABILIDAD ALTA (52%–71% • ⭐⭐ Estructura Armada)</b>", "CAZADOR TACTICO (2/3) • PROBABILIDAD ALTA (2 ESTRELLAS)", grupos["AMARILLO"], seg)
+        enviar_bloque_color(2, "🟡 <b>2. EVOLUCIÓN DESDE VERDE (52%–71% • ⭐⭐)</b>", "CAZADOR TACTICO (2/3) • EVOLUCION DESDE VERDE (2 ESTRELLAS)", grupos["AMARILLO"], seg)
         time.sleep(2)
-        enviar_bloque_color(3, "🟢 <b>3. PROBABILIDAD INICIAL (35%–51% • ⭐ Detección Temprana)</b>", "CAZADOR TACTICO (3/3) • PROBABILIDAD INICIAL (1 ESTRELLA)", grupos["VERDE"], seg)
+        enviar_bloque_color(3, "🟢 <b>3. INICIO EN VERDE (35%–51% • ⭐)</b>", "CAZADOR TACTICO (3/3) • INICIO EN VERDE (1 ESTRELLA)", grupos["VERDE"], seg)
 
         if ahora_art().hour >= 21 and not hist.get("resumen_enviado_hoy", False):
             mdia = [x[:-4] for x in hist.get("resumen_dia", [])]
