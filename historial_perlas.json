@@ -13,9 +13,11 @@
     "OPGUSDT": 2,
     "SENTUSDT": 2,
     "WCTUSDT": 2,
-    "USD1USDT": 2,
-    "RLUSDUSDT": 2,
-    "UUSDT": 2
+    "USD1USDT": 1,
+    "RLUSDUSDT": 1,
+    "UUSDT": 1,
+    "PROMUSDT": 2,
+    "AIGENSYNUSDT": 2
   },
   "resumen_dia": [
     "DODOUSDT",
@@ -59,7 +61,8 @@
     "ATUSDT",
     "USD1USDT",
     "RLUSDUSDT",
-    "UUSDT"
+    "UUSDT",
+    "PROMUSDT"
   ],
   "resumen_enviado_hoy": false,
   "posta": {
