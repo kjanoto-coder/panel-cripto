@@ -1,14 +1,5 @@
 [
   [
-    "PARTIUSDT",
-    "SAPIENUSDT",
-    "BREVUSDT",
-    "MMTUSDT",
-    "AIGENSYNUSDT",
-    "KITEUSDT",
-    "USUALUSDT"
-  ],
-  [
     "SAPIENUSDT",
     "PARTIUSDT",
     "BREVUSDT",
@@ -16,5 +7,14 @@
     "AIGENSYNUSDT",
     "USUALUSDT",
     "BLURUSDT"
+  ],
+  [
+    "PARTIUSDT",
+    "SAPIENUSDT",
+    "MMTUSDT",
+    "AIGENSYNUSDT",
+    "BREVUSDT",
+    "KITEUSDT",
+    "USUALUSDT"
   ]
 ]
