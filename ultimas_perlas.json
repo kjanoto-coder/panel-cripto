@@ -4,17 +4,17 @@
     "XPLUSDT",
     "USUALUSDT",
     "OSMOUSDT",
+    "ENSOUSDT",
     "YBUSDT",
-    "KITEUSDT",
-    "HOTUSDT"
+    "AIGENSYNUSDT"
   ],
   [
     "SKYUSDT",
     "XPLUSDT",
-    "USUALUSDT",
+    "SIGNUSDT",
+    "ORCAUSDT",
     "OSMOUSDT",
-    "ENSOUSDT",
-    "YBUSDT",
-    "AIGENSYNUSDT"
+    "USUALUSDT",
+    "YBUSDT"
   ]
 ]
