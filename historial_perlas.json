@@ -1,25 +1,21 @@
 {
   "fecha": "2026-11-21",
   "mencionadas": {
-    "DODOUSDT": 1,
-    "SKYUSDT": 1,
-    "KITEUSDT": 1,
-    "GLMRUSDT": 1,
-    "SENTUSDT": 1,
-    "AIGENSYNUSDT": 1,
-    "OPGUSDT": 1,
-    "FFUSDT": 1,
-    "GRAMUSDT": 1,
-    "BLURUSDT": 1,
-    "WCTUSDT": 1,
-    "SHELLUSDT": 1,
-    "PORTALUSDT": 1,
-    "LQTYUSDT": 1,
-    "HOTUSDT": 1,
-    "WLFIUSDT": 1,
-    "RESOLVUSDT": 1,
-    "ZKPUSDT": 1,
-    "YGGUSDT": 1
+    "DODOUSDT": 2,
+    "KITEUSDT": 2,
+    "BLURUSDT": 2,
+    "AIGENSYNUSDT": 2,
+    "SENTUSDT": 2,
+    "OPGUSDT": 2,
+    "GLMRUSDT": 2,
+    "SKYUSDT": 2,
+    "WCTUSDT": 2,
+    "GRAMUSDT": 2,
+    "SHELLUSDT": 2,
+    "FFUSDT": 2,
+    "PORTALUSDT": 2,
+    "NIGHTUSDT": 2,
+    "TOWNSUSDT": 2
   },
   "resumen_dia": [
     "ASTERUSDT",
@@ -48,7 +44,9 @@
     "LQTYUSDT",
     "WLFIUSDT",
     "ZKPUSDT",
-    "YGGUSDT"
+    "YGGUSDT",
+    "NIGHTUSDT",
+    "TOWNSUSDT"
   ],
   "resumen_enviado_hoy": false,
   "posta": {
