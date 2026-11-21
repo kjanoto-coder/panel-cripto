@@ -1,19 +1,19 @@
 [
   [
+    "SAPIENUSDT",
+    "PARTIUSDT",
+    "MMTUSDT",
+    "BLURUSDT",
+    "HOTUSDT",
+    "HMSTRUSDT",
+    "KERNELUSDT"
+  ],
+  [
     "PARTIUSDT",
     "SAPIENUSDT",
     "AIGENSYNUSDT",
-    "MMTUSDT",
-    "BLURUSDT",
     "HOTUSDT",
-    "HMSTRUSDT"
-  ],
-  [
-    "SAPIENUSDT",
-    "PARTIUSDT",
-    "MMTUSDT",
     "BLURUSDT",
-    "HOTUSDT",
     "HMSTRUSDT",
     "KERNELUSDT"
   ]
