@@ -1,5 +1,5 @@
 {
-  "fecha": "2026-11-20",
+  "fecha": "2026-11-21",
   "favoritos": [
     "NEIROUSDT",
     "TUTUSDT",
@@ -23,45 +23,29 @@
     "GIGGLEUSDT"
   ],
   "alertadas_hoy": {
-    "OPENUSDT": {
-      "hora_art": "17:29",
-      "precio": 0.0774
+    "MANTRAUSDT": {
+      "hora_art": "05:46",
+      "precio": 0.00177
     },
-    "ETHFIUSDT": {
-      "hora_art": "22:32",
-      "precio": 0.4493
+    "OPENUSDT": {
+      "hora_art": "05:46",
+      "precio": 0.0751
     },
     "GIGGLEUSDT": {
-      "hora_art": "17:29",
-      "precio": 20.21
-    },
-    "ALGOUSDT": {
-      "hora_art": "17:29",
-      "precio": 0.0725
-    },
-    "PENGUUSDT": {
-      "hora_art": "22:32",
-      "precio": 0.004334
+      "hora_art": "05:46",
+      "precio": 20.0
     },
     "ONDOUSDT": {
-      "hora_art": "17:29",
-      "precio": 0.2767
+      "hora_art": "05:46",
+      "precio": 0.2636
     },
     "MITOUSDT": {
-      "hora_art": "22:32",
-      "precio": 0.0052
+      "hora_art": "05:46",
+      "precio": 0.00506
     },
-    "BANKUSDT": {
-      "hora_art": "22:32",
-      "precio": 0.0164
-    },
-    "PUMPUSDT": {
-      "hora_art": "22:32",
-      "precio": 0.002436
-    },
-    "NEIROUSDT": {
-      "hora_art": "22:32",
-      "precio": 4.629e-05
+    "XECUSDT": {
+      "hora_art": "05:46",
+      "precio": 4.9e-06
     }
   },
   "historial_caidas": {
@@ -118,10 +102,18 @@
           "chg_24h": -16.154,
           "arrastre_btc": true,
           "senal_oportunidad": false
+        },
+        {
+          "fecha": "2026-11-21",
+          "precio_caida": 723.57,
+          "min_24h": 679.48,
+          "chg_24h": -14.86,
+          "arrastre_btc": true,
+          "senal_oportunidad": false
         }
       ],
-      "ultimo_precio": 748.03,
-      "ultimo_chg_24h": -16.154,
+      "ultimo_precio": 723.57,
+      "ultimo_chg_24h": -14.86,
       "rebotes_hist_1d": 158
     },
     "MANTRAUSDT": {
@@ -141,10 +133,18 @@
           "chg_24h": -14.085,
           "arrastre_btc": true,
           "senal_oportunidad": false
+        },
+        {
+          "fecha": "2026-11-21",
+          "precio_caida": 0.00177,
+          "min_24h": 0.00172,
+          "chg_24h": -15.714,
+          "arrastre_btc": true,
+          "senal_oportunidad": true
         }
       ],
-      "ultimo_precio": 0.00183,
-      "ultimo_chg_24h": -14.085,
+      "ultimo_precio": 0.00177,
+      "ultimo_chg_24h": -15.714,
       "rebotes_hist_1d": 40
     },
     "IRENBUSDT": {
@@ -180,10 +180,18 @@
           "chg_24h": -16.964,
           "arrastre_btc": true,
           "senal_oportunidad": false
+        },
+        {
+          "fecha": "2026-11-21",
+          "precio_caida": 0.0185,
+          "min_24h": 0.0178,
+          "chg_24h": -16.29,
+          "arrastre_btc": true,
+          "senal_oportunidad": false
         }
       ],
-      "ultimo_precio": 0.0186,
-      "ultimo_chg_24h": -16.964,
+      "ultimo_precio": 0.0185,
+      "ultimo_chg_24h": -16.29,
       "rebotes_hist_1d": 72
     },
     "YBUSDT": {
@@ -219,10 +227,18 @@
           "chg_24h": -14.614,
           "arrastre_btc": true,
           "senal_oportunidad": true
+        },
+        {
+          "fecha": "2026-11-21",
+          "precio_caida": 0.00506,
+          "min_24h": 0.00487,
+          "chg_24h": -6.985,
+          "arrastre_btc": true,
+          "senal_oportunidad": true
         }
       ],
-      "ultimo_precio": 0.0052,
-      "ultimo_chg_24h": -14.614,
+      "ultimo_precio": 0.00506,
+      "ultimo_chg_24h": -6.985,
       "rebotes_hist_1d": 106
     },
     "MUBUSDT": {
@@ -265,10 +281,18 @@
           "chg_24h": -12.245,
           "arrastre_btc": true,
           "senal_oportunidad": true
+        },
+        {
+          "fecha": "2026-11-21",
+          "precio_caida": 0.0751,
+          "min_24h": 0.0718,
+          "chg_24h": -11.958,
+          "arrastre_btc": true,
+          "senal_oportunidad": true
         }
       ],
-      "ultimo_precio": 0.0774,
-      "ultimo_chg_24h": -12.245,
+      "ultimo_precio": 0.0751,
+      "ultimo_chg_24h": -11.958,
       "rebotes_hist_1d": 122
     },
     "UNIUSDT": {
@@ -341,10 +365,18 @@
           "chg_24h": -6.474,
           "arrastre_btc": true,
           "senal_oportunidad": true
+        },
+        {
+          "fecha": "2026-11-21",
+          "precio_caida": 0.4249,
+          "min_24h": 0.4167,
+          "chg_24h": -10.453,
+          "arrastre_btc": true,
+          "senal_oportunidad": false
         }
       ],
-      "ultimo_precio": 0.4493,
-      "ultimo_chg_24h": -6.474,
+      "ultimo_precio": 0.4249,
+      "ultimo_chg_24h": -10.453,
       "rebotes_hist_1d": 124
     },
     "METUSDT": {
@@ -389,10 +421,18 @@
           "chg_24h": -6.973,
           "arrastre_btc": true,
           "senal_oportunidad": true
+        },
+        {
+          "fecha": "2026-11-21",
+          "precio_caida": 4.494e-05,
+          "min_24h": 4.335e-05,
+          "chg_24h": -7.778,
+          "arrastre_btc": true,
+          "senal_oportunidad": false
         }
       ],
-      "ultimo_precio": 4.629e-05,
-      "ultimo_chg_24h": -6.973,
+      "ultimo_precio": 4.494e-05,
+      "ultimo_chg_24h": -7.778,
       "rebotes_hist_1d": 99
     },
     "TUTUSDT": {
@@ -404,10 +444,18 @@
           "chg_24h": -9.716,
           "arrastre_btc": true,
           "senal_oportunidad": false
+        },
+        {
+          "fecha": "2026-11-21",
+          "precio_caida": 0.01136,
+          "min_24h": 0.01116,
+          "chg_24h": -12.883,
+          "arrastre_btc": true,
+          "senal_oportunidad": false
         }
       ],
-      "ultimo_precio": 0.01208,
-      "ultimo_chg_24h": -9.716,
+      "ultimo_precio": 0.01136,
+      "ultimo_chg_24h": -12.883,
       "rebotes_hist_1d": 121
     },
     "PUMPUSDT": {
@@ -419,10 +467,18 @@
           "chg_24h": -7.129,
           "arrastre_btc": true,
           "senal_oportunidad": true
+        },
+        {
+          "fecha": "2026-11-21",
+          "precio_caida": 0.002249,
+          "min_24h": 0.002185,
+          "chg_24h": -12.114,
+          "arrastre_btc": true,
+          "senal_oportunidad": false
         }
       ],
-      "ultimo_precio": 0.002436,
-      "ultimo_chg_24h": -7.129,
+      "ultimo_precio": 0.002249,
+      "ultimo_chg_24h": -12.114,
       "rebotes_hist_1d": 139
     },
     "ONDOUSDT": {
@@ -434,10 +490,18 @@
           "chg_24h": -6.035,
           "arrastre_btc": true,
           "senal_oportunidad": true
+        },
+        {
+          "fecha": "2026-11-21",
+          "precio_caida": 0.2636,
+          "min_24h": 0.254,
+          "chg_24h": -10.034,
+          "arrastre_btc": true,
+          "senal_oportunidad": true
         }
       ],
-      "ultimo_precio": 0.2787,
-      "ultimo_chg_24h": -6.035,
+      "ultimo_precio": 0.2636,
+      "ultimo_chg_24h": -10.034,
       "rebotes_hist_1d": 106
     },
     "QIUSDT": {
@@ -452,14 +516,34 @@
           "chg_24h": -5.74,
           "arrastre_btc": true,
           "senal_oportunidad": false
+        },
+        {
+          "fecha": "2026-11-21",
+          "precio_caida": 0.00408,
+          "min_24h": 0.00398,
+          "chg_24h": -9.131,
+          "arrastre_btc": true,
+          "senal_oportunidad": false
         }
       ],
-      "ultimo_precio": 0.00427,
-      "ultimo_chg_24h": -5.74,
+      "ultimo_precio": 0.00408,
+      "ultimo_chg_24h": -9.131,
       "rebotes_hist_1d": 102
     },
     "XECUSDT": {
-      "eventos_caida": []
+      "eventos_caida": [
+        {
+          "fecha": "2026-11-21",
+          "precio_caida": 4.9e-06,
+          "min_24h": 4.76e-06,
+          "chg_24h": -5.405,
+          "arrastre_btc": true,
+          "senal_oportunidad": true
+        }
+      ],
+      "ultimo_precio": 4.9e-06,
+      "ultimo_chg_24h": -5.405,
+      "rebotes_hist_1d": 73
     },
     "JSTUSDT": {
       "eventos_caida": []
@@ -473,11 +557,19 @@
           "chg_24h": -5.352,
           "arrastre_btc": true,
           "senal_oportunidad": true
+        },
+        {
+          "fecha": "2026-11-21",
+          "precio_caida": 0.0712,
+          "min_24h": 0.0692,
+          "chg_24h": -7.292,
+          "arrastre_btc": true,
+          "senal_oportunidad": false
         }
       ],
-      "ultimo_precio": 0.0725,
-      "ultimo_chg_24h": -5.352,
-      "rebotes_hist_1d": 112
+      "ultimo_precio": 0.0712,
+      "ultimo_chg_24h": -7.292,
+      "rebotes_hist_1d": 111
     },
     "PENGUUSDT": {
       "eventos_caida": [
@@ -488,10 +580,18 @@
           "chg_24h": -5.288,
           "arrastre_btc": true,
           "senal_oportunidad": true
+        },
+        {
+          "fecha": "2026-11-21",
+          "precio_caida": 0.00412,
+          "min_24h": 0.004007,
+          "chg_24h": -9.331,
+          "arrastre_btc": true,
+          "senal_oportunidad": false
         }
       ],
-      "ultimo_precio": 0.004334,
-      "ultimo_chg_24h": -5.288,
+      "ultimo_precio": 0.00412,
+      "ultimo_chg_24h": -9.331,
       "rebotes_hist_1d": 100
     },
     "JUPUSDT": {
@@ -506,10 +606,18 @@
           "chg_24h": -12.307,
           "arrastre_btc": true,
           "senal_oportunidad": false
+        },
+        {
+          "fecha": "2026-11-21",
+          "precio_caida": 0.1186,
+          "min_24h": 0.1173,
+          "chg_24h": -13.808,
+          "arrastre_btc": true,
+          "senal_oportunidad": false
         }
       ],
-      "ultimo_precio": 0.1247,
-      "ultimo_chg_24h": -12.307,
+      "ultimo_precio": 0.1186,
+      "ultimo_chg_24h": -13.808,
       "rebotes_hist_1d": 120
     },
     "BANKUSDT": {
@@ -521,10 +629,18 @@
           "chg_24h": -12.766,
           "arrastre_btc": true,
           "senal_oportunidad": true
+        },
+        {
+          "fecha": "2026-11-21",
+          "precio_caida": 0.0158,
+          "min_24h": 0.0154,
+          "chg_24h": -10.227,
+          "arrastre_btc": true,
+          "senal_oportunidad": false
         }
       ],
-      "ultimo_precio": 0.0164,
-      "ultimo_chg_24h": -12.766,
+      "ultimo_precio": 0.0158,
+      "ultimo_chg_24h": -10.227,
       "rebotes_hist_1d": 98
     },
     "GIGGLEUSDT": {
@@ -536,12 +652,20 @@
           "chg_24h": -8.385,
           "arrastre_btc": true,
           "senal_oportunidad": true
+        },
+        {
+          "fecha": "2026-11-21",
+          "precio_caida": 20.0,
+          "min_24h": 19.11,
+          "chg_24h": -9.91,
+          "arrastre_btc": true,
+          "senal_oportunidad": true
         }
       ],
-      "ultimo_precio": 20.54,
-      "ultimo_chg_24h": -8.385,
+      "ultimo_precio": 20.0,
+      "ultimo_chg_24h": -9.91,
       "rebotes_hist_1d": 120
     }
   },
-  "actualizado_art": "2026-11-20 22:32:13"
+  "actualizado_art": "2026-11-21 05:46:45"
 }
