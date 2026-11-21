@@ -1,8 +1,7 @@
 [
   [
-    "PARTIUSDT",
     "SAPIENUSDT",
-    "AIGENSYNUSDT",
+    "PARTIUSDT",
     "BLURUSDT",
     "HMSTRUSDT",
     "KERNELUSDT",
@@ -11,9 +10,10 @@
   [
     "SAPIENUSDT",
     "PARTIUSDT",
+    "MMTUSDT",
+    "AIGENSYNUSDT",
     "BLURUSDT",
-    "HMSTRUSDT",
-    "KERNELUSDT",
-    "CYBERUSDT"
+    "SOPHUSDT",
+    "HMSTRUSDT"
   ]
 ]
