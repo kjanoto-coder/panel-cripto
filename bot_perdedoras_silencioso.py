@@ -7,21 +7,43 @@ from typing import Dict, List, Optional, Tuple
 import requests
 
 # =====================================================================
-# 1. CONFIGURACIÓN TELEGRAM Y CONTROL DE EJECUCIÓN
+# 1. CONFIGURACIÓN DE TELEGRAM, TOPICS Y CONTROL DE EJECUCIÓN
 # =====================================================================
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "TU_BOT_TOKEN_AQUI")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "TU_CHAT_ID_AQUI")
+TELEGRAM_BOT_TOKEN = (
+    os.getenv("TELEGRAM_BOT_TOKEN")
+    or os.getenv("TELEGRAM_TOKEN")
+    or "TU_BOT_TOKEN_AQUI"
+).strip()
+
+TELEGRAM_CHAT_ID = (
+    os.getenv("TELEGRAM_CHAT_ID")
+    or os.getenv("CHAT_ID")
+    or "TU_CHAT_ID_AQUI"
+).strip()
+
+# Tópicos de Telegram (si TOPIC_ID_DIPS está vacío, usa TOPIC_ID_CENTRAL o TELEGRAM_MESSAGE_THREAD_ID)
+TOPIC_ID_DIPS = os.getenv("TOPIC_ID_DIPS", "").strip()
+TOPIC_ID_PERDEDORAS = os.getenv("TOPIC_ID_PERDEDORAS", "").strip()
+TOPIC_ID_CENTRAL = os.getenv("TOPIC_ID_CENTRAL", "").strip()
+TELEGRAM_MESSAGE_THREAD_ID = os.getenv("TELEGRAM_MESSAGE_THREAD_ID", "").strip()
 
 COOLDOWN_MINUTES = int(os.getenv("COOLDOWN_MINUTES", "180"))
 STATE_FILE = Path(os.getenv("STATE_FILE", "spot_audit_state.json"))
-ALERT_ON_DISCARDED_NEW_LOW = False  # True solo si querés avisos informativos de nuevos mínimos en descartadas
+ALERT_ON_DISCARDED_NEW_LOW = os.getenv("ALERT_ON_DISCARDED_NEW_LOW", "false").lower() == "true"
 
+# data-api.binance.vision suele funcionar sin bloqueo regional en GitHub Actions
 BINANCE_ENDPOINTS = [
+    "https://data-api.binance.vision",
     "https://api.binance.com",
     "https://api1.binance.com",
     "https://api2.binance.com",
     "https://api3.binance.com",
 ]
+
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "Accept": "application/json",
+}
 
 # =====================================================================
 # 2. BASE DE CONOCIMIENTO DEFINITIVA (60 ACTIVOS AUDITADOS EN SPOT)
@@ -298,17 +320,88 @@ ASSETS_DB: Dict[str, dict] = {
 
 
 # =====================================================================
-# 3. CONSULTAS DE MERCADO E INDICADORES
+# 3. CONSULTAS DE MERCADO CON DIAGNÓSTICO Y RESPALDO MULTI-FUENTE
 # =====================================================================
-def binance_get(path: str, params: Optional[dict] = None) -> Optional[dict | list]:
+def fetch_json_debug(url: str, params: Optional[dict] = None) -> Tuple[Optional[dict | list], Optional[str]]:
+    try:
+        resp = requests.get(url, params=params, headers=HEADERS, timeout=12)
+        if resp.status_code == 200:
+            return resp.json(), None
+        return None, f"HTTP {resp.status_code}: {resp.text[:140]}"
+    except requests.RequestException as exc:
+        return None, f"EXC {type(exc).__name__}: {exc}"
+
+
+def get_24h_tickers() -> Tuple[Dict[str, dict], str]:
+    """Obtiene precios 24h desde Binance (priorizando data-api.binance.vision) o respaldo CoinGecko."""
+    errors = []
     for base in BINANCE_ENDPOINTS:
-        try:
-            resp = requests.get(f"{base}{path}", params=params, timeout=10)
-            if resp.status_code == 200:
-                return resp.json()
-        except requests.RequestException:
-            continue
-    return None
+        data, err = fetch_json_debug(f"{base}/api/v3/ticker/24hr")
+        if isinstance(data, list) and len(data) > 0:
+            print(f"[OK] Tickers 24h obtenidos desde {base} ({len(data)} pares).")
+            return ({item["symbol"]: item for item in data if "symbol" in item}, "BINANCE")
+        errors.append(f"{base} -> {err}")
+
+    print("[WARN] Fallaron todos los endpoints directos de Binance:")
+    for e in errors:
+        print(f"  - {e}")
+
+    # Respaldo automático vía CoinGecko (páginas 1 y 2 para cubrir hasta top 500)
+    normalized: Dict[str, dict] = {}
+    for page in (1, 2):
+        cg_data, cg_err = fetch_json_debug(
+            "https://api.coingecko.com/api/v3/coins/markets",
+            params={
+                "vs_currency": "usd",
+                "order": "market_cap_desc",
+                "per_page": 250,
+                "page": page,
+                "price_change_percentage": "24h",
+            },
+        )
+        if isinstance(cg_data, list) and len(cg_data) > 0:
+            for coin in cg_data:
+                sym = f"{coin.get('symbol', '').upper()}USDT"
+                price = coin.get("current_price")
+                pct = coin.get("price_change_percentage_24h")
+                vol = coin.get("total_volume")
+                if sym != "USDT" and price is not None and sym not in normalized:
+                    normalized[sym] = {
+                        "symbol": sym,
+                        "lastPrice": str(price),
+                        "priceChangePercent": str(pct if pct is not None else 0.0),
+                        "quoteVolume": str(vol if vol is not None else 0.0),
+                    }
+        else:
+            print(f"[WARN] CoinGecko página {page} falló: {cg_err}")
+        if page == 1:
+            time.sleep(1.0)
+
+    if normalized:
+        print(f"[OK] Respaldo CoinGecko cargado ({len(normalized)} pares).")
+        return normalized, "COINGECKO"
+
+    return {}, "NONE"
+
+
+def get_klines(symbol: str, interval: str, limit: int = 120) -> List[dict]:
+    for base in BINANCE_ENDPOINTS:
+        raw, _ = fetch_json_debug(
+            f"{base}/api/v3/klines",
+            params={"symbol": symbol, "interval": interval, "limit": limit},
+        )
+        if isinstance(raw, list) and len(raw) > 0:
+            return [
+                {
+                    "open": float(k[1]),
+                    "high": float(k[2]),
+                    "low": float(k[3]),
+                    "close": float(k[4]),
+                    "quote_vol": float(k[7]),
+                }
+                for k in raw
+            ]
+    return []
 
 
 def calc_ema(values: List[float], period: int) -> Optional[float]:
@@ -339,29 +432,6 @@ def calc_rsi(values: List[float], period: int = 6) -> Optional[float]:
     return 100.0 - (100.0 / (1.0 + (avg_g / avg_l)))
 
 
-def get_klines(symbol: str, interval: str, limit: int = 120) -> List[dict]:
-    raw = binance_get("/api/v3/klines", {"symbol": symbol, "interval": interval, "limit": limit})
-    if not isinstance(raw, list):
-        return []
-    return [
-        {
-            "open": float(k[1]),
-            "high": float(k[2]),
-            "low": float(k[3]),
-            "close": float(k[4]),
-            "quote_vol": float(k[7]),
-        }
-        for k in raw
-    ]
-
-
-def get_24h_tickers() -> Dict[str, dict]:
-    raw = binance_get("/api/v3/ticker/24hr")
-    if not isinstance(raw, list):
-        return {}
-    return {item["symbol"]: item for item in raw if "symbol" in item}
-
-
 def fmt(p: float) -> str:
     if p >= 100:
         return f"{p:,.2f}"
@@ -377,42 +447,43 @@ def fmt(p: float) -> str:
 # =====================================================================
 # 4. EVALUACIÓN DE OPORTUNIDAD EN CAÍDA SEGÚN EL RANKING
 # =====================================================================
-def evaluate_symbol(symbol: str, cfg: dict, ticker: dict) -> Optional[Tuple[str, str]]:
+def evaluate_symbol(symbol: str, cfg: dict, ticker: dict, source: str) -> Optional[Tuple[str, str, str]]:
     group = cfg["group"]
     price = float(ticker["lastPrice"])
     pct_24h = float(ticker["priceChangePercent"])
     vol_24h = float(ticker["quoteVolume"])
 
-    k15 = get_klines(symbol, "15m", limit=120)
-    k1d = get_klines(symbol, "1d", limit=100)
-    if len(k15) < 30 or len(k1d) < 20:
-        return None
+    k15 = get_klines(symbol, "15m", limit=120) if source == "BINANCE" else []
+    k1d = get_klines(symbol, "1d", limit=100) if source == "BINANCE" else []
+    has_klines = len(k15) >= 30 and len(k1d) >= 20
 
-    c15 = [x["close"] for x in k15]
-    h15_12h = [x["high"] for x in k15[-48:]]
-    l15_12h = [x["low"] for x in k15[-48:]]
-    l1d_60d = [x["low"] for x in k1d[-60:]]
-    c1d = [x["close"] for x in k1d]
+    c15 = [x["close"] for x in k15] if has_klines else []
+    h15_12h = [x["high"] for x in k15[-48:]] if has_klines else []
+    l15_12h = [x["low"] for x in k15[-48:]] if has_klines else []
+    l1d_60d = [x["low"] for x in k1d[-60:]] if has_klines else []
+    c1d = [x["close"] for x in k1d] if has_klines else []
 
-    ema25_15 = calc_ema(c15, 25)
-    ema99_15 = calc_ema(c15, 99)
-    rsi6_15 = calc_rsi(c15, 6)
-    ema99_1d = calc_ema(c1d, 99)
+    ema25_15 = calc_ema(c15, 25) if has_klines else None
+    ema99_15 = calc_ema(c15, 99) if has_klines else None
+    rsi6_15 = calc_rsi(c15, 6) if has_klines else None
+    ema99_1d = calc_ema(c1d, 99) if has_klines else None
 
+    # Grupo 4: Descartadas -> nunca sugiere compra
     if group == "DESCARTADA":
-        floor_60d = min(l1d_60d) if l1d_60d else price
-        if ALERT_ON_DISCARDED_NEW_LOW and price <= floor_60d * 1.005:
-            msg = (
-                f"🗑️ *DESCARTADA EN NUEVO MÍNIMO* — `{symbol}` (`{cfg['allocation']}`)\n"
-                f"• Precio: *{fmt(price)}* | 24h: `{pct_24h:+.2f}%` | Mín 60d: `{fmt(floor_60d)}`\n"
-                f"• Perfil: _{cfg['profile']}_\n"
-                f"• Riesgo: _{cfg['risk']}_"
-            )
-            return ("DISCARDED_NEW_LOW", msg)
+        if ALERT_ON_DISCARDED_NEW_LOW and has_klines and l1d_60d:
+            floor_60d = min(l1d_60d)
+            if price <= floor_60d * 1.005:
+                msg = (
+                    f"🗑️ *DESCARTADA EN NUEVO MÍNIMO* — `{symbol}` (`{cfg['allocation']}`)\n"
+                    f"• Precio: *{fmt(price)}* | 24h: `{pct_24h:+.2f}%` | Mín 60d: `{fmt(floor_60d)}`\n"
+                    f"• Perfil: _{cfg['profile']}_\n"
+                    f"• Riesgo: _{cfg['risk']}_"
+                )
+                return ("DISCARDED_NEW_LOW", "PERDEDORAS", msg)
         return None
 
     recent_high = max(h15_12h) if h15_12h else price
-    drop_from_12h_high = ((recent_high - price) / recent_high * 100.0) if recent_high > 0 else 0.0
+    drop_from_12h_high = ((recent_high - price) / recent_high * 100.0) if (has_klines and recent_high > 0) else 0.0
 
     targets: List[float] = list(cfg.get("dip_targets", []))
     if not targets and ema99_15 is not None:
@@ -422,11 +493,13 @@ def evaluate_symbol(symbol: str, cfg: dict, ticker: dict) -> Optional[Tuple[str,
     matched_target = min([t for t in targets if price <= t * 1.005], default=None)
 
     hit_target = matched_target is not None
-    hit_drop = drop_from_12h_high >= min_drop and pct_24h <= -1.5
+    hit_drop_12h = has_klines and drop_from_12h_high >= min_drop and pct_24h <= -1.5
+    hit_drop_24h = (not has_klines) and (pct_24h <= -min_drop)
 
-    if not (hit_target or hit_drop):
+    if not (hit_target or hit_drop_12h or hit_drop_24h):
         return None
 
+    # Filtro anti-FOMO: no alertar caída si RSI(6) en 15m está sobreextendido (> 80)
     if rsi6_15 is not None and rsi6_15 > 80 and not hit_target:
         return None
 
@@ -438,25 +511,35 @@ def evaluate_symbol(symbol: str, cfg: dict, ticker: dict) -> Optional[Tuple[str,
 
     kind = "TARGET_HIT" if hit_target else "DIP_DROP"
     targets_txt = " / ".join(fmt(t) for t in targets) if targets else "Dinámico"
-    rsi_txt = f"{rsi6_15:.1f}" if rsi6_15 is not None else "N/A"
-    ema99_15_txt = fmt(ema99_15) if ema99_15 is not None else "N/A"
-    ema99_1d_txt = fmt(ema99_1d) if ema99_1d is not None else "N/A"
+
+    if has_klines:
+        rsi_txt = f"{rsi6_15:.1f}" if rsi6_15 is not None else "N/A"
+        ema25_txt = fmt(ema25_15) if ema25_15 is not None else "N/A"
+        ema99_15_txt = fmt(ema99_15) if ema99_15 is not None else "N/A"
+        ema99_1d_txt = fmt(ema99_1d) if ema99_1d is not None else "N/A"
+        tech_lines = (
+            f"• Zonas límite: `{targets_txt}` | Mín 12h: `{fmt(min(l15_12h))}` | Retroceso 12h: `-{drop_from_12h_high:.2f}%`\n"
+            f"• 15m: `RSI(6)={rsi_txt}` | `EMA25={ema25_txt}` | `EMA99={ema99_15_txt}`\n"
+            f"• 1D EMA99: `{ema99_1d_txt}` | Vol 24h: `${vol_24h:,.0f}`\n"
+        )
+    else:
+        tech_lines = (
+            f"• Zonas límite: `{targets_txt}` | Vol 24h: `${vol_24h:,.0f}` (Fuente: `{source}`)\n"
+        )
 
     msg = (
         f"{badge} — *`{symbol}`* (`{cfg['allocation']}`)\n"
         f"• Catálogo: *{cfg['profile']}*\n"
-        f"• Precio: *{fmt(price)}* | 24h: `{pct_24h:+.2f}%` | Retroceso 12h: `-{drop_from_12h_high:.2f}%`\n"
-        f"• Zonas límite: `{targets_txt}` | Mín 12h: `{fmt(min(l15_12h))}`\n"
-        f"• 15m: `RSI(6)={rsi_txt}` | `EMA25={fmt(ema25_15) if ema25_15 else 'N/A'}` | `EMA99={ema99_15_txt}`\n"
-        f"• 1D EMA99: `{ema99_1d_txt}` | Vol 24h: `${vol_24h:,.0f}`\n"
+        f"• Precio: *{fmt(price)}* | 24h: `{pct_24h:+.2f}%`\n"
+        f"{tech_lines}"
         f"• Lectura: _{cfg.get('tech', '')}_\n"
         f"• Riesgo a vigilar: _{cfg.get('risk', '')}_"
     )
-    return (kind, msg)
+    return (kind, "DIPS", msg)
 
 
 # =====================================================================
-# 5. PERSISTENCIA Y NOTIFICACIÓN TELEGRAM
+# 5. PERSISTENCIA Y NOTIFICACIÓN TELEGRAM (CON SOPORTE DE TOPICS)
 # =====================================================================
 def load_state() -> dict:
     if STATE_FILE.exists():
@@ -471,26 +554,38 @@ def save_state(state: dict) -> None:
     STATE_FILE.write_text(json.dumps(state, indent=2), encoding="utf-8")
 
 
-def send_telegram(text: str) -> bool:
+def resolve_topic_id(channel: str) -> Optional[int]:
+    if channel == "PERDEDORAS":
+        raw = TOPIC_ID_PERDEDORAS or TELEGRAM_MESSAGE_THREAD_ID
+    else:
+        raw = TOPIC_ID_DIPS or TOPIC_ID_CENTRAL or TELEGRAM_MESSAGE_THREAD_ID
+    return int(raw) if raw and raw.isdigit() else None
+
+
+def send_telegram(text: str, channel: str = "DIPS") -> bool:
     if "TU_BOT_TOKEN_AQUI" in TELEGRAM_BOT_TOKEN or "TU_CHAT_ID_AQUI" in TELEGRAM_CHAT_ID:
-        print("[MODO PRUEBA SIN TOKEN] Alerta generada:")
+        print(f"[MODO PRUEBA SIN TOKEN | {channel}] Alerta generada:")
         print(text)
         print("-" * 55)
         return False
 
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload: dict = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": text,
+        "parse_mode": "Markdown",
+        "disable_web_page_preview": True,
+    }
+    thread_id = resolve_topic_id(channel)
+    if thread_id is not None:
+        payload["message_thread_id"] = thread_id
+
     try:
-        r = requests.post(
-            url,
-            json={
-                "chat_id": TELEGRAM_CHAT_ID,
-                "text": text,
-                "parse_mode": "Markdown",
-                "disable_web_page_preview": True,
-            },
-            timeout=10,
-        )
-        return r.status_code == 200
+        r = requests.post(url, json=payload, timeout=12)
+        if r.status_code == 200:
+            return True
+        print(f"[ERROR TELEGRAM HTTP {r.status_code}] {r.text[:200]}")
+        return False
     except requests.RequestException as exc:
         print(f"[ERROR TELEGRAM] {exc}")
         return False
@@ -501,9 +596,9 @@ def main() -> None:
     cooldown_sec = COOLDOWN_MINUTES * 60
     state = load_state()
 
-    tickers = get_24h_tickers()
+    tickers, source = get_24h_tickers()
     if not tickers:
-        print("[ERROR] No se pudieron obtener los tickers 24h de Binance.")
+        print("[ERROR] No se pudieron obtener los tickers 24h ni de Binance ni del respaldo.")
         return
 
     alerts_sent = 0
@@ -511,22 +606,22 @@ def main() -> None:
         ticker = tickers.get(symbol)
         if not ticker:
             continue
-        result = evaluate_symbol(symbol, cfg, ticker)
+        result = evaluate_symbol(symbol, cfg, ticker, source)
         if not result:
             continue
 
-        kind, msg = result
+        kind, channel, msg = result
         key = f"{symbol}:{kind}"
         last_ts = float(state.get(key, 0.0))
 
         if now - last_ts >= cooldown_sec:
-            if send_telegram(msg) or "TU_BOT_TOKEN_AQUI" in TELEGRAM_BOT_TOKEN:
+            if send_telegram(msg, channel=channel) or "TU_BOT_TOKEN_AQUI" in TELEGRAM_BOT_TOKEN:
                 state[key] = now
                 alerts_sent += 1
 
     save_state(state)
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    print(f"[{ts}] Auditoría ejecutada sobre {len(ASSETS_DB)} activos. Alertas emitidas: {alerts_sent}")
+    print(f"[{ts}] Auditoría completada ({len(ASSETS_DB)} activos | Fuente: {source}). Alertas emitidas: {alerts_sent}")
 
 
 if __name__ == "__main__":
