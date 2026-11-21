@@ -1,14 +1,5 @@
 [
   [
-    "SAPIENUSDT",
-    "PARTIUSDT",
-    "MMTUSDT",
-    "AIGENSYNUSDT",
-    "BLURUSDT",
-    "SOPHUSDT",
-    "HMSTRUSDT"
-  ],
-  [
     "PARTIUSDT",
     "MMTUSDT",
     "BLURUSDT",
@@ -16,5 +7,14 @@
     "AIGENSYNUSDT",
     "SHELLUSDT",
     "HMSTRUSDT"
+  ],
+  [
+    "YBUSDT",
+    "SKYUSDT",
+    "ZKPUSDT",
+    "RESOLVUSDT",
+    "HOTUSDT",
+    "KERNELUSDT",
+    "CYBERUSDT"
   ]
 ]
