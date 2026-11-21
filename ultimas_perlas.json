@@ -1,19 +1,19 @@
 [
   [
     "MMTUSDT",
-    "KITEUSDT",
     "AIGENSYNUSDT",
+    "KITEUSDT",
     "USUALUSDT",
+    "ENSOUSDT",
     "SAPIENUSDT",
-    "HOTUSDT",
-    "ENSOUSDT"
+    "HOTUSDT"
   ],
   [
     "MMTUSDT",
     "AIGENSYNUSDT",
     "KITEUSDT",
-    "USUALUSDT",
     "ENSOUSDT",
+    "USUALUSDT",
     "SAPIENUSDT",
     "HOTUSDT"
   ]
