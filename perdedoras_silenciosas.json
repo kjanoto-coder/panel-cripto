@@ -185,13 +185,13 @@
           "fecha": "2026-11-21",
           "precio_caida": 0.0185,
           "min_24h": 0.0178,
-          "chg_24h": -16.29,
+          "chg_24h": -5.941,
           "arrastre_btc": true,
           "senal_oportunidad": false
         }
       ],
-      "ultimo_precio": 0.0185,
-      "ultimo_chg_24h": -16.29,
+      "ultimo_precio": 0.019,
+      "ultimo_chg_24h": -5.941,
       "rebotes_hist_1d": 72
     },
     "YBUSDT": {
@@ -667,5 +667,5 @@
       "rebotes_hist_1d": 120
     }
   },
-  "actualizado_art": "2026-11-21 05:46:45"
+  "actualizado_art": "2026-11-21 13:38:10"
 }
