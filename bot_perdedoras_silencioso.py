@@ -15,13 +15,11 @@ TELEGRAM_BOT_TOKEN = (
     or "TU_BOT_TOKEN_AQUI"
 ).strip()
 
-TELEGRAM_CHAT_ID = (
-    os.getenv("TELEGRAM_CHAT_ID")
-    or os.getenv("CHAT_ID")
-    or "TU_CHAT_ID_AQUI"
-).strip()
+PRIMARY_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "").strip()
+SECONDARY_CHAT_ID = os.getenv("CHAT_ID", "").strip()
+TELEGRAM_CHAT_ID = PRIMARY_CHAT_ID or SECONDARY_CHAT_ID or "TU_CHAT_ID_AQUI"
 
-# Tópicos de Telegram (si TOPIC_ID_DIPS está vacío, usa TOPIC_ID_CENTRAL o TELEGRAM_MESSAGE_THREAD_ID)
+# Tópicos de Telegram
 TOPIC_ID_DIPS = os.getenv("TOPIC_ID_DIPS", "").strip()
 TOPIC_ID_PERDEDORAS = os.getenv("TOPIC_ID_PERDEDORAS", "").strip()
 TOPIC_ID_CENTRAL = os.getenv("TOPIC_ID_CENTRAL", "").strip()
@@ -31,7 +29,6 @@ COOLDOWN_MINUTES = int(os.getenv("COOLDOWN_MINUTES", "180"))
 STATE_FILE = Path(os.getenv("STATE_FILE", "spot_audit_state.json"))
 ALERT_ON_DISCARDED_NEW_LOW = os.getenv("ALERT_ON_DISCARDED_NEW_LOW", "false").lower() == "true"
 
-# data-api.binance.vision suele funcionar sin bloqueo regional en GitHub Actions
 BINANCE_ENDPOINTS = [
     "https://data-api.binance.vision",
     "https://api.binance.com",
@@ -333,7 +330,6 @@ def fetch_json_debug(url: str, params: Optional[dict] = None) -> Tuple[Optional[
 
 
 def get_24h_tickers() -> Tuple[Dict[str, dict], str]:
-    """Obtiene precios 24h desde Binance (priorizando data-api.binance.vision) o respaldo CoinGecko."""
     errors = []
     for base in BINANCE_ENDPOINTS:
         data, err = fetch_json_debug(f"{base}/api/v3/ticker/24hr")
@@ -346,7 +342,6 @@ def get_24h_tickers() -> Tuple[Dict[str, dict], str]:
     for e in errors:
         print(f"  - {e}")
 
-    # Respaldo automático vía CoinGecko (páginas 1 y 2 para cubrir hasta top 500)
     normalized: Dict[str, dict] = {}
     for page in (1, 2):
         cg_data, cg_err = fetch_json_debug(
@@ -468,7 +463,6 @@ def evaluate_symbol(symbol: str, cfg: dict, ticker: dict, source: str) -> Option
     rsi6_15 = calc_rsi(c15, 6) if has_klines else None
     ema99_1d = calc_ema(c1d, 99) if has_klines else None
 
-    # Grupo 4: Descartadas -> nunca sugiere compra
     if group == "DESCARTADA":
         if ALERT_ON_DISCARDED_NEW_LOW and has_klines and l1d_60d:
             floor_60d = min(l1d_60d)
@@ -499,7 +493,6 @@ def evaluate_symbol(symbol: str, cfg: dict, ticker: dict, source: str) -> Option
     if not (hit_target or hit_drop_12h or hit_drop_24h):
         return None
 
-    # Filtro anti-FOMO: no alertar caída si RSI(6) en 15m está sobreextendido (> 80)
     if rsi6_15 is not None and rsi6_15 > 80 and not hit_target:
         return None
 
@@ -539,7 +532,7 @@ def evaluate_symbol(symbol: str, cfg: dict, ticker: dict, source: str) -> Option
 
 
 # =====================================================================
-# 5. PERSISTENCIA Y NOTIFICACIÓN TELEGRAM (CON SOPORTE DE TOPICS)
+# 5. PERSISTENCIA Y NOTIFICACIÓN TELEGRAM CON FALLBACK DE TOPICS
 # =====================================================================
 def load_state() -> dict:
     if STATE_FILE.exists():
@@ -559,7 +552,31 @@ def resolve_topic_id(channel: str) -> Optional[int]:
         raw = TOPIC_ID_PERDEDORAS or TELEGRAM_MESSAGE_THREAD_ID
     else:
         raw = TOPIC_ID_DIPS or TOPIC_ID_CENTRAL or TELEGRAM_MESSAGE_THREAD_ID
-    return int(raw) if raw and raw.isdigit() else None
+
+    if raw and raw.isdigit():
+        tid = int(raw)
+        # En Telegram, el hilo General (ID=1) no lleva message_thread_id
+        return None if tid <= 1 else tid
+    return None
+
+
+def _post_telegram(url: str, chat_id: str, text: str, thread_id: Optional[int]) -> Tuple[bool, str]:
+    payload: dict = {
+        "chat_id": chat_id,
+        "text": text,
+        "parse_mode": "Markdown",
+        "disable_web_page_preview": True,
+    }
+    if thread_id is not None:
+        payload["message_thread_id"] = thread_id
+
+    try:
+        r = requests.post(url, json=payload, timeout=12)
+        if r.status_code == 200:
+            return True, "OK"
+        return False, f"HTTP {r.status_code}: {r.text[:200]}"
+    except requests.RequestException as exc:
+        return False, f"EXC {exc}"
 
 
 def send_telegram(text: str, channel: str = "DIPS") -> bool:
@@ -570,25 +587,31 @@ def send_telegram(text: str, channel: str = "DIPS") -> bool:
         return False
 
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload: dict = {
-        "chat_id": TELEGRAM_CHAT_ID,
-        "text": text,
-        "parse_mode": "Markdown",
-        "disable_web_page_preview": True,
-    }
     thread_id = resolve_topic_id(channel)
-    if thread_id is not None:
-        payload["message_thread_id"] = thread_id
 
-    try:
-        r = requests.post(url, json=payload, timeout=12)
-        if r.status_code == 200:
+    # 1) Intento principal con TELEGRAM_CHAT_ID y el thread_id resuelto
+    ok, err = _post_telegram(url, TELEGRAM_CHAT_ID, text, thread_id)
+    if ok:
+        return True
+
+    # 2) Si falló el hilo y existe un CHAT_ID alternativo distinto, probar en el supergrupo alternativo
+    if "message thread not found" in err.lower() and thread_id is not None:
+        if SECONDARY_CHAT_ID and SECONDARY_CHAT_ID != TELEGRAM_CHAT_ID:
+            ok2, _ = _post_telegram(url, SECONDARY_CHAT_ID, text, thread_id)
+            if ok2:
+                print(f"[OK] Alerta enviada a CHAT_ID alternativo con thread_id={thread_id}.")
+                return True
+
+        # 3) Fallback garantizado: enviar al chat principal sin message_thread_id (canal General)
+        ok3, err3 = _post_telegram(url, TELEGRAM_CHAT_ID, text, None)
+        if ok3:
+            print(f"[AVISO] thread_id={thread_id} no existe en este chat; enviado al canal principal.")
             return True
-        print(f"[ERROR TELEGRAM HTTP {r.status_code}] {r.text[:200]}")
+        print(f"[ERROR TELEGRAM FALLBACK] {err3}")
         return False
-    except requests.RequestException as exc:
-        print(f"[ERROR TELEGRAM] {exc}")
-        return False
+
+    print(f"[ERROR TELEGRAM] {err}")
+    return False
 
 
 def main() -> None:
