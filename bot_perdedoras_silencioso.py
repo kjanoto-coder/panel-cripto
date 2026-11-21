@@ -1,4 +1,5 @@
 import html
+import io
 import json
 import os
 import time
@@ -6,6 +7,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 import requests
+
+try:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
 
 # =====================================================================
 # 1. CONFIGURACIÓN AISLADA (EXCLUSIVO PARA TOPIC_ID_PERDEDORAS)
@@ -22,8 +31,6 @@ TOPIC_ID_PERDEDORAS = os.getenv("TOPIC_ID_PERDEDORAS", "").strip()
 
 COOLDOWN_MINUTES = int(os.getenv("COOLDOWN_MINUTES", "180"))
 STATE_FILE = Path(os.getenv("STATE_FILE", "spot_audit_state.json"))
-
-# True = también envía ficha con veredicto 🔴 RECHAZO si una descartada cae >= 7%
 ALERT_ON_RECHAZO = os.getenv("ALERT_ON_RECHAZO", "true").lower() == "true"
 
 BINANCE_ENDPOINTS = [
@@ -438,9 +445,10 @@ def compute_rebound_scoring(
     rsi6_15: Optional[float],
     ema99_1d: Optional[float],
     hit_target: bool,
-) -> Tuple[str, str, int, str]:
+) -> Tuple[str, str, int, int, str]:
     """
-    Devuelve: (veredicto_texto, emoji_semaforo, probabilidad_pct, barra_5_bloques)
+    Devuelve: (veredicto, emoji_semaforo, color_order, probabilidad_pct, barra_5_bloques)
+    color_order: 0 = Rojo (RECHAZO), 1 = Amarillo (PRECAUCIÓN), 2 = Verde (COMPRA)
     """
     base_map = {
         "ESTRUCTURAL": 62,
@@ -450,7 +458,6 @@ def compute_rebound_scoring(
     }
     score = base_map.get(group, 30)
 
-    # 1) Sobreventa en 15m (RSI 6)
     if rsi6_15 is not None:
         if rsi6_15 < 15:
             score += 16
@@ -461,11 +468,9 @@ def compute_rebound_scoring(
         elif rsi6_15 > 75:
             score -= 12
 
-    # 2) Apoyo directo en zona límite / soporte auditado
     if hit_target:
         score += 10
 
-    # 3) Fortaleza relativa frente a EMA(99) diaria
     if ema99_1d is not None and ema99_1d > 0:
         dist_1d = (price - ema99_1d) / ema99_1d
         if dist_1d >= -0.03:
@@ -473,41 +478,41 @@ def compute_rebound_scoring(
         elif dist_1d < -0.25:
             score -= 5
 
-    # 4) Liquidez 24h
     if vol_24h >= 10_000_000:
         score += 5
     elif vol_24h < 500_000:
         score -= 6
 
-    # Límites estrictos por categoría
     if group == "DESCARTADA":
         prob = max(5, min(28, score))
     else:
         prob = max(20, min(92, score))
 
-    # Clasificación en 3 estados
     if group == "DESCARTADA" or prob < 35:
         verdict = "RECHAZO"
         light = "🔴"
+        color_order = 0
         block = "🟥"
     elif prob >= 65:
         verdict = "COMPRA"
         light = "🟢"
+        color_order = 2
         block = "🟩"
     else:
         verdict = "PRECAUCIÓN"
         light = "🟡"
+        color_order = 1
         block = "🟨"
 
     filled = max(1, min(5, round(prob / 20)))
     bar = (block * filled) + ("⬜" * (5 - filled))
-    return verdict, light, prob, bar
+    return verdict, light, color_order, prob, bar
 
 
 # =====================================================================
-# 5. EVALUACIÓN Y CONSTRUCCIÓN DE FICHA VISUAL
+# 5. EVALUACIÓN DE MONEDA Y CONSTRUCCIÓN DE DATOS
 # =====================================================================
-def evaluate_symbol(symbol: str, cfg: dict, ticker: dict, source: str) -> Optional[Tuple[str, str]]:
+def evaluate_symbol(symbol: str, cfg: dict, ticker: dict, source: str) -> Optional[dict]:
     group = cfg["group"]
     base_coin = symbol.replace("USDT", "")
     price = float(ticker["lastPrice"])
@@ -545,7 +550,6 @@ def evaluate_symbol(symbol: str, cfg: dict, ticker: dict, source: str) -> Option
     if group == "DESCARTADA":
         if not ALERT_ON_RECHAZO:
             return None
-        # Para descartadas, solo emitir ficha de rechazo si cae >= 7%
         if not ((has_klines and drop_from_12h_high >= 7.0) or pct_24h <= -7.0):
             return None
     else:
@@ -554,7 +558,7 @@ def evaluate_symbol(symbol: str, cfg: dict, ticker: dict, source: str) -> Option
         if rsi6_15 is not None and rsi6_15 > 80 and not hit_target:
             return None
 
-    verdict, light, prob, bar = compute_rebound_scoring(
+    verdict, light, color_order, prob, bar = compute_rebound_scoring(
         group=group,
         price=price,
         vol_24h=vol_24h,
@@ -591,7 +595,7 @@ def evaluate_symbol(symbol: str, cfg: dict, ticker: dict, source: str) -> Option
             f"• Zonas límite: <code>{targets_txt}</code> | Vol 24h: <code>${vol_24h:,.0f}</code>\n"
         )
 
-    msg = (
+    card_msg = (
         f"• <b>{html.escape(base_coin)}</b> | Base (12h): <code>${fmt(recent_high)}</code> → Actual: <code>${fmt(price)}</code> | <b>{pct_24h:+.2f}%</b>\n"
         f"{bar}  (Rebote: <b>{prob}%</b>)\n"
         f"└ <a href=\"{url_ia}\">📊 Resumen IA</a> | <a href=\"{url_trade}\">🔶 Tradear</a>\n\n"
@@ -604,11 +608,120 @@ def evaluate_symbol(symbol: str, cfg: dict, ticker: dict, source: str) -> Option
         f"{light} <b>SENTIMIENTO DE COMPRA : {verdict}</b>\n"
         f"📈 <b>PROBABILIDAD DE REBOTE : {prob}%</b>"
     )
-    return (kind, msg)
+
+    return {
+        "symbol": symbol,
+        "coin": base_coin,
+        "kind": kind,
+        "verdict": verdict,
+        "light": light,
+        "color_order": color_order,
+        "prob": prob,
+        "pct_24h": pct_24h,
+        "price": price,
+        "card_msg": card_msg,
+    }
 
 
 # =====================================================================
-# 6. PERSISTENCIA Y ENVÍO ESTRICTO A TOPIC_ID_PERDEDORAS
+# 6. GENERADOR DE RESUMEN DE MONEDAS (TEXTO + GRÁFICO DE BARRAS PNG)
+# =====================================================================
+def build_summary_text(sorted_items: List[dict]) -> str:
+    sections = [
+        (0, "🔴", "RECHAZO"),
+        (1, "🟡", "PRECAUCIÓN"),
+        (2, "🟢", "COMPRA"),
+    ]
+    lines = ["📊 <b>RESUMEN DE MONEDAS</b>"]
+    for c_order, emoji, label in sections:
+        group_items = [x for x in sorted_items if x["color_order"] == c_order]
+        if not group_items:
+            continue
+        lines.append(f"\n{emoji} <b>{label} (menor a mayor):</b>")
+        for it in group_items:
+            lines.append(
+                f"• <b>{html.escape(it['coin'])}</b>: <code>{it['prob']}%</code> (<code>{it['pct_24h']:+.2f}%</code>)"
+            )
+    return "\n".join(lines)
+
+
+def build_summary_chart_png(sorted_items: List[dict]) -> Optional[bytes]:
+    if not HAS_MATPLOTLIB or not sorted_items:
+        return None
+
+    n = len(sorted_items)
+    fig_w = max(8.0, min(16.0, n * 0.85 + 2.0))
+    fig, ax = plt.subplots(figsize=(fig_w, 4.6), dpi=160)
+
+    bg_color = "#0b0f1c"
+    grid_color = "#1b2438"
+    fig.patch.set_facecolor(bg_color)
+    ax.set_facecolor(bg_color)
+
+    ax.grid(True, axis="y", color=grid_color, linestyle="-", linewidth=0.7, zorder=0)
+    ax.grid(True, axis="x", color=grid_color, linestyle="-", linewidth=0.5, alpha=0.5, zorder=0)
+
+    fill_map = {0: "#ff1744", 1: "#ffd600", 2: "#00e676"}
+    edge_map = {0: "#ffd600", 1: "#ffd600", 2: "#00e676"}
+    txt_map = {0: "#ff1744", 1: "#ffd600", 2: "#00e676"}
+
+    x_pos = list(range(n))
+    probs = [it["prob"] for it in sorted_items]
+    coins = [it["coin"] for it in sorted_items]
+    fills = [fill_map[it["color_order"]] for it in sorted_items]
+    edges = [edge_map[it["color_order"]] for it in sorted_items]
+
+    bars = ax.bar(x_pos, probs, width=0.52, color=fills, edgecolor=edges, linewidth=1.6, zorder=3)
+
+    for idx, (bar, it) in enumerate(zip(bars, sorted_items)):
+        p = it["prob"]
+        c_txt = txt_map[it["color_order"]]
+        # Porcentaje arriba de la barra
+        ax.text(
+            bar.get_x() + bar.get_width() / 2.0,
+            p + 2.5,
+            f"{p}%",
+            ha="center",
+            va="bottom",
+            color=c_txt,
+            fontsize=9.5,
+            fontweight="bold",
+            zorder=5,
+        )
+        # Badge circular con el nombre de la moneda
+        y_badge = max(p * 0.52, 8.0)
+        ax.text(
+            bar.get_x() + bar.get_width() / 2.0,
+            y_badge,
+            it["coin"],
+            ha="center",
+            va="center",
+            color="#ffffff",
+            fontsize=6.5,
+            fontweight="bold",
+            bbox=dict(boxstyle="circle,pad=0.35", facecolor="#0b0f1c", edgecolor=c_txt, linewidth=1.1),
+            zorder=6,
+        )
+
+    ax.set_title("RESUMEN DE MONEDAS", color="#ffffff", fontsize=13, fontweight="bold", pad=16)
+    ax.set_ylim(0, 108)
+    ax.set_xticks(x_pos)
+    ax.set_xticklabels(coins, rotation=42, ha="right", color="#cbd5e1", fontsize=8.5, fontweight="bold")
+    ax.tick_params(axis="y", left=False, labelleft=False)
+    for spine in ("top", "right", "left"):
+        ax.spines[spine].set_visible(False)
+    ax.spines["bottom"].set_color("#27324a")
+
+    plt.tight_layout()
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", facecolor=bg_color)
+    plt.close(fig)
+    buf.seek(0)
+    return buf.read()
+
+
+# =====================================================================
+# 7. PERSISTENCIA Y ENVÍO ESTRICTO A TOPIC_ID_PERDEDORAS
 # =====================================================================
 def load_state() -> dict:
     if STATE_FILE.exists():
@@ -623,48 +736,75 @@ def save_state(state: dict) -> None:
     STATE_FILE.write_text(json.dumps(state, indent=2), encoding="utf-8")
 
 
-def _post_telegram(url: str, chat_id: str, text: str, thread_id: int) -> Tuple[bool, str]:
-    payload = {
-        "chat_id": chat_id,
-        "message_thread_id": thread_id,
-        "text": text,
-        "parse_mode": "HTML",
-        "disable_web_page_preview": True,
-    }
-    try:
-        r = requests.post(url, json=payload, timeout=12)
-        if r.status_code == 200:
-            return True, "OK"
-        return False, f"HTTP {r.status_code}: {r.text[:200]}"
-    except requests.RequestException as exc:
-        return False, f"EXC {exc}"
-
-
-def send_to_perdedoras_topic(text: str) -> bool:
-    """Envía EXCLUSIVAMENTE al tópico TOPIC_ID_PERDEDORAS."""
+def _get_telegram_target() -> Optional[Tuple[int, List[str]]]:
     if not TOPIC_ID_PERDEDORAS.isdigit() or int(TOPIC_ID_PERDEDORAS) <= 1:
         print("[ERROR CONFIG] TOPIC_ID_PERDEDORAS no está configurado o es inválido. Envío cancelado.")
-        return False
-
-    thread_id = int(TOPIC_ID_PERDEDORAS)
+        return None
     candidates = []
     for cid in (CHAT_ID_GROUP, CHAT_ID_FALLBACK):
         if cid and cid not in candidates:
             candidates.append(cid)
-
     if not candidates or "TU_BOT_TOKEN_AQUI" in TELEGRAM_BOT_TOKEN:
         print("[ERROR CONFIG] Faltan credenciales de Telegram o CHAT_ID.")
-        return False
+        return None
+    return int(TOPIC_ID_PERDEDORAS), candidates
 
+
+def send_to_perdedoras_topic(text: str) -> bool:
+    """Envía mensaje HTML exclusivamente al tópico TOPIC_ID_PERDEDORAS."""
+    target = _get_telegram_target()
+    if not target:
+        return False
+    thread_id, candidates = target
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+
     last_err = ""
     for cid in candidates:
-        ok, err = _post_telegram(url, cid, text, thread_id)
-        if ok:
-            return True
-        last_err = f"chat_id={cid} -> {err}"
+        payload = {
+            "chat_id": cid,
+            "message_thread_id": thread_id,
+            "text": text,
+            "parse_mode": "HTML",
+            "disable_web_page_preview": True,
+        }
+        try:
+            r = requests.post(url, json=payload, timeout=12)
+            if r.status_code == 200:
+                return True
+            last_err = f"chat_id={cid} -> HTTP {r.status_code}: {r.text[:180]}"
+        except requests.RequestException as exc:
+            last_err = f"chat_id={cid} -> EXC {exc}"
 
     print(f"[ERROR TELEGRAM TOPIC_ID_PERDEDORAS={thread_id}] {last_err}")
+    return False
+
+
+def send_photo_to_perdedoras_topic(png_bytes: bytes, caption: str) -> bool:
+    """Envía gráfico PNG + caption exclusivamente al tópico TOPIC_ID_PERDEDORAS."""
+    target = _get_telegram_target()
+    if not target:
+        return False
+    thread_id, candidates = target
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
+
+    last_err = ""
+    for cid in candidates:
+        try:
+            files = {"photo": ("resumen_monedas.png", png_bytes, "image/png")}
+            data = {
+                "chat_id": cid,
+                "message_thread_id": str(thread_id),
+                "caption": caption,
+                "parse_mode": "HTML",
+            }
+            r = requests.post(url, data=data, files=files, timeout=20)
+            if r.status_code == 200:
+                return True
+            last_err = f"chat_id={cid} -> HTTP {r.status_code}: {r.text[:180]}"
+        except requests.RequestException as exc:
+            last_err = f"chat_id={cid} -> EXC {exc}"
+
+    print(f"[ERROR TELEGRAM PHOTO TOPIC_ID_PERDEDORAS={thread_id}] {last_err}")
     return False
 
 
@@ -678,23 +818,51 @@ def main() -> None:
         print("[ERROR] No se pudieron obtener los tickers 24h ni de Binance ni del respaldo.")
         return
 
-    alerts_sent = 0
+    triggered: List[dict] = []
     for symbol, cfg in ASSETS_DB.items():
         ticker = tickers.get(symbol)
         if not ticker:
             continue
-        result = evaluate_symbol(symbol, cfg, ticker, source)
-        if not result:
+        item = evaluate_symbol(symbol, cfg, ticker, source)
+        if not item:
             continue
 
-        kind, msg = result
-        key = f"v3:{symbol}:{kind}"
+        key = f"v4:{symbol}:{item['kind']}"
         last_ts = float(state.get(key, 0.0))
-
         if now - last_ts >= cooldown_sec:
-            if send_to_perdedoras_topic(msg):
-                state[key] = now
-                alerts_sent += 1
+            item["state_key"] = key
+            triggered.append(item)
+
+    if not triggered:
+        ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+        print(f"[{ts}] Auditoría completada ({len(ASSETS_DB)} activos | Fuente: {source}). Sin alertas nuevas.")
+        return
+
+    # Ordenar por color (0=Rojo, 1=Amarillo, 2=Verde) y probabilidad de MENOR a MAYOR dentro de cada color
+    triggered.sort(key=lambda x: (x["color_order"], x["prob"], x["coin"]))
+
+    # 1) Enviar RESUMEN DE MONEDAS al inicio (gráfico PNG + texto ordenado)
+    summary_text = build_summary_text(triggered)
+    chart_png = build_summary_chart_png(triggered)
+
+    if chart_png:
+        if len(summary_text) <= 1000:
+            send_photo_to_perdedoras_topic(chart_png, summary_text)
+        else:
+            send_photo_to_perdedoras_topic(chart_png, "📊 <b>RESUMEN DE MONEDAS</b>")
+            send_to_perdedoras_topic(summary_text)
+    else:
+        send_to_perdedoras_topic(summary_text)
+
+    time.sleep(0.5)
+
+    # 2) Enviar fichas detalladas en el mismo orden
+    alerts_sent = 0
+    for item in triggered:
+        if send_to_perdedoras_topic(item["card_msg"]):
+            state[item["state_key"]] = now
+            alerts_sent += 1
+            time.sleep(0.35)
 
     save_state(state)
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
