@@ -1,14 +1,5 @@
 [
   [
-    "AIGENSYNUSDT",
-    "KITEUSDT",
-    "USUALUSDT",
-    "BLURUSDT",
-    "HOTUSDT",
-    "SAPIENUSDT",
-    "ENSOUSDT"
-  ],
-  [
     "SOPHUSDT",
     "BMTUSDT",
     "RAREUSDT",
@@ -16,5 +7,14 @@
     "ERAUSDT",
     "HMSTRUSDT",
     "BARDUSDT"
+  ],
+  [
+    "MMTUSDT",
+    "AIGENSYNUSDT",
+    "KITEUSDT",
+    "USUALUSDT",
+    "BLURUSDT",
+    "ENSOUSDT",
+    "HOTUSDT"
   ]
 ]
