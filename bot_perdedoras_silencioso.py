@@ -1,3 +1,4 @@
+import html
 import json
 import os
 import time
@@ -21,7 +22,9 @@ TOPIC_ID_PERDEDORAS = os.getenv("TOPIC_ID_PERDEDORAS", "").strip()
 
 COOLDOWN_MINUTES = int(os.getenv("COOLDOWN_MINUTES", "180"))
 STATE_FILE = Path(os.getenv("STATE_FILE", "spot_audit_state.json"))
-ALERT_ON_DISCARDED_NEW_LOW = os.getenv("ALERT_ON_DISCARDED_NEW_LOW", "false").lower() == "true"
+
+# True = también envía ficha con veredicto 🔴 RECHAZO si una descartada cae >= 7%
+ALERT_ON_RECHAZO = os.getenv("ALERT_ON_RECHAZO", "true").lower() == "true"
 
 BINANCE_ENDPOINTS = [
     "https://data-api.binance.vision",
@@ -271,42 +274,42 @@ ASSETS_DB: Dict[str, dict] = {
     # =================================================================
     # GRUPO 4: DESCARTADAS PARA LIMPIAR FAVORITOS (0% - 5%)
     # =================================================================
-    "MANTRAUSDT": {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Mínimos y dilución", "risk": "Mínimos históricos (~0,00172), salida -$430,6K, concentración 0,06 y ~1,83M/día desbloqueados."},
-    "TNSRUSDT":   {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Mínimos récord", "risk": "Mínimos récord (~0,0178), caída -11,57% y concentración <0,08."},
-    "MITOUSDT":   {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Etiqueta En observación", "risk": "Etiqueta En observación (20/11), mínimos 0,00487, salidas >$400K y desbloqueo 15,65M el 28/11."},
-    "OPENUSDT":   {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Mínimos y >58% bloqueado", "risk": "Mínimos históricos (~0,0718–0,0728), >58% bloqueado y concentración <0,10."},
-    "ALLOUSDT":   {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Salidas y baja liquidez", "risk": "Caída -12,4% a 0,1173, salidas >-$65K, 48,1% bloqueado y vol/h <$50K."},
-    "BICOUSDT":   {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Ruptura de mínimos", "risk": "Ruptura bajo 0,010 a mínimos (~0,00943–0,00968), salidas spot y concentración 0,076."},
-    "KAITOUSDT":  {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Mínimos y oferta bloqueada", "risk": "Caída a mínimos (~0,1464–0,1477), 48,2% bloqueado, concentración 0,068 y MACD negativo."},
-    "BONKUSDT":   {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Mínimos anuales", "risk": "Mínimos anuales (~0,00000195), salidas -$266K y concentración ~0,024."},
-    "TUTUSDT":    {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Debilidad técnica", "risk": "Caída -11,4%, salida -$78,7K, bajo MA(99) y concentración ~0,13–0,14."},
-    "ACEUSDT":    {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Salidas y dilución", "risk": "Caída -8,5%, salidas >$180K, 21,8% bloqueado y MACD negativo."},
-    "GIGGLEUSDT": {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Salidas pico", "risk": "Caída -8,7%, salida pico -157,7K USDT, bajo MA(99) y concentración ~0,14."},
-    "OGUSDT":     {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Desbloqueo y micro-cap", "risk": "Desbloqueo ~1,16 mUSD el 22/11, cap <$10M y 1d en mínimos."},
-    "MOVRUSDT":   {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Liquidez deprimida", "risk": "Caída -6,4%, salidas >$30K y concentración <0,1."},
-    "APEUSDT":    {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Nuevos mínimos", "risk": "Nuevos mínimos (0,0678–0,0683), salidas pico -$104,7K y vol/h <$50K."},
-    "HEIUSDT":    {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Etiqueta En supervisión", "risk": "Etiqueta En supervisión, cap ~$6,8M, vol/h <$50K y salidas -$37,5K."},
-    "NEIROUSDT":  {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Rebote débil bajo medias", "risk": "Caída -6,72% en 24h, salidas pico -$110,3K, concentración ~0,08 y MACD negativo."},
-    "COTIUSDT":   {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Golpe fundamental", "risk": "Caída -7,1% por liquidación de DJED/SHEN al 31/12, salidas >$54K y concentración <0,1."},
-    "SAGAUSDT":   {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Cerca de mínimo histórico", "risk": "Ruptura bajo 0,0130 con $321K, salidas tras reabrir retiros y piso histórico en 0,01170."},
-    "OPNUSDT":    {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Alta oferta bloqueada", "risk": ">56,8% bloqueado, concentración ~0,08, salida -$31,3K y cerca de mínimo histórico (0,0280–0,0283)."},
-    "SLPUSDT":    {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Inflación ilimitada", "risk": "Suministro ilimitado inflacionario, salidas -$36,2K/-$19,6K, concentración <0,1 y mínimo 0,000388."},
-    "GNSUSDT":    {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Riesgo de delisting", "risk": "Etiqueta de monitoreo con riesgo de delisting, volumen <$10K/h y salidas >$70K."},
-    "HUMAUSDT":   {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Desbloqueo inminente", "risk": "Desbloqueo de 465,3M tokens (4,65%) el 25/11, salidas -$367K tras pico y MACD negativo."},
-    "BEAMXUSDT":  {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Salidas persistentes", "risk": "Caída -6,9% en 24h, salidas pico >-$139K, MACD negativo y baja generación de comisiones on-chain."},
-    "TLMUSDT":    {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Cerca de mínimo histórico", "risk": "Caída -7,0% en 24h, salidas spot pico -$70,5K, concentración <0,10 y soporte histórico en $0,000817."},
-    "WLFIUSDT":   {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Salidas fuertes", "risk": "Salidas netas >-$400K/h y presión de desbloqueos cerca de mínimos históricos (0,0435)."},
-    "LSKUSDT":    {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Dilución y fricción", "risk": "Migración/quema de tokens, concentración ~0,04 y desbloqueos diarios de ~75K LSK."},
-    "HOMEUSDT":   {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Desbloqueo y mínimos", "risk": "Desbloqueo de ~195,28M HOME el 28/11, mínimos históricos (0,00382) y volumen <$30K/h."},
-    "HEMIUSDT":   {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Desbloqueo y estructura débil", "risk": "Desbloqueo de ~58,7M tokens el 28/11, >61% bloqueado y salidas spot."},
-    "ALTUSDT":    {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Front-running por unlock", "risk": "Anticipación a desbloqueo de ~195,3M ALT a fin de noviembre cerca de mínimos (0,00417)."},
-    "GALAUSDT":   {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Salidas continuas", "risk": "Salidas netas persistentes (-$59,6K / -$34,9K) en mínimos anuales (0,001225)."},
-    "TUSDT":      {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Tendencia 1d bajista", "risk": "Liquidez <$10K/h y salidas netas persistentes deslizándose en 1d hacia 0,00315."},
-    "QIUSDT":     {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Riesgo de plataforma", "risk": "Etiqueta de monitoreo (Monitoring Tag) y liquidez <$15K/h."},
-    "XAIUSDT":    {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Emisión lineal y mínimos", "risk": "Emisión lineal diaria (456,7K tokens), mínimos históricos (0,00474) y volumen ~$12K/h."},
-    "JASMYUSDT":  {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Presión por delisting", "risk": "Liquidaciones por delisting regional en mínimos anuales (0,00295)."},
-    "TOWNSUSDT":  {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Mínimo histórico y lock", "risk": "69,6% de la oferta bloqueada y presión vendedora sostenida en mínimo histórico (0,000884)."},
-    "DGBUSDT":    {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Iliquidez severa", "risk": "Liquidez <5.000 USDT/h y salidas persistentes sin rebote en 15m."},
+    "MANTRAUSDT": {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Mínimos y dilución", "tech": "Estructura bajista extendida sin soporte confirmado.", "risk": "Mínimos históricos (~0,00172), salida -$430,6K, concentración 0,06 y ~1,83M/día desbloqueados."},
+    "TNSRUSDT":   {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Mínimos récord", "tech": "Sin demanda compradora sostenida en 15m/1d.", "risk": "Mínimos récord (~0,0178), caída -11,57% y concentración <0,08."},
+    "MITOUSDT":   {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Etiqueta En observación", "tech": "Presión vendedora activa bajo medias móviles.", "risk": "Etiqueta En observación (20/11), mínimos 0,00487, salidas >$400K y desbloqueo 15,65M el 28/11."},
+    "OPENUSDT":   {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Mínimos y >58% bloqueado", "tech": "Debilidad estructural en mínimos históricos.", "risk": "Mínimos históricos (~0,0718–0,0728), >58% bloqueado y concentración <0,10."},
+    "ALLOUSDT":   {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Salidas y baja liquidez", "tech": "Rebotes débiles absorbidos por oferta.", "risk": "Caída -12,4% a 0,1173, salidas >-$65K, 48,1% bloqueado y vol/h <$50K."},
+    "BICOUSDT":   {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Ruptura de mínimos", "tech": "Perforación de piso técnico sin recuperación.", "risk": "Ruptura bajo 0,010 a mínimos (~0,00943–0,00968), salidas spot y concentración 0,076."},
+    "KAITOUSDT":  {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Mínimos y oferta bloqueada", "tech": "Momentum negativo en gráficos intradía y diario.", "risk": "Caída a mínimos (~0,1464–0,1477), 48,2% bloqueado, concentración 0,068 y MACD negativo."},
+    "BONKUSDT":   {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Mínimos anuales", "tech": "Rotación vendedora persistente sobre soportes.", "risk": "Mínimos anuales (~0,00000195), salidas -$266K y concentración ~0,024."},
+    "TUTUSDT":    {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Debilidad técnica", "tech": "Cotizando por debajo de MA(99) sin flujo.", "risk": "Caída -11,4%, salida -$78,7K, bajo MA(99) y concentración ~0,13–0,14."},
+    "ACEUSDT":    {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Salidas y dilución", "tech": "MACD negativo y distribución constante.", "risk": "Caída -8,5%, salidas >$180K, 21,8% bloqueado y MACD negativo."},
+    "GIGGLEUSDT": {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Salidas pico", "tech": "Rechazo bajo MA(99) con salida de capital.", "risk": "Caída -8,7%, salida pico -157,7K USDT, bajo MA(99) y concentración ~0,14."},
+    "OGUSDT":     {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Desbloqueo y micro-cap", "tech": "Presión previa a desbloqueo en mínimos diarios.", "risk": "Desbloqueo ~1,16 mUSD el 22/11, cap <$10M y 1d en mínimos."},
+    "MOVRUSDT":   {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Liquidez deprimida", "tech": "Bajo interés comprador y goteo bajista.", "risk": "Caída -6,4%, salidas >$30K y concentración <0,1."},
+    "APEUSDT":    {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Nuevos mínimos", "tech": "Ruptura de soportes con bajo volumen horario.", "risk": "Nuevos mínimos (0,0678–0,0683), salidas pico -$104,7K y vol/h <$50K."},
+    "HEIUSDT":    {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Etiqueta En supervisión", "tech": "Riesgo operativo y falta de profundidad.", "risk": "Etiqueta En supervisión, cap ~$6,8M, vol/h <$50K y salidas -$37,5K."},
+    "NEIROUSDT":  {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Rebote débil bajo medias", "tech": "Sin fuerza para recuperar medias clave.", "risk": "Caída -6,72% en 24h, salidas pico -$110,3K, concentración ~0,08 y MACD negativo."},
+    "COTIUSDT":   {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Golpe fundamental", "tech": "Deterioro estructural por noticias del ecosistema.", "risk": "Caída -7,1% por liquidación de DJED/SHEN al 31/12, salidas >$54K y concentración <0,1."},
+    "SAGAUSDT":   {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Cerca de mínimo histórico", "tech": "Pérdida de nivel clave 0,0130 con presión vendedora.", "risk": "Ruptura bajo 0,0130 con $321K, salidas tras reabrir retiros y piso histórico en 0,01170."},
+    "OPNUSDT":    {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Alta oferta bloqueada", "tech": "Presión de oferta bloqueada sobre mínimos.", "risk": ">56,8% bloqueado, concentración ~0,08, salida -$31,3K y cerca de mínimo histórico (0,0280–0,0283)."},
+    "SLPUSDT":    {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Inflación ilimitada", "tech": "Tendencia secular bajista sin piso firme.", "risk": "Suministro ilimitado inflacionario, salidas -$36,2K/-$19,6K, concentración <0,1 y mínimo 0,000388."},
+    "GNSUSDT":    {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Riesgo de delisting", "tech": "Iliquidez y riesgo regulatorio/de listado.", "risk": "Etiqueta de monitoreo con riesgo de delisting, volumen <$10K/h y salidas >$70K."},
+    "HUMAUSDT":   {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Desbloqueo inminente", "tech": "Salidas fuertes anticipando desbloqueo masivo.", "risk": "Desbloqueo de 465,3M tokens (4,65%) el 25/11, salidas -$367K tras pico y MACD negativo."},
+    "BEAMXUSDT":  {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Salidas persistentes", "tech": "MACD negativo y flujo neto vendedor.", "risk": "Caída -6,9% en 24h, salidas pico >-$139K, MACD negativo y baja generación de comisiones on-chain."},
+    "TLMUSDT":    {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Cerca de mínimo histórico", "tech": "Deslizamiento continuo hacia soporte histórico.", "risk": "Caída -7,0% en 24h, salidas spot pico -$70,5K, concentración <0,10 y soporte histórico en $0,000817."},
+    "WLFIUSDT":   {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Salidas fuertes", "tech": "Distribución agresiva cerca de mínimos.", "risk": "Salidas netas >-$400K/h y presión de desbloqueos cerca de mínimos históricos (0,0435)."},
+    "LSKUSDT":    {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Dilución y fricción", "tech": "Fricción por migración y goteo diario de oferta.", "risk": "Migración/quema de tokens, concentración ~0,04 y desbloqueos diarios de ~75K LSK."},
+    "HOMEUSDT":   {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Desbloqueo y mínimos", "tech": "Baja liquidez ante desbloqueo de fin de mes.", "risk": "Desbloqueo de ~195,28M HOME el 28/11, mínimos históricos (0,00382) y volumen <$30K/h."},
+    "HEMIUSDT":   {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Desbloqueo y estructura débil", "tech": "Estructura bajista con >61% bloqueado.", "risk": "Desbloqueo de ~58,7M tokens el 28/11, >61% bloqueado y salidas spot."},
+    "ALTUSDT":    {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Front-running por unlock", "tech": "Ventas anticipadas frente a desbloqueo.", "risk": "Anticipación a desbloqueo de ~195,3M ALT a fin de noviembre cerca de mínimos (0,00417)."},
+    "GALAUSDT":   {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Salidas continuas", "tech": "Goteo en mínimos anuales sin catalizador.", "risk": "Salidas netas persistentes (-$59,6K / -$34,9K) en mínimos anuales (0,001225)."},
+    "TUSDT":      {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Tendencia 1d bajista", "tech": "Baja liquidez y pendiente diaria negativa.", "risk": "Liquidez <$10K/h y salidas netas persistentes deslizándose en 1d hacia 0,00315."},
+    "QIUSDT":     {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Riesgo de plataforma", "tech": "Monitoreo activo y escasa profundidad.", "risk": "Etiqueta de monitoreo (Monitoring Tag) y liquidez <$15K/h."},
+    "XAIUSDT":    {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Emisión lineal y mínimos", "tech": "Dilución diaria en mínimos históricos.", "risk": "Emisión lineal diaria (456,7K tokens), mínimos históricos (0,00474) y volumen ~$12K/h."},
+    "JASMYUSDT":  {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Presión por delisting", "tech": "Ventas forzadas en mínimos anuales.", "risk": "Liquidaciones por delisting regional en mínimos anuales (0,00295)."},
+    "TOWNSUSDT":  {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Mínimo histórico y lock", "tech": "Oferta bloqueada alta y debilidad extrema.", "risk": "69,6% de la oferta bloqueada y presión vendedora sostenida en mínimo histórico (0,000884)."},
+    "DGBUSDT":    {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Iliquidez severa", "tech": "Sin volumen ni reacción técnica en 15m.", "risk": "Liquidez <5.000 USDT/h y salidas persistentes sin rebote en 15m."},
 }
 
 
@@ -426,10 +429,87 @@ def fmt(p: float) -> str:
 
 
 # =====================================================================
-# 4. EVALUACIÓN DE OPORTUNIDAD EN CAÍDA SEGÚN EL RANKING
+# 4. CÁLCULO DE SENTIMIENTO DE COMPRA Y PROBABILIDAD DE REBOTE (%)
+# =====================================================================
+def compute_rebound_scoring(
+    group: str,
+    price: float,
+    vol_24h: float,
+    rsi6_15: Optional[float],
+    ema99_1d: Optional[float],
+    hit_target: bool,
+) -> Tuple[str, str, int, str]:
+    """
+    Devuelve: (veredicto_texto, emoji_semaforo, probabilidad_pct, barra_5_bloques)
+    """
+    base_map = {
+        "ESTRUCTURAL": 62,
+        "TACTICA_PUENTE": 48,
+        "CAZA_REBOTE": 36,
+        "DESCARTADA": 12,
+    }
+    score = base_map.get(group, 30)
+
+    # 1) Sobreventa en 15m (RSI 6)
+    if rsi6_15 is not None:
+        if rsi6_15 < 15:
+            score += 16
+        elif rsi6_15 < 30:
+            score += 11
+        elif rsi6_15 < 45:
+            score += 5
+        elif rsi6_15 > 75:
+            score -= 12
+
+    # 2) Apoyo directo en zona límite / soporte auditado
+    if hit_target:
+        score += 10
+
+    # 3) Fortaleza relativa frente a EMA(99) diaria
+    if ema99_1d is not None and ema99_1d > 0:
+        dist_1d = (price - ema99_1d) / ema99_1d
+        if dist_1d >= -0.03:
+            score += 6
+        elif dist_1d < -0.25:
+            score -= 5
+
+    # 4) Liquidez 24h
+    if vol_24h >= 10_000_000:
+        score += 5
+    elif vol_24h < 500_000:
+        score -= 6
+
+    # Límites estrictos por categoría
+    if group == "DESCARTADA":
+        prob = max(5, min(28, score))
+    else:
+        prob = max(20, min(92, score))
+
+    # Clasificación en 3 estados
+    if group == "DESCARTADA" or prob < 35:
+        verdict = "RECHAZO"
+        light = "🔴"
+        block = "🟥"
+    elif prob >= 65:
+        verdict = "COMPRA"
+        light = "🟢"
+        block = "🟩"
+    else:
+        verdict = "PRECAUCIÓN"
+        light = "🟡"
+        block = "🟨"
+
+    filled = max(1, min(5, round(prob / 20)))
+    bar = (block * filled) + ("⬜" * (5 - filled))
+    return verdict, light, prob, bar
+
+
+# =====================================================================
+# 5. EVALUACIÓN Y CONSTRUCCIÓN DE FICHA VISUAL
 # =====================================================================
 def evaluate_symbol(symbol: str, cfg: dict, ticker: dict, source: str) -> Optional[Tuple[str, str]]:
     group = cfg["group"]
+    base_coin = symbol.replace("USDT", "")
     price = float(ticker["lastPrice"])
     pct_24h = float(ticker["priceChangePercent"])
     vol_24h = float(ticker["quoteVolume"])
@@ -441,26 +521,12 @@ def evaluate_symbol(symbol: str, cfg: dict, ticker: dict, source: str) -> Option
     c15 = [x["close"] for x in k15] if has_klines else []
     h15_12h = [x["high"] for x in k15[-48:]] if has_klines else []
     l15_12h = [x["low"] for x in k15[-48:]] if has_klines else []
-    l1d_60d = [x["low"] for x in k1d[-60:]] if has_klines else []
     c1d = [x["close"] for x in k1d] if has_klines else []
 
     ema25_15 = calc_ema(c15, 25) if has_klines else None
     ema99_15 = calc_ema(c15, 99) if has_klines else None
     rsi6_15 = calc_rsi(c15, 6) if has_klines else None
     ema99_1d = calc_ema(c1d, 99) if has_klines else None
-
-    if group == "DESCARTADA":
-        if ALERT_ON_DISCARDED_NEW_LOW and has_klines and l1d_60d:
-            floor_60d = min(l1d_60d)
-            if price <= floor_60d * 1.005:
-                msg = (
-                    f"🗑️ *DESCARTADA EN NUEVO MÍNIMO* — `{symbol}` (`{cfg['allocation']}`)\n"
-                    f"• Precio: *{fmt(price)}* | 24h: `{pct_24h:+.2f}%` | Mín 60d: `{fmt(floor_60d)}`\n"
-                    f"• Perfil: _{cfg['profile']}_\n"
-                    f"• Riesgo: _{cfg['risk']}_"
-                )
-                return ("DISCARDED_NEW_LOW", msg)
-        return None
 
     recent_high = max(h15_12h) if h15_12h else price
     drop_from_12h_high = ((recent_high - price) / recent_high * 100.0) if (has_klines and recent_high > 0) else 0.0
@@ -476,49 +542,73 @@ def evaluate_symbol(symbol: str, cfg: dict, ticker: dict, source: str) -> Option
     hit_drop_12h = has_klines and drop_from_12h_high >= min_drop and pct_24h <= -1.5
     hit_drop_24h = (not has_klines) and (pct_24h <= -min_drop)
 
-    if not (hit_target or hit_drop_12h or hit_drop_24h):
-        return None
+    if group == "DESCARTADA":
+        if not ALERT_ON_RECHAZO:
+            return None
+        # Para descartadas, solo emitir ficha de rechazo si cae >= 7%
+        if not ((has_klines and drop_from_12h_high >= 7.0) or pct_24h <= -7.0):
+            return None
+    else:
+        if not (hit_target or hit_drop_12h or hit_drop_24h):
+            return None
+        if rsi6_15 is not None and rsi6_15 > 80 and not hit_target:
+            return None
 
-    if rsi6_15 is not None and rsi6_15 > 80 and not hit_target:
-        return None
+    verdict, light, prob, bar = compute_rebound_scoring(
+        group=group,
+        price=price,
+        vol_24h=vol_24h,
+        rsi6_15=rsi6_15,
+        ema99_1d=ema99_1d,
+        hit_target=hit_target,
+    )
 
     badge = {
         "ESTRUCTURAL": "⭐ FAVORITO ESTRUCTURAL",
         "TACTICA_PUENTE": "🎯 TÁCTICA PUENTE",
         "CAZA_REBOTE": "⚡ CAZA DE REBOTE",
+        "DESCARTADA": "🚫 DESCARTADA / EVITAR",
     }.get(group, group)
 
-    kind = "TARGET_HIT" if hit_target else "DIP_DROP"
+    kind = "RECHAZO" if group == "DESCARTADA" else ("TARGET_HIT" if hit_target else "DIP_DROP")
     targets_txt = " / ".join(fmt(t) for t in targets) if targets else "Dinámico"
+
+    url_ia = f"https://www.binance.com/es/price/{base_coin.lower()}"
+    url_trade = f"https://www.binance.com/es/trade/{base_coin}_USDT?type=spot"
 
     if has_klines:
         rsi_txt = f"{rsi6_15:.1f}" if rsi6_15 is not None else "N/A"
         ema25_txt = fmt(ema25_15) if ema25_15 is not None else "N/A"
         ema99_15_txt = fmt(ema99_15) if ema99_15 is not None else "N/A"
         ema99_1d_txt = fmt(ema99_1d) if ema99_1d is not None else "N/A"
-        tech_lines = (
-            f"• Zonas límite: `{targets_txt}` | Mín 12h: `{fmt(min(l15_12h))}` | Retroceso 12h: `-{drop_from_12h_high:.2f}%`\n"
-            f"• 15m: `RSI(6)={rsi_txt}` | `EMA25={ema25_txt}` | `EMA99={ema99_15_txt}`\n"
-            f"• 1D EMA99: `{ema99_1d_txt}` | Vol 24h: `${vol_24h:,.0f}`\n"
+        tech_block = (
+            f"• Zonas límite: <code>{targets_txt}</code> | Mín 12h: <code>{fmt(min(l15_12h))}</code> | Retroceso 12h: <code>-{drop_from_12h_high:.2f}%</code>\n"
+            f"• 15m: <code>RSI(6)={rsi_txt}</code> | <code>EMA25={ema25_txt}</code> | <code>EMA99={ema99_15_txt}</code>\n"
+            f"• 1D EMA99: <code>{ema99_1d_txt}</code> | Vol 24h: <code>${vol_24h:,.0f}</code>\n"
         )
     else:
-        tech_lines = (
-            f"• Zonas límite: `{targets_txt}` | Vol 24h: `${vol_24h:,.0f}` (Fuente: `{source}`)\n"
+        tech_block = (
+            f"• Zonas límite: <code>{targets_txt}</code> | Vol 24h: <code>${vol_24h:,.0f}</code>\n"
         )
 
     msg = (
-        f"{badge} — *`{symbol}`* (`{cfg['allocation']}`)\n"
-        f"• Catálogo: *{cfg['profile']}*\n"
-        f"• Precio: *{fmt(price)}* | 24h: `{pct_24h:+.2f}%`\n"
-        f"{tech_lines}"
-        f"• Lectura: _{cfg.get('tech', '')}_\n"
-        f"• Riesgo a vigilar: _{cfg.get('risk', '')}_"
+        f"• <b>{html.escape(base_coin)}</b> | Base (12h): <code>${fmt(recent_high)}</code> → Actual: <code>${fmt(price)}</code> | <b>{pct_24h:+.2f}%</b>\n"
+        f"{bar}  (Rebote: <b>{prob}%</b>)\n"
+        f"└ <a href=\"{url_ia}\">📊 Resumen IA</a> | <a href=\"{url_trade}\">🔶 Tradear</a>\n\n"
+        f"{badge} — <code>{html.escape(symbol)}</code> (<b>{html.escape(cfg['allocation'])}</b>)\n"
+        f"• Catálogo: <b>{html.escape(cfg['profile'])}</b>\n"
+        f"{tech_block}"
+        f"• Lectura: <i>{html.escape(cfg.get('tech', ''))}</i>\n"
+        f"• Riesgo a vigilar: <i>{html.escape(cfg.get('risk', ''))}</i>\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"{light} <b>SENTIMIENTO DE COMPRA : {verdict}</b>\n"
+        f"📈 <b>PROBABILIDAD DE REBOTE : {prob}%</b>"
     )
     return (kind, msg)
 
 
 # =====================================================================
-# 5. PERSISTENCIA Y ENVÍO ESTRICTO A TOPIC_ID_PERDEDORAS
+# 6. PERSISTENCIA Y ENVÍO ESTRICTO A TOPIC_ID_PERDEDORAS
 # =====================================================================
 def load_state() -> dict:
     if STATE_FILE.exists():
@@ -538,7 +628,7 @@ def _post_telegram(url: str, chat_id: str, text: str, thread_id: int) -> Tuple[b
         "chat_id": chat_id,
         "message_thread_id": thread_id,
         "text": text,
-        "parse_mode": "Markdown",
+        "parse_mode": "HTML",
         "disable_web_page_preview": True,
     }
     try:
@@ -551,7 +641,7 @@ def _post_telegram(url: str, chat_id: str, text: str, thread_id: int) -> Tuple[b
 
 
 def send_to_perdedoras_topic(text: str) -> bool:
-    """Envía EXCLUSIVAMENTE al tópico TOPIC_ID_PERDEDORAS. Nunca publica en General ni en otro hilo."""
+    """Envía EXCLUSIVAMENTE al tópico TOPIC_ID_PERDEDORAS."""
     if not TOPIC_ID_PERDEDORAS.isdigit() or int(TOPIC_ID_PERDEDORAS) <= 1:
         print("[ERROR CONFIG] TOPIC_ID_PERDEDORAS no está configurado o es inválido. Envío cancelado.")
         return False
@@ -598,7 +688,7 @@ def main() -> None:
             continue
 
         kind, msg = result
-        key = f"v2:{symbol}:{kind}"
+        key = f"v3:{symbol}:{kind}"
         last_ts = float(state.get(key, 0.0))
 
         if now - last_ts >= cooldown_sec:
@@ -608,7 +698,7 @@ def main() -> None:
 
     save_state(state)
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    print(f"[{ts}] Auditoría completada ({len(ASSETS_DB)} activos | Fuente: {source}). Alertas emitidas en Monedas perdedoras: {alerts_sent}")
+    print(f"[{ts}] Auditoría completada ({len(ASSETS_DB)} activos | Fuente: {source}). Fichas emitidas en Monedas perdedoras: {alerts_sent}")
 
 
 if __name__ == "__main__":
