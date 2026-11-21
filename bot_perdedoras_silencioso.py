@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Tuple
 import requests
 
 # =====================================================================
-# 1. CONFIGURACIÓN DE TELEGRAM, TOPICS Y CONTROL DE EJECUCIÓN
+# 1. CONFIGURACIÓN AISLADA (EXCLUSIVO PARA TOPIC_ID_PERDEDORAS)
 # =====================================================================
 TELEGRAM_BOT_TOKEN = (
     os.getenv("TELEGRAM_BOT_TOKEN")
@@ -15,15 +15,9 @@ TELEGRAM_BOT_TOKEN = (
     or "TU_BOT_TOKEN_AQUI"
 ).strip()
 
-PRIMARY_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "").strip()
-SECONDARY_CHAT_ID = os.getenv("CHAT_ID", "").strip()
-TELEGRAM_CHAT_ID = PRIMARY_CHAT_ID or SECONDARY_CHAT_ID or "TU_CHAT_ID_AQUI"
-
-# Tópicos de Telegram
-TOPIC_ID_DIPS = os.getenv("TOPIC_ID_DIPS", "").strip()
+CHAT_ID_GROUP = os.getenv("CHAT_ID", "").strip()
+CHAT_ID_FALLBACK = os.getenv("TELEGRAM_CHAT_ID", "").strip()
 TOPIC_ID_PERDEDORAS = os.getenv("TOPIC_ID_PERDEDORAS", "").strip()
-TOPIC_ID_CENTRAL = os.getenv("TOPIC_ID_CENTRAL", "").strip()
-TELEGRAM_MESSAGE_THREAD_ID = os.getenv("TELEGRAM_MESSAGE_THREAD_ID", "").strip()
 
 COOLDOWN_MINUTES = int(os.getenv("COOLDOWN_MINUTES", "180"))
 STATE_FILE = Path(os.getenv("STATE_FILE", "spot_audit_state.json"))
@@ -317,7 +311,7 @@ ASSETS_DB: Dict[str, dict] = {
 
 
 # =====================================================================
-# 3. CONSULTAS DE MERCADO CON DIAGNÓSTICO Y RESPALDO MULTI-FUENTE
+# 3. CONSULTAS DE MERCADO E INDICADORES
 # =====================================================================
 def fetch_json_debug(url: str, params: Optional[dict] = None) -> Tuple[Optional[dict | list], Optional[str]]:
     try:
@@ -330,21 +324,15 @@ def fetch_json_debug(url: str, params: Optional[dict] = None) -> Tuple[Optional[
 
 
 def get_24h_tickers() -> Tuple[Dict[str, dict], str]:
-    errors = []
     for base in BINANCE_ENDPOINTS:
-        data, err = fetch_json_debug(f"{base}/api/v3/ticker/24hr")
+        data, _ = fetch_json_debug(f"{base}/api/v3/ticker/24hr")
         if isinstance(data, list) and len(data) > 0:
             print(f"[OK] Tickers 24h obtenidos desde {base} ({len(data)} pares).")
             return ({item["symbol"]: item for item in data if "symbol" in item}, "BINANCE")
-        errors.append(f"{base} -> {err}")
-
-    print("[WARN] Fallaron todos los endpoints directos de Binance:")
-    for e in errors:
-        print(f"  - {e}")
 
     normalized: Dict[str, dict] = {}
     for page in (1, 2):
-        cg_data, cg_err = fetch_json_debug(
+        cg_data, _ = fetch_json_debug(
             "https://api.coingecko.com/api/v3/coins/markets",
             params={
                 "vs_currency": "usd",
@@ -367,8 +355,6 @@ def get_24h_tickers() -> Tuple[Dict[str, dict], str]:
                         "priceChangePercent": str(pct if pct is not None else 0.0),
                         "quoteVolume": str(vol if vol is not None else 0.0),
                     }
-        else:
-            print(f"[WARN] CoinGecko página {page} falló: {cg_err}")
         if page == 1:
             time.sleep(1.0)
 
@@ -442,7 +428,7 @@ def fmt(p: float) -> str:
 # =====================================================================
 # 4. EVALUACIÓN DE OPORTUNIDAD EN CAÍDA SEGÚN EL RANKING
 # =====================================================================
-def evaluate_symbol(symbol: str, cfg: dict, ticker: dict, source: str) -> Optional[Tuple[str, str, str]]:
+def evaluate_symbol(symbol: str, cfg: dict, ticker: dict, source: str) -> Optional[Tuple[str, str]]:
     group = cfg["group"]
     price = float(ticker["lastPrice"])
     pct_24h = float(ticker["priceChangePercent"])
@@ -473,7 +459,7 @@ def evaluate_symbol(symbol: str, cfg: dict, ticker: dict, source: str) -> Option
                     f"• Perfil: _{cfg['profile']}_\n"
                     f"• Riesgo: _{cfg['risk']}_"
                 )
-                return ("DISCARDED_NEW_LOW", "PERDEDORAS", msg)
+                return ("DISCARDED_NEW_LOW", msg)
         return None
 
     recent_high = max(h15_12h) if h15_12h else price
@@ -528,11 +514,11 @@ def evaluate_symbol(symbol: str, cfg: dict, ticker: dict, source: str) -> Option
         f"• Lectura: _{cfg.get('tech', '')}_\n"
         f"• Riesgo a vigilar: _{cfg.get('risk', '')}_"
     )
-    return (kind, "DIPS", msg)
+    return (kind, msg)
 
 
 # =====================================================================
-# 5. PERSISTENCIA Y NOTIFICACIÓN TELEGRAM CON FALLBACK DE TOPICS
+# 5. PERSISTENCIA Y ENVÍO ESTRICTO A TOPIC_ID_PERDEDORAS
 # =====================================================================
 def load_state() -> dict:
     if STATE_FILE.exists():
@@ -547,29 +533,14 @@ def save_state(state: dict) -> None:
     STATE_FILE.write_text(json.dumps(state, indent=2), encoding="utf-8")
 
 
-def resolve_topic_id(channel: str) -> Optional[int]:
-    if channel == "PERDEDORAS":
-        raw = TOPIC_ID_PERDEDORAS or TELEGRAM_MESSAGE_THREAD_ID
-    else:
-        raw = TOPIC_ID_DIPS or TOPIC_ID_CENTRAL or TELEGRAM_MESSAGE_THREAD_ID
-
-    if raw and raw.isdigit():
-        tid = int(raw)
-        # En Telegram, el hilo General (ID=1) no lleva message_thread_id
-        return None if tid <= 1 else tid
-    return None
-
-
-def _post_telegram(url: str, chat_id: str, text: str, thread_id: Optional[int]) -> Tuple[bool, str]:
-    payload: dict = {
+def _post_telegram(url: str, chat_id: str, text: str, thread_id: int) -> Tuple[bool, str]:
+    payload = {
         "chat_id": chat_id,
+        "message_thread_id": thread_id,
         "text": text,
         "parse_mode": "Markdown",
         "disable_web_page_preview": True,
     }
-    if thread_id is not None:
-        payload["message_thread_id"] = thread_id
-
     try:
         r = requests.post(url, json=payload, timeout=12)
         if r.status_code == 200:
@@ -579,38 +550,31 @@ def _post_telegram(url: str, chat_id: str, text: str, thread_id: Optional[int]) 
         return False, f"EXC {exc}"
 
 
-def send_telegram(text: str, channel: str = "DIPS") -> bool:
-    if "TU_BOT_TOKEN_AQUI" in TELEGRAM_BOT_TOKEN or "TU_CHAT_ID_AQUI" in TELEGRAM_CHAT_ID:
-        print(f"[MODO PRUEBA SIN TOKEN | {channel}] Alerta generada:")
-        print(text)
-        print("-" * 55)
+def send_to_perdedoras_topic(text: str) -> bool:
+    """Envía EXCLUSIVAMENTE al tópico TOPIC_ID_PERDEDORAS. Nunca publica en General ni en otro hilo."""
+    if not TOPIC_ID_PERDEDORAS.isdigit() or int(TOPIC_ID_PERDEDORAS) <= 1:
+        print("[ERROR CONFIG] TOPIC_ID_PERDEDORAS no está configurado o es inválido. Envío cancelado.")
+        return False
+
+    thread_id = int(TOPIC_ID_PERDEDORAS)
+    candidates = []
+    for cid in (CHAT_ID_GROUP, CHAT_ID_FALLBACK):
+        if cid and cid not in candidates:
+            candidates.append(cid)
+
+    if not candidates or "TU_BOT_TOKEN_AQUI" in TELEGRAM_BOT_TOKEN:
+        print("[ERROR CONFIG] Faltan credenciales de Telegram o CHAT_ID.")
         return False
 
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    thread_id = resolve_topic_id(channel)
-
-    # 1) Intento principal con TELEGRAM_CHAT_ID y el thread_id resuelto
-    ok, err = _post_telegram(url, TELEGRAM_CHAT_ID, text, thread_id)
-    if ok:
-        return True
-
-    # 2) Si falló el hilo y existe un CHAT_ID alternativo distinto, probar en el supergrupo alternativo
-    if "message thread not found" in err.lower() and thread_id is not None:
-        if SECONDARY_CHAT_ID and SECONDARY_CHAT_ID != TELEGRAM_CHAT_ID:
-            ok2, _ = _post_telegram(url, SECONDARY_CHAT_ID, text, thread_id)
-            if ok2:
-                print(f"[OK] Alerta enviada a CHAT_ID alternativo con thread_id={thread_id}.")
-                return True
-
-        # 3) Fallback garantizado: enviar al chat principal sin message_thread_id (canal General)
-        ok3, err3 = _post_telegram(url, TELEGRAM_CHAT_ID, text, None)
-        if ok3:
-            print(f"[AVISO] thread_id={thread_id} no existe en este chat; enviado al canal principal.")
+    last_err = ""
+    for cid in candidates:
+        ok, err = _post_telegram(url, cid, text, thread_id)
+        if ok:
             return True
-        print(f"[ERROR TELEGRAM FALLBACK] {err3}")
-        return False
+        last_err = f"chat_id={cid} -> {err}"
 
-    print(f"[ERROR TELEGRAM] {err}")
+    print(f"[ERROR TELEGRAM TOPIC_ID_PERDEDORAS={thread_id}] {last_err}")
     return False
 
 
@@ -633,18 +597,18 @@ def main() -> None:
         if not result:
             continue
 
-        kind, channel, msg = result
-        key = f"{symbol}:{kind}"
+        kind, msg = result
+        key = f"v2:{symbol}:{kind}"
         last_ts = float(state.get(key, 0.0))
 
         if now - last_ts >= cooldown_sec:
-            if send_telegram(msg, channel=channel) or "TU_BOT_TOKEN_AQUI" in TELEGRAM_BOT_TOKEN:
+            if send_to_perdedoras_topic(msg):
                 state[key] = now
                 alerts_sent += 1
 
     save_state(state)
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    print(f"[{ts}] Auditoría completada ({len(ASSETS_DB)} activos | Fuente: {source}). Alertas emitidas: {alerts_sent}")
+    print(f"[{ts}] Auditoría completada ({len(ASSETS_DB)} activos | Fuente: {source}). Alertas emitidas en Monedas perdedoras: {alerts_sent}")
 
 
 if __name__ == "__main__":
