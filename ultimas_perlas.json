@@ -2,19 +2,19 @@
   [
     "SKYUSDT",
     "XPLUSDT",
-    "OSMOUSDT",
     "USUALUSDT",
-    "SAPIENUSDT",
-    "HOTUSDT",
-    "KITEUSDT"
+    "OSMOUSDT",
+    "YBUSDT",
+    "KITEUSDT",
+    "HOTUSDT"
   ],
   [
     "SKYUSDT",
     "XPLUSDT",
     "USUALUSDT",
     "OSMOUSDT",
+    "ENSOUSDT",
     "YBUSDT",
-    "KITEUSDT",
-    "HOTUSDT"
+    "AIGENSYNUSDT"
   ]
 ]
