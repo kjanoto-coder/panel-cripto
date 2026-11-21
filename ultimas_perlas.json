@@ -1,14 +1,5 @@
 [
   [
-    "TRXUSDT",
-    "UNIUSDT",
-    "ARBUSDT",
-    "APTUSDT",
-    "AEROUSDT",
-    "RAYUSDT",
-    "STRKUSDT"
-  ],
-  [
     "DOGEUSDT",
     "ADAUSDT",
     "JSTUSDT",
@@ -16,5 +7,14 @@
     "NIGHTUSDT",
     "CAKEUSDT",
     "ARUSDT"
+  ],
+  [
+    "XRPUSDT",
+    "NEARUSDT",
+    "SUIUSDT",
+    "ENAUSDT",
+    "XLMUSDT",
+    "HBARUSDT",
+    "TRUMPUSDT"
   ]
 ]
