@@ -1,20 +1,20 @@
 [
   [
     "XPLUSDT",
-    "SKYUSDT",
     "SIGNUSDT",
     "ORCAUSDT",
+    "SKYUSDT",
     "OSMOUSDT",
     "USUALUSDT",
     "ZKPUSDT"
   ],
   [
     "XPLUSDT",
-    "SIGNUSDT",
     "ORCAUSDT",
-    "SKYUSDT",
+    "SIGNUSDT",
     "OSMOUSDT",
     "USUALUSDT",
+    "SKYUSDT",
     "ZKPUSDT"
   ]
 ]
