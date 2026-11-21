@@ -4,17 +4,17 @@
     "SKYUSDT",
     "ORCAUSDT",
     "SIGNUSDT",
-    "USUALUSDT",
     "ZKPUSDT",
+    "USUALUSDT",
     "OSMOUSDT"
   ],
   [
     "XPLUSDT",
     "SKYUSDT",
-    "ORCAUSDT",
     "SIGNUSDT",
-    "ZKPUSDT",
+    "ORCAUSDT",
+    "OSMOUSDT",
     "USUALUSDT",
-    "OSMOUSDT"
+    "ZKPUSDT"
   ]
 ]
