@@ -14,9 +14,9 @@
     "FFUSDT": 2,
     "KITEUSDT": 2,
     "STEEMUSDT": 2,
-    "SENTUSDT": 1,
-    "BLURUSDT": 2,
-    "GRAMUSDT": 2
+    "BLURUSDT": 1,
+    "GRAMUSDT": 2,
+    "SHELLUSDT": 2
   },
   "resumen_dia": [
     "ASTERUSDT",
