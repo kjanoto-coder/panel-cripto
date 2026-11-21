@@ -1,20 +1,20 @@
 [
   [
-    "SIGNUSDT",
-    "AIGENSYNUSDT",
-    "USUALUSDT",
-    "KITEUSDT",
-    "HMSTRUSDT",
-    "HOTUSDT",
-    "KERNELUSDT"
-  ],
-  [
     "PARTIUSDT",
     "ZKPUSDT",
     "SKYUSDT",
     "HYPERUSDT",
     "SAPIENUSDT",
     "RESOLVUSDT",
+    "OSMOUSDT"
+  ],
+  [
+    "PARTIUSDT",
+    "ZKPUSDT",
+    "SKYUSDT",
+    "RESOLVUSDT",
+    "SAPIENUSDT",
+    "HYPERUSDT",
     "OSMOUSDT"
   ]
 ]
