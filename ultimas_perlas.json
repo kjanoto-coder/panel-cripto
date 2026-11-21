@@ -1,14 +1,5 @@
 [
   [
-    "XPLUSDT",
-    "ORCAUSDT",
-    "SIGNUSDT",
-    "OSMOUSDT",
-    "USUALUSDT",
-    "SKYUSDT",
-    "ZKPUSDT"
-  ],
-  [
     "ZAMAUSDT",
     "MORPHOUSDT",
     "BEAMXUSDT",
@@ -16,5 +7,14 @@
     "HOTUSDT",
     "AIGENSYNUSDT",
     "SAPIENUSDT"
+  ],
+  [
+    "MORPHOUSDT",
+    "XPLUSDT",
+    "ZAMAUSDT",
+    "ETHFIUSDT",
+    "SKYUSDT",
+    "USUALUSDT",
+    "ZKPUSDT"
   ]
 ]
