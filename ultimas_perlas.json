@@ -1,14 +1,5 @@
 [
   [
-    "TRXUSDT",
-    "ENAUSDT",
-    "PEPEUSDT",
-    "XPLUSDT",
-    "PYTHUSDT",
-    "VANAUSDT",
-    "NEXOUSDT"
-  ],
-  [
     "DOGEUSDT",
     "ADAUSDT",
     "RENDERUSDT",
@@ -16,5 +7,14 @@
     "MARSCOINUSDT",
     "ARUSDT",
     "AEROUSDT"
+  ],
+  [
+    "XRPUSDT",
+    "NEARUSDT",
+    "XLMUSDT",
+    "TRUMPUSDT",
+    "HBARUSDT",
+    "RAYUSDT",
+    "ONDOUSDT"
   ]
 ]
