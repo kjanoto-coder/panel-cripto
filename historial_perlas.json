@@ -12,11 +12,12 @@
     "WCTUSDT": 2,
     "OPGUSDT": 2,
     "FFUSDT": 2,
-    "SHELLUSDT": 2,
-    "SENTUSDT": 1,
+    "SHELLUSDT": 1,
     "KITEUSDT": 2,
     "STEEMUSDT": 2,
-    "PORTALUSDT": 2
+    "PORTALUSDT": 1,
+    "SENTUSDT": 2,
+    "BLURUSDT": 2
   },
   "resumen_dia": [
     "ASTERUSDT",
