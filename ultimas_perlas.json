@@ -2,19 +2,19 @@
   [
     "PARTIUSDT",
     "BREVUSDT",
-    "BLURUSDT",
-    "HMSTRUSDT",
-    "ERAUSDT",
-    "AUDIOUSDT",
-    "BARDUSDT"
-  ],
-  [
-    "PARTIUSDT",
-    "BREVUSDT",
     "MMTUSDT",
     "KITEUSDT",
     "AIGENSYNUSDT",
     "USUALUSDT",
     "BLURUSDT"
+  ],
+  [
+    "PARTIUSDT",
+    "SAPIENUSDT",
+    "BREVUSDT",
+    "MMTUSDT",
+    "AIGENSYNUSDT",
+    "KITEUSDT",
+    "USUALUSDT"
   ]
 ]
