@@ -1,20 +1,20 @@
 [
   [
-    "SOPHUSDT",
-    "BMTUSDT",
-    "RAREUSDT",
-    "STEEMUSDT",
-    "ERAUSDT",
-    "HMSTRUSDT",
-    "BARDUSDT"
-  ],
-  [
     "MMTUSDT",
     "AIGENSYNUSDT",
     "KITEUSDT",
     "USUALUSDT",
     "BLURUSDT",
     "ENSOUSDT",
+    "HOTUSDT"
+  ],
+  [
+    "MMTUSDT",
+    "KITEUSDT",
+    "AIGENSYNUSDT",
+    "USUALUSDT",
+    "ENSOUSDT",
+    "SAPIENUSDT",
     "HOTUSDT"
   ]
 ]
