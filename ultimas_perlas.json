@@ -1,20 +1,20 @@
 [
   [
     "PARTIUSDT",
-    "BREVUSDT",
-    "MMTUSDT",
-    "KITEUSDT",
-    "AIGENSYNUSDT",
-    "USUALUSDT",
-    "BLURUSDT"
-  ],
-  [
-    "PARTIUSDT",
     "SAPIENUSDT",
     "BREVUSDT",
     "MMTUSDT",
     "AIGENSYNUSDT",
     "KITEUSDT",
     "USUALUSDT"
+  ],
+  [
+    "SAPIENUSDT",
+    "PARTIUSDT",
+    "BREVUSDT",
+    "KITEUSDT",
+    "AIGENSYNUSDT",
+    "USUALUSDT",
+    "BLURUSDT"
   ]
 ]
