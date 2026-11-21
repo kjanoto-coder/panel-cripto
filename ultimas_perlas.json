@@ -3,9 +3,9 @@
     "PARTIUSDT",
     "ZKPUSDT",
     "SKYUSDT",
-    "HYPERUSDT",
-    "SAPIENUSDT",
     "RESOLVUSDT",
+    "SAPIENUSDT",
+    "HYPERUSDT",
     "OSMOUSDT"
   ],
   [
@@ -14,7 +14,7 @@
     "SKYUSDT",
     "RESOLVUSDT",
     "SAPIENUSDT",
-    "HYPERUSDT",
+    "YBUSDT",
     "OSMOUSDT"
   ]
 ]
