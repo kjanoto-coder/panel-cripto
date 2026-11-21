@@ -14,8 +14,9 @@
     "STEEMUSDT": 2,
     "GRAMUSDT": 2,
     "SHELLUSDT": 2,
-    "SENTUSDT": 2,
-    "PORTALUSDT": 2
+    "SENTUSDT": 1,
+    "PORTALUSDT": 2,
+    "HMSTRUSDT": 2
   },
   "resumen_dia": [
     "ASTERUSDT",
