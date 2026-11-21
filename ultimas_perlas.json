@@ -1,14 +1,5 @@
 [
   [
-    "BEAMXUSDT",
-    "STXUSDT",
-    "SIGNUSDT",
-    "HYPERUSDT",
-    "API3USDT",
-    "OSMOUSDT",
-    "ENSOUSDT"
-  ],
-  [
     "UNIUSDT",
     "TRUMPUSDT",
     "XPLUSDT",
@@ -16,5 +7,14 @@
     "ZAMAUSDT",
     "PENGUUSDT",
     "EIGENUSDT"
+  ],
+  [
+    "PHAUSDT",
+    "MORPHOUSDT",
+    "AIGENSYNUSDT",
+    "ZKPUSDT",
+    "SCUSDT",
+    "KITEUSDT",
+    "SAPIENUSDT"
   ]
 ]
