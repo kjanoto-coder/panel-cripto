@@ -7,7 +7,7 @@
     "SKYUSDT": 2,
     "YGGUSDT": 2,
     "GLMRUSDT": 2,
-    "HMSTRUSDT": 2,
+    "HMSTRUSDT": 1,
     "SUSHIUSDT": 2,
     "WCTUSDT": 2,
     "OPGUSDT": 2,
@@ -15,8 +15,8 @@
     "STEEMUSDT": 2,
     "GRAMUSDT": 2,
     "SHELLUSDT": 2,
-    "PORTALUSDT": 1,
-    "SENTUSDT": 2
+    "SENTUSDT": 2,
+    "PORTALUSDT": 2
   },
   "resumen_dia": [
     "ASTERUSDT",
