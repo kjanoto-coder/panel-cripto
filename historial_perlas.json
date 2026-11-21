@@ -13,9 +13,10 @@
     "OPGUSDT": 2,
     "FFUSDT": 2,
     "SHELLUSDT": 2,
-    "BLURUSDT": 2,
+    "BLURUSDT": 1,
     "SENTUSDT": 2,
-    "KITEUSDT": 2
+    "KITEUSDT": 2,
+    "STEEMUSDT": 2
   },
   "resumen_dia": [
     "ASTERUSDT",
@@ -55,7 +56,8 @@
     "TIAUSDT",
     "POLUSDT",
     "CRVUSDT",
-    "ANIMEUSDT"
+    "ANIMEUSDT",
+    "STEEMUSDT"
   ],
   "resumen_enviado_hoy": false,
   "posta": {
