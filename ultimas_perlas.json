@@ -3,18 +3,18 @@
     "PARTIUSDT",
     "SAPIENUSDT",
     "AIGENSYNUSDT",
-    "BLURUSDT",
-    "RAREUSDT",
-    "HOTUSDT",
-    "HMSTRUSDT"
-  ],
-  [
-    "PARTIUSDT",
-    "SAPIENUSDT",
-    "AIGENSYNUSDT",
     "MMTUSDT",
     "BLURUSDT",
     "HOTUSDT",
     "HMSTRUSDT"
+  ],
+  [
+    "SAPIENUSDT",
+    "PARTIUSDT",
+    "MMTUSDT",
+    "BLURUSDT",
+    "HOTUSDT",
+    "HMSTRUSDT",
+    "KERNELUSDT"
   ]
 ]
