@@ -2,15 +2,15 @@ name: Criptos Pre-Explosion IA
 
 on:
   schedule:
-    # Se ejecuta cada 15 minutos continuos
-    - cron: '*/15 * * * *'
-  workflow_dispatch: # Permite ejecución manual instantánea desde GitHub
+    # Se ejecuta cada 15 minutos continuos (desplazado para evitar colas)
+    - cron: '9,24,39,54 * * * *'
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: escritura-repositorio-cripto
+  group: escritura-pre-explosion
   cancel-in-progress: false
 
 jobs:
@@ -25,6 +25,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
 
       - name: Instalar Dependencias
         run: |
@@ -39,7 +40,6 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           TOPIC_ID_PRE_EXPLOSION: ${{ secrets.TOPIC_ID_PRE_EXPLOSION }}
-          TOPIC_ID_CENTRAL: ${{ secrets.TOPIC_ID_CENTRAL }}
           TELEGRAM_MESSAGE_THREAD_ID: ${{ secrets.TOPIC_ID_PRE_EXPLOSION }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python bot_pre_explosion.py
@@ -50,7 +50,7 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add -f historial_perlas.json datos_pre_explosion_ia.json || true
           if ! git diff --staged --quiet; then
-            git commit -m "Auto-update: Estado Pre-Explosión IA"
+            git commit -m "Auto-update: Estado Pre-Explosión IA [skip ci]"
             for i in 1 2 3; do
               if git pull --rebase origin main && git push origin main; then
                 break
