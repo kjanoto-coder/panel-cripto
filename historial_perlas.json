@@ -13,10 +13,10 @@
     "OPGUSDT": 2,
     "FFUSDT": 2,
     "SHELLUSDT": 2,
-    "BLURUSDT": 1,
-    "SENTUSDT": 2,
+    "SENTUSDT": 1,
     "KITEUSDT": 2,
-    "STEEMUSDT": 2
+    "STEEMUSDT": 2,
+    "PORTALUSDT": 2
   },
   "resumen_dia": [
     "ASTERUSDT",
