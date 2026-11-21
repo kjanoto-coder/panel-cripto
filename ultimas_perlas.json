@@ -1,14 +1,5 @@
 [
   [
-    "TRXUSDT",
-    "UNIUSDT",
-    "APTUSDT",
-    "PYTHUSDT",
-    "STRKUSDT",
-    "STXUSDT",
-    "RAYUSDT"
-  ],
-  [
     "DOGEUSDT",
     "ADAUSDT",
     "JSTUSDT",
@@ -16,5 +7,14 @@
     "ARUSDT",
     "NIGHTUSDT",
     "VANAUSDT"
+  ],
+  [
+    "XRPUSDT",
+    "XLMUSDT",
+    "TRUMPUSDT",
+    "HBARUSDT",
+    "ONDOUSDT",
+    "ETHFIUSDT",
+    "ZENUSDT"
   ]
 ]
