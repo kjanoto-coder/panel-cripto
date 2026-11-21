@@ -1,14 +1,5 @@
 [
   [
-    "PHAUSDT",
-    "MORPHOUSDT",
-    "AIGENSYNUSDT",
-    "ZKPUSDT",
-    "SCUSDT",
-    "KITEUSDT",
-    "SAPIENUSDT"
-  ],
-  [
     "DOGEUSDT",
     "ADAUSDT",
     "SHIBUSDT",
@@ -16,5 +7,14 @@
     "RENDERUSDT",
     "ALGOUSDT",
     "ALTUSDT"
+  ],
+  [
+    "XRPUSDT",
+    "UNIUSDT",
+    "ENAUSDT",
+    "XLMUSDT",
+    "TRUMPUSDT",
+    "ARUSDT",
+    "EIGENUSDT"
   ]
 ]
