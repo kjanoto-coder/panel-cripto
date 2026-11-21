@@ -1,20 +1,20 @@
 [
   [
     "YBUSDT",
-    "SKYUSDT",
-    "ZKPUSDT",
-    "RESOLVUSDT",
-    "HOTUSDT",
-    "KERNELUSDT",
-    "CYBERUSDT"
-  ],
-  [
-    "YBUSDT",
     "PARTIUSDT",
     "SKYUSDT",
     "ZKPUSDT",
     "SAPIENUSDT",
     "OSMOUSDT",
     "BLURUSDT"
+  ],
+  [
+    "PARTIUSDT",
+    "SKYUSDT",
+    "ZKPUSDT",
+    "SAPIENUSDT",
+    "RESOLVUSDT",
+    "HYPERUSDT",
+    "SENTUSDT"
   ]
 ]
