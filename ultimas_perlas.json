@@ -3,18 +3,18 @@
     "PARTIUSDT",
     "ZKPUSDT",
     "SKYUSDT",
-    "RESOLVUSDT",
-    "SAPIENUSDT",
-    "YBUSDT",
-    "OSMOUSDT"
-  ],
-  [
-    "PARTIUSDT",
-    "ZKPUSDT",
-    "SKYUSDT",
     "SAPIENUSDT",
     "RESOLVUSDT",
     "USUALUSDT",
     "OSMOUSDT"
+  ],
+  [
+    "ZKPUSDT",
+    "SKYUSDT",
+    "SAPIENUSDT",
+    "KITEUSDT",
+    "OSMOUSDT",
+    "USUALUSDT",
+    "FFUSDT"
   ]
 ]
