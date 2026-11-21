@@ -1,20 +1,20 @@
 [
   [
     "XPLUSDT",
-    "MORPHOUSDT",
-    "ETHFIUSDT",
-    "ZAMAUSDT",
-    "SKYUSDT",
-    "ZKPUSDT",
-    "KITEUSDT"
-  ],
-  [
-    "XPLUSDT",
     "ZAMAUSDT",
     "MORPHOUSDT",
     "SKYUSDT",
     "BMTUSDT",
     "AIGENSYNUSDT",
     "ZKPUSDT"
+  ],
+  [
+    "BEAMXUSDT",
+    "STXUSDT",
+    "SIGNUSDT",
+    "HYPERUSDT",
+    "API3USDT",
+    "OSMOUSDT",
+    "ENSOUSDT"
   ]
 ]
