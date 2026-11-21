@@ -3,18 +3,18 @@
     "SKYUSDT",
     "ZKPUSDT",
     "SAPIENUSDT",
-    "HMSTRUSDT",
-    "USUALUSDT",
-    "OSMOUSDT",
-    "KITEUSDT"
-  ],
-  [
-    "SKYUSDT",
-    "ZKPUSDT",
-    "SAPIENUSDT",
     "OSMOUSDT",
     "USUALUSDT",
     "KITEUSDT",
     "HOTUSDT"
+  ],
+  [
+    "SKYUSDT",
+    "XPLUSDT",
+    "OSMOUSDT",
+    "USUALUSDT",
+    "SAPIENUSDT",
+    "HOTUSDT",
+    "KITEUSDT"
   ]
 ]
