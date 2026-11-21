@@ -1,20 +1,20 @@
 [
   [
     "XPLUSDT",
-    "SIGNUSDT",
-    "ZKPUSDT",
-    "SKYUSDT",
-    "HYPERUSDT",
-    "SAPIENUSDT",
-    "OSMOUSDT"
-  ],
-  [
-    "XPLUSDT",
     "ZKPUSDT",
     "SKYUSDT",
     "SAPIENUSDT",
     "OSMOUSDT",
     "KITEUSDT",
     "USUALUSDT"
+  ],
+  [
+    "XPLUSDT",
+    "SKYUSDT",
+    "ZKPUSDT",
+    "SAPIENUSDT",
+    "KITEUSDT",
+    "OSMOUSDT",
+    "HOTUSDT"
   ]
 ]
