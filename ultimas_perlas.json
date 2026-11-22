@@ -1,14 +1,5 @@
 [
   [
-    "PYTHUSDT",
-    "ASTERUSDT",
-    "ETHFIUSDT",
-    "ICPUSDT",
-    "ARBUSDT",
-    "DOTUSDT",
-    "ONDOUSDT"
-  ],
-  [
     "DOGEUSDT",
     "POLUSDT",
     "HBARUSDT",
@@ -16,5 +7,14 @@
     "APTUSDT",
     "FILUSDT",
     "RENDERUSDT"
+  ],
+  [
+    "NEARUSDT",
+    "SUIUSDT",
+    "ENAUSDT",
+    "WLDUSDT",
+    "DODOUSDT",
+    "KITEUSDT",
+    "CAKEUSDT"
   ]
 ]
