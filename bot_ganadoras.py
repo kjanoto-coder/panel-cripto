@@ -42,7 +42,17 @@ BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
 HISTORIAL_GANADORAS_FILE = "historial_ganadoras.json"
 HISTORIAL_PERLAS_FILE = "historial_perlas.json"
 EXCEL_AUDITORIA_FILE = "AUDITORIA_VERDE_GANADORAS.xlsx"
-DIAS_RETENCION = 45
+DIAS_RETENCION = 62
+
+MESES_ES = {
+    1: "ENERO", 2: "FEBRERO", 3: "MARZO", 4: "ABRIL",
+    5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGOSTO",
+    9: "SEPTIEMBRE", 10: "OCTUBRE", 11: "NOVIEMBRE", 12: "DICIEMBRE"
+}
+DIAS_SEMANA_ES = {
+    0: "LUNES", 1: "MARTES", 2: "MIERCOLES", 3: "JUEVES",
+    4: "VIERNES", 5: "SABADO", 6: "DOMINGO"
+}
 
 EXCL_BASE = {
     'USDT', 'USDC', 'FDUSD', 'DAI', 'TUSD', 'USDP', 'EUR', 'GBP', 'AUD', 'BRL', 'ARS', 'TRY', 'BUSD',
@@ -277,16 +287,16 @@ def ejecutar_etapa_1_diaria(tickers, simbolos_activos, historial):
             continue
 
     candidatas.sort(key=lambda x: x["cambio_24h"], reverse=True)
-    top_15_dia = candidatas[:15]
+    top_20_dia = candidatas[:20]
 
-    for idx, item in enumerate(top_15_dia, start=1):
+    for idx, item in enumerate(top_20_dia, start=1):
         item["rank"] = idx
 
-    historial["dias"][hoy_str] = top_15_dia
+    historial["dias"][hoy_str] = top_20_dia
     historial["ultima_actualizacion"] = ahora_art().strftime('%Y-%m-%d %H:%M:%S ART')
     guardar_historial_ganadoras(historial)
 
-    return top_15_dia[:10], mapa_actual
+    return top_20_dia[:10], mapa_actual
 
 # ==============================================================================
 # ETAPA 2: CONSOLIDACIÓN SEMANAL + DETECTOR DE SEGUNDA OLA (7 DÍAS)
@@ -446,14 +456,191 @@ def ejecutar_etapa_3_auditoria_verde(historial, mapa_actual):
         "subida_prom_pct": subida_prom
     }
 
-    generar_excel_auditoria(aciertos, pendientes, stats, mapa_actual)
+    generar_excel_auditoria(aciertos, pendientes, stats, mapa_actual, historial)
     return aciertos, pendientes, stats
 
-def generar_excel_auditoria(aciertos, pendientes, stats, mapa_actual):
-    wb = openpyxl.Workbook()
+def construir_hoja_mensual_ganadoras(wb, anio, mes, dias_dict, reg_verdes):
+    nombre_mes = MESES_ES[mes]
+    ws = wb.create_sheet(f"{nombre_mes} {anio}")
+    ws.views.sheetView[0].showGridLines = True
 
-    ws_res = wb.active
-    ws_res.title = "PARAMETROS_RADAR"
+    fill_titulo = PatternFill(start_color="0F172A", end_color="0F172A", fill_type="solid")
+    fill_dia_hdr = PatternFill(start_color="E2E8F0", end_color="E2E8F0", fill_type="solid")
+    fill_res_hdr = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+    fill_col_hdr = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
+    fill_res_col = PatternFill(start_color="78350F", end_color="78350F", fill_type="solid")
+    fill_verde = PatternFill(start_color="DCFCE7", end_color="DCFCE7", fill_type="solid")
+
+    borde_suave = Border(
+        left=Side(style='thin', color='CBD5E1'),
+        right=Side(style='thin', color='CBD5E1'),
+        top=Side(style='thin', color='CBD5E1'),
+        bottom=Side(style='thin', color='CBD5E1')
+    )
+
+    ws["A1"] = f"MONEDAS GANADORAS • {nombre_mes} {anio} (CIERRES DIARIOS + RESUMEN SEMANAL)"
+    ws["A1"].font = Font(name="Arial", size=12, bold=True, color="FFFFFF")
+    ws["A1"].fill = fill_titulo
+    ws.merge_cells("A1:AN1")
+    ws.row_dimensions[1].height = 26
+
+    # Agrupar las fechas registradas de este mes por semana ISO (Lunes a Domingo)
+    fechas_mes = []
+    for f_str in sorted(dias_dict.keys()):
+        try:
+            d = datetime.strptime(f_str, '%Y-%m-%d').date()
+            if d.year == anio and d.month == mes:
+                fechas_mes.append(d)
+        except Exception:
+            continue
+
+    semanas_map = {}
+    for d in fechas_mes:
+        lunes = d - timedelta(days=d.weekday())
+        semanas_map.setdefault(lunes, {})[d.weekday()] = d
+
+    fila_base = 3
+    for lunes in sorted(semanas_map.keys()):
+        dias_semana = semanas_map[lunes]
+        max_filas_bloque = 20
+
+        # Dibujar los 7 días de la semana (Lunes=0 .. Domingo=6) lado a lado
+        for w_idx in range(7):
+            col_ini = 1 + (w_idx * 5)  # 4 columnas de datos + 1 separadora
+            dia_dt = lunes + timedelta(days=w_idx)
+            f_str = dia_dt.strftime('%Y-%m-%d')
+            lista_dia = dias_dict.get(f_str, []) if dia_dt.month == mes else []
+
+            # Encabezado del día: [Día N°] [MES - DÍA SEMANA]
+            c_num_dia = ws.cell(fila_base, col_ini, dia_dt.day)
+            c_nom_dia = ws.cell(fila_base, col_ini + 1, f"{MESES_ES[dia_dt.month]} - {DIAS_SEMANA_ES[w_idx]}")
+            ws.merge_cells(start_row=fila_base, start_column=col_ini + 1, end_row=fila_base, end_column=col_ini + 3)
+
+            for cc in range(col_ini, col_ini + 4):
+                cell_h = ws.cell(fila_base, cc)
+                cell_h.fill = fill_dia_hdr
+                cell_h.font = Font(name="Arial", size=9.5, bold=True, color="0F172A")
+                cell_h.border = borde_suave
+                cell_h.alignment = Alignment(horizontal="center" if cc == col_ini else "left", vertical="center")
+
+            # Sub-encabezado: N° | NOMBRE | $ valor | % subida
+            sub_hdrs = ["N°", "NOMBRE", "$ valor", "% subida"]
+            for off, h_txt in enumerate(sub_hdrs):
+                ch = ws.cell(fila_base + 1, col_ini + off, h_txt)
+                ch.fill = fill_col_hdr
+                ch.font = Font(name="Arial", size=9, bold=True, color="FFFFFF")
+                ch.alignment = Alignment(horizontal="center", vertical="center")
+                ch.border = borde_suave
+
+            # Filas del día
+            for r_off in range(max_filas_bloque):
+                fila_actual = fila_base + 2 + r_off
+                if r_off < len(lista_dia):
+                    item = lista_dia[r_off]
+                    sym = item.get("symbol", "")
+                    es_verde = sym in reg_verdes
+
+                    c1 = ws.cell(fila_actual, col_ini, item.get("rank", r_off + 1))
+                    c2 = ws.cell(fila_actual, col_ini + 1, item.get("ticker", ""))
+                    c3 = ws.cell(fila_actual, col_ini + 2, float(item.get("precio", 0.0)))
+                    c4 = ws.cell(fila_actual, col_ini + 3, round(float(item.get("cambio_24h", 0.0)) / 100.0, 4))
+
+                    c1.alignment = Alignment(horizontal="center")
+                    c2.alignment = Alignment(horizontal="left")
+                    c3.alignment = Alignment(horizontal="right")
+                    c4.alignment = Alignment(horizontal="right")
+                    c4.number_format = "0.0%"
+
+                    for cx in (c1, c2, c3, c4):
+                        cx.font = Font(name="Arial", size=9, bold=es_verde)
+                        cx.border = borde_suave
+                        if es_verde:
+                            cx.fill = fill_verde
+                else:
+                    for off in range(4):
+                        ce = ws.cell(fila_actual, col_ini + off, "")
+                        ce.border = borde_suave
+
+        # Bloque RESUMEN SEMANAL a la derecha del Domingo (columna 36 = AJ)
+        col_res = 1 + (7 * 5)
+        ws.cell(fila_base, col_res, "RESUMEN SEMANAL")
+        ws.merge_cells(start_row=fila_base, start_column=col_res, end_row=fila_base, end_column=col_res + 3)
+        for cc in range(col_res, col_res + 4):
+            cr = ws.cell(fila_base, cc)
+            cr.fill = fill_res_hdr
+            cr.font = Font(name="Arial", size=9.5, bold=True, color="78350F")
+            cr.alignment = Alignment(horizontal="center", vertical="center")
+            cr.border = borde_suave
+
+        for off, h_txt in enumerate(["N°", "NOMBRE", "$ valor", "% subida"]):
+            ch = ws.cell(fila_base + 1, col_res + off, h_txt)
+            ch.fill = fill_res_col
+            ch.font = Font(name="Arial", size=9, bold=True, color="FFFFFF")
+            ch.alignment = Alignment(horizontal="center", vertical="center")
+            ch.border = borde_suave
+
+        # Consolidar todas las monedas ganadoras únicas de esa semana ordenadas por mayor % subida
+        consolidado_sem = {}
+        for w_idx in range(7):
+            dia_dt = lunes + timedelta(days=w_idx)
+            if dia_dt.month != mes:
+                continue
+            f_str = dia_dt.strftime('%Y-%m-%d')
+            for item in dias_dict.get(f_str, []):
+                sym = item.get("symbol", "")
+                gain = float(item.get("cambio_24h", 0.0))
+                if sym not in consolidado_sem or gain > consolidado_sem[sym]["gain"]:
+                    consolidado_sem[sym] = {
+                        "symbol": sym,
+                        "ticker": item.get("ticker", ""),
+                        "precio": float(item.get("precio", 0.0)),
+                        "gain": gain
+                    }
+
+        ranking_sem = sorted(consolidado_sem.values(), key=lambda x: x["gain"], reverse=True)[:max_filas_bloque]
+        for r_off in range(max_filas_bloque):
+            fila_actual = fila_base + 2 + r_off
+            if r_off < len(ranking_sem):
+                it = ranking_sem[r_off]
+                es_verde = it["symbol"] in reg_verdes
+                c1 = ws.cell(fila_actual, col_res, r_off + 1)
+                c2 = ws.cell(fila_actual, col_res + 1, it["ticker"])
+                c3 = ws.cell(fila_actual, col_res + 2, it["precio"])
+                c4 = ws.cell(fila_actual, col_res + 3, round(it["gain"] / 100.0, 4))
+
+                c1.alignment = Alignment(horizontal="center")
+                c2.alignment = Alignment(horizontal="left")
+                c3.alignment = Alignment(horizontal="right")
+                c4.alignment = Alignment(horizontal="right")
+                c4.number_format = "0.0%"
+
+                for cx in (c1, c2, c3, c4):
+                    cx.font = Font(name="Arial", size=9, bold=es_verde)
+                    cx.border = borde_suave
+                    if es_verde:
+                        cx.fill = fill_verde
+            else:
+                for off in range(4):
+                    ce = ws.cell(fila_actual, col_res + off, "")
+                    ce.border = borde_suave
+
+        ws.row_dimensions[fila_base].height = 20
+        ws.row_dimensions[fila_base + 1].height = 19
+        fila_base += max_filas_bloque + 4
+
+    # Ajustar anchos de las 8 bloques (7 días + 1 resumen semanal)
+    for b_idx in range(8):
+        c_start = 1 + (b_idx * 5)
+        ws.column_dimensions[openpyxl.utils.get_column_letter(c_start)].width = 4.5
+        ws.column_dimensions[openpyxl.utils.get_column_letter(c_start + 1)].width = 11.5
+        ws.column_dimensions[openpyxl.utils.get_column_letter(c_start + 2)].width = 10.5
+        ws.column_dimensions[openpyxl.utils.get_column_letter(c_start + 3)].width = 9.5
+        if b_idx < 7:
+            ws.column_dimensions[openpyxl.utils.get_column_letter(c_start + 4)].width = 2.5
+
+def generar_excel_auditoria(aciertos, pendientes, stats, mapa_actual, historial):
+    wb = openpyxl.Workbook()
+    wb.remove(wb.active)
 
     header_fill = PatternFill(start_color="0B132B", end_color="0B132B", fill_type="solid")
     sub_fill = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
@@ -466,6 +653,27 @@ def generar_excel_auditoria(aciertos, pendientes, stats, mapa_actual):
         bottom=Side(style='thin', color='CBD5E1')
     )
 
+    dias_dict = historial.get("dias", {})
+    reg_verdes = historial.get("registro_verdes", {})
+
+    # 1. Crear una pestaña por cada mes registrado con bloques Lunes..Domingo + Resumen Semanal
+    meses_presentes = set()
+    for f_str in dias_dict.keys():
+        try:
+            d = datetime.strptime(f_str, '%Y-%m-%d').date()
+            meses_presentes.add((d.year, d.month))
+        except Exception:
+            continue
+
+    if not meses_presentes:
+        hoy = ahora_art().date()
+        meses_presentes.add((hoy.year, hoy.month))
+
+    for anio, mes in sorted(meses_presentes):
+        construir_hoja_mensual_ganadoras(wb, anio, mes, dias_dict, reg_verdes)
+
+    # 2. Pestaña PARAMETROS_RADAR (Auditoría de tiempos Verde -> Ganadora)
+    ws_res = wb.create_sheet("PARAMETROS_RADAR")
     ws_res["A1"] = "AUDITORÍA REALIDAD: COMPRA EN VERDE (PRE-EXPLOSIÓN) -> MONEDA GANADORA"
     ws_res["A1"].font = Font(name="Arial", size=13, bold=True, color="FFFFFF")
     ws_res["A1"].fill = header_fill
@@ -497,22 +705,24 @@ def generar_excel_auditoria(aciertos, pendientes, stats, mapa_actual):
             elif idx in (9, 10):
                 c.fill = gold_fill
 
-    ws_res.column_dimensions["A"].width = 44
-    ws_res.column_dimensions["B"].width = 22
-    ws_res.column_dimensions["C"].width = 48
+    ws_res.column_dimensions["A"].width = 48
+    ws_res.column_dimensions["B"].width = 24
+    ws_res.column_dimensions["C"].width = 50
 
+    # 3. Pestaña DETALLE_OPERACIONES (Seguimiento individual Verde -> Ganadora)
     ws_det = wb.create_sheet("DETALLE_OPERACIONES")
-    headers = [
+    headers_det = [
         "MONEDA", "CATEGORÍA", "FECHA VERDE", "PRECIO VERDE",
         "ESTADO", "FECHA GANADORA", "PRECIO GANADORA",
         "SUBIDA DESDE VERDE %", "SUBIDA DÍA GANADORA %", "DÍAS DEMORA (VERDE -> WIN)"
     ]
-    ws_det.append(headers)
-    for col_idx in range(1, len(headers) + 1):
+    ws_det.append(headers_det)
+    ws_det.row_dimensions[1].height = 24
+    for col_idx in range(1, len(headers_det) + 1):
         cell = ws_det.cell(1, col_idx)
         cell.font = Font(name="Arial", size=10, bold=True, color="FFFFFF")
         cell.fill = header_fill
-        cell.alignment = Alignment(horizontal="center")
+        cell.alignment = Alignment(horizontal="center", vertical="center")
 
     todas = sorted(aciertos, key=lambda x: x.get("fecha_ganadora", ""), reverse=True) + sorted(pendientes, key=lambda x: x.get("fecha_verde", ""), reverse=True)
     for r_idx, item in enumerate(todas, start=2):
@@ -534,15 +744,15 @@ def generar_excel_auditoria(aciertos, pendientes, stats, mapa_actual):
             item.get("dias_demora") if es_acierto else item.get("dias_esperando", 0)
         ]
         ws_det.append(row_vals)
-        for c_i in range(1, len(headers) + 1):
+        for c_i in range(1, len(headers_det) + 1):
             cell = ws_det.cell(r_idx, c_i)
             cell.border = thin_border
             cell.font = Font(name="Arial", size=9.5)
             if es_acierto:
                 cell.fill = green_fill
 
-    widths = [14, 15, 15, 16, 18, 18, 16, 20, 20, 24]
-    for i, w in enumerate(widths, start=1):
+    widths_det = [14, 15, 15, 16, 19, 20, 18, 22, 23, 27]
+    for i, w in enumerate(widths_det, start=1):
         ws_det.column_dimensions[openpyxl.utils.get_column_letter(i)].width = w
 
     wb.save(EXCEL_AUDITORIA_FILE)
@@ -806,7 +1016,7 @@ def publicar_reporte_semanal_y_auditoria(reinas, segunda_ola, dias_count, aciert
     time.sleep(1)
     enviar_telegram_documento(
         EXCEL_AUDITORIA_FILE,
-        f"📊 <b>Planilla Excel Actualizada:</b> Auditoría Verde ➔ Ganadoras ({stats['total_aciertos']} aciertos confirmados)."
+        f"📊 <b>Planilla Excel Actualizada:</b> Bloques Diarios + Resumen Semanal + Auditoría Verde ➔ Ganadoras ({stats['total_aciertos']} aciertos)."
     )
 
 if __name__ == "__main__":
