@@ -317,6 +317,21 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null
+    },
+    "ZENUSDT": {
+      "symbol": "ZENUSDT",
+      "ticker": "ZEN",
+      "fecha_verde": "2026-11-22",
+      "ts_verde": "2026-11-22 14:51",
+      "precio_verde": 3.7,
+      "es_oro": false,
+      "origen": "CAZADOR_TACTICO_ROJO",
+      "estado": "PENDIENTE",
+      "fecha_ganadora": "",
+      "precio_ganadora": 0.0,
+      "subida_real_pct": 0.0,
+      "subida_24h_dia_pct": 0.0,
+      "dias_demora": null
     }
   }
 }
