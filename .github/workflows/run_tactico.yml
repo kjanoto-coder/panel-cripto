@@ -1,21 +1,14 @@
-name: Cazador Tactico IA
+name: Etapa 1 - Cazador Tactico
 
 on:
-  schedule:
-    - cron: "6,26,46 * * * *"
   workflow_dispatch:
 
 permissions:
   contents: write
 
-concurrency:
-  group: escritura-cazador-tactico
-  cancel-in-progress: false
-
 jobs:
   run-tactico:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repositorio
         uses: actions/checkout@v4
@@ -23,37 +16,29 @@ jobs:
       - name: Configurar Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-          cache: "pip"
+          python-version: '3.11'
 
       - name: Instalar dependencias (incluye Gemini IA)
-        run: |
-          python -m pip install --upgrade pip
-          pip install requests matplotlib google-genai
+        run: pip install requests matplotlib google-genai
 
       - name: Ejecutar Cazador Táctico IA
         env:
-          PYTHONUNBUFFERED: "1"
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
           TOPIC_ID_TACTICO: ${{ secrets.TOPIC_ID_TACTICO }}
+          TOPIC_ID_CENTRAL: ${{ secrets.TOPIC_ID_CENTRAL }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python bot_tactico.py
 
       - name: Guardar historial de estrellas y graduadas sin conflictos
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add -f historial_perlas.json || true
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add historial_perlas.json historial_ganadoras.json
           if ! git diff --staged --quiet; then
-            git commit -m "Auto-update: Radar Cazador Táctico [skip ci]"
-            for i in 1 2 3; do
-              if git pull --rebase origin main && git push origin main; then
-                break
-              fi
-              git rebase --abort || true
-              sleep 5
-            done
+            git commit -m "Update historial desde Cazador Tactico (Etapa 1)"
+            git pull --rebase origin main || true
+            git push
           fi
