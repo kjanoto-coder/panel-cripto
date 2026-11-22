@@ -1,14 +1,5 @@
 [
   [
-    "DOGEUSDT",
-    "UNIUSDT",
-    "WLDUSDT",
-    "ARBUSDT",
-    "DOTUSDT",
-    "ERAUSDT",
-    "ASTERUSDT"
-  ],
-  [
     "ENAUSDT",
     "PUMPUSDT",
     "GRAMUSDT",
@@ -16,5 +7,14 @@
     "STRKUSDT",
     "FILUSDT",
     "XLMUSDT"
+  ],
+  [
+    "NEARUSDT",
+    "SUIUSDT",
+    "ADAUSDT",
+    "ONDOUSDT",
+    "TRUMPUSDT",
+    "APTUSDT",
+    "JSTUSDT"
   ]
 ]
