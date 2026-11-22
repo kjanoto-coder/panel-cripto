@@ -103,7 +103,6 @@ def analizar_velas_tf(session, symbol, interval="1h", limit=24):
                 vol_ratio = round(v_rec / v_prev, 2) if v_prev > 0 else 1.0
                 var_ultima = round(((cierres[-1] - aperturas[-1]) / aperturas[-1]) * 100, 2) if aperturas[-1] > 0 else 0.0
 
-                # Detección de mecha superior de rechazo en la última vela
                 rango_vela = maximos[-1] - float(k[-1][3])
                 mecha_sup = maximos[-1] - max(cierres[-1], aperturas[-1])
                 rechazo_techo = (rango_vela > 0 and (mecha_sup / rango_vela) >= 0.55)
@@ -255,18 +254,17 @@ def evaluar_copiloto_trader_y_auditor_ia(session, plan, clima_btc_txt):
         p_act = float(p.get("precio_actual", p_ent))
         retroceso_max = round(((p_act - p_max) / p_max) * 100, 2) if p_max > 0 else 0.0
 
-        # Regla determinista base del Copiloto Trader
         pnl_pct = float(p.get("pnl_pct", 0.0))
         obj_pct = float(p.get("subida_necesaria_pct", 17.14))
 
         if pnl_pct >= obj_pct and (v15["rsi"] >= 74 or v15["rechazo_techo"] or retroceso_max <= -2.5):
             orden_def = "🚨 VENDER AHORA (Techo/Agotamiento)"
-            razon_def = f"Superó objetivo (+{pnl_pct:.1f}%) con RSI 15m={v15['rsi']} y retroceso {retroceso_max:.1f}% desde máx."
+            razon_def = f"Alcanzó objetivo (+{pnl_pct:.1f}%) con RSI 15m={v15['rsi']} y retroceso {retroceso_max:.1f}% desde máx."
         elif pnl_pct >= obj_pct * 0.85 and (v15["rsi"] >= 76 and v15["rechazo_techo"]):
             orden_def = "🟡 ASEGURAR 50% (TP1 Anticipado)"
             razon_def = f"Cerca de meta (+{pnl_pct:.1f}%) con mecha de rechazo en 15m."
-        elif pnl_pct <= STOP_PROTECCION_PCT * 0.85 and v1h["rsi"] < 34:
-            orden_def = "⚠️ VIGILAR SOPORTE (Cerca de Stop)"
+        elif pnl_pct <= STOP_PROTECCION_PCT * 0.80 and v1h["rsi"] < 34:
+            orden_def = "⚠️ RIESGO DE BAJADA (Soporte débil)"
             razon_def = f"Retroceso de {pnl_pct:.1f}% con debilidad en 1h (RSI {v1h['rsi']})."
         else:
             orden_def = "🟢 MANTENER / DEJAR CORRER"
@@ -288,7 +286,6 @@ def evaluar_copiloto_trader_y_auditor_ia(session, plan, clima_btc_txt):
             "orden_base": orden_def
         })
 
-    # Métricas del embudo para el Auditor IA 24h (Paso 6)
     ganadoras_data = cargar_json_seguro(HISTORIAL_GANADORAS_FILE)
     reg_verdes = ganadoras_data.get("registro_verdes", {})
     tot_reg = len(reg_verdes)
@@ -304,7 +301,8 @@ def evaluar_copiloto_trader_y_auditor_ia(session, plan, clima_btc_txt):
         "semaforo_meta": "🟢 EN CAMINO A META" if (real + flot) >= 0 else "🟡 EN CONSOLIDACIÓN",
         "factibilidad_pct": min(95, max(35, int(65 + (tasa_acierto * 0.25) + ((real + flot) / 20.0)))),
         "diagnostico_24h": f"Embudo con {tasa_acierto}% acierto ({len(conf_ok)}/{tot_reg}). {clima_btc_txt}. Avance cuota: {progreso_pct}%.",
-        "recomendacion_auditor": "Mantener las 4 posiciones con órdenes OCO estructurales mientras RSI 1h siga debajo de 70."
+        "recomendacion_auditor": "Vigilar cierre 1D y mantener las 4 posiciones con órdenes OCO estructurales.",
+        "veredicto_final_semana": plan.get("auditoria_ia", {}).get("veredicto_final_semana", "En seguimiento activo...")
     }
 
     if GEMINI_API_KEY and datos_posiciones:
@@ -314,7 +312,7 @@ def evaluar_copiloto_trader_y_auditor_ia(session, plan, clima_btc_txt):
                 "Eres un sistema dual de IA para trading Spot en Binance:\n"
                 "1) AUDITOR IA 24H: Evalúa si las 4 monedas elegidas y el embudo tienen factibilidad real para llegar a la meta semanal de $600 USD.\n"
                 "2) COPILOTO TRADER IA: Evalúa velas 15m/1h de cada moneda activa y decide la orden exacta para el trader: "
-                "'🟢 MANTENER / DEJAR CORRER', '🟡 ASEGURAR 50% (TP1)' o '🚨 VENDER AHORA (AGOTAMIENTO)'.\n\n"
+                "'🟢 MANTENER / DEJAR CORRER', '🟡 ASEGURAR 50% (TP1)', '🚨 VENDER AHORA (AGOTAMIENTO)' o '⚠️ RIESGO DE BAJADA'.\n\n"
                 f"CLIMA MERCADO: {clima_btc_txt}\n"
                 f"AVANCE SEMANAL: ${real + flot:+.2f} / ${meta:.0f} USD ({progreso_pct}%)\n"
                 f"EFECTIVIDAD HISTÓRICA EMBUDO: {tasa_acierto}% ({len(conf_ok)}/{tot_reg})\n"
@@ -323,7 +321,7 @@ def evaluar_copiloto_trader_y_auditor_ia(session, plan, clima_btc_txt):
                 '{"semaforo_meta":"🟢 FACTIBLE | 🟡 EN OBSERVACIÓN | 🔴 RIESGO","factibilidad_pct":75,'
                 '"diagnostico_24h":"análisis breve en 1 oración sobre si llegamos a la meta",'
                 '"recomendacion_auditor":"consejo técnico concreto",'
-                '"ordenes":{"MONEDA":{"orden":"🟢 MANTENER / DEJAR CORRER | 🟡 ASEGURAR 50% (TP1) | 🚨 VENDER AHORA (AGOTAMIENTO)","razon":"motivo corto 15m/1h"}}}'
+                '"ordenes":{"MONEDA":{"orden":"🟢 MANTENER / DEJAR CORRER | 🟡 ASEGURAR 50% (TP1) | 🚨 VENDER AHORA (AGOTAMIENTO) | ⚠️ RIESGO DE BAJADA","razon":"motivo corto 15m/1h"}}}'
             )
             for mod in ["gemini-2.5-flash", "gemini-1.5-flash"]:
                 try:
@@ -352,6 +350,44 @@ def evaluar_copiloto_trader_y_auditor_ia(session, plan, clima_btc_txt):
 
     plan["auditoria_ia"] = auditoria_res
     return auditoria_res
+
+def generar_veredicto_final_ia(plan):
+    """Emite el dictamen final de factibilidad cuando se cumple la cuota semanal."""
+    cierres = [c for c in plan.get("historial_cierres", []) if c.get("semana_id") == plan["semana_id"]]
+    ganadoras = [c for c in cierres if float(c.get("pnl_usd", 0)) > 0]
+    perdedoras = [c for c in cierres if float(c.get("pnl_usd", 0)) <= 0]
+    win_rate = round((len(ganadoras) / len(cierres)) * 100, 1) if cierres else 100.0
+    total_usd = float(plan.get("ganancia_realizada_usd", 0.0))
+    meta_usd = float(plan.get("meta_semanal_usd", META_SEMANAL_USD))
+
+    veredicto_base = (
+        f"✅ <b>VEREDICTO: META LOGRADA — ESTRATEGIA FACTIBLE</b>\n"
+        f"• Se alcanzaron <b>${total_usd:,.2f} USD</b> (Meta: ${meta_usd:,.0f} USD) con <b>{win_rate}% de acierto</b> "
+        f"({len(ganadoras)} ganadoras / {len(perdedoras)} cerradas en protección).\n"
+        f"• La selección desde Cazador Táctico/Pre-Explosión demostró capacidad real para generar el retorno sin sobreexponer el capital."
+    )
+
+    if GEMINI_API_KEY and cierres:
+        try:
+            client = genai.Client(api_key=GEMINI_API_KEY)
+            prompt = (
+                "Eres el Auditor Jefe de un fondo cuantitativo Spot en Binance. "
+                "Acabamos de cumplir la meta semanal de ganancia en modo prueba. "
+                "Analiza los resultados reales de la semana y da un VEREDICTO FINAL DE FACTIBILIDAD para pasar a dinero real.\n"
+                f"Capital Base: ${plan.get('capital_total_usd', 3500)} USD | Meta: ${meta_usd} USD | Ganancia Lograda: ${total_usd} USD\n"
+                f"Inicio Semana: {plan.get('fecha_inicio')} | Cierre Meta: {plan.get('fecha_cierre_meta')}\n"
+                f"Operaciones cerradas: {json.dumps(cierres, ensure_ascii=False)}\n\n"
+                "Responde en máximo 4 líneas claras en español con:\n"
+                "1) Dictamen (FACTIBLE PARA REAL / FACTIBLE CON AJUSTES)\n"
+                "2) Por qué funcionó (consistencia entre las 4 monedas, tiempo empleado y control de riesgo)."
+            )
+            for mod in ["gemini-2.5-flash", "gemini-1.5-flash"]:
+                res = client.models.generate_content(model=mod, contents=prompt)
+                if res and res.text:
+                    return f"🧠 <b>DICTAMEN FINAL AUDITOR IA:</b>\n{html.escape(res.text.strip())}"
+        except Exception:
+            pass
+    return veredicto_base
 
 def generar_tablero_visual(plan, filename="tablero_semanal.png"):
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.0, 4.6), facecolor="#0b132b", gridspec_kw={"width_ratios": [1.0, 1.55]})
@@ -408,7 +444,7 @@ def generar_tablero_visual(plan, filename="tablero_semanal.png"):
             yv = b.get_height()
             ax2.text(b.get_x() + b.get_width() / 2.0, yv + (0.8 if yv >= 0 else -1.5), f"{v:+.2f}%\n(Obj +{obj:.1f}%)", ha="center", va="bottom" if yv >= 0 else "top", color="white", fontweight="bold", fontsize=7.8)
     else:
-        ax2.text(0.5, 0.5, "Sin posiciones abiertas\n(Esperando señal o Meta Cumplida)", ha="center", va="center", color="#94a3b8", fontsize=10, transform=ax2.transAxes)
+        ax2.text(0.5, 0.5, "Sin posiciones abiertas\n(Esperando cierre diario 23:59 o Meta Cumplida)", ha="center", va="center", color="#94a3b8", fontsize=10, transform=ax2.transAxes)
         ax2.tick_params(left=False, labelleft=False, bottom=False, labelbottom=False)
 
     aud = plan.get("auditoria_ia", {})
@@ -487,9 +523,9 @@ def actualizar_excel_semanal(plan):
             float(alt.get("precio_entrada", 0)), estado_alt, alt.get("motivo_tecnico", "")
         ])
 
-    # Pestaña 3: Auditoría IA 24h de Factibilidad
+    # Pestaña 3: Auditoría IA 24h y Veredicto Final
     ws_aud = wb.create_sheet(title="3_AUDITORIA_IA_24H")
-    headers_aud = ["Fecha Auditoría", "Semana", "Semáforo Meta", "Factibilidad (%)", "Diagnóstico IA 24h", "Recomendación Auditor"]
+    headers_aud = ["Fecha Auditoría", "Semana", "Semáforo Meta", "Factibilidad (%)", "Diagnóstico IA 24h", "Recomendación Auditor", "Veredicto Final Semana"]
     ws_aud.append(headers_aud)
     for col_idx in range(1, len(headers_aud) + 1):
         c = ws_aud.cell(row=1, column=col_idx)
@@ -501,7 +537,8 @@ def actualizar_excel_semanal(plan):
     ws_aud.append([
         ahora_art().strftime("%Y-%m-%d %H:%M ART"), plan["semana_id"],
         aud.get("semaforo_meta", "🟢 EN CAMINO"), aud.get("factibilidad_pct", 75),
-        aud.get("diagnostico_24h", ""), aud.get("recomendacion_auditor", "")
+        aud.get("diagnostico_24h", ""), aud.get("recomendacion_auditor", ""),
+        aud.get("veredicto_final_semana", "En seguimiento activo...")
     ])
 
     # Pestaña 4: Resumen Cuota Semanal
@@ -750,13 +787,15 @@ def ejecutar_gestor_semanal():
         plan["estado_semana"] = "META_CUMPLIDA"
         plan["fecha_cierre_meta"] = ahora_str
 
-    # Evaluar alternativas y completar hasta 4 monedas en cartera
+    # Evaluar alternativas y seleccionar en ventana de cierre diario (23:50 - 00:10 ART) o si la cartera está vacía
     excluidas = {p["symbol"] for p in plan["posiciones"]} | {c["symbol"] for c in plan["historial_cierres"] if c.get("semana_id") == plan["semana_id"]}
     alternativas = evaluar_alternativas_al_horno(s, mapa_mkt, excluidas)
     plan["alternativas_evaluadas"] = alternativas
 
     btc_ok, msg_btc = verificar_clima_btc(s, mapa_mkt)
-    if plan["estado_semana"] == "ACTIVA" and len(plan["posiciones"]) < MAX_MONEDAS_SEMANA:
+    es_ventana_cierre_dia = (ahora_dt.hour == 23 and ahora_dt.minute >= 50) or (ahora_dt.hour == 0 and ahora_dt.minute <= 10)
+
+    if plan["estado_semana"] == "ACTIVA" and len(plan["posiciones"]) < MAX_MONEDAS_SEMANA and (es_ventana_cierre_dia or len(plan["posiciones"]) == 0):
         if not btc_ok:
             if not plan.get("aviso_btc_enviado", False):
                 enviar_telegram_texto(f"🛑 <b>FRENO DE MANO BTC ACTIVADO</b>\n📅 <code>{ahora_str}</code>\n\n⚠️ {html.escape(msg_btc)}")
@@ -806,20 +845,27 @@ def ejecutar_gestor_semanal():
 
     # Ejecutar Copiloto Trader IA (Paso 7) + Auditor IA 24h (Paso 6) sobre toda la cartera
     evaluar_copiloto_trader_y_auditor_ia(s, plan, msg_btc)
+
+    # Si se cumplió la cuota semanal, emitir Veredicto Final de Factibilidad
+    veredicto_final_txt = ""
+    if plan["estado_semana"] == "META_CUMPLIDA":
+        veredicto_final_txt = generar_veredicto_final_ia(plan)
+        plan["auditoria_ia"]["veredicto_final_semana"] = veredicto_final_txt
+
     actualizar_excel_semanal(plan)
 
-    # Alerta inmediata si el Copiloto Trader IA detecta punto óptimo de venta en alguna moneda
-    alertas_ia_venta = [
+    # Alerta inmediata cada 10 min si el Copiloto Trader IA detecta punto óptimo de venta o riesgo de bajada
+    alertas_ia_inmediatas = [
         p for p in plan["posiciones"]
-        if "VENDER AHORA" in p.get("trader_ia_orden", "") or "ASEGURAR 50%" in p.get("trader_ia_orden", "")
+        if any(tag in p.get("trader_ia_orden", "") for tag in ["VENDER AHORA", "ASEGURAR 50%", "RIESGO DE BAJADA"])
     ]
-    for p_v in alertas_ia_venta:
+    for p_v in alertas_ia_inmediatas:
         enviar_telegram_texto(
-            f"🚨 <b>COPILOTO TRADER IA • SEÑAL DE VENTA EN VIVO</b>\n"
+            f"🚨 <b>COPILOTO TRADER IA • ALERTA EN VIVO (10m)</b>\n"
             f"📅 <code>{ahora_str}</code>\n\n"
             f"💰 <b>{p_v['base']}</b> | PnL actual: <b>{p_v['pnl_pct']:+.2f}%</b> (<code>${p_v['pnl_usd']:+.2f} USD</code>)\n"
             f"• <b>Orden IA:</b> <b>{html.escape(p_v['trader_ia_orden'])}</b>\n"
-            f"• <b>Motivo técnico:</b> <i>{html.escape(p_v.get('trader_ia_razon', ''))}</i>"
+            f"• <b>Análisis gráfico 15m/1h:</b> <i>{html.escape(p_v.get('trader_ia_razon', ''))}</i>"
         )
 
     # Enviar los 3 Bloques Ordenados cuando hay novedades o cada hora en punto
@@ -836,7 +882,7 @@ def ejecutar_gestor_semanal():
         if plan["estado_semana"] == "META_CUMPLIDA":
             titulo_ev = "🏆 <b>¡CUOTA SEMANAL CUMPLIDA — MODO PROTECCIÓN!</b>"
         elif nuevas_entradas:
-            titulo_ev = "🆕 <b>CARTERA SEMANAL ACTUALIZADA (4 MONEDAS + IA)</b>"
+            titulo_ev = "🆕 <b>SELECCIÓN DE CARTERA (CIERRE 1D • 4 MONEDAS + IA)</b>"
         elif alertas_venta or alertas_parciales:
             titulo_ev = "💰 <b>ACTUALIZACIÓN DE TOMA DE GANANCIAS / CIERRE</b>"
         else:
@@ -848,7 +894,7 @@ def ejecutar_gestor_semanal():
 
         enviar_excel_telegram(
             f"📎 <b>GESTOR Y RADAR SEMANAL • BLOQUE 3/3: PLANILLA EXCEL</b>\n"
-            f"📊 Registro completo en 4 pestañas con Auditoría IA y Trader IA (<code>{EXCEL_SEMANAL_FILE}</code>)."
+            f"📊 Registro completo en 4 pestañas con Auditoría IA y Veredicto (<code>{EXCEL_SEMANAL_FILE}</code>)."
         )
 
     for v in alertas_venta:
@@ -858,6 +904,16 @@ def ejecutar_gestor_semanal():
             f"• Motivo: <i>{html.escape(v.get('motivo_cierre', ''))}</i>"
         )
         enviar_telegram_texto(msg_v)
+
+    if plan["estado_semana"] == "META_CUMPLIDA":
+        msg_m = (
+            f"🏆 <b>¡CUOTA SEMANAL CUMPLIDA EN MODO PRUEBA!</b>\n"
+            f"📅 Semana <code>{plan['semana_id']}</code> cerrada el <code>{ahora_str}</code>\n\n"
+            f"✅ <b>Ganancia Total Simulada:</b> <code>${plan['ganancia_realizada_usd']:,.2f} USD</code> (Meta: <code>${plan['meta_semanal_usd']:,.2f} USD</code>)\n\n"
+            f"{veredicto_final_txt}\n\n"
+            f"🛡️ <i>El bot entra en MODO PROTECCIÓN hasta el próximo lunes para asegurar el resultado.</i>"
+        )
+        enviar_telegram_texto(msg_m)
 
     guardar_plan_semanal(plan)
 
