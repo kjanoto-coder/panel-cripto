@@ -539,6 +539,7 @@ def ejecutar_gestor_semanal():
         pos["precio_maximo"] = p_max
         pos["pnl_pct"] = round(pnl_pct, 2)
         pos["pnl_usd"] = round(pnl_usd, 2)
+        pos.setdefault("motivo_eleccion", pos.get("origen", "Cazador ROJO (⭐⭐⭐)"))
 
         if not pos.get("tp1_ejecutado", False) and pnl_pct >= float(pos["subida_necesaria_pct"]):
             cap_vendido = round(cap * 0.5, 2)
@@ -591,7 +592,7 @@ def ejecutar_gestor_semanal():
         plan["estado_semana"] = "META_CUMPLIDA"
         plan["fecha_cierre_meta"] = ahora_str
 
-    # Evaluar alternativas y completar hasta 4 monedas en cartera
+    # Evaluar alternativas y completar hasta 4 monedas en cartera (rebalanceando capital si había menos de 4)
     excluidas = {p["symbol"] for p in plan["posiciones"]} | {c["symbol"] for c in plan["historial_cierres"] if c.get("semana_id") == plan["semana_id"]}
     alternativas = evaluar_alternativas_al_horno(s, mapa_mkt, excluidas)
     plan["alternativas_evaluadas"] = alternativas
@@ -605,47 +606,54 @@ def ejecutar_gestor_semanal():
         else:
             plan["aviso_btc_enviado"] = False
             cupos = MAX_MONEDAS_SEMANA - len(plan["posiciones"])
-            capital_en_uso = sum(float(p["capital_usd"]) for p in plan["posiciones"])
-            capital_disponible = max(0.0, float(plan["capital_total_usd"]) + float(plan["ganancia_realizada_usd"]) - capital_en_uso)
-            meta_restante = max(50.0, float(plan["meta_semanal_usd"]) - float(plan["ganancia_realizada_usd"]))
+            elegidas = [a for a in alternativas if a.get("en_zona")][:cupos]
 
-            if capital_disponible >= 150.0:
-                elegidas = [a for a in alternativas if a.get("en_zona")][:cupos]
-                if elegidas:
-                    cap_por_moneda = capital_disponible / len(elegidas)
-                    meta_por_moneda = meta_restante / len(elegidas)
-                    for el in elegidas:
-                        subida_nec_pct = round((meta_por_moneda / cap_por_moneda) * 100.0, 2)
-                        p_ent = float(el["precio_entrada"])
-                        p_obj = p_ent * (1.0 + (subida_nec_pct / 100.0))
-                        nueva_pos = {
-                            "semana_id": plan["semana_id"],
-                            "symbol": el["symbol"],
-                            "base": el["base"],
-                            "origen": el["origen"],
-                            "motivo_eleccion": el["motivo_tecnico"],
-                            "fecha_entrada": ahora_str,
-                            "capital_usd": round(cap_por_moneda, 2),
-                            "precio_entrada": p_ent,
-                            "precio_objetivo": p_obj,
-                            "subida_necesaria_pct": subida_nec_pct,
-                            "precio_actual": p_ent,
-                            "precio_maximo": p_ent,
-                            "pnl_pct": 0.0,
-                            "pnl_usd": 0.0,
-                            "tp1_ejecutado": False,
-                            "estado": "ACTIVA"
-                        }
-                        plan["posiciones"].append(nueva_pos)
-                        nuevas_entradas.append(nueva_pos)
+            if elegidas:
+                total_cartera_futura = len(plan["posiciones"]) + len(elegidas)
+                cap_base_total = float(plan["capital_total_usd"]) + float(plan["ganancia_realizada_usd"])
+                cap_objetivo_por_moneda = round(cap_base_total / total_cartera_futura, 2)
+                meta_restante = max(50.0, float(plan["meta_semanal_usd"]) - float(plan["ganancia_realizada_usd"]))
+                meta_por_moneda = meta_restante / total_cartera_futura
+                subida_nec_pct = round((meta_por_moneda / cap_objetivo_por_moneda) * 100.0, 2)
+
+                # Rebalancear posiciones existentes para hacer lugar a las 4 monedas
+                for p_ex in plan["posiciones"]:
+                    p_ex["capital_usd"] = cap_objetivo_por_moneda
+                    p_ex["subida_necesaria_pct"] = subida_nec_pct
+                    p_ex["precio_objetivo"] = float(p_ex["precio_entrada"]) * (1.0 + (subida_nec_pct / 100.0))
+                    p_ex["pnl_usd"] = round(cap_objetivo_por_moneda * (float(p_ex["pnl_pct"]) / 100.0), 2)
+
+                for el in elegidas:
+                    p_ent = float(el["precio_entrada"])
+                    p_obj = p_ent * (1.0 + (subida_nec_pct / 100.0))
+                    nueva_pos = {
+                        "semana_id": plan["semana_id"],
+                        "symbol": el["symbol"],
+                        "base": el["base"],
+                        "origen": el["origen"],
+                        "motivo_eleccion": el["motivo_tecnico"],
+                        "fecha_entrada": ahora_str,
+                        "capital_usd": cap_objetivo_por_moneda,
+                        "precio_entrada": p_ent,
+                        "precio_objetivo": p_obj,
+                        "subida_necesaria_pct": subida_nec_pct,
+                        "precio_actual": p_ent,
+                        "precio_maximo": p_ent,
+                        "pnl_pct": 0.0,
+                        "pnl_usd": 0.0,
+                        "tp1_ejecutado": False,
+                        "estado": "ACTIVA"
+                    }
+                    plan["posiciones"].append(nueva_pos)
+                    nuevas_entradas.append(nueva_pos)
 
     actualizar_excel_semanal(plan)
 
-    # Enviar los 3 Bloques Ordenados en Telegram
-    es_corte_4h = (ahora_dt.hour % 4 == 0 and plan.get("ultimo_reporte_hora") != ahora_dt.hour)
+    # Enviar los 3 Bloques Ordenados cuando hay novedades o cada hora en punto
+    es_corte_horario = (plan.get("ultimo_reporte_hora") != ahora_dt.hour)
     hay_novedades = bool(nuevas_entradas or alertas_parciales or alertas_venta or plan["estado_semana"] == "META_CUMPLIDA")
 
-    if hay_novedades or es_corte_4h:
+    if hay_novedades or es_corte_horario:
         plan["ultimo_reporte_hora"] = ahora_dt.hour
 
         # Bloque 1/3: Alternativas analizadas
