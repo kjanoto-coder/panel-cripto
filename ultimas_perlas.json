@@ -1,14 +1,5 @@
 [
   [
-    "TRXUSDT",
-    "SUIUSDT",
-    "ADAUSDT",
-    "PEPEUSDT",
-    "BMTUSDT",
-    "WLDUSDT",
-    "XLMUSDT"
-  ],
-  [
     "ASTERUSDT",
     "DOGEUSDT",
     "JSTUSDT",
@@ -16,5 +7,14 @@
     "FILUSDT",
     "HBARUSDT",
     "APTUSDT"
+  ],
+  [
+    "XRPUSDT",
+    "ENAUSDT",
+    "CRVUSDT",
+    "ZAMAUSDT",
+    "ARBUSDT",
+    "ONDOUSDT",
+    "TIAUSDT"
   ]
 ]
