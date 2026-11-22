@@ -19,15 +19,15 @@
       "precio_entrada": 0.1507,
       "precio_objetivo": 0.17652998,
       "subida_necesaria_pct": 17.14,
-      "precio_actual": 0.1505,
+      "precio_actual": 0.1499,
       "precio_maximo": 0.1509,
-      "pnl_pct": -0.13,
-      "pnl_usd": -1.16,
+      "pnl_pct": -0.53,
+      "pnl_usd": -4.64,
       "tp1_ejecutado": false,
       "estado": "ACTIVA",
       "motivo_eleccion": "CAZADOR_TACTICO_ROJO",
       "trader_ia_orden": "🟢 MANTENER / DEJAR CORRER",
-      "trader_ia_razon": "Estructura sana (RSI 1h: 69.0, Vol 1h: x0.1). Falta +17.3% para meta."
+      "trader_ia_razon": "Estructura sana (RSI 1h: 69.0, Vol 1h: x0.14). Falta +17.7% para meta."
     },
     {
       "semana_id": "2026-W47",
@@ -39,15 +39,15 @@
       "precio_entrada": 0.0074,
       "precio_objetivo": 0.00866836,
       "subida_necesaria_pct": 17.14,
-      "precio_actual": 0.00735,
+      "precio_actual": 0.00733,
       "precio_maximo": 0.00744,
-      "pnl_pct": -0.68,
-      "pnl_usd": -5.91,
+      "pnl_pct": -0.95,
+      "pnl_usd": -8.28,
       "tp1_ejecutado": false,
       "estado": "ACTIVA",
       "motivo_eleccion": "Cazador ROJO (⭐⭐⭐)",
       "trader_ia_orden": "🟢 MANTENER / DEJAR CORRER",
-      "trader_ia_razon": "Estructura sana (RSI 1h: 66.0, Vol 1h: x0.27). Falta +17.8% para meta."
+      "trader_ia_razon": "Estructura sana (RSI 1h: 66.0, Vol 1h: x0.27). Falta +18.1% para meta."
     },
     {
       "semana_id": "2026-W47",
@@ -67,7 +67,7 @@
       "tp1_ejecutado": false,
       "estado": "ACTIVA",
       "trader_ia_orden": "🟢 MANTENER / DEJAR CORRER",
-      "trader_ia_razon": "Estructura sana (RSI 1h: 65.1, Vol 1h: x0.1). Falta +19.8% para meta."
+      "trader_ia_razon": "Estructura sana (RSI 1h: 65.1, Vol 1h: x0.12). Falta +19.8% para meta."
     },
     {
       "semana_id": "2026-W47",
@@ -80,14 +80,14 @@
       "precio_entrada": 0.01509,
       "precio_objetivo": 0.017676426,
       "subida_necesaria_pct": 17.14,
-      "precio_actual": 0.01458,
+      "precio_actual": 0.01461,
       "precio_maximo": 0.01509,
-      "pnl_pct": -3.38,
-      "pnl_usd": -29.57,
+      "pnl_pct": -3.18,
+      "pnl_usd": -27.83,
       "tp1_ejecutado": false,
       "estado": "ACTIVA",
       "trader_ia_orden": "🟢 MANTENER / DEJAR CORRER",
-      "trader_ia_razon": "Estructura sana (RSI 1h: 46.3, Vol 1h: x0.25). Falta +20.5% para meta."
+      "trader_ia_razon": "Estructura sana (RSI 1h: 46.3, Vol 1h: x0.36). Falta +20.3% para meta."
     }
   ],
   "historial_cierres": [],
@@ -96,54 +96,72 @@
     {
       "symbol": "JSTUSDT",
       "base": "JST",
-      "precio_entrada": 0.14655,
+      "precio_entrada": 0.14653,
       "origen": "Cazador ROJO (⭐⭐⭐)",
       "probabilidad": 75,
       "score": 87,
       "en_zona": true,
       "ya_en_cartera": false,
-      "motivo_tecnico": "Confirmada Rojo 3⭐⭐⭐ (+0.0% desde filtro) | RSI 1h: 46.0 | Vol 1h: x0.28 | Prob: 75%",
+      "motivo_tecnico": "Confirmada Rojo 3⭐⭐⭐ (-0.0% desde filtro) | RSI 1h: 46.0 | Vol 1h: x0.31 | Prob: 75%",
       "mom": {
         "ok": true,
         "rsi": 46.0,
-        "vol_ratio": 0.28,
-        "var_ultima": 0.11,
+        "vol_ratio": 0.31,
+        "var_ultima": 0.1,
         "rechazo_techo": false
       }
     },
     {
-      "symbol": "PNUTUSDT",
-      "base": "PNUT",
-      "precio_entrada": 0.0262,
-      "origen": "Cazador ROJO (⭐⭐⭐)",
-      "probabilidad": 69,
-      "score": 81,
-      "en_zona": true,
-      "ya_en_cartera": false,
-      "motivo_tecnico": "Confirmada Rojo 3⭐⭐⭐ (-0.4% desde filtro) | RSI 1h: 66.7 | Vol 1h: x0.49 | Prob: 69%",
-      "mom": {
-        "ok": true,
-        "rsi": 66.7,
-        "vol_ratio": 0.49,
-        "var_ultima": -0.38,
-        "rechazo_techo": false
-      }
-    },
-    {
-      "symbol": "BMTUSDT",
-      "base": "BMT",
-      "precio_entrada": 0.02035,
+      "symbol": "STEEMUSDT",
+      "base": "STEEM",
+      "precio_entrada": 0.04361,
       "origen": "Cazador ROJO (⭐⭐⭐)",
       "probabilidad": 68,
       "score": 80,
       "en_zona": true,
       "ya_en_cartera": false,
-      "motivo_tecnico": "Confirmada Rojo 3⭐⭐⭐ (-0.0% desde filtro) | RSI 1h: 57.6 | Vol 1h: x0.36 | Prob: 68%",
+      "motivo_tecnico": "Confirmada Rojo 3⭐⭐⭐ (-0.2% desde filtro) | RSI 1h: 35.3 | Vol 1h: x0.41 | Prob: 68%",
       "mom": {
         "ok": true,
-        "rsi": 57.6,
-        "vol_ratio": 0.36,
-        "var_ultima": 0.15,
+        "rsi": 35.3,
+        "vol_ratio": 0.41,
+        "var_ultima": 0.07,
+        "rechazo_techo": false
+      }
+    },
+    {
+      "symbol": "USUALUSDT",
+      "base": "USUAL",
+      "precio_entrada": 0.01098,
+      "origen": "Cazador ROJO (⭐⭐⭐)",
+      "probabilidad": 68,
+      "score": 80,
+      "en_zona": true,
+      "ya_en_cartera": false,
+      "motivo_tecnico": "Confirmada Rojo 3⭐⭐⭐ (-0.3% desde filtro) | RSI 1h: 47.1 | Vol 1h: x0.19 | Prob: 68%",
+      "mom": {
+        "ok": true,
+        "rsi": 47.1,
+        "vol_ratio": 0.19,
+        "var_ultima": 0.27,
+        "rechazo_techo": true
+      }
+    },
+    {
+      "symbol": "WLFIUSDT",
+      "base": "WLFI",
+      "precio_entrada": 0.0438,
+      "origen": "Cazador ROJO (⭐⭐⭐)",
+      "probabilidad": 62,
+      "score": 74,
+      "en_zona": true,
+      "ya_en_cartera": false,
+      "motivo_tecnico": "Confirmada Rojo 3⭐⭐⭐ (-0.2% desde filtro) | RSI 1h: 39.1 | Vol 1h: x0.48 | Prob: 62%",
+      "mom": {
+        "ok": true,
+        "rsi": 39.1,
+        "vol_ratio": 0.48,
+        "var_ultima": -0.23,
         "rechazo_techo": true
       }
     },
@@ -152,98 +170,80 @@
       "base": "ENSO",
       "precio_entrada": 0.469,
       "origen": "Cazador ROJO (⭐⭐⭐)",
-      "probabilidad": 68,
-      "score": 80,
+      "probabilidad": 62,
+      "score": 74,
       "en_zona": true,
       "ya_en_cartera": false,
-      "motivo_tecnico": "Confirmada Rojo 3⭐⭐⭐ (-0.4% desde filtro) | RSI 1h: 45.2 | Vol 1h: x0.35 | Prob: 68%",
+      "motivo_tecnico": "Confirmada Rojo 3⭐⭐⭐ (+0.0% desde filtro) | RSI 1h: 45.2 | Vol 1h: x0.42 | Prob: 62%",
       "mom": {
         "ok": true,
         "rsi": 45.2,
-        "vol_ratio": 0.35,
+        "vol_ratio": 0.42,
         "var_ultima": 0.21,
         "rechazo_techo": true
       }
     },
     {
-      "symbol": "STEEMUSDT",
-      "base": "STEEM",
-      "precio_entrada": 0.04371,
-      "origen": "Cazador ROJO (⭐⭐⭐)",
-      "probabilidad": 68,
-      "score": 80,
-      "en_zona": true,
-      "ya_en_cartera": false,
-      "motivo_tecnico": "Confirmada Rojo 3⭐⭐⭐ (+0.2% desde filtro) | RSI 1h: 35.3 | Vol 1h: x0.34 | Prob: 68%",
-      "mom": {
-        "ok": true,
-        "rsi": 35.3,
-        "vol_ratio": 0.34,
-        "var_ultima": 0.3,
-        "rechazo_techo": false
-      }
-    },
-    {
-      "symbol": "USUALUSDT",
-      "base": "USUAL",
-      "precio_entrada": 0.01101,
-      "origen": "Cazador ROJO (⭐⭐⭐)",
-      "probabilidad": 68,
-      "score": 80,
-      "en_zona": true,
-      "ya_en_cartera": false,
-      "motivo_tecnico": "Confirmada Rojo 3⭐⭐⭐ (+0.1% desde filtro) | RSI 1h: 47.1 | Vol 1h: x0.16 | Prob: 68%",
-      "mom": {
-        "ok": true,
-        "rsi": 47.1,
-        "vol_ratio": 0.16,
-        "var_ultima": 0.55,
-        "rechazo_techo": false
-      }
-    },
-    {
-      "symbol": "WLFIUSDT",
-      "base": "WLFI",
-      "precio_entrada": 0.0439,
+      "symbol": "BMTUSDT",
+      "base": "BMT",
+      "precio_entrada": 0.02033,
       "origen": "Cazador ROJO (⭐⭐⭐)",
       "probabilidad": 62,
       "score": 74,
       "en_zona": true,
       "ya_en_cartera": false,
-      "motivo_tecnico": "Confirmada Rojo 3⭐⭐⭐ (+0.0% desde filtro) | RSI 1h: 39.1 | Vol 1h: x0.43 | Prob: 62%",
+      "motivo_tecnico": "Confirmada Rojo 3⭐⭐⭐ (-0.1% desde filtro) | RSI 1h: 57.6 | Vol 1h: x0.36 | Prob: 62%",
       "mom": {
         "ok": true,
-        "rsi": 39.1,
-        "vol_ratio": 0.43,
-        "var_ultima": 0.0,
+        "rsi": 57.6,
+        "vol_ratio": 0.36,
+        "var_ultima": 0.05,
         "rechazo_techo": true
       }
     },
     {
       "symbol": "POLUSDT",
       "base": "POL",
-      "precio_entrada": 0.07581,
+      "precio_entrada": 0.07557,
       "origen": "Cazador ROJO (⭐⭐⭐)",
       "probabilidad": 62,
       "score": 74,
       "en_zona": true,
       "ya_en_cartera": false,
-      "motivo_tecnico": "Confirmada Rojo 3⭐⭐⭐ (-0.1% desde filtro) | RSI 1h: 60.5 | Vol 1h: x0.23 | Prob: 62%",
+      "motivo_tecnico": "Confirmada Rojo 3⭐⭐⭐ (-0.3% desde filtro) | RSI 1h: 60.5 | Vol 1h: x0.28 | Prob: 62%",
       "mom": {
         "ok": true,
         "rsi": 60.5,
-        "vol_ratio": 0.23,
-        "var_ultima": -0.26,
+        "vol_ratio": 0.28,
+        "var_ultima": -0.58,
+        "rechazo_techo": false
+      }
+    },
+    {
+      "symbol": "MMTUSDT",
+      "base": "MMT",
+      "precio_entrada": 0.2187,
+      "origen": "Cazador ROJO (⭐⭐⭐)",
+      "probabilidad": 62,
+      "score": 74,
+      "en_zona": true,
+      "ya_en_cartera": false,
+      "motivo_tecnico": "Confirmada Rojo 3⭐⭐⭐ (+0.1% desde filtro) | RSI 1h: 54.4 | Vol 1h: x0.13 | Prob: 62%",
+      "mom": {
+        "ok": true,
+        "rsi": 54.4,
+        "vol_ratio": 0.13,
+        "var_ultima": 0.74,
         "rechazo_techo": false
       }
     }
   ],
   "auditoria_ia": {
-    "fecha": "2026-11-22 19:21 ART",
+    "fecha": "2026-11-22 19:31 ART",
     "semana_id": "2026-W47",
     "semaforo_meta": "🟡 EN CONSOLIDACIÓN",
-    "factibilidad_pct": 72,
-    "diagnostico_24h": "Embudo: 50.0% acierto (1/2 cerradas). BTC estable (24h: +1.04%, RSI 1h: 66.7). Avance cuota: -9.9%.",
+    "factibilidad_pct": 71,
+    "diagnostico_24h": "Embudo: 50.0% acierto (1/2 cerradas). BTC estable (24h: +0.84%, RSI 1h: 66.7). Avance cuota: -10.6%.",
     "recomendacion_auditor": "Vigilar cierre 1D y mantener las 4 posiciones con órdenes OCO estructurales.",
     "veredicto_final_semana": "En seguimiento activo..."
   },
