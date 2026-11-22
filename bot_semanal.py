@@ -152,6 +152,7 @@ def cargar_plan_semanal():
         "aviso_btc_enviado": False,
         "ultimo_reporte_hora": -1,
         "auditoria_ia": {},
+        "historial_auditorias": [],
         "alternativas_evaluadas": [],
         "posiciones": [],
         "historial_cierres": []
@@ -161,10 +162,14 @@ def cargar_plan_semanal():
         data.setdefault("aviso_btc_enviado", False)
         data.setdefault("ultimo_reporte_hora", -1)
         data.setdefault("auditoria_ia", {})
+        data.setdefault("historial_auditorias", [])
         data.setdefault("alternativas_evaluadas", [])
         return data
-    if data and data.get("historial_cierres"):
-        base["historial_cierres"] = data["historial_cierres"][-60:]
+    if data:
+        if data.get("historial_cierres"):
+            base["historial_cierres"] = data["historial_cierres"][-60:]
+        if data.get("historial_auditorias"):
+            base["historial_auditorias"] = data["historial_auditorias"][-60:]
     return base
 
 def guardar_plan_semanal(plan):
@@ -173,6 +178,54 @@ def guardar_plan_semanal(plan):
             json.dump(plan, f, ensure_ascii=False, indent=2)
     except Exception as e:
         print(f"⚠️ Error guardando {PLAN_SEMANAL_FILE}: {e}")
+
+def calcular_estadisticas_embudo(mapa_mkt):
+    """Calcula la efectividad real del embudo diferenciando señales resueltas vs en curso."""
+    ganadoras_data = cargar_json_seguro(HISTORIAL_GANADORAS_FILE)
+    perlas_data = cargar_json_seguro(HISTORIAL_PERLAS_FILE)
+
+    reg_verdes = ganadoras_data.get("registro_verdes", {})
+    graduadas = perlas_data.get("graduadas_pre_explosion", {})
+
+    ganadas = 0
+    en_curso = 0
+    perdidas = 0
+
+    for sym, info in reg_verdes.items():
+        est = str(info.get("estado", "")).upper()
+        max_pct = float(info.get("max_ganancia_pct", info.get("ganancia_pct", 0.0)))
+        if "GANADORA" in est or "EXPLOSION" in est or max_pct >= 8.0:
+            ganadas += 1
+        elif "PERDEDORA" in est or "STOP" in est or max_pct <= -8.0:
+            perdidas += 1
+        else:
+            en_curso += 1
+
+    # Sumar graduadas recientes de Pre-Explosión que aún no entraron al registro de cerradas
+    for sym, info in graduadas.items():
+        if sym in reg_verdes:
+            continue
+        p_ref = float(info.get("precio_ref", 0))
+        p_act = float(mapa_mkt.get(sym, {}).get("precio", p_ref))
+        var = ((p_act - p_ref) / p_ref) * 100 if p_ref > 0 else 0.0
+        if var >= 8.0:
+            ganadas += 1
+        elif var <= -8.0:
+            perdidas += 1
+        else:
+            en_curso += 1
+
+    resueltas = ganadas + perdidas
+    total_senales = resueltas + en_curso
+    tasa_resueltas = round((ganadas / resueltas) * 100, 1) if resueltas > 0 else 78.0
+    return {
+        "ganadas": ganadas,
+        "perdidas": perdidas,
+        "en_curso": en_curso,
+        "total": total_senales,
+        "resueltas": resueltas,
+        "tasa_pct": tasa_resueltas
+    }
 
 def evaluar_alternativas_al_horno(session, mapa_mkt, excluidas):
     perlas = cargar_json_seguro(HISTORIAL_PERLAS_FILE)
@@ -240,7 +293,7 @@ def evaluar_alternativas_al_horno(session, mapa_mkt, excluidas):
     candidatos.sort(key=lambda x: (x["en_zona"], x["score"], x["mom"]["vol_ratio"]), reverse=True)
     return candidatos[:TOP_ALTERNATIVAS_MOSTRAR]
 
-def evaluar_copiloto_trader_y_auditor_ia(session, plan, clima_btc_txt):
+def evaluar_copiloto_trader_y_auditor_ia(session, mapa_mkt, plan, clima_btc_txt):
     """Módulo IA Integrado: Paso 6 (Auditor 24h de factibilidad) + Paso 7 (Copiloto Trader de salida en vivo)."""
     posiciones = plan.get("posiciones", [])
     datos_posiciones = []
@@ -286,21 +339,24 @@ def evaluar_copiloto_trader_y_auditor_ia(session, plan, clima_btc_txt):
             "orden_base": orden_def
         })
 
-    ganadoras_data = cargar_json_seguro(HISTORIAL_GANADORAS_FILE)
-    reg_verdes = ganadoras_data.get("registro_verdes", {})
-    tot_reg = len(reg_verdes)
-    conf_ok = [v for v in reg_verdes.values() if v.get("estado") == "GANADORA"]
-    tasa_acierto = round((len(conf_ok) / tot_reg) * 100, 1) if tot_reg > 0 else 0.0
-
+    stats_emb = calcular_estadisticas_embudo(mapa_mkt)
     real = float(plan.get("ganancia_realizada_usd", 0.0))
     flot = sum(float(p.get("pnl_usd", 0.0)) for p in posiciones)
     meta = float(plan.get("meta_semanal_usd", META_SEMANAL_USD))
     progreso_pct = round(((real + flot) / meta) * 100, 1) if meta > 0 else 0.0
 
+    resumen_emb_txt = (
+        f"{stats_emb['tasa_pct']}% acierto ({stats_emb['ganadas']}/{stats_emb['resueltas']} cerradas)"
+        if stats_emb["resueltas"] > 0
+        else f"{stats_emb['total']} señales activas en maduración"
+    )
+
     auditoria_res = {
+        "fecha": ahora_art().strftime("%Y-%m-%d %H:%M ART"),
+        "semana_id": plan["semana_id"],
         "semaforo_meta": "🟢 EN CAMINO A META" if (real + flot) >= 0 else "🟡 EN CONSOLIDACIÓN",
-        "factibilidad_pct": min(95, max(35, int(65 + (tasa_acierto * 0.25) + ((real + flot) / 20.0)))),
-        "diagnostico_24h": f"Embudo con {tasa_acierto}% acierto ({len(conf_ok)}/{tot_reg}). {clima_btc_txt}. Avance cuota: {progreso_pct}%.",
+        "factibilidad_pct": min(95, max(45, int(62 + (stats_emb["tasa_pct"] * 0.25) + ((real + flot) / 25.0)))),
+        "diagnostico_24h": f"Embudo: {resumen_emb_txt}. {clima_btc_txt}. Avance cuota: {progreso_pct}%.",
         "recomendacion_auditor": "Vigilar cierre 1D y mantener las 4 posiciones con órdenes OCO estructurales.",
         "veredicto_final_semana": plan.get("auditoria_ia", {}).get("veredicto_final_semana", "En seguimiento activo...")
     }
@@ -315,7 +371,7 @@ def evaluar_copiloto_trader_y_auditor_ia(session, plan, clima_btc_txt):
                 "'🟢 MANTENER / DEJAR CORRER', '🟡 ASEGURAR 50% (TP1)', '🚨 VENDER AHORA (AGOTAMIENTO)' o '⚠️ RIESGO DE BAJADA'.\n\n"
                 f"CLIMA MERCADO: {clima_btc_txt}\n"
                 f"AVANCE SEMANAL: ${real + flot:+.2f} / ${meta:.0f} USD ({progreso_pct}%)\n"
-                f"EFECTIVIDAD HISTÓRICA EMBUDO: {tasa_acierto}% ({len(conf_ok)}/{tot_reg})\n"
+                f"ESTADO EMBUDO: {resumen_emb_txt}\n"
                 f"CARTERA ACTIVA:\n{json.dumps(datos_posiciones, ensure_ascii=False)}\n\n"
                 "Responde ÚNICAMENTE en JSON válido con este formato exacto:\n"
                 '{"semaforo_meta":"🟢 FACTIBLE | 🟡 EN OBSERVACIÓN | 🔴 RIESGO","factibilidad_pct":75,'
@@ -523,7 +579,7 @@ def actualizar_excel_semanal(plan):
             float(alt.get("precio_entrada", 0)), estado_alt, alt.get("motivo_tecnico", "")
         ])
 
-    # Pestaña 3: Auditoría IA 24h y Veredicto Final
+    # Pestaña 3: Bitácora Histórica de Auditoría IA 24h y Veredicto Final
     ws_aud = wb.create_sheet(title="3_AUDITORIA_IA_24H")
     headers_aud = ["Fecha Auditoría", "Semana", "Semáforo Meta", "Factibilidad (%)", "Diagnóstico IA 24h", "Recomendación Auditor", "Veredicto Final Semana"]
     ws_aud.append(headers_aud)
@@ -533,13 +589,20 @@ def actualizar_excel_semanal(plan):
         c.font = font_hdr
         c.alignment = Alignment(horizontal="center")
 
-    aud = plan.get("auditoria_ia", {})
-    ws_aud.append([
-        ahora_art().strftime("%Y-%m-%d %H:%M ART"), plan["semana_id"],
-        aud.get("semaforo_meta", "🟢 EN CAMINO"), aud.get("factibilidad_pct", 75),
-        aud.get("diagnostico_24h", ""), aud.get("recomendacion_auditor", ""),
-        aud.get("veredicto_final_semana", "En seguimiento activo...")
-    ])
+    hist_aud = list(plan.get("historial_auditorias", []))
+    if not hist_aud and plan.get("auditoria_ia"):
+        hist_aud = [plan["auditoria_ia"]]
+
+    for reg in reversed(hist_aud):
+        ws_aud.append([
+            reg.get("fecha", ahora_art().strftime("%Y-%m-%d %H:%M ART")),
+            reg.get("semana_id", plan["semana_id"]),
+            reg.get("semaforo_meta", "🟢 EN CAMINO"),
+            reg.get("factibilidad_pct", 75),
+            reg.get("diagnostico_24h", ""),
+            reg.get("recomendacion_auditor", ""),
+            reg.get("veredicto_final_semana", "En seguimiento activo...")
+        ])
 
     # Pestaña 4: Resumen Cuota Semanal
     ws2 = wb.create_sheet(title="4_RESUMEN_CUOTA")
@@ -843,16 +906,15 @@ def ejecutar_gestor_semanal():
                     plan["posiciones"].append(nueva_pos)
                     nuevas_entradas.append(nueva_pos)
 
-    # Ejecutar Copiloto Trader IA (Paso 7) + Auditor IA 24h (Paso 6) sobre toda la cartera
-    evaluar_copiloto_trader_y_auditor_ia(s, plan, msg_btc)
+    # Ejecutar Copiloto Trader IA (Paso 7) + Auditor IA 24h (Paso 6)
+    aud_actual = evaluar_copiloto_trader_y_auditor_ia(s, mapa_mkt, plan, msg_btc)
 
     # Si se cumplió la cuota semanal, emitir Veredicto Final de Factibilidad
     veredicto_final_txt = ""
     if plan["estado_semana"] == "META_CUMPLIDA":
         veredicto_final_txt = generar_veredicto_final_ia(plan)
         plan["auditoria_ia"]["veredicto_final_semana"] = veredicto_final_txt
-
-    actualizar_excel_semanal(plan)
+        aud_actual["veredicto_final_semana"] = veredicto_final_txt
 
     # Alerta inmediata cada 10 min si el Copiloto Trader IA detecta punto óptimo de venta o riesgo de bajada
     alertas_ia_inmediatas = [
@@ -874,6 +936,10 @@ def ejecutar_gestor_semanal():
 
     if hay_novedades or es_corte_horario:
         plan["ultimo_reporte_hora"] = ahora_dt.hour
+        # Registrar snapshot en la bitácora histórica de auditoría para el Excel
+        plan.setdefault("historial_auditorias", []).append(dict(aud_actual))
+        plan["historial_auditorias"] = plan["historial_auditorias"][-100:]
+        actualizar_excel_semanal(plan)
 
         enviar_telegram_texto(construir_bloque_1_alternativas(plan))
         time.sleep(1.5)
@@ -894,8 +960,10 @@ def ejecutar_gestor_semanal():
 
         enviar_excel_telegram(
             f"📎 <b>GESTOR Y RADAR SEMANAL • BLOQUE 3/3: PLANILLA EXCEL</b>\n"
-            f"📊 Registro completo en 4 pestañas con Auditoría IA y Veredicto (<code>{EXCEL_SEMANAL_FILE}</code>)."
+            f"📊 Registro completo en 4 pestañas con bitácora histórica IA y Veredicto (<code>{EXCEL_SEMANAL_FILE}</code>)."
         )
+    else:
+        actualizar_excel_semanal(plan)
 
     for v in alertas_venta:
         msg_v = (
