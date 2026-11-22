@@ -272,6 +272,21 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null
+    },
+    "RAYUSDT": {
+      "symbol": "RAYUSDT",
+      "ticker": "RAY",
+      "fecha_verde": "2026-11-22",
+      "ts_verde": "2026-11-22 13:52",
+      "precio_verde": 1.3236,
+      "es_oro": false,
+      "origen": "CAZADOR_TACTICO_ROJO",
+      "estado": "PENDIENTE",
+      "fecha_ganadora": "",
+      "precio_ganadora": 0.0,
+      "subida_real_pct": 0.0,
+      "subida_24h_dia_pct": 0.0,
+      "dias_demora": null
     }
   }
 }
