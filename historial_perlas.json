@@ -1,23 +1,32 @@
 {
   "fecha": "2026-11-22",
   "mencionadas": {
-    "AIGENSYNUSDT": 3,
+    "AIGENSYNUSDT": 2,
     "ANIMEUSDT": 3,
     "BMTUSDT": 3,
     "GRAMUSDT": 3,
-    "KITEUSDT": 2,
-    "YGGUSDT": 3,
+    "KITEUSDT": 1,
+    "YGGUSDT": 2,
     "STEEMUSDT": 3,
-    "OPGUSDT": 3,
-    "MEGAUSDT": 2,
-    "POLUSDT": 2,
-    "PARTIUSDT": 2,
-    "SEIUSDT": 2,
-    "SENTUSDT": 3,
-    "KAVAUSDT": 3,
-    "WLFIUSDT": 3,
-    "ICPUSDT": 3,
-    "BARDUSDT": 3
+    "OPGUSDT": 2,
+    "MEGAUSDT": 1,
+    "POLUSDT": 1,
+    "PARTIUSDT": 1,
+    "SEIUSDT": 1,
+    "SENTUSDT": 2,
+    "KAVAUSDT": 2,
+    "WLFIUSDT": 2,
+    "ICPUSDT": 2,
+    "BARDUSDT": 2,
+    "DODOUSDT": 3,
+    "SUSHIUSDT": 3,
+    "SKYUSDT": 3,
+    "GLMRUSDT": 3,
+    "INITUSDT": 3,
+    "PENGUUSDT": 3,
+    "SCUSDT": 3,
+    "INJUSDT": 3,
+    "HUMAUSDT": 3
   },
   "resumen_dia": [
     "AIGENSYNUSDT",
@@ -69,7 +78,8 @@
     "CRVUSDT",
     "RAYUSDT",
     "MEGAUSDT",
-    "SEIUSDT"
+    "SEIUSDT",
+    "INITUSDT"
   ],
   "resumen_enviado_hoy": false,
   "posta": {
@@ -1089,14 +1099,19 @@
     }
   },
   "verdes_hoy": [
-    "MEGAUSDT",
-    "KAVAUSDT",
-    "ICPUSDT",
-    "PARTIUSDT",
-    "SEIUSDT",
+    "INITUSDT",
     "WLFIUSDT",
+    "ICPUSDT",
+    "SEIUSDT",
+    "KAVAUSDT",
+    "PENGUUSDT",
+    "SCUSDT",
+    "POLUSDT",
+    "PARTIUSDT",
+    "INJUSDT",
     "BARDUSDT",
-    "POLUSDT"
+    "HUMAUSDT",
+    "MEGAUSDT"
   ],
   "verdes_ayer": [],
   "oro_hoy": []
