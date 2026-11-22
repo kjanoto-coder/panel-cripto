@@ -437,6 +437,51 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null
+    },
+    "ZROUSDT": {
+      "symbol": "ZROUSDT",
+      "ticker": "ZRO",
+      "fecha_verde": "2026-11-22",
+      "ts_verde": "2026-11-22 20:41",
+      "precio_verde": 1.191,
+      "es_oro": false,
+      "origen": "CAZADOR_TACTICO_ROJO",
+      "estado": "PENDIENTE",
+      "fecha_ganadora": "",
+      "precio_ganadora": 0.0,
+      "subida_real_pct": 0.0,
+      "subida_24h_dia_pct": 0.0,
+      "dias_demora": null
+    },
+    "CRVUSDT": {
+      "symbol": "CRVUSDT",
+      "ticker": "CRV",
+      "fecha_verde": "2026-11-22",
+      "ts_verde": "2026-11-22 20:41",
+      "precio_verde": 0.1821,
+      "es_oro": false,
+      "origen": "CAZADOR_TACTICO_ROJO",
+      "estado": "PENDIENTE",
+      "fecha_ganadora": "",
+      "precio_ganadora": 0.0,
+      "subida_real_pct": 0.0,
+      "subida_24h_dia_pct": 0.0,
+      "dias_demora": null
+    },
+    "LUNCUSDT": {
+      "symbol": "LUNCUSDT",
+      "ticker": "LUNC",
+      "fecha_verde": "2026-11-22",
+      "ts_verde": "2026-11-22 20:41",
+      "precio_verde": 3.91e-05,
+      "es_oro": false,
+      "origen": "CAZADOR_TACTICO_ROJO",
+      "estado": "PENDIENTE",
+      "fecha_ganadora": "",
+      "precio_ganadora": 0.0,
+      "subida_real_pct": 0.0,
+      "subida_24h_dia_pct": 0.0,
+      "dias_demora": null
     }
   }
 }
