@@ -1,14 +1,5 @@
 [
   [
-    "NEARUSDT",
-    "PEPEUSDT",
-    "SUIUSDT",
-    "DOTUSDT",
-    "ONDOUSDT",
-    "APTUSDT",
-    "TIAUSDT"
-  ],
-  [
     "WLDUSDT",
     "PUMPUSDT",
     "DODOUSDT",
@@ -16,5 +7,14 @@
     "ARBUSDT",
     "CAKEUSDT",
     "ICPUSDT"
+  ],
+  [
+    "ENAUSDT",
+    "GRAMUSDT",
+    "WLFIUSDT",
+    "ETHFIUSDT",
+    "KITEUSDT",
+    "STRKUSDT",
+    "FILUSDT"
   ]
 ]
