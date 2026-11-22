@@ -19,9 +19,9 @@ jobs:
           python-version: '3.11'
 
       - name: Instalar dependencias
-        run: pip install requests matplotlib openpyxl
+        run: pip install requests matplotlib openpyxl google-genai
 
-      - name: Ejecutar Gestor Semanal Prueba
+      - name: Ejecutar Gestor Semanal Unificado IA
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
@@ -29,6 +29,7 @@ jobs:
           CHAT_ID: ${{ secrets.CHAT_ID }}
           TOPIC_ID_SEMANAL: ${{ secrets.TOPIC_ID_SEMANAL }}
           TOPIC_ID_CENTRAL: ${{ secrets.TOPIC_ID_CENTRAL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python bot_semanal.py
 
       - name: Guardar plan semanal y Excel sin conflictos
@@ -37,7 +38,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add plan_semanal.json AUDITORIA_SEMANAL_PRUEBA.xlsx
           if ! git diff --staged --quiet; then
-            git commit -m "Update plan semanal prueba y auditoria"
+            git commit -m "Update plan semanal IA y auditoria"
             git pull --rebase origin main || true
             git push
           fi
