@@ -1,14 +1,5 @@
 [
   [
-    "XRPUSDT",
-    "PUMPUSDT",
-    "PEPEUSDT",
-    "XLMUSDT",
-    "DOTUSDT",
-    "FILUSDT",
-    "GRAMUSDT"
-  ],
-  [
     "TRXUSDT",
     "ADAUSDT",
     "SUIUSDT",
@@ -16,5 +7,14 @@
     "APTUSDT",
     "ONDOUSDT",
     "CAKEUSDT"
+  ],
+  [
+    "DOGEUSDT",
+    "UNIUSDT",
+    "WLDUSDT",
+    "ASTERUSDT",
+    "ARBUSDT",
+    "TRUMPUSDT",
+    "JSTUSDT"
   ]
 ]
