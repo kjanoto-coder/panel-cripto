@@ -19,7 +19,7 @@ jobs:
           python-version: '3.11'
 
       - name: Instalar dependencias
-        run: pip install requests openpyxl
+        run: pip install requests matplotlib openpyxl
 
       - name: Ejecutar Gestor Semanal Prueba
         env:
