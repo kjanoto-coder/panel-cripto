@@ -1,14 +1,5 @@
 [
   [
-    "ARBUSDT",
-    "ASTERUSDT",
-    "WLDUSDT",
-    "CRVUSDT",
-    "KITEUSDT",
-    "ERAUSDT",
-    "TRUMPUSDT"
-  ],
-  [
     "ENAUSDT",
     "GRAMUSDT",
     "PUMPUSDT",
@@ -16,5 +7,14 @@
     "FILUSDT",
     "MMTUSDT",
     "STRKUSDT"
+  ],
+  [
+    "NEARUSDT",
+    "SUIUSDT",
+    "ONDOUSDT",
+    "APTUSDT",
+    "JSTUSDT",
+    "TIAUSDT",
+    "RENDERUSDT"
   ]
 ]
