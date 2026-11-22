@@ -3,7 +3,7 @@
   "mencionadas": {
     "DODOUSDT": 2,
     "ANIMEUSDT": 2,
-    "AIGENSYNUSDT": 2,
+    "AIGENSYNUSDT": 1,
     "SKYUSDT": 2,
     "YGGUSDT": 2,
     "GLMRUSDT": 2,
@@ -12,13 +12,12 @@
     "OPGUSDT": 2,
     "FFUSDT": 2,
     "STEEMUSDT": 2,
-    "GRAMUSDT": 2,
-    "SHELLUSDT": 1,
-    "PORTALUSDT": 1,
-    "KITEUSDT": 1,
+    "GRAMUSDT": 1,
     "HMSTRUSDT": 2,
     "SENTUSDT": 2,
-    "BLURUSDT": 2
+    "BLURUSDT": 2,
+    "KITEUSDT": 2,
+    "PORTALUSDT": 2
   },
   "resumen_dia": [
     "ASTERUSDT",
