@@ -1,30 +1,20 @@
 {
   "fecha": "2026-11-22",
   "mencionadas": {
-    "AIGENSYNUSDT": 2,
-    "ANIMEUSDT": 2,
-    "BMTUSDT": 2,
-    "GRAMUSDT": 2,
-    "KITEUSDT": 2,
-    "HMSTRUSDT": 2,
-    "YGGUSDT": 2,
-    "STEEMUSDT": 2,
-    "SKYUSDT": 1,
-    "HUMAUSDT": 1,
-    "WLFIUSDT": 2,
-    "UNIUSDT": 1,
-    "ENAUSDT": 1,
-    "FETUSDT": 1,
-    "HBARUSDT": 1,
-    "FILUSDT": 1,
-    "XLMUSDT": 1,
-    "ICPUSDT": 1,
-    "TRUMPUSDT": 1,
-    "PENGUUSDT": 1,
-    "CAKEUSDT": 1,
-    "BONKUSDT": 1,
-    "CRVUSDT": 1,
-    "RAYUSDT": 1
+    "AIGENSYNUSDT": 3,
+    "ANIMEUSDT": 3,
+    "BMTUSDT": 3,
+    "GRAMUSDT": 3,
+    "KITEUSDT": 3,
+    "HMSTRUSDT": 1,
+    "YGGUSDT": 3,
+    "STEEMUSDT": 3,
+    "WLFIUSDT": 1,
+    "OPGUSDT": 3,
+    "MEGAUSDT": 3,
+    "POLUSDT": 3,
+    "PARTIUSDT": 3,
+    "SEIUSDT": 3
   },
   "resumen_dia": [
     "AIGENSYNUSDT",
@@ -74,7 +64,9 @@
     "CAKEUSDT",
     "BONKUSDT",
     "CRVUSDT",
-    "RAYUSDT"
+    "RAYUSDT",
+    "MEGAUSDT",
+    "SEIUSDT"
   ],
   "resumen_enviado_hoy": false,
   "posta": {
@@ -1092,5 +1084,13 @@
       "fecha_corta": "21/11",
       "origen": "Pasó filtro Rojo (3⭐⭐⭐): alineada (-0.8% vs base, prob 73%) -> Pre-Explosión."
     }
-  }
+  },
+  "verdes_hoy": [
+    "PARTIUSDT",
+    "SEIUSDT",
+    "MEGAUSDT",
+    "POLUSDT"
+  ],
+  "verdes_ayer": [],
+  "oro_hoy": []
 }
