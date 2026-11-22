@@ -1,14 +1,5 @@
 [
   [
-    "NEARUSDT",
-    "SUIUSDT",
-    "UNIUSDT",
-    "ADAUSDT",
-    "RENDERUSDT",
-    "TRUMPUSDT",
-    "SHIBUSDT"
-  ],
-  [
     "ASTERUSDT",
     "DOGEUSDT",
     "JSTUSDT",
@@ -16,5 +7,14 @@
     "XLMUSDT",
     "OPUSDT",
     "BMTUSDT"
+  ],
+  [
+    "XRPUSDT",
+    "ENAUSDT",
+    "ZAMAUSDT",
+    "CRVUSDT",
+    "ONDOUSDT",
+    "STRKUSDT",
+    "TIAUSDT"
   ]
 ]
