@@ -13,10 +13,12 @@
     "FFUSDT": 2,
     "STEEMUSDT": 2,
     "GRAMUSDT": 2,
-    "SHELLUSDT": 2,
-    "PORTALUSDT": 2,
-    "HMSTRUSDT": 1,
-    "KITEUSDT": 2
+    "SHELLUSDT": 1,
+    "PORTALUSDT": 1,
+    "KITEUSDT": 1,
+    "HMSTRUSDT": 2,
+    "SENTUSDT": 2,
+    "BLURUSDT": 2
   },
   "resumen_dia": [
     "ASTERUSDT",
@@ -59,7 +61,7 @@
     "ANIMEUSDT",
     "STEEMUSDT"
   ],
-  "resumen_enviado_hoy": false,
+  "resumen_enviado_hoy": true,
   "posta": {
     "KITEUSDT": {
       "fecha_iso": "2026-11-20",
