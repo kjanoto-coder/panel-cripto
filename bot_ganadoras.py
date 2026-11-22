@@ -7,18 +7,24 @@ import random
 import html
 import subprocess
 from datetime import datetime, timezone, timedelta
+
+# Auto-instalación blindada de todas las dependencias necesarias
+for mod, pkg in [
+    ("requests", "requests"),
+    ("matplotlib", "matplotlib"),
+    ("openpyxl", "openpyxl"),
+    ("google.genai", "google-genai")
+]:
+    try:
+        __import__(mod)
+    except ImportError:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", pkg])
+
 import requests
 import matplotlib.pyplot as plt
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from google import genai
-
-# Auto-instalación transparente de openpyxl si el servidor no la tiene
-try:
-    import openpyxl
-    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-except ImportError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "openpyxl"])
-    import openpyxl
-    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
 # --- CONFIGURACIÓN DE ENTORNO BLINDADA ---
 TZ_ART = timezone(timedelta(hours=-3))
