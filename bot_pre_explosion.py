@@ -31,13 +31,17 @@ def ahora_art():
 
 def cargar_historial():
     hoy = ahora_art().strftime('%Y-%m-%d')
+    ayer = (ahora_art() - timedelta(days=1)).strftime('%Y-%m-%d')
     base = {
         "fecha": hoy,
         "mencionadas": {},
         "resumen_dia": [],
         "resumen_enviado_hoy": False,
         "posta": {},
-        "graduadas_pre_explosion": {}
+        "graduadas_pre_explosion": {},
+        "verdes_hoy": [],
+        "verdes_ayer": [],
+        "oro_hoy": []
     }
     if os.path.exists(HISTORIAL_FILE):
         try:
@@ -59,10 +63,18 @@ def cargar_historial():
                     continue
             base["graduadas_pre_explosion"] = grad_limpia
 
-            if data.get("fecha") == hoy:
+            fecha_guardada = data.get("fecha")
+            if fecha_guardada == hoy:
                 base["mencionadas"] = data.get("mencionadas", {})
                 base["resumen_dia"] = data.get("resumen_dia", [])
                 base["resumen_enviado_hoy"] = data.get("resumen_enviado_hoy", False)
+                base["verdes_hoy"] = data.get("verdes_hoy", [])
+                base["verdes_ayer"] = data.get("verdes_ayer", [])
+                base["oro_hoy"] = data.get("oro_hoy", [])
+            elif fecha_guardada == ayer:
+                base["verdes_ayer"] = data.get("verdes_hoy", [])
+                base["verdes_hoy"] = []
+                base["oro_hoy"] = []
         except Exception:
             pass
     return base
@@ -122,32 +134,55 @@ def obtener_datos_binance(session):
             print(f"⚠️ Error al conectar con {url}: {e}")
     return []
 
-def obtener_cambios_temporalidades(session, symbol):
+def obtener_metricas_velas(session, symbol):
+    """Obtiene cambio 1h, cambio 4h y volumen relativo 1h (vs promedio últimas 24h)."""
     cambio_1h = 0.0
     cambio_4h = 0.0
-    for interval in ("1h", "4h"):
-        urls = [
-            f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval={interval}&limit=2",
-            f"https://data-api.binance.vision/api/v3/klines?symbol={symbol}&interval={interval}&limit=2"
-        ]
-        for u in urls:
-            try:
-                res = session.get(u, timeout=5)
-                if res.status_code == 200:
-                    candles = res.json()
-                    if len(candles) >= 1:
-                        open_p = float(candles[-1][1])
-                        close_p = float(candles[-1][4])
-                        if open_p > 0:
-                            pct = round(((close_p - open_p) / open_p) * 100, 2)
-                            if interval == "1h":
-                                cambio_1h = pct
-                            else:
-                                cambio_4h = pct
-                    break
-            except Exception:
-                continue
-    return cambio_1h, cambio_4h
+    vol_1h_rel = 1.0
+
+    urls_1h = [
+        f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval=1h&limit=25",
+        f"https://data-api.binance.vision/api/v3/klines?symbol={symbol}&interval=1h&limit=25"
+    ]
+    for u in urls_1h:
+        try:
+            res = session.get(u, timeout=6)
+            if res.status_code == 200:
+                candles = res.json()
+                if len(candles) >= 2:
+                    open_p = float(candles[-1][1])
+                    close_p = float(candles[-1][4])
+                    if open_p > 0:
+                        cambio_1h = round(((close_p - open_p) / open_p) * 100, 2)
+                    vol_actual = float(candles[-1][7])
+                    prev_vols = [float(c[7]) for c in candles[:-1] if float(c[7]) > 0]
+                    if prev_vols:
+                        prom_vol = sum(prev_vols) / len(prev_vols)
+                        if prom_vol > 0:
+                            vol_1h_rel = round(vol_actual / prom_vol, 2)
+                break
+        except Exception:
+            continue
+
+    urls_4h = [
+        f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval=4h&limit=2",
+        f"https://data-api.binance.vision/api/v3/klines?symbol={symbol}&interval=4h&limit=2"
+    ]
+    for u in urls_4h:
+        try:
+            res = session.get(u, timeout=6)
+            if res.status_code == 200:
+                candles = res.json()
+                if len(candles) >= 1:
+                    open_p = float(candles[-1][1])
+                    close_p = float(candles[-1][4])
+                    if open_p > 0:
+                        cambio_4h = round(((close_p - open_p) / open_p) * 100, 2)
+                break
+        except Exception:
+            continue
+
+    return cambio_1h, cambio_4h, vol_1h_rel
 
 def formatear_precio(precio):
     if precio is None or precio <= 0:
@@ -183,16 +218,23 @@ def construir_item_desde_ticker(session, t, desde_posta=False, info_grad=None):
     if precio <= 0:
         return None
 
-    cambio_1h, cambio_4h = obtener_cambios_temporalidades(session, symbol)
+    cambio_1h, cambio_4h, vol_1h_rel = obtener_metricas_velas(session, symbol)
     pos_liquidez_pct = round(((precio - low) / (high - low)) * 100, 1) if high > low else 50.0
     rango = high - low
     pct_rango = (rango / precio) * 100 if precio > 0 else 1.0
     factor_spike = (vol_usdt / 1_000_000) / (pct_rango if pct_rango > 0 else 1.0)
 
-    penalizacion_extension = 12.0 if pos_liquidez_pct > 92.0 else 0.0
+    # Penalización Anti-FOMO en momentum extendido
+    penalizacion_extension = 14.0 if (pos_liquidez_pct > 90.0 or cambio_24h > 7.5) else 0.0
     bonus_posta = 18.0 if desde_posta else 0.0
     score_ia = round(
-        (cambio_1h * 3.2) + (cambio_4h * 2.0) + (cambio_24h * 1.2) + (factor_spike * 1.6) + bonus_posta - penalizacion_extension,
+        (cambio_1h * 3.2) + (cambio_4h * 2.0) + (cambio_24h * 1.1) + (factor_spike * 1.5) + (vol_1h_rel * 1.8) + bonus_posta - penalizacion_extension,
+        2
+    )
+
+    # Score quirúrgico ORO: premia absorción positiva (+1.8% a +4.5%), volumen 1h relativo y piso de rango (15%-30%)
+    score_oro = round(
+        (vol_1h_rel * 2.5) + (factor_spike * 1.5) + (cambio_1h * 2.0) - abs(3.0 - cambio_24h) + (pos_liquidez_pct / 30.0),
         2
     )
 
@@ -211,11 +253,14 @@ def construir_item_desde_ticker(session, t, desde_posta=False, info_grad=None):
         'cambio_f': cambio_24h,
         'cambio_1h': cambio_1h,
         'cambio_4h': cambio_4h,
+        'vol_1h_rel': vol_1h_rel,
         'vol_f': vol_usdt,
         'high_f': high,
         'low_f': low,
         'pos_liquidez_pct': pos_liquidez_pct,
         'score_ia': score_ia,
+        'score_oro': score_oro,
+        'es_oro': False,
         'desde_posta': bool(desde_posta),
         'var_desde_grad': var_desde_grad,
         'fecha_grad': fecha_grad
@@ -223,7 +268,15 @@ def construir_item_desde_ticker(session, t, desde_posta=False, info_grad=None):
 
 def motor_ia_seleccion_tactica(tickers, simbolos_activos, session, historial):
     hoy_str = ahora_art().strftime('%Y-%m-%d')
+    ayer_str = (ahora_art() - timedelta(days=1)).strftime('%Y-%m-%d')
+
     if historial.get("fecha") != hoy_str:
+        if historial.get("fecha") == ayer_str:
+            historial["verdes_ayer"] = historial.get("verdes_hoy", [])
+        else:
+            historial["verdes_ayer"] = []
+        historial["verdes_hoy"] = []
+        historial["oro_hoy"] = []
         historial["fecha"] = hoy_str
         historial["mencionadas"] = {}
         historial["resumen_dia"] = []
@@ -234,6 +287,10 @@ def motor_ia_seleccion_tactica(tickers, simbolos_activos, session, historial):
         mencionadas[sym] -= 1
         if mencionadas[sym] <= 0:
             del mencionadas[sym]
+
+    verdes_ayer = set(historial.get("verdes_ayer", []))
+    verdes_hoy = set(historial.get("verdes_hoy", []))
+    oro_hoy = set(historial.get("oro_hoy", []))
 
     grad = historial.get("graduadas_pre_explosion", {})
     posta = historial.get("posta", {})
@@ -278,7 +335,7 @@ def motor_ia_seleccion_tactica(tickers, simbolos_activos, session, historial):
         try:
             precio = float(t.get('lastPrice', 0))
             vol_usdt = float(t.get('quoteVolume', 0))
-            if precio > 0 and vol_usdt >= 50_000:
+            if precio > 0 and vol_usdt >= 250_000:
                 total_analizadas += 1
                 it = construir_item_desde_ticker(session, t, desde_posta=True, info_grad=grad.get(sym))
                 if it:
@@ -289,6 +346,7 @@ def motor_ia_seleccion_tactica(tickers, simbolos_activos, session, historial):
     items_posta_roja.sort(key=lambda x: x['score_ia'], reverse=True)
     vistos = {x['symbol'] for x in items_posta_roja}
 
+    # Universo filtrado con liquidez mínima >= $1.0M USDT para eliminar ruido ilíquido
     for sym, t in mapa_tickers.items():
         if sym in vistos or sym in mencionadas:
             continue
@@ -296,7 +354,7 @@ def motor_ia_seleccion_tactica(tickers, simbolos_activos, session, historial):
             precio = float(t.get('lastPrice', 0))
             cambio_24h = float(t.get('priceChangePercent', 0))
             vol_usdt = float(t.get('quoteVolume', 0))
-            if 0.000001 <= precio < 10.0 and vol_usdt >= 250_000 and -1.5 <= cambio_24h <= 12.0:
+            if 0.000001 <= precio < 15.0 and vol_usdt >= 1_000_000 and -2.0 <= cambio_24h <= 9.0:
                 total_analizadas += 1
                 it = construir_item_desde_ticker(session, t, desde_posta=False, info_grad=None)
                 if it and (it['cambio_1h'] >= -0.2 or it['cambio_4h'] >= 0.3):
@@ -304,32 +362,77 @@ def motor_ia_seleccion_tactica(tickers, simbolos_activos, session, historial):
         except (ValueError, TypeError):
             continue
 
+    # --- 1. SELECCIÓN DE ROJO Y AMARILLO (RUPTURA / MOMENTUM ANTI-FOMO) ---
     candidatas_mercado.sort(key=lambda x: x['score_ia'], reverse=True)
+    candidatas_impulso = [x for x in candidatas_mercado if x['cambio_f'] <= 6.5]
+    seleccion_impulso = items_posta_roja[:8]
+    cupo_impulso = max(0, 8 - len(seleccion_impulso))
+    if cupo_impulso > 0:
+        seleccion_impulso.extend(candidatas_impulso[:cupo_impulso])
 
-    seleccion = items_posta_roja[:15]
-    cupo_restante = max(0, 15 - len(seleccion))
-    if cupo_restante > 0:
-        seleccion.extend(candidatas_mercado[:cupo_restante])
+    top_rojas = seleccion_impulso[:4]
+    top_amarillas = seleccion_impulso[4:8]
+    usadas_arriba = {x['symbol'] for x in (top_rojas + top_amarillas)}
 
-    top_rojas = seleccion[:5]
-    top_amarillas = seleccion[5:10]
-    top_verdes = seleccion[10:15]
+    # --- 2. FILTRO QUIRÚRGICO DE VERDE ("TOP 3 ORO • COMPRA AQUÍ") ---
+    candidatas_oro = []
+    candidatas_piso_respaldo = []
+
+    for it in candidatas_mercado:
+        sym = it['symbol']
+        if sym in usadas_arriba:
+            continue
+
+        var_24h = it['cambio_f']
+        rango = it['pos_liquidez_pct']
+        fresca = (sym not in verdes_ayer)
+
+        # Criterio ORO PURO:
+        # 1) Absorción positiva controlada (+1.8% a +4.5%, sin FOMO)
+        # 2) Compresión en piso (rango diario entre 15% y 30%)
+        # 3) Frescura (no repetida de ayer)
+        # 4) Demanda viva en 1h (cambio_1h >= 0) y volumen relativo 1h >= 1.1x
+        if (1.8 <= var_24h <= 4.5) and (15.0 <= rango <= 30.0) and fresca and it['cambio_1h'] >= 0.0 and it['vol_1h_rel'] >= 1.1:
+            it['es_oro'] = True
+            candidatas_oro.append(it)
+        elif (-1.5 <= var_24h <= 4.5) and (rango <= 35.0) and fresca:
+            candidatas_piso_respaldo.append(it)
+
+    candidatas_oro.sort(key=lambda x: x['score_oro'], reverse=True)
+    candidatas_piso_respaldo.sort(key=lambda x: x['score_oro'], reverse=True)
+
+    # Máximo 3 Opciones de Oro; si hay menos de 3, completa hasta 5 con acumulaciones limpias en piso
+    top_verdes = candidatas_oro[:3]
+    syms_oro = {x['symbol'] for x in top_verdes}
+    for it in candidatas_piso_respaldo:
+        if len(top_verdes) >= 5:
+            break
+        if it['symbol'] not in syms_oro:
+            top_verdes.append(it)
 
     for item in top_rojas:
         item['categoria'], item['estado_texto'], item['color_hex'] = "ROJO", "Explosión Inminente", "#ff1744"
     for item in top_amarillas:
         item['categoria'], item['estado_texto'], item['color_hex'] = "AMARILLO", "Confirmación Táctica", "#ffd600"
     for item in top_verdes:
-        item['categoria'], item['estado_texto'], item['color_hex'] = "VERDE", "Vigilancia / Acumulación", "#00e676"
+        if item.get('es_oro'):
+            item['categoria'], item['estado_texto'], item['color_hex'] = "VERDE", "🏆 COMPRA AQUÍ (ORO)", "#ffd700"
+            oro_hoy.add(item['symbol'])
+        else:
+            item['categoria'], item['estado_texto'], item['color_hex'] = "VERDE", "Vigilancia / Acumulación", "#00e676"
+        verdes_hoy.add(item['symbol'])
 
-    for item in seleccion:
+    seleccion_total = top_rojas + top_amarillas + top_verdes
+    for item in seleccion_total:
         sym = item['symbol']
-        mencionadas[sym] = 2
+        mencionadas[sym] = 3
         if sym not in historial["resumen_dia"]:
             historial["resumen_dia"].append(sym)
 
     historial["mencionadas"] = mencionadas
     historial["graduadas_pre_explosion"] = grad
+    historial["verdes_hoy"] = list(verdes_hoy)
+    historial["oro_hoy"] = list(oro_hoy)
     guardar_historial(historial)
 
     return {"ROJO": top_rojas, "AMARILLO": top_amarillas, "VERDE": top_verdes}, total_analizadas, historial
@@ -337,7 +440,10 @@ def motor_ia_seleccion_tactica(tickers, simbolos_activos, session, historial):
 def generar_grafico_color(lista_items, titulo_graf, subtitulo_graf, filename):
     if not lista_items:
         return None
-    simbolos = [f"{'***' if item.get('desde_posta') else ''}{item['ticker']}" for item in lista_items]
+    simbolos = [
+        f"{'🏆' if item.get('es_oro') else ('***' if item.get('desde_posta') else '')}{item['ticker']}"
+        for item in lista_items
+    ]
     posiciones = [item['pos_liquidez_pct'] for item in lista_items]
     colores = [item['color_hex'] for item in lista_items]
 
@@ -359,9 +465,9 @@ def generar_grafico_color(lista_items, titulo_graf, subtitulo_graf, filename):
         yval = bar.get_height()
         xval = bar.get_x() + bar.get_width() / 2.0
         sim = item['ticker']
-        if item.get('desde_posta'):
+        if item.get('desde_posta') or item.get('es_oro'):
             bar.set_edgecolor('#ffd700')
-            bar.set_linewidth(2.0)
+            bar.set_linewidth(2.2)
 
         ax.text(xval, yval + 2.5, f"{pos:.0f}%", ha='center', va='bottom', color=color, fontweight='bold', fontsize=8.5)
         ax.plot(xval, max(yval / 2.0, 13), marker='o', markersize=15, markerfacecolor='#0f172a', markeredgecolor=color, markeredgewidth=1.8, zorder=4)
@@ -379,16 +485,16 @@ def generar_dictamen_color(cat_key, lista_items):
     if not lista_items:
         return ""
     if not GEMINI_API_KEY:
-        return f"Lectura {cat_key}: foco en velocidad 1h/4h y seguimiento de las monedas graduadas en Rojo."
+        return f"Lectura {cat_key}: foco en velocidad 1h/4h y entradas limpias sin FOMO."
 
     client = genai.Client(api_key=GEMINI_API_KEY)
     lista_texto = "\n".join([
-        f"- {i['ticker']} ({'POSTA_ROJA' if i.get('desde_posta') else 'RADAR'}): 1h {i['cambio_1h']:+.2f}%, 4h {i['cambio_4h']:+.2f}%, 24h {i['cambio_f']:+.2f}%"
+        f"- {i['ticker']} ({'TOP_ORO' if i.get('es_oro') else ('POSTA_ROJA' if i.get('desde_posta') else 'RADAR')}): 1h {i['cambio_1h']:+.2f}%, 4h {i['cambio_4h']:+.2f}%, 24h {i['cambio_f']:+.2f}%, Rango {i['pos_liquidez_pct']:.0f}%, Vol1H {i['vol_1h_rel']:.1f}x"
         for i in lista_items
     ])
     prompt = (
-        f"Analista Spot Binance. Dá un dictamen breve (máximo 2 líneas) para el bloque {cat_key} de Pre-Explosión:\n"
-        f"{lista_texto}"
+        f"Analista Spot Binance. Dá un dictamen breve (máximo 2 líneas) para el bloque {cat_key} de Pre-Explosión "
+        f"(si hay monedas TOP_ORO, resaltalas como el punto dulce de entrada temprana en piso):\n{lista_texto}"
     )
     for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
         try:
@@ -397,7 +503,7 @@ def generar_dictamen_color(cat_key, lista_items):
                 return response.text.strip()
         except Exception:
             continue
-    return f"Lectura {cat_key}: foco en velocidad 1h/4h y seguimiento de las monedas graduadas en Rojo."
+    return f"Lectura {cat_key}: foco en velocidad 1h/4h y entradas limpias sin FOMO."
 
 def enviar_telegram_foto(image_path, caption_text):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
@@ -446,7 +552,7 @@ def enviar_mensaje_por_color(num_msg, cat_key, titulo_color, items, total_analiz
     generar_grafico_color(
         items,
         f"PRE-EXPLOSION ({num_msg}/3) - {cat_key}",
-        f"Fecha: {fecha_str} | Analizadas: {total_analizadas} Spot | *** = Rojo Tactico",
+        f"Fecha: {fecha_str} | Analizadas: {total_analizadas} Spot | *** = Rojo Tactico | 🏆 = Compra Oro",
         fname
     )
     dictamen = generar_dictamen_color(cat_key, items)
@@ -467,22 +573,24 @@ def enviar_mensaje_por_color(num_msg, cat_key, titulo_color, items, total_analiz
         url_ia = f"{BASE_URL_NETLIFY}/?coin={sim}&price={item['precio_f']}&change={item['cambio_f']}&high={item['high_f']}&low={item['low_f']}&v={sim}_{unique_id}"
         url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
 
-        etiqueta_posta = ""
-        if item.get("desde_posta"):
+        etiqueta_extra = ""
+        if item.get("es_oro"):
+            etiqueta_extra = f" 🏆 <b>[COMPRA AQUÍ • ORO | Rango: {item['pos_liquidez_pct']:.0f}% | Vol1H: {item['vol_1h_rel']:.1f}x]</b>"
+        elif item.get("desde_posta"):
             if item.get("var_desde_grad") is not None:
-                etiqueta_posta = f" ⭐⭐⭐ [Posta {item.get('fecha_grad')}: <b>{item['var_desde_grad']:+.2f}%</b>]"
+                etiqueta_extra = f" ⭐⭐⭐ [Posta {item.get('fecha_grad')}: <b>{item['var_desde_grad']:+.2f}%</b>]"
             else:
-                etiqueta_posta = " ⭐⭐⭐ [Posta Roja]"
+                etiqueta_extra = " ⭐⭐⭐ [Posta Roja]"
 
         cuerpo += (
-            f"• <b>{sim}</b>{etiqueta_posta} (1h: {item['cambio_1h']:+.1f}% | 4h: {item['cambio_4h']:+.1f}% | 24h: {item['cambio_f']:+.1f}%) | <code>{precio_str}</code>\n"
+            f"• <b>{sim}</b>{etiqueta_extra} (1h: {item['cambio_1h']:+.1f}% | 4h: {item['cambio_4h']:+.1f}% | 24h: {item['cambio_f']:+.1f}%) | <code>{precio_str}</code>\n"
             f"  └ <a href=\"{html.escape(url_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n\n"
         )
 
     enviar_texto_telegram(cuerpo)
 
 if __name__ == "__main__":
-    print(f"🔥 EJECUTANDO PRE-EXPLOSIÓN POR COLOR ({ahora_art().strftime('%Y-%m-%d %H:%M:%S')} ART)...")
+    print(f"🔥 EJECUTANDO PRE-EXPLOSIÓN V7 POR COLOR ({ahora_art().strftime('%Y-%m-%d %H:%M:%S')} ART)...")
     session = crear_sesion_binance()
     simbolos_activos = obtener_simbolos_spot_activos(session)
     datos = obtener_datos_binance(session)
@@ -495,16 +603,18 @@ if __name__ == "__main__":
         time.sleep(2)
         enviar_mensaje_por_color(2, "AMARILLO", "🟡 <b>2. CONFIRMACIÓN TÁCTICA (AMARILLO)</b>", bloques["AMARILLO"], total_analizadas)
         time.sleep(2)
-        enviar_mensaje_por_color(3, "VERDE", "🟢 <b>3. VIGILANCIA / ACUMULACIÓN (VERDE)</b>", bloques["VERDE"], total_analizadas)
+        enviar_mensaje_por_color(3, "VERDE", "🟢 <b>3. COMPRA TEMPRANA • TOP ORO (VERDE)</b>", bloques["VERDE"], total_analizadas)
 
         hora_actual = ahora_art().hour
         if hora_actual >= 21 and not historial.get("resumen_enviado_hoy", False):
             monedas_dia = [s[:-4] if s.endswith('USDT') else s for s in historial.get("resumen_dia", [])]
+            monedas_oro = [s[:-4] if s.endswith('USDT') else s for s in historial.get("oro_hoy", [])]
             if monedas_dia:
                 resumen_texto = (
                     f"📋 <b>RESUMEN DIARIO PRE-EXPLOSIÓN (21:00 ART)</b>\n"
                     f"📅 <i>Fecha: {ahora_art().strftime('%Y-%m-%d')}</i>\n\n"
-                    f"Monedas mencionadas hoy:\n<code>{', '.join(monedas_dia)}</code>"
+                    f"🏆 <b>Opciones de Oro detectadas hoy:</b>\n<code>{', '.join(monedas_oro) if monedas_oro else 'Ninguna en rango estricto'}</code>\n\n"
+                    f"Todas las monedas del radar hoy:\n<code>{', '.join(monedas_dia)}</code>"
                 )
                 enviar_texto_telegram(resumen_texto)
                 historial["resumen_enviado_hoy"] = True
@@ -512,4 +622,4 @@ if __name__ == "__main__":
     else:
         print("❌ ERROR: Sin datos o sin símbolos activos de Binance.")
 
-# FIN BOT PRE EXPLOSION
+# FIN BOT PRE EXPLOSION V7
