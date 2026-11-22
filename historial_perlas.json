@@ -6,15 +6,18 @@
     "BMTUSDT": 3,
     "SKYUSDT": 3,
     "GRAMUSDT": 3,
-    "YGGUSDT": 3,
-    "FFUSDT": 3,
+    "YGGUSDT": 2,
+    "FFUSDT": 2,
     "SUSHIUSDT": 3,
-    "BLURUSDT": 2,
-    "FETUSDT": 1,
-    "INJUSDT": 1,
-    "XPLUSDT": 1,
-    "RAREUSDT": 2,
-    "YBUSDT": 2
+    "BLURUSDT": 3,
+    "RAREUSDT": 1,
+    "YBUSDT": 1,
+    "KITEUSDT": 3,
+    "BARDUSDT": 3,
+    "FETUSDT": 3,
+    "SCUSDT": 3,
+    "INJUSDT": 3,
+    "WLFIUSDT": 3
   },
   "resumen_dia": [
     "AIGENSYNUSDT",
@@ -46,7 +49,8 @@
     "CYBERUSDT",
     "BLURUSDT",
     "FETUSDT",
-    "INJUSDT"
+    "INJUSDT",
+    "WLFIUSDT"
   ],
   "resumen_enviado_hoy": false,
   "posta": {
@@ -1004,19 +1008,20 @@
     }
   },
   "verdes_hoy": [
-    "RAREUSDT",
-    "LUNCUSDT",
-    "XPLUSDT",
-    "INJUSDT",
-    "PARTIUSDT",
-    "KAVAUSDT",
-    "ICPUSDT",
-    "FETUSDT",
-    "ZKPUSDT",
     "YBUSDT",
-    "SCUSDT",
+    "LUNCUSDT",
+    "BARDUSDT",
+    "FETUSDT",
+    "KAVAUSDT",
     "CYBERUSDT",
-    "BARDUSDT"
+    "SCUSDT",
+    "ICPUSDT",
+    "INJUSDT",
+    "RAREUSDT",
+    "WLFIUSDT",
+    "PARTIUSDT",
+    "XPLUSDT",
+    "ZKPUSDT"
   ],
   "verdes_ayer": [],
   "oro_hoy": []
