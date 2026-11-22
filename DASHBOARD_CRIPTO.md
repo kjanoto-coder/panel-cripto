@@ -1,5 +1,5 @@
 # 🚀 Dashboard Cripto Automatizado
-**Última actualización:** `2026-11-22 09:40:30 UTC`
+**Última actualización:** `2026-11-22 17:25:47 UTC`
 
 ### 🧠 Dictamen Institucional (IA)
 > Sincronización completada.
