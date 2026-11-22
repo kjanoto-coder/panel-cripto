@@ -1,21 +1,21 @@
 {
   "fecha": "2026-11-22",
   "mencionadas": {
-    "GRAMUSDT": 2,
+    "GRAMUSDT": 3,
     "STEEMUSDT": 3,
     "SUSHIUSDT": 3,
-    "GLMRUSDT": 1,
     "SHELLUSDT": 3,
     "ANIMEUSDT": 3,
     "YGGUSDT": 3,
-    "FFUSDT": 2,
-    "HUMAUSDT": 1,
-    "SCUSDT": 1,
+    "FFUSDT": 1,
     "KITEUSDT": 3,
-    "HOTUSDT": 2,
-    "DODOUSDT": 3,
+    "HOTUSDT": 1,
+    "DODOUSDT": 2,
     "OPGUSDT": 3,
-    "INITUSDT": 3
+    "INITUSDT": 2,
+    "SCUSDT": 3,
+    "USUALUSDT": 3,
+    "CYBERUSDT": 3
   },
   "resumen_dia": [
     "AIGENSYNUSDT",
@@ -71,7 +71,8 @@
     "INITUSDT",
     "SHELLUSDT",
     "SOPHUSDT",
-    "HOTUSDT"
+    "HOTUSDT",
+    "USUALUSDT"
   ],
   "resumen_enviado_hoy": false,
   "posta": {
@@ -1091,26 +1092,28 @@
     }
   },
   "verdes_hoy": [
-    "XPLUSDT",
-    "PENGUUSDT",
+    "MEGAUSDT",
+    "INITUSDT",
     "SCUSDT",
-    "ICPUSDT",
-    "HUMAUSDT",
+    "INJUSDT",
+    "WLFIUSDT",
+    "PLUMEUSDT",
+    "BARDUSDT",
     "FETUSDT",
     "KAVAUSDT",
-    "HOTUSDT",
-    "ATOMUSDT",
+    "PENGUUSDT",
     "SOPHUSDT",
-    "PARTIUSDT",
-    "POLUSDT",
-    "RAREUSDT",
-    "BARDUSDT",
-    "INJUSDT",
-    "PLUMEUSDT",
-    "WLFIUSDT",
-    "MEGAUSDT",
     "SEIUSDT",
-    "INITUSDT"
+    "HUMAUSDT",
+    "XPLUSDT",
+    "ATOMUSDT",
+    "PARTIUSDT",
+    "USUALUSDT",
+    "RAREUSDT",
+    "POLUSDT",
+    "ICPUSDT",
+    "HOTUSDT",
+    "CYBERUSDT"
   ],
   "verdes_ayer": [],
   "oro_hoy": []
