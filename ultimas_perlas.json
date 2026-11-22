@@ -1,14 +1,5 @@
 [
   [
-    "TRXUSDT",
-    "NEARUSDT",
-    "XLMUSDT",
-    "TRUMPUSDT",
-    "SHIBUSDT",
-    "ZAMAUSDT",
-    "HBARUSDT"
-  ],
-  [
     "DOGEUSDT",
     "ADAUSDT",
     "WLDUSDT",
@@ -16,5 +7,14 @@
     "ARBUSDT",
     "ERAUSDT",
     "ZROUSDT"
+  ],
+  [
+    "XRPUSDT",
+    "UNIUSDT",
+    "ONDOUSDT",
+    "STXUSDT",
+    "ZENUSDT",
+    "AEROUSDT",
+    "RENDERUSDT"
   ]
 ]
