@@ -9,15 +9,15 @@
     "ANIMEUSDT": 2,
     "WCTUSDT": 2,
     "SKYUSDT": 2,
-    "AIGENSYNUSDT": 1,
     "HMSTRUSDT": 2,
     "SHELLUSDT": 2,
     "SUSHIUSDT": 2,
-    "FFUSDT": 2,
-    "PORTALUSDT": 2,
-    "SENTUSDT": 1,
+    "FFUSDT": 1,
+    "PORTALUSDT": 1,
     "OPGUSDT": 2,
-    "GRAMUSDT": 2
+    "GRAMUSDT": 2,
+    "AIGENSYNUSDT": 2,
+    "SENTUSDT": 2
   },
   "resumen_dia": [
     "ASTERUSDT",
