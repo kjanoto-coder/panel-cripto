@@ -1,5 +1,6 @@
 import os, json, time, random, html, requests
 from datetime import datetime, timezone, timedelta
+import matplotlib.pyplot as plt
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
 
@@ -13,10 +14,11 @@ HISTORIAL_PERLAS_FILE = "historial_perlas.json"
 PLAN_SEMANAL_FILE = "plan_semanal.json"
 EXCEL_SEMANAL_FILE = "AUDITORIA_SEMANAL_PRUEBA.xlsx"
 
-# Parámetros de la prueba semanal
+# Parámetros de la prueba semanal ampliada a 4 monedas
 CAPITAL_INICIAL_PRUEBA = 3500.0
 META_SEMANAL_USD = 600.0
-MAX_MONEDAS_SEMANA = 2
+MAX_MONEDAS_SEMANA = 4
+TOP_ALTERNATIVAS_MOSTRAR = 8
 STOP_PROTECCION_PCT = -8.5
 TRAILING_DESDE_MAX_PCT = 4.0
 HORAS_MAX_SIN_ARRANQUE = 60.0
@@ -99,16 +101,14 @@ def analizar_momentum_1h(session, symbol):
     return {"ok": False, "rsi_1h": 50.0, "vol_ratio": 1.0, "var_1h": 0.0}
 
 def verificar_clima_btc(session, mapa_mkt):
-    """Filtro de seguridad: evita abrir compras nuevas si Bitcoin está en caída brusca."""
     btc = mapa_mkt.get("BTCUSDT")
     if not btc:
-        return True, "Sin datos BTC (se permite operar)"
+        return True, "BTC estable"
     chg_24h = float(btc["cambio_24h"])
     mom_btc = analizar_momentum_1h(session, "BTCUSDT")
     rsi_btc = float(mom_btc.get("rsi_1h", 50.0))
-
     if chg_24h <= -2.5 or rsi_btc < 35.0:
-        return False, f"BTC en alerta (24h: {chg_24h:+.2f}%, RSI 1h: {rsi_btc}). Compras nuevas pausadas."
+        return False, f"BTC en alerta (24h: {chg_24h:+.2f}%, RSI 1h: {rsi_btc}). Compras pausadas."
     return True, f"BTC estable (24h: {chg_24h:+.2f}%, RSI 1h: {rsi_btc})"
 
 def cargar_plan_semanal():
@@ -116,13 +116,15 @@ def cargar_plan_semanal():
     base = {
         "semana_id": sem,
         "fecha_inicio": ahora_art().strftime("%Y-%m-%d %H:%M"),
-        "modo": "PRUEBA_SIMULACION_PRO",
+        "modo": "PRUEBA_SIMULACION_PRO_4X",
         "capital_total_usd": CAPITAL_INICIAL_PRUEBA,
         "meta_semanal_usd": META_SEMANAL_USD,
         "ganancia_realizada_usd": 0.0,
         "estado_semana": "ACTIVA",
         "fecha_cierre_meta": "",
         "aviso_btc_enviado": False,
+        "ultimo_reporte_hora": -1,
+        "alternativas_evaluadas": [],
         "posiciones": [],
         "historial_cierres": []
     }
@@ -132,9 +134,11 @@ def cargar_plan_semanal():
                 data = json.load(f)
             if data.get("semana_id") == sem:
                 data.setdefault("aviso_btc_enviado", False)
+                data.setdefault("ultimo_reporte_hora", -1)
+                data.setdefault("alternativas_evaluadas", [])
                 return data
             if data.get("historial_cierres"):
-                base["historial_cierres"] = data["historial_cierres"][-40:]
+                base["historial_cierres"] = data["historial_cierres"][-60:]
         except Exception:
             pass
     return base
@@ -146,7 +150,8 @@ def guardar_plan_semanal(plan):
     except Exception as e:
         print(f"⚠️ Error guardando {PLAN_SEMANAL_FILE}: {e}")
 
-def seleccionar_monedas_al_horno(session, mapa_mkt, excluidas, cantidad):
+def evaluar_alternativas_al_horno(session, mapa_mkt, excluidas):
+    """Evalúa todas las candidatas del embudo, arma el ranking y justifica la elección."""
     if not os.path.exists(HISTORIAL_PERLAS_FILE):
         return []
     try:
@@ -156,73 +161,166 @@ def seleccionar_monedas_al_horno(session, mapa_mkt, excluidas, cantidad):
         return []
 
     candidatos = []
+    # 1. Graduadas desde Cazador Táctico Rojo -> Pre-Explosión
     for sym, info in perlas.get("graduadas_pre_explosion", {}).items():
-        if sym in excluidas or sym not in mapa_mkt:
+        if sym not in mapa_mkt:
             continue
         mkt = mapa_mkt[sym]
         p_ref = float(info.get("precio_ref", mkt["precio"]))
         var_desde_filtro = ((mkt["precio"] - p_ref) / p_ref) * 100 if p_ref > 0 else 0.0
-        if -3.0 <= var_desde_filtro <= 8.0 and -4.0 <= mkt["cambio_24h"] <= 10.0:
-            mom = analizar_momentum_1h(session, sym)
-            if mom["rsi_1h"] <= 68.0:
-                score = int(info.get("probabilidad_pct", 70)) + (10 if info.get("origen") == "CAZADOR_TACTICO_ROJO" else 0)
-                candidatos.append({
-                    "symbol": sym,
-                    "base": sym[:-4],
-                    "precio_entrada": mkt["precio"],
-                    "origen": info.get("origen", "VERDE_PRE_EXPLOSION"),
-                    "score": score,
-                    "mom": mom
-                })
+        mom = analizar_momentum_1h(session, sym)
+        prob = int(info.get("probabilidad_pct", 70))
+        score = prob + 12 + (5 if mom["vol_ratio"] >= 1.2 else 0)
 
+        en_zona = (-3.5 <= var_desde_filtro <= 8.5 and -4.5 <= mkt["cambio_24h"] <= 10.5 and mom["rsi_1h"] <= 68.0)
+        motivo_tecnico = (
+            f"Confirmada Rojo 3⭐⭐⭐ ({var_desde_filtro:+.1f}% desde filtro) | "
+            f"RSI 1h: {mom['rsi_1h']} | Vol 1h: x{mom['vol_ratio']} | Prob: {prob}%"
+        )
+        candidatos.append({
+            "symbol": sym,
+            "base": sym[:-4],
+            "precio_entrada": mkt["precio"],
+            "origen": "Cazador ROJO (⭐⭐⭐)",
+            "probabilidad": prob,
+            "score": score,
+            "en_zona": en_zona and (sym not in excluidas),
+            "ya_en_cartera": sym in excluidas,
+            "motivo_tecnico": motivo_tecnico,
+            "mom": mom
+        })
+
+    # 2. En seguimiento dentro de la Posta (Etapa 2 Amarillo / Etapa 3 Rojo)
     for sym, info in perlas.get("posta", {}).items():
-        if sym in excluidas or sym not in mapa_mkt or any(c["symbol"] == sym for c in candidatos):
+        if sym not in mapa_mkt or any(c["symbol"] == sym for c in candidatos):
             continue
-        if int(info.get("etapa", 1)) >= 2:
+        et = int(info.get("etapa", 1))
+        if et >= 2:
             mkt = mapa_mkt[sym]
-            if -4.0 <= mkt["cambio_24h"] <= 10.0:
-                mom = analizar_momentum_1h(session, sym)
-                if mom["rsi_1h"] <= 68.0:
-                    candidatos.append({
-                        "symbol": sym,
-                        "base": sym[:-4],
-                        "precio_entrada": mkt["precio"],
-                        "origen": f"POSTA_ETAPA_{info.get('etapa')}",
-                        "score": int(info.get("prob_actual", 65)),
-                        "mom": mom
-                    })
+            mom = analizar_momentum_1h(session, sym)
+            prob = int(info.get("prob_actual", 65))
+            var_seq = float(info.get("var_seq", 0.0))
+            score = prob + (8 if et == 3 else 3) + (5 if mom["vol_ratio"] >= 1.2 else 0)
+            en_zona = (-4.5 <= mkt["cambio_24h"] <= 10.5 and mom["rsi_1h"] <= 68.0)
+            etiqueta = "Cazador ROJO (⭐⭐⭐)" if et == 3 else "Cazador AMARILLO (⭐⭐)"
+            motivo_tecnico = (
+                f"{etiqueta} ({var_seq:+.1f}% desde base 1D) | "
+                f"RSI 1h: {mom['rsi_1h']} | Vol 1h: x{mom['vol_ratio']} | Prob: {prob}%"
+            )
+            candidatos.append({
+                "symbol": sym,
+                "base": sym[:-4],
+                "precio_entrada": mkt["precio"],
+                "origen": etiqueta,
+                "probabilidad": prob,
+                "score": score,
+                "en_zona": en_zona and (sym not in excluidas),
+                "ya_en_cartera": sym in excluidas,
+                "motivo_tecnico": motivo_tecnico,
+                "mom": mom
+            })
 
-    candidatos.sort(key=lambda x: (x["score"], x["mom"]["vol_ratio"]), reverse=True)
-    return candidatos[:cantidad]
+    candidatos.sort(key=lambda x: (x["en_zona"], x["score"], x["mom"]["vol_ratio"]), reverse=True)
+    return candidatos[:TOP_ALTERNATIVAS_MOSTRAR]
+
+def generar_tablero_visual(plan, filename="tablero_semanal.png"):
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.0, 4.6), facecolor="#0b132b", gridspec_kw={"width_ratios": [1.0, 1.55]})
+    for ax in (ax1, ax2):
+        ax.set_facecolor("#0f172a")
+        for sp in ["top", "right", "left", "bottom"]:
+            ax.spines[sp].set_color("#1e293b")
+
+    # Panel 1: Progreso hacia la Cuota Semanal ($600 USD)
+    meta = max(float(plan.get("meta_semanal_usd", META_SEMANAL_USD)), 1.0)
+    realizada = float(plan.get("ganancia_realizada_usd", 0.0))
+    flotante = sum(float(p.get("pnl_usd", 0.0)) for p in plan.get("posiciones", []))
+    total_actual = realizada + flotante
+
+    categorias = ["Cerrada\n(Caja)", "Flotante\n(En curso)", "Total\nSemana"]
+    valores = [realizada, flotante, total_actual]
+    colores = ["#00e676" if v >= 0 else "#ff1744" for v in valores]
+
+    bars1 = ax1.bar(categorias, valores, color=colores, width=0.45, zorder=3)
+    ax1.axhline(meta, color="#ffd600", linestyle="--", linewidth=1.8, zorder=4, label=f"Meta: ${meta:.0f}")
+    ax1.axhline(0, color="#475569", linewidth=1.0, zorder=2)
+    lim_sup = max(meta * 1.25, total_actual * 1.25, 150)
+    lim_inf = min(-150, total_actual * 1.25)
+    ax1.set_ylim(lim_inf, lim_sup)
+    ax1.grid(True, axis="y", color="#1e293b", linewidth=0.7, zorder=1)
+    ax1.tick_params(colors="white", labelsize=8.5)
+    ax1.set_title("PROGRESO CUOTA SEMANAL ($ USD)", color="#ffd600", fontsize=10, fontweight="bold", pad=10)
+    ax1.legend(loc="upper left", facecolor="#0b132b", edgecolor="#ffd600", labelcolor="white", fontsize=8)
+
+    for b, v in zip(bars1, valores):
+        yv = b.get_height()
+        offset = 18 if yv >= 0 else -28
+        ax1.text(b.get_x() + b.get_width() / 2.0, yv + offset, f"${v:+.1f}", ha="center", va="center", color="white", fontweight="bold", fontsize=8.5)
+
+    # Panel 2: Estado de las 4 Monedas Elegidas vs Objetivo (%)
+    posiciones = plan.get("posiciones", [])
+    if posiciones:
+        nombres = [p["base"] for p in posiciones]
+        pnls = [float(p.get("pnl_pct", 0.0)) for p in posiciones]
+        objs = [float(p.get("subida_necesaria_pct", 17.14)) for p in posiciones]
+        x = range(len(nombres))
+
+        ax2.bar([i - 0.17 for i in x], objs, width=0.32, color="#334155", edgecolor="#94a3b8", label="Subida Esperada (%)", zorder=2)
+        bars_act = ax2.bar([i + 0.17 for i in x], pnls, width=0.32, color=["#00e676" if v >= 0 else "#ff1744" for v in pnls], zorder=3, label="Actual (%)")
+        ax2.axhline(0, color="#475569", linewidth=1.0)
+        ax2.axhline(STOP_PROTECCION_PCT, color="#ff1744", linestyle=":", linewidth=1.3, label=f"Stop ({STOP_PROTECCION_PCT}%)")
+        max_y = max(max(objs + [20]) * 1.28, 24)
+        ax2.set_ylim(STOP_PROTECCION_PCT * 1.4, max_y)
+        ax2.set_xticks(list(x))
+        ax2.set_xticklabels(nombres, color="white", fontweight="bold", fontsize=9.5)
+        ax2.tick_params(axis="y", colors="white", labelsize=8.5)
+        ax2.grid(True, axis="y", color="#1e293b", linewidth=0.7, zorder=1)
+        ax2.legend(loc="upper right", facecolor="#0b132b", edgecolor="#334155", labelcolor="white", fontsize=7.5)
+
+        for b, v, obj in zip(bars_act, pnls, objs):
+            yv = b.get_height()
+            ax2.text(b.get_x() + b.get_width() / 2.0, yv + (0.8 if yv >= 0 else -1.5), f"{v:+.2f}%\n(Obj +{obj:.1f}%)", ha="center", va="bottom" if yv >= 0 else "top", color="white", fontweight="bold", fontsize=7.8)
+    else:
+        ax2.text(0.5, 0.5, "Sin posiciones abiertas\n(Esperando señal o Meta Cumplida)", ha="center", va="center", color="#94a3b8", fontsize=10, transform=ax2.transAxes)
+        ax2.tick_params(left=False, labelleft=False, bottom=False, labelbottom=False)
+
+    ax2.set_title(f"CARTERA ELEGIDA ({len(posiciones)}/{MAX_MONEDAS_SEMANA}) • RENDIMIENTO VS ESPERADO", color="#00e676", fontsize=10, fontweight="bold", pad=10)
+    fig.suptitle(f"ETAPA 4 • GESTOR Y RADAR SEMANAL ({plan['semana_id']}) | {ahora_art().strftime('%d/%m %H:%M ART')}", color="white", fontsize=11.5, fontweight="bold", y=0.98)
+    plt.tight_layout(rect=[0, 0, 1, 0.93])
+    plt.savefig(filename, dpi=260, facecolor=fig.get_facecolor())
+    plt.close()
+    return filename
 
 def actualizar_excel_semanal(plan):
     wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "PRUEBA_SEMANAL"
-
-    headers = [
-        "Semana", "Fecha Entrada", "Moneda", "Origen Señal", "Capital Activo ($)",
-        "Precio Entrada", "Precio Objetivo (+%)", "Subida Necesaria (%)",
-        "Precio Actual / Cierre", "Máximo Alcanzado", "Rendimiento (%)",
-        "PnL Flotante/Cierre ($)", "TP1 Ejecutado", "Estado Posición", "Meta Semanal ($)", "Estado Semana"
-    ]
-    ws.append(headers)
-
     fill_hdr = PatternFill(start_color="0B132B", end_color="0B132B", fill_type="solid")
     font_hdr = Font(color="FFFFFF", bold=True)
+    fill_verde = PatternFill(start_color="D1FAE5", end_color="D1FAE5", fill_type="solid")
+    fill_rojo = PatternFill(start_color="FEE2E2", end_color="FEE2E2", fill_type="solid")
+
+    # Pestaña 1: Cartera Elegida y Operada
+    ws = wb.active
+    ws.title = "1_CARTERA_ELEGIDA"
+    headers = [
+        "Semana", "Fecha Entrada", "Moneda", "Motivo de Elección", "Capital ($)",
+        "Precio Entrada", "Precio Objetivo", "Subida Esperada (%)",
+        "Precio Actual", "Máximo Alcanzado", "Rendimiento (%)",
+        "PnL ($)", "TP1 (50%)", "Estado", "Fecha Cierre"
+    ]
+    ws.append(headers)
     for col_idx in range(1, len(headers) + 1):
-        cell = ws.cell(row=1, column=col_idx)
-        cell.fill = fill_hdr
-        cell.font = font_hdr
-        cell.alignment = Alignment(horizontal="center")
+        c = ws.cell(row=1, column=col_idx)
+        c.fill = fill_hdr
+        c.font = font_hdr
+        c.alignment = Alignment(horizontal="center")
 
     todas = list(plan.get("historial_cierres", [])) + list(plan.get("posiciones", []))
-    for pos in todas:
+    for row_idx, pos in enumerate(todas, start=2):
+        pnl_v = round(float(pos.get("pnl_usd", 0)), 2)
         ws.append([
             pos.get("semana_id", plan["semana_id"]),
             pos.get("fecha_entrada", ""),
             pos.get("base", ""),
-            pos.get("origen", ""),
+            pos.get("motivo_eleccion", pos.get("origen", "")),
             round(float(pos.get("capital_usd", 0)), 2),
             float(pos.get("precio_entrada", 0)),
             float(pos.get("precio_objetivo", 0)),
@@ -230,16 +328,58 @@ def actualizar_excel_semanal(plan):
             float(pos.get("precio_actual", 0)),
             float(pos.get("precio_maximo", 0)),
             round(float(pos.get("pnl_pct", 0)), 2),
-            round(float(pos.get("pnl_usd", 0)), 2),
-            "SÍ (50%)" if pos.get("tp1_ejecutado") else "NO",
+            pnl_v,
+            "SÍ" if pos.get("tp1_ejecutado") else "NO",
             pos.get("estado", ""),
-            round(float(plan.get("meta_semanal_usd", META_SEMANAL_USD)), 2),
-            plan.get("estado_semana", "ACTIVA")
+            pos.get("fecha_cierre", "En curso")
+        ])
+        celda_pnl = ws.cell(row=row_idx, column=12)
+        if pnl_v > 0:
+            celda_pnl.fill = fill_verde
+        elif pnl_v < 0:
+            celda_pnl.fill = fill_rojo
+
+    # Pestaña 2: Alternativas Evaluadas (Top 8 del Radar)
+    ws_alt = wb.create_sheet(title="2_ALTERNATIVAS_RADAR")
+    headers_alt = ["Ranking", "Moneda", "Origen Señal", "Score IA", "Precio Actual", "Decisión", "Análisis Técnico / Motivo"]
+    ws_alt.append(headers_alt)
+    for col_idx in range(1, len(headers_alt) + 1):
+        c = ws_alt.cell(row=1, column=col_idx)
+        c.fill = fill_hdr
+        c.font = font_hdr
+        c.alignment = Alignment(horizontal="center")
+
+    activas_syms = {p["symbol"] for p in plan.get("posiciones", [])}
+    for idx, alt in enumerate(plan.get("alternativas_evaluadas", []), start=1):
+        estado_alt = "✅ ELEGIDA EN CARTERA" if alt["symbol"] in activas_syms else ("⏳ EN RESERVA (Lista)" if alt.get("en_zona") else "⚠️ FUERA DE ZONA / RSI ALTO")
+        ws_alt.append([
+            idx, alt.get("base", ""), alt.get("origen", ""), alt.get("score", 0),
+            float(alt.get("precio_entrada", 0)), estado_alt, alt.get("motivo_tecnico", "")
         ])
 
-    for col in ws.columns:
-        max_len = max(len(str(c.value or "")) for c in col)
-        ws.column_dimensions[col[0].column_letter].width = min(max_len + 4, 26)
+    # Pestaña 3: Resumen Ejecutivo de Cuota Semanal
+    ws2 = wb.create_sheet(title="3_RESUMEN_CUOTA")
+    headers2 = ["Semana", "Fecha Inicio", "Capital Base ($)", "Meta Semanal ($)", "Ganancia Cerrada ($)", "Ganancia Flotante ($)", "Cumplimiento (%)", "Estado Semana"]
+    ws2.append(headers2)
+    for col_idx in range(1, len(headers2) + 1):
+        c = ws2.cell(row=1, column=col_idx)
+        c.fill = fill_hdr
+        c.font = font_hdr
+        c.alignment = Alignment(horizontal="center")
+
+    flot = sum(float(p.get("pnl_usd", 0)) for p in plan.get("posiciones", []))
+    real = float(plan.get("ganancia_realizada_usd", 0))
+    meta = float(plan.get("meta_semanal_usd", META_SEMANAL_USD))
+    cump = round(((real + flot) / meta) * 100, 1) if meta > 0 else 0.0
+    ws2.append([
+        plan["semana_id"], plan.get("fecha_inicio", ""), round(float(plan.get("capital_total_usd", CAPITAL_INICIAL_PRUEBA)), 2),
+        round(meta, 2), round(real, 2), round(flot, 2), cump, plan.get("estado_semana", "ACTIVA")
+    ])
+
+    for sheet in (ws, ws_alt, ws2):
+        for col in sheet.columns:
+            max_len = max(len(str(c.value or "")) for c in col)
+            sheet.column_dimensions[col[0].column_letter].width = min(max_len + 4, 42)
 
     wb.save(EXCEL_SEMANAL_FILE)
 
@@ -258,6 +398,28 @@ def enviar_telegram_texto(texto):
     except Exception as e:
         print(f"⚠️ Error Telegram Semanal: {e}")
 
+def enviar_foto_telegram(imagen_path, caption):
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID or not os.path.exists(imagen_path):
+        return
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
+    cabe = len(caption.strip()) <= 1020
+    data = {"chat_id": TELEGRAM_CHAT_ID}
+    if TELEGRAM_TOPIC_ID.isdigit():
+        data["message_thread_id"] = int(TELEGRAM_TOPIC_ID)
+    if cabe:
+        data.update({"caption": caption.strip(), "parse_mode": "HTML"})
+    try:
+        with open(imagen_path, "rb") as ph:
+            r = requests.post(url, data=data, files={"photo": ph}, timeout=25).json()
+            if not r.get("ok") and "thread not found" in str(r.get("description", "")).lower():
+                data.pop("message_thread_id", None)
+                ph.seek(0)
+                r = requests.post(url, data=data, files={"photo": ph}, timeout=25).json()
+        if r.get("ok") and not cabe:
+            enviar_telegram_texto(caption)
+    except Exception as e:
+        print(f"⚠️ Error enviando foto Semanal: {e}")
+
 def enviar_excel_telegram(caption):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID or not os.path.exists(EXCEL_SEMANAL_FILE):
         return
@@ -267,7 +429,11 @@ def enviar_excel_telegram(caption):
         data["message_thread_id"] = int(TELEGRAM_TOPIC_ID)
     try:
         with open(EXCEL_SEMANAL_FILE, "rb") as f:
-            requests.post(url, data=data, files={"document": f}, timeout=25)
+            r = requests.post(url, data=data, files={"document": f}, timeout=25).json()
+            if not r.get("ok") and "thread not found" in str(r.get("description", "")).lower():
+                data.pop("message_thread_id", None)
+                f.seek(0)
+                requests.post(url, data=data, files={"document": f}, timeout=25)
     except Exception as e:
         print(f"⚠️ Error enviando Excel Semanal: {e}")
 
@@ -279,6 +445,58 @@ def calcular_horas_abierta(fecha_entrada_str):
     except Exception:
         return 0.0
 
+def construir_bloque_1_alternativas(plan):
+    ahora_str = ahora_art().strftime("%Y-%m-%d %H:%M ART")
+    alts = plan.get("alternativas_evaluadas", [])
+    activas_syms = {p["symbol"] for p in plan.get("posiciones", [])}
+
+    msg = (
+        f"🔍 <b>GESTOR Y RADAR SEMANAL • BLOQUE 1/3: ALTERNATIVAS DETECTADAS</b>\n"
+        f"📅 <code>{ahora_str}</code> | Semana <code>{plan['semana_id']}</code>\n"
+        f"<i>Ranking de monedas 'al horno' filtradas desde Cazador Táctico y Pre-Explosión:</i>\n\n"
+    )
+    if not alts:
+        msg += "⏳ <i>Aún no hay candidatas nuevas en el embudo para listar.</i>"
+        return msg.strip()
+
+    for idx, a in enumerate(alts, start=1):
+        marca = "✅ <b>[ELEGIDA]</b>" if a["symbol"] in activas_syms else ("🟡 <i>[RESERVA]</i>" if a.get("en_zona") else "⚪ <i>[ESPERA]</i>")
+        msg += (
+            f"<b>{idx}. {a['base']}</b> (Score: <b>{a['score']}</b>) — {marca}\n"
+            f"   • Precio: <code>{formatear_precio(a['precio_entrada'])}</code> | {html.escape(a['motivo_tecnico'])}\n"
+        )
+    return msg.strip()
+
+def construir_bloque_2_cartera(plan, evento_titulo):
+    ahora_str = ahora_art().strftime("%Y-%m-%d %H:%M ART")
+    real = float(plan.get("ganancia_realizada_usd", 0.0))
+    flot = sum(float(p.get("pnl_usd", 0.0)) for p in plan.get("posiciones", []))
+    meta = float(plan.get("meta_semanal_usd", META_SEMANAL_USD))
+    cump = round(((real + flot) / meta) * 100, 1) if meta > 0 else 0.0
+
+    msg = (
+        f"🏆 <b>GESTOR Y RADAR SEMANAL • BLOQUE 2/3: CARTERA ELEGIDA</b>\n"
+        f"{evento_titulo}\n"
+        f"📅 <code>{ahora_str}</code> | Cuota: <code>${meta:,.0f} USD</code> | Progreso: <b>${real + flot:+.2f} USD ({cump}%)</b>\n\n"
+    )
+
+    if not plan["posiciones"]:
+        msg += "⏳ <i>Sin posiciones abiertas en este momento.</i>\n"
+    else:
+        for idx, p in enumerate(plan["posiciones"], start=1):
+            uid = int(time.time() * 1000) + random.randint(1, 999)
+            u_ia = f"{BASE_URL_NETLIFY}/?coin={p['base']}&price={p['precio_actual']}&v={p['base']}_{uid}"
+            u_tr = f"https://www.binance.com/es/trade/{p['base']}_USDT"
+            motivo = html.escape(p.get("motivo_eleccion", p.get("origen", "")))
+            msg += (
+                f"🟢 <b>{idx}. {p['base']}</b> — Asignado: <code>${p['capital_usd']:,.2f} USD</code>\n"
+                f"• <b>Por qué se eligió:</b> <i>{motivo}</i>\n"
+                f"• <b>Entrada:</b> <code>{formatear_precio(p['precio_entrada'])}</code> ➔ <b>Actual:</b> <code>{formatear_precio(p['precio_actual'])}</code> (<b>{p['pnl_pct']:+.2f}%</b> | <code>${p['pnl_usd']:+.2f}</code>)\n"
+                f"• <b>Subida esperada:</b> <b>+{p['subida_necesaria_pct']:.2f}%</b> (Obj: <code>{formatear_precio(p['precio_objetivo'])}</code>) | Stop: <code>{STOP_PROTECCION_PCT}%</code>\n"
+                f"└ <a href=\"{html.escape(u_ia)}\">📊 Gráfico IA</a> | <a href=\"{html.escape(u_tr)}\">🔶 Tradear Spot</a>\n\n"
+            )
+    return msg.strip()
+
 def ejecutar_gestor_semanal():
     s = crear_sesion_binance()
     mapa_mkt = obtener_tickers_binance(s)
@@ -287,13 +505,14 @@ def ejecutar_gestor_semanal():
         return
 
     plan = cargar_plan_semanal()
-    ahora_str = ahora_art().strftime("%Y-%m-%d %H:%M ART")
+    ahora_dt = ahora_art()
+    ahora_str = ahora_dt.strftime("%Y-%m-%d %H:%M ART")
     alertas_venta = []
     alertas_parciales = []
     nuevas_entradas = []
 
     if plan["estado_semana"] == "META_CUMPLIDA":
-        print(f"✅ Semana {plan['semana_id']} ya tiene META CUMPLIDA (${plan['ganancia_realizada_usd']:.2f}). Modo protección activo.")
+        print(f"✅ Semana {plan['semana_id']} ya tiene META CUMPLIDA. Modo protección activo.")
         return
 
     ganancia_flotante_total = 0.0
@@ -321,7 +540,6 @@ def ejecutar_gestor_semanal():
         pos["pnl_pct"] = round(pnl_pct, 2)
         pos["pnl_usd"] = round(pnl_usd, 2)
 
-        # 1. Toma de ganancia escalonada TP1 (vende 50% al tocar objetivo semanal)
         if not pos.get("tp1_ejecutado", False) and pnl_pct >= float(pos["subida_necesaria_pct"]):
             cap_vendido = round(cap * 0.5, 2)
             ganancia_tp1 = round(cap_vendido * (pnl_pct / 100.0), 2)
@@ -337,7 +555,6 @@ def ejecutar_gestor_semanal():
                 "capital_restante": pos["capital_usd"]
             })
 
-        # 2. Evaluar cierre total del resto de la posición
         motivo_cierre = None
         if pos.get("tp1_ejecutado", False) and retroceso_desde_max <= -TRAILING_DESDE_MAX_PCT:
             motivo_cierre = f"🎯 CIERRE 2ª MITAD (Trailing Stop): tocó máx +{((p_max - p_ent)/p_ent)*100:.1f}% y retrocedió {retroceso_desde_max:.1f}%."
@@ -361,7 +578,6 @@ def ejecutar_gestor_semanal():
 
     plan["posiciones"] = posiciones_siguen_activas
 
-    # 3. Verificar si entre lo realizado + flotante ya cumplimos la cuota semanal ($600)
     total_semanal_actual = float(plan["ganancia_realizada_usd"]) + ganancia_flotante_total
     if total_semanal_actual >= float(plan["meta_semanal_usd"]):
         for pos in plan["posiciones"]:
@@ -375,11 +591,14 @@ def ejecutar_gestor_semanal():
         plan["estado_semana"] = "META_CUMPLIDA"
         plan["fecha_cierre_meta"] = ahora_str
 
-    # 4. Si la semana sigue ACTIVA y hay cupo libre, verificar Clima BTC antes de entrar
+    # Evaluar alternativas y completar hasta 4 monedas en cartera
+    excluidas = {p["symbol"] for p in plan["posiciones"]} | {c["symbol"] for c in plan["historial_cierres"] if c.get("semana_id") == plan["semana_id"]}
+    alternativas = evaluar_alternativas_al_horno(s, mapa_mkt, excluidas)
+    plan["alternativas_evaluadas"] = alternativas
+
     if plan["estado_semana"] == "ACTIVA" and len(plan["posiciones"]) < MAX_MONEDAS_SEMANA:
         btc_ok, msg_btc = verificar_clima_btc(s, mapa_mkt)
         if not btc_ok:
-            print(f"🛑 {msg_btc}")
             if not plan.get("aviso_btc_enviado", False):
                 enviar_telegram_texto(f"🛑 <b>FRENO DE MANO BTC ACTIVADO</b>\n📅 <code>{ahora_str}</code>\n\n⚠️ {html.escape(msg_btc)}")
                 plan["aviso_btc_enviado"] = True
@@ -390,9 +609,8 @@ def ejecutar_gestor_semanal():
             capital_disponible = max(0.0, float(plan["capital_total_usd"]) + float(plan["ganancia_realizada_usd"]) - capital_en_uso)
             meta_restante = max(50.0, float(plan["meta_semanal_usd"]) - float(plan["ganancia_realizada_usd"]))
 
-            if capital_disponible >= 200.0:
-                excluidas = {p["symbol"] for p in plan["posiciones"]} | {c["symbol"] for c in plan["historial_cierres"] if c.get("semana_id") == plan["semana_id"]}
-                elegidas = seleccionar_monedas_al_horno(s, mapa_mkt, excluidas, cupos)
+            if capital_disponible >= 150.0:
+                elegidas = [a for a in alternativas if a.get("en_zona")][:cupos]
                 if elegidas:
                     cap_por_moneda = capital_disponible / len(elegidas)
                     meta_por_moneda = meta_restante / len(elegidas)
@@ -405,6 +623,7 @@ def ejecutar_gestor_semanal():
                             "symbol": el["symbol"],
                             "base": el["base"],
                             "origen": el["origen"],
+                            "motivo_eleccion": el["motivo_tecnico"],
                             "fecha_entrada": ahora_str,
                             "capital_usd": round(cap_por_moneda, 2),
                             "precio_entrada": p_ent,
@@ -420,58 +639,50 @@ def ejecutar_gestor_semanal():
                         plan["posiciones"].append(nueva_pos)
                         nuevas_entradas.append(nueva_pos)
 
-    guardar_plan_semanal(plan)
     actualizar_excel_semanal(plan)
 
-    # 5. Notificaciones en Telegram
-    if nuevas_entradas:
-        msg = (
-            f"🧪 <b>PLAN SEMANAL PRO (PRUEBA) • NUEVA ASIGNACIÓN</b>\n"
-            f"📅 Semana <code>{plan['semana_id']}</code> | Meta: <b>${plan['meta_semanal_usd']:.0f} USD</b>\n\n"
-        )
-        for p in nuevas_entradas:
-            uid = int(time.time() * 1000) + random.randint(1, 999)
-            u_ia = f"{BASE_URL_NETLIFY}/?coin={p['base']}&price={p['precio_entrada']}&v={p['base']}_{uid}"
-            msg += (
-                f"🟢 <b>{p['base']}</b> (<i>{p['origen']}</i>)\n"
-                f"• <b>Capital Simulado:</b> <code>${p['capital_usd']:,.2f} USD</code>\n"
-                f"• <b>Entrada:</b> <code>{formatear_precio(p['precio_entrada'])}</code> ➔ <b>TP1 (50%):</b> <code>{formatear_precio(p['precio_objetivo'])}</code>\n"
-                f"• <b>Subida necesaria:</b> <b>+{p['subida_necesaria_pct']:.2f}%</b> | Stop estructural: <code>{STOP_PROTECCION_PCT}%</code>\n"
-                f"└ <a href=\"{html.escape(u_ia)}\">📊 Ver Gráfico IA</a>\n\n"
-            )
-        enviar_telegram_texto(msg)
+    # Enviar los 3 Bloques Ordenados en Telegram
+    es_corte_4h = (ahora_dt.hour % 4 == 0 and plan.get("ultimo_reporte_hora") != ahora_dt.hour)
+    hay_novedades = bool(nuevas_entradas or alertas_parciales or alertas_venta or plan["estado_semana"] == "META_CUMPLIDA")
 
-    for tp in alertas_parciales:
-        msg_tp = (
-            f"💰 <b>TP1 EJECUTADO • 50% ASEGURADO EN CAJA</b>\n"
-            f"📅 <code>{ahora_str}</code>\n\n"
-            f"✅ <b>{tp['base']}</b> alcanzó <b>+{tp['pnl_pct']:.2f}%</b> (<code>{formatear_precio(tp['precio_actual'])}</code>)\n"
-            f"• <b>Ganancia asegurada (50%):</b> <code>+${tp['ganancia_tp1']:,.2f} USD</code>\n"
-            f"• <b>Restante en carrera (50%):</b> <code>${tp['capital_restante']:,.2f} USD</code> con Trailing Stop <code>-{TRAILING_DESDE_MAX_PCT}%</code>"
+    if hay_novedades or es_corte_4h:
+        plan["ultimo_reporte_hora"] = ahora_dt.hour
+
+        # Bloque 1/3: Alternativas analizadas
+        enviar_telegram_texto(construir_bloque_1_alternativas(plan))
+        time.sleep(1.5)
+
+        # Bloque 2/3: Tablero Gráfico + Cartera de 4 Monedas Elegidas y Motivos
+        img = generar_tablero_visual(plan)
+        if plan["estado_semana"] == "META_CUMPLIDA":
+            titulo_ev = "🏆 <b>¡CUOTA SEMANAL CUMPLIDA — MODO PROTECCIÓN!</b>"
+        elif nuevas_entradas:
+            titulo_ev = "🆕 <b>SELECCIÓN AMPLIADA A 4 MONEDAS (PRUEBA SEMANAL)</b>"
+        elif alertas_venta or alertas_parciales:
+            titulo_ev = "💰 <b>ACTUALIZACIÓN DE TOMA DE GANANCIAS / CIERRE</b>"
+        else:
+            titulo_ev = "📡 <b>RADAR CONTINUO • SEGUIMIENTO DE 4 MONEDAS</b>"
+
+        caption = construir_bloque_2_cartera(plan, titulo_ev)
+        enviar_foto_telegram(img, caption)
+        time.sleep(1.5)
+
+        # Bloque 3/3: Planilla Excel completa adjunta
+        enviar_excel_telegram(
+            f"📎 <b>GESTOR Y RADAR SEMANAL • BLOQUE 3/3: PLANILLA EXCEL</b>\n"
+            f"📊 Registro completo en 3 pestañas (<code>{EXCEL_SEMANAL_FILE}</code>) — Semana <code>{plan['semana_id']}</code>."
         )
-        enviar_telegram_texto(msg_tp)
 
     for v in alertas_venta:
         msg_v = (
-            f"🔔 <b>RADAR DE SALIDA • OPERACIÓN CERRADA (PRUEBA)</b>\n"
-            f"📅 <code>{ahora_str}</code>\n\n"
-            f"💰 <b>{v['base']}</b> | Resultado tramo: <b>{v['pnl_pct']:+.2f}%</b> (<b>{v['pnl_usd']:+.2f} USD</b>)\n"
-            f"• Entrada: <code>{formatear_precio(v['precio_entrada'])}</code> ➔ Salida: <code>{formatear_precio(v['precio_actual'])}</code> (Máx: <code>{formatear_precio(v['precio_maximo'])}</code>)\n"
-            f"• Motivo: <i>{html.escape(v.get('motivo_cierre', ''))}</i>\n"
-            f"📊 <b>Acumulado Semana:</b> <code>${plan['ganancia_realizada_usd']:,.2f} / ${plan['meta_semanal_usd']:,.2f} USD</code>"
+            f"🔔 <b>DETALLE DE CIERRE • {v['base']}</b>\n"
+            f"• Resultado: <b>{v['pnl_pct']:+.2f}%</b> (<b>{v['pnl_usd']:+.2f} USD</b>) | Máx: <code>{formatear_precio(v['precio_maximo'])}</code>\n"
+            f"• Motivo: <i>{html.escape(v.get('motivo_cierre', ''))}</i>"
         )
         enviar_telegram_texto(msg_v)
 
-    if plan["estado_semana"] == "META_CUMPLIDA":
-        msg_m = (
-            f"🏆 <b>¡CUOTA SEMANAL CUMPLIDA EN MODO PRUEBA!</b>\n"
-            f"📅 Semana <code>{plan['semana_id']}</code> cerrada el <code>{ahora_str}</code>\n\n"
-            f"✅ <b>Ganancia Total Simulada:</b> <code>${plan['ganancia_realizada_usd']:,.2f} USD</code> (Meta: <code>${plan['meta_semanal_usd']:,.2f} USD</code>)\n"
-            f"🛡️ <i>El bot entra en MODO PROTECCIÓN hasta el próximo lunes para asegurar el resultado.</i>"
-        )
-        enviar_telegram_texto(msg_m)
-        enviar_excel_telegram(f"📎 Planilla semanal cerrada ({plan['semana_id']}): +${plan['ganancia_realizada_usd']:,.2f} USD.")
+    guardar_plan_semanal(plan)
 
 if __name__ == "__main__":
-    print(f"🧪 INICIANDO GESTOR SEMANAL PRO ({ahora_art().strftime('%H:%M:%S')} ART)...")
+    print(f"🧪 INICIANDO GESTOR SEMANAL 4X ORDENADO ({ahora_art().strftime('%H:%M:%S')} ART)...")
     ejecutar_gestor_semanal()
