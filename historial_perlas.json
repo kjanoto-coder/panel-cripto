@@ -8,15 +8,16 @@
     "BMTUSDT": 2,
     "ANIMEUSDT": 2,
     "WCTUSDT": 2,
-    "HMSTRUSDT": 1,
     "SUSHIUSDT": 2,
     "OPGUSDT": 2,
-    "GRAMUSDT": 2,
+    "GRAMUSDT": 1,
     "AIGENSYNUSDT": 2,
     "SENTUSDT": 2,
     "FFUSDT": 2,
     "SKYUSDT": 2,
-    "BLURUSDT": 2
+    "BLURUSDT": 1,
+    "SHELLUSDT": 2,
+    "HMSTRUSDT": 2
   },
   "resumen_dia": [
     "ASTERUSDT",
