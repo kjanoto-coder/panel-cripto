@@ -7,17 +7,17 @@
     "YGGUSDT": 2,
     "BMTUSDT": 2,
     "ANIMEUSDT": 2,
-    "WCTUSDT": 2,
+    "WCTUSDT": 1,
     "SUSHIUSDT": 2,
-    "OPGUSDT": 1,
     "AIGENSYNUSDT": 2,
-    "SENTUSDT": 1,
     "FFUSDT": 2,
     "SKYUSDT": 2,
     "SHELLUSDT": 2,
-    "HMSTRUSDT": 2,
+    "HMSTRUSDT": 1,
     "GRAMUSDT": 2,
-    "KITEUSDT": 2
+    "KITEUSDT": 2,
+    "SENTUSDT": 2,
+    "OPGUSDT": 2
   },
   "resumen_dia": [
     "ASTERUSDT",
