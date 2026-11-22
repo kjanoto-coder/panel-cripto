@@ -5,16 +5,19 @@
     "ANIMEUSDT": 3,
     "BMTUSDT": 3,
     "GRAMUSDT": 3,
-    "KITEUSDT": 3,
-    "HMSTRUSDT": 1,
+    "KITEUSDT": 2,
     "YGGUSDT": 3,
     "STEEMUSDT": 3,
-    "WLFIUSDT": 1,
     "OPGUSDT": 3,
-    "MEGAUSDT": 3,
-    "POLUSDT": 3,
-    "PARTIUSDT": 3,
-    "SEIUSDT": 3
+    "MEGAUSDT": 2,
+    "POLUSDT": 2,
+    "PARTIUSDT": 2,
+    "SEIUSDT": 2,
+    "SENTUSDT": 3,
+    "KAVAUSDT": 3,
+    "WLFIUSDT": 3,
+    "ICPUSDT": 3,
+    "BARDUSDT": 3
   },
   "resumen_dia": [
     "AIGENSYNUSDT",
@@ -1086,9 +1089,13 @@
     }
   },
   "verdes_hoy": [
+    "MEGAUSDT",
+    "KAVAUSDT",
+    "ICPUSDT",
     "PARTIUSDT",
     "SEIUSDT",
-    "MEGAUSDT",
+    "WLFIUSDT",
+    "BARDUSDT",
     "POLUSDT"
   ],
   "verdes_ayer": [],
