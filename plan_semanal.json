@@ -1,0 +1,48 @@
+{
+  "semana_id": "2026-W47",
+  "fecha_inicio": "2026-11-22 13:53",
+  "modo": "PRUEBA_SIMULACION_PRO",
+  "capital_total_usd": 3500.0,
+  "meta_semanal_usd": 600.0,
+  "ganancia_realizada_usd": 0.0,
+  "estado_semana": "ACTIVA",
+  "fecha_cierre_meta": "",
+  "aviso_btc_enviado": false,
+  "posiciones": [
+    {
+      "semana_id": "2026-W47",
+      "symbol": "SUSHIUSDT",
+      "base": "SUSHI",
+      "origen": "CAZADOR_TACTICO_ROJO",
+      "fecha_entrada": "2026-11-22 13:53 ART",
+      "capital_usd": 1750.0,
+      "precio_entrada": 0.1507,
+      "precio_objetivo": 0.17652998,
+      "subida_necesaria_pct": 17.14,
+      "precio_actual": 0.1507,
+      "precio_maximo": 0.1507,
+      "pnl_pct": 0.0,
+      "pnl_usd": 0.0,
+      "tp1_ejecutado": false,
+      "estado": "ACTIVA"
+    },
+    {
+      "semana_id": "2026-W47",
+      "symbol": "BLURUSDT",
+      "base": "BLUR",
+      "origen": "Cazador ROJO (⭐⭐⭐)",
+      "fecha_entrada": "2026-11-22 13:53 ART",
+      "capital_usd": 1750.0,
+      "precio_entrada": 0.0074,
+      "precio_objetivo": 0.00866836,
+      "subida_necesaria_pct": 17.14,
+      "precio_actual": 0.0074,
+      "precio_maximo": 0.0074,
+      "pnl_pct": 0.0,
+      "pnl_usd": 0.0,
+      "tp1_ejecutado": false,
+      "estado": "ACTIVA"
+    }
+  ],
+  "historial_cierres": []
+}
