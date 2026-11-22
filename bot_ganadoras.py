@@ -1,139 +1,840 @@
 import os
-import csv
-import requests
+import re
+import sys
+import json
+import time
+import random
+import html
+import subprocess
 from datetime import datetime, timezone, timedelta
+import requests
+import matplotlib.pyplot as plt
+from google import genai
 
-TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
-TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
-TOPIC_ID_GANADORAS = os.getenv('TOPIC_ID_GANADORAS')
+# Auto-instalación transparente de openpyxl si el servidor no la tiene
+try:
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "openpyxl"])
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
-HISTORIAL_CSV = "historico_alertas.csv"
+# --- CONFIGURACIÓN DE ENTORNO BLINDADA ---
+TZ_ART = timezone(timedelta(hours=-3))
+TELEGRAM_BOT_TOKEN = (os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("TELEGRAM_TOKEN") or "").strip()
+TELEGRAM_CHAT_ID = (os.getenv("TELEGRAM_CHAT_ID") or os.getenv("CHAT_ID") or "").strip()
+TELEGRAM_TOPIC_ID = (
+    os.getenv("TOPIC_ID_GANADORAS")
+    or os.getenv("TELEGRAM_MESSAGE_THREAD_ID")
+    or os.getenv("TOPIC_ID_CENTRAL")
+    or ""
+).strip()
+GEMINI_API_KEY = (os.getenv("GEMINI_API_KEY") or "").strip()
+BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
 
-def registrar_en_csv(ticker, precio_actual, rendimiento):
-    tz_arg = timezone(timedelta(hours=-3))
-    ahora = datetime.now(tz_arg).strftime('%Y-%m-%d %H:%M:%S')
-    
-    existe = os.path.exists(HISTORIAL_CSV)
-    try:
-        with open(HISTORIAL_CSV, mode='a', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f)
-            if not existe:
-                writer.writerow(['fecha_hora', 'ticker', 'precio', 'rendimiento'])
-            writer.writerow([ahora, ticker, precio_actual, rendimiento])
-    except Exception as e:
-        print(f"⚠️ Error al guardar en CSV: {e}")
+HISTORIAL_GANADORAS_FILE = "historial_ganadoras.json"
+HISTORIAL_PERLAS_FILE = "historial_perlas.json"
+EXCEL_AUDITORIA_FILE = "AUDITORIA_VERDE_GANADORAS.xlsx"
+DIAS_RETENCION = 45
 
-def enviar_telegram(mensaje):
-    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        print("❌ Faltan credenciales de Telegram.")
-        return
-    
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {
-        'chat_id': TELEGRAM_CHAT_ID,
-        'text': mensaje,
-        'parse_mode': 'Markdown',
-        'disable_web_page_preview': True
+EXCL_BASE = {
+    'USDT', 'USDC', 'FDUSD', 'DAI', 'TUSD', 'USDP', 'EUR', 'GBP', 'AUD', 'BRL', 'ARS', 'TRY', 'BUSD',
+    'USD1', 'AEUR', 'EURI', 'USDE', 'RLUSD', 'RWUSD', 'XUSD', 'BFUSD', 'U', 'USDG', 'USDS', 'PYUSD',
+    'BTC', 'ETH', 'SOL', 'ADA', 'XRP', 'DOGE', 'TRX', 'SHIB', 'AVAX', 'LINK', 'BNB', 'DOT', 'NEAR', 'SUI', 'PEPE'
+}
+
+def ahora_art():
+    return datetime.now(TZ_ART)
+
+def es_simbolo_valido(base):
+    if not base or base in EXCL_BASE:
+        return False
+    if not re.match(r'^[A-Z0-9]+$', base):
+        return False
+    if any(x in base for x in ['UP', 'DOWN', 'BULL', 'BEAR']):
+        return False
+    return True
+
+def formatear_precio(precio):
+    if precio is None or precio <= 0:
+        return "$0.00"
+    if precio >= 100:
+        return f"${precio:,.2f}"
+    if precio >= 1.0:
+        return f"${precio:.4f}"
+    if precio >= 0.01:
+        return f"${precio:.5f}"
+    if precio >= 0.0001:
+        return f"${precio:.6f}"
+    return f"${precio:.8f}"
+
+def cargar_historial_ganadoras():
+    base = {
+        "ultima_actualizacion": "",
+        "dias": {},
+        "ultimo_reporte_semanal": "",
+        "registro_verdes": {}
     }
-    
-    if TOPIC_ID_GANADORAS:
+    if os.path.exists(HISTORIAL_GANADORAS_FILE):
         try:
-            payload['message_thread_id'] = int(TOPIC_ID_GANADORAS)
-        except ValueError:
-            pass
-            
-    try:
-        response = requests.post(url, json=payload, timeout=15)
-        if response.status_code == 200:
-            print("✅ Mensaje enviado a Telegram con éxito.")
-        else:
-            print(f"❌ Error de Telegram ({response.status_code}): {response.text}")
-    except Exception as e:
-        print(f"❌ Excepción conectando a Telegram: {e}")
+            with open(HISTORIAL_GANADORAS_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            if isinstance(data, dict):
+                dias_limpios = {}
+                hoy = ahora_art().date()
+                for f_str, lista in (data.get("dias") or {}).items():
+                    try:
+                        f_dt = datetime.strptime(f_str, '%Y-%m-%d').date()
+                        if (hoy - f_dt).days <= DIAS_RETENCION:
+                            dias_limpios[f_str] = lista
+                    except Exception:
+                        continue
+                base["dias"] = dias_limpios
+                base["ultima_actualizacion"] = data.get("ultima_actualizacion", "")
+                base["ultimo_reporte_semanal"] = data.get("ultimo_reporte_semanal", "")
+                base["registro_verdes"] = data.get("registro_verdes", {}) if isinstance(data.get("registro_verdes"), dict) else {}
+        except Exception as e:
+            print(f"⚠️ Error cargando {HISTORIAL_GANADORAS_FILE}: {e}")
+    return base
 
-def obtener_datos_binance():
+def guardar_historial_ganadoras(historial):
+    try:
+        with open(HISTORIAL_GANADORAS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(historial, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"⚠️ Error guardando {HISTORIAL_GANADORAS_FILE}: {e}")
+
+def absorber_verdes_desde_pre_explosion(historial, mapa_actual):
+    if not os.path.exists(HISTORIAL_PERLAS_FILE):
+        return
+    try:
+        with open(HISTORIAL_PERLAS_FILE, 'r', encoding='utf-8') as f:
+            perlas = json.load(f)
+        if not isinstance(perlas, dict):
+            return
+
+        fecha_perlas = perlas.get("fecha") or ahora_art().strftime('%Y-%m-%d')
+        verdes = set(perlas.get("verdes_hoy", []))
+        oros = set(perlas.get("oro_hoy", []))
+        reg = historial.setdefault("registro_verdes", {})
+
+        for sym in (verdes | oros):
+            base = sym[:-4] if sym.endswith("USDT") else sym
+            if not es_simbolo_valido(base):
+                continue
+            es_oro = sym in oros
+            if sym not in reg:
+                precio_in = mapa_actual.get(sym, {}).get("precio", 0.0)
+                reg[sym] = {
+                    "symbol": sym,
+                    "ticker": base,
+                    "fecha_verde": fecha_perlas,
+                    "ts_verde": ahora_art().strftime('%Y-%m-%d %H:%M'),
+                    "precio_verde": precio_in,
+                    "es_oro": es_oro,
+                    "estado": "PENDIENTE",
+                    "fecha_ganadora": "",
+                    "precio_ganadora": 0.0,
+                    "subida_real_pct": 0.0,
+                    "subida_24h_dia_pct": 0.0,
+                    "dias_demora": None
+                }
+            elif es_oro and not reg[sym].get("es_oro"):
+                reg[sym]["es_oro"] = True
+    except Exception as e:
+        print(f"⚠️ Error leyendo {HISTORIAL_PERLAS_FILE}: {e}")
+
+def sincronizar_con_radar_pre_explosion(segunda_ola):
+    if not os.path.exists(HISTORIAL_PERLAS_FILE):
+        return
+    try:
+        with open(HISTORIAL_PERLAS_FILE, 'r', encoding='utf-8') as f:
+            perlas = json.load(f)
+        if not isinstance(perlas, dict):
+            return
+
+        hoy_str = ahora_art().strftime('%Y-%m-%d')
+        corta_str = ahora_art().strftime('%d/%m')
+        grad = perlas.get("graduadas_pre_explosion")
+        if not isinstance(grad, dict):
+            grad = {}
+
+        for item in segunda_ola[:5]:
+            sym = item["symbol"]
+            if sym not in grad:
+                grad[sym] = {
+                    "symbol": sym,
+                    "base": item["ticker"],
+                    "estrellas": 3,
+                    "probabilidad_pct": 80,
+                    "precio_ref": item["precio_actual"],
+                    "fecha_iso": hoy_str,
+                    "fecha_corta": corta_str,
+                    "origen": "SEGUNDA_OLA_GANADORAS"
+                }
+
+        perlas["graduadas_pre_explosion"] = grad
+        with open(HISTORIAL_PERLAS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(perlas, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"⚠️ No se pudo sincronizar con {HISTORIAL_PERLAS_FILE}: {e}")
+
+def crear_sesion_binance():
+    session = requests.Session()
+    session.headers.update({
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept": "application/json",
+        "Cache-Control": "no-cache"
+    })
+    return session
+
+def obtener_simbolos_spot_activos(session):
     urls = [
-        "https://data-api.binance.vision/api/v3/ticker/24hr",
-        "https://api1.binance.com/api/v3/ticker/24hr",
-        "https://api.binance.com/api/v3/ticker/24hr"
+        "https://api.binance.com/api/v3/exchangeInfo",
+        "https://data-api.binance.vision/api/v3/exchangeInfo"
     ]
     for url in urls:
         try:
-            res = requests.get(url, timeout=15)
+            res = session.get(url, timeout=12)
             if res.status_code == 200:
-                return res.json()
-        except Exception:
-            continue
+                data = res.json()
+                activos = {
+                    s.get('symbol')
+                    for s in data.get('symbols', [])
+                    if s.get('status') == 'TRADING'
+                    and s.get('isSpotTradingAllowed', True)
+                    and s.get('quoteAsset') == 'USDT'
+                }
+                if activos:
+                    return activos
+        except Exception as e:
+            print(f"⚠️ Error exchangeInfo {url}: {e}")
+    return set()
+
+def obtener_datos_binance(session):
+    urls = [
+        "https://api.binance.com/api/v3/ticker/24hr",
+        "https://data-api.binance.vision/api/v3/ticker/24hr"
+    ]
+    for url in urls:
+        try:
+            res = session.get(url, timeout=15)
+            if res.status_code == 200:
+                data = res.json()
+                if isinstance(data, list) and len(data) > 0:
+                    return data
+        except Exception as e:
+            print(f"⚠️ Error ticker 24hr {url}: {e}")
     return []
 
-def generar_bolillas(rendimiento):
-    if rendimiento >= 50:
-        return "🟢🟢🟢🟢🟢"
-    elif rendimiento >= 30:
-        return "🟢🟢🟢🟢⬜"
-    elif rendimiento >= 15:
-        return "🟢🟢🟢⬜⬜"
-    elif rendimiento >= 8:
-        return "🟢🟢⬜⬜⬜"
-    else:
-        return "🟢⬜⬜⬜⬜"
+# ==============================================================================
+# ETAPA 1: CAPTURA DIARIA DE MONEDAS GANADORAS (24H)
+# ==============================================================================
+def ejecutar_etapa_1_diaria(tickers, simbolos_activos, historial):
+    hoy_str = ahora_art().strftime('%Y-%m-%d')
+    candidatas = []
+    mapa_actual = {}
 
-def main():
-    data = obtener_datos_binance()
-    if not data:
-        print("❌ Error crítico: No se pudieron obtener datos de Binance.")
-        return
-
-    ganadoras = []
-    for t in data:
+    for t in tickers:
         sym = t.get('symbol', '')
-        # Filtro estricto: solo pares USDT limpios, descartando apalancados y tokens anómalos
-        if sym.endswith('USDT') and not any(x in sym for x in ['UP', 'DOWN', 'BULL', 'BEAR']) and 'CREAM' not in sym:
-            ticker = sym.replace('USDT', '')
-            try:
-                precio_actual = float(t.get('lastPrice', 0))
-                cambio_24h = float(t.get('priceChangePercent', 0))
-                volumen_usdt = float(t.get('quoteVolume', 0))
-            except ValueError:
+        if sym not in simbolos_activos or not sym.endswith('USDT'):
+            continue
+        base = sym[:-4]
+        if not es_simbolo_valido(base):
+            continue
+        try:
+            precio = float(t.get('lastPrice', 0))
+            cambio_24h = float(t.get('priceChangePercent', 0))
+            vol_usdt = float(t.get('quoteVolume', 0))
+            high = float(t.get('highPrice', 0))
+            low = float(t.get('lowPrice', 0))
+            if precio <= 0:
                 continue
-            
-            # FILTRO CLAVE DE MERCADO PRINCIPAL:
-            # Exigimos un volumen mínimo de 500,000 USDT para asegurar que pertenezcan 
-            # al Top de la pizarra principal y no a zonas secundarias de baja liquidez.
-            if cambio_24h > 0 and volumen_usdt >= 500000:
-                ganadoras.append({
-                    "ticker": ticker,
-                    "precio": precio_actual,
-                    "rendimiento": cambio_24h
-                })
 
-    if not ganadoras:
-        print("⚠️ No hay suficientes ganadoras para mostrar.")
+            pos_rango = round(((precio - low) / (high - low)) * 100, 1) if high > low else 50.0
+            info_ticker = {
+                "symbol": sym,
+                "ticker": base,
+                "precio": precio,
+                "cambio_24h": round(cambio_24h, 2),
+                "vol_usdt": round(vol_usdt, 2),
+                "high": high,
+                "low": low,
+                "pos_rango": pos_rango
+            }
+            mapa_actual[sym] = info_ticker
+
+            if vol_usdt >= 1_000_000 and cambio_24h >= 3.0:
+                candidatas.append(info_ticker)
+        except (ValueError, TypeError):
+            continue
+
+    candidatas.sort(key=lambda x: x["cambio_24h"], reverse=True)
+    top_15_dia = candidatas[:15]
+
+    for idx, item in enumerate(top_15_dia, start=1):
+        item["rank"] = idx
+
+    historial["dias"][hoy_str] = top_15_dia
+    historial["ultima_actualizacion"] = ahora_art().strftime('%Y-%m-%d %H:%M:%S ART')
+    guardar_historial_ganadoras(historial)
+
+    return top_15_dia[:10], mapa_actual
+
+# ==============================================================================
+# ETAPA 2: CONSOLIDACIÓN SEMANAL + DETECTOR DE SEGUNDA OLA (7 DÍAS)
+# ==============================================================================
+def ejecutar_etapa_2_semanal(historial, mapa_actual):
+    hoy_dt = ahora_art().date()
+    dias_dict = historial.get("dias", {})
+
+    fechas_7d = []
+    for f_str in sorted(dias_dict.keys()):
+        try:
+            f_dt = datetime.strptime(f_str, '%Y-%m-%d').date()
+            if 0 <= (hoy_dt - f_dt).days <= 7:
+                fechas_7d.append(f_str)
+        except Exception:
+            continue
+
+    acumulado = {}
+    for f_str in fechas_7d:
+        for item in dias_dict.get(f_str, []):
+            sym = item["symbol"]
+            if sym not in acumulado:
+                acumulado[sym] = {
+                    "symbol": sym,
+                    "ticker": item["ticker"],
+                    "veces": 0,
+                    "dias": [],
+                    "gains": [],
+                    "precio_pico": item["high"] if item.get("high") else item["precio"],
+                    "ultimo_precio_win": item["precio"]
+                }
+            acumulado[sym]["veces"] += 1
+            if f_str not in acumulado[sym]["dias"]:
+                acumulado[sym]["dias"].append(f_str)
+            acumulado[sym]["gains"].append(item["cambio_24h"])
+            pico_cand = item["high"] if item.get("high") else item["precio"]
+            if pico_cand > acumulado[sym]["precio_pico"]:
+                acumulado[sym]["precio_pico"] = pico_cand
+            acumulado[sym]["ultimo_precio_win"] = item["precio"]
+
+    reinas_semanales = []
+    segunda_ola = []
+
+    for sym, info in acumulado.items():
+        gain_max = round(max(info["gains"]), 2)
+        gain_prom = round(sum(info["gains"]) / len(info["gains"]), 2)
+        actual = mapa_actual.get(sym)
+        precio_actual = actual["precio"] if actual else info["ultimo_precio_win"]
+        cambio_hoy = actual["cambio_24h"] if actual else 0.0
+        pos_rango_hoy = actual["pos_rango"] if actual else 50.0
+        vol_hoy = actual["vol_usdt"] if actual else 0.0
+
+        retroceso_desde_pico = 0.0
+        if info["precio_pico"] > 0:
+            retroceso_desde_pico = round(((precio_actual - info["precio_pico"]) / info["precio_pico"]) * 100, 2)
+
+        resumen_coin = {
+            "symbol": sym,
+            "ticker": info["ticker"],
+            "veces": info["veces"],
+            "dias_str": ", ".join([d[5:] for d in info["dias"]]),
+            "gain_max": gain_max,
+            "gain_prom": gain_prom,
+            "precio_pico": info["precio_pico"],
+            "precio_actual": precio_actual,
+            "cambio_hoy": cambio_hoy,
+            "pos_rango_hoy": pos_rango_hoy,
+            "retroceso_pct": retroceso_desde_pico,
+            "vol_hoy": vol_hoy
+        }
+        reinas_semanales.append(resumen_coin)
+
+        if (
+            actual
+            and vol_hoy >= 1_000_000
+            and (-22.0 <= retroceso_desde_pico <= -6.0)
+            and (pos_rango_hoy <= 38.0)
+            and (-3.0 <= cambio_hoy <= 4.0)
+        ):
+            segunda_ola.append(resumen_coin)
+
+    reinas_semanales.sort(key=lambda x: (x["veces"], x["gain_max"]), reverse=True)
+    segunda_ola.sort(key=lambda x: (x["veces"], -x["pos_rango_hoy"]), reverse=True)
+
+    return reinas_semanales[:10], segunda_ola[:5], len(fechas_7d)
+
+# ==============================================================================
+# ETAPA 3: AUDITORÍA REALIDAD (VERDE PRE-EXPLOSIÓN -> MONEDA GANADORA)
+# ==============================================================================
+def ejecutar_etapa_3_auditoria_verde(historial, mapa_actual):
+    absorber_verdes_desde_pre_explosion(historial, mapa_actual)
+    reg = historial.get("registro_verdes", {})
+    dias_dict = historial.get("dias", {})
+    hoy_dt = ahora_art().date()
+
+    fechas_ordenadas = sorted(dias_dict.keys())
+    aciertos = []
+    pendientes = []
+
+    for sym, info in reg.items():
+        f_verde_str = info.get("fecha_verde", "")
+        if not f_verde_str:
+            continue
+        try:
+            f_verde_dt = datetime.strptime(f_verde_str, '%Y-%m-%d').date()
+        except Exception:
+            continue
+
+        if info.get("estado") != "ACIERTO":
+            for f_win_str in fechas_ordenadas:
+                if f_win_str < f_verde_str:
+                    continue
+                ganadoras_dia = dias_dict.get(f_win_str, [])
+                match = next((g for g in ganadoras_dia if g["symbol"] == sym), None)
+                if match:
+                    f_win_dt = datetime.strptime(f_win_str, '%Y-%m-%d').date()
+                    dias_demora = (f_win_dt - f_verde_dt).days
+                    p_verde = float(info.get("precio_verde") or 0.0)
+                    p_win = float(match.get("precio") or 0.0)
+                    subida_real = round(((p_win - p_verde) / p_verde) * 100, 2) if p_verde > 0 else float(match.get("cambio_24h", 0.0))
+
+                    info["estado"] = "ACIERTO"
+                    info["fecha_ganadora"] = f_win_str
+                    info["precio_ganadora"] = p_win
+                    info["subida_real_pct"] = subida_real
+                    info["subida_24h_dia_pct"] = float(match.get("cambio_24h", 0.0))
+                    info["dias_demora"] = dias_demora
+                    break
+
+        if info.get("estado") == "ACIERTO":
+            aciertos.append(info)
+        else:
+            dias_espera = (hoy_dt - f_verde_dt).days
+            info["dias_esperando"] = dias_espera
+            if dias_espera > 10:
+                info["estado"] = "EXPIRADA (>10d)"
+            pendientes.append(info)
+
+    guardar_historial_ganadoras(historial)
+
+    total_evaluadas = len(aciertos) + len([p for p in pendientes if p.get("estado") == "EXPIRADA (>10d)"])
+    tasa_acierto = round((len(aciertos) / total_evaluadas) * 100, 1) if total_evaluadas > 0 else 0.0
+    demoras = [a["dias_demora"] for a in aciertos if a.get("dias_demora") is not None]
+    subidas = [a["subida_24h_dia_pct"] for a in aciertos if a.get("subida_24h_dia_pct")]
+
+    demora_prom = round(sum(demoras) / len(demoras), 1) if demoras else None
+    demora_mediana = sorted(demoras)[len(demoras) // 2] if demoras else None
+    subida_prom = round(sum(subidas) / len(subidas), 1) if subidas else 0.0
+
+    stats = {
+        "total_registradas": len(reg),
+        "total_aciertos": len(aciertos),
+        "total_pendientes": len([p for p in pendientes if p.get("estado") == "PENDIENTE"]),
+        "tasa_acierto_pct": tasa_acierto,
+        "demora_prom_dias": demora_prom,
+        "demora_mediana_dias": demora_mediana,
+        "subida_prom_pct": subida_prom
+    }
+
+    generar_excel_auditoria(aciertos, pendientes, stats, mapa_actual)
+    return aciertos, pendientes, stats
+
+def generar_excel_auditoria(aciertos, pendientes, stats, mapa_actual):
+    wb = openpyxl.Workbook()
+
+    ws_res = wb.active
+    ws_res.title = "PARAMETROS_RADAR"
+
+    header_fill = PatternFill(start_color="0B132B", end_color="0B132B", fill_type="solid")
+    sub_fill = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
+    gold_fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+    green_fill = PatternFill(start_color="DCFCE7", end_color="DCFCE7", fill_type="solid")
+    thin_border = Border(
+        left=Side(style='thin', color='CBD5E1'),
+        right=Side(style='thin', color='CBD5E1'),
+        top=Side(style='thin', color='CBD5E1'),
+        bottom=Side(style='thin', color='CBD5E1')
+    )
+
+    ws_res["A1"] = "AUDITORÍA REALIDAD: COMPRA EN VERDE (PRE-EXPLOSIÓN) -> MONEDA GANADORA"
+    ws_res["A1"].font = Font(name="Arial", size=13, bold=True, color="FFFFFF")
+    ws_res["A1"].fill = header_fill
+    ws_res.merge_cells("A1:C1")
+    ws_res.row_dimensions[1].height = 28
+
+    ws_res["A2"] = f"Actualizado: {ahora_art().strftime('%Y-%m-%d %H:%M ART')}"
+    ws_res["A2"].font = Font(name="Arial", size=9, italic=True, color="475569")
+
+    kpis = [
+        ("Parámetro Evaluado", "Valor Real", "Interpretación Táctica"),
+        ("Total Monedas Detectadas en Verde", stats["total_registradas"], "Universo auditado desde Pre-Explosión"),
+        ("Aciertos Confirmados (Llegaron a Ganadoras)", stats["total_aciertos"], "Monedas que entraron al Top Ganadoras 24h"),
+        ("En Seguimiento Activo (<= 10 días)", stats["total_pendientes"], "Aún dentro de la ventana de maduración"),
+        ("Efectividad Real (Aciertos / Cerradas)", f"{stats['tasa_acierto_pct']}%", "Porcentaje de conversión real a ganadora"),
+        ("TIEMPO PROMEDIO DE DEMORA (Verde -> Ganadora)", f"{stats['demora_prom_dias']} días" if stats['demora_prom_dias'] is not None else "En acumulación", "Parámetro clave de paciencia en Spot"),
+        ("MEDIANA DE DEMORA (Tiempo Típico)", f"{stats['demora_mediana_dias']} días" if stats['demora_mediana_dias'] is not None else "En acumulación", "Tiempo más frecuente hasta el pump"),
+        ("Subida Promedio al Convertirse en Ganadora", f"+{stats['subida_prom_pct']}%", "Rendimiento promedio en el día de explosión")
+    ]
+
+    for idx, (k, v, desc) in enumerate(kpis, start=4):
+        c1, c2, c3 = ws_res.cell(idx, 1, k), ws_res.cell(idx, 2, v), ws_res.cell(idx, 3, desc)
+        for c in (c1, c2, c3):
+            c.border = thin_border
+            c.font = Font(name="Arial", size=10, bold=(idx in (4, 9, 10)))
+            if idx == 4:
+                c.fill = sub_fill
+                c.font = Font(name="Arial", size=10, bold=True, color="FFFFFF")
+            elif idx in (9, 10):
+                c.fill = gold_fill
+
+    ws_res.column_dimensions["A"].width = 44
+    ws_res.column_dimensions["B"].width = 22
+    ws_res.column_dimensions["C"].width = 48
+
+    ws_det = wb.create_sheet("DETALLE_OPERACIONES")
+    headers = [
+        "MONEDA", "CATEGORÍA", "FECHA VERDE", "PRECIO VERDE",
+        "ESTADO", "FECHA GANADORA", "PRECIO GANADORA",
+        "SUBIDA DESDE VERDE %", "SUBIDA DÍA GANADORA %", "DÍAS DEMORA (VERDE -> WIN)"
+    ]
+    ws_det.append(headers)
+    for col_idx in range(1, len(headers) + 1):
+        cell = ws_det.cell(1, col_idx)
+        cell.font = Font(name="Arial", size=10, bold=True, color="FFFFFF")
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center")
+
+    todas = sorted(aciertos, key=lambda x: x.get("fecha_ganadora", ""), reverse=True) + sorted(pendientes, key=lambda x: x.get("fecha_verde", ""), reverse=True)
+    for r_idx, item in enumerate(todas, start=2):
+        es_acierto = (item.get("estado") == "ACIERTO")
+        actual_p = mapa_actual.get(item["symbol"], {}).get("precio", 0.0)
+        p_verde = float(item.get("precio_verde") or 0.0)
+        var_actual = round(((actual_p - p_verde) / p_verde) * 100, 2) if (p_verde > 0 and actual_p > 0) else 0.0
+
+        row_vals = [
+            item.get("ticker"),
+            "🏆 TOP ORO" if item.get("es_oro") else "🟢 VERDE",
+            item.get("fecha_verde"),
+            p_verde,
+            item.get("estado"),
+            item.get("fecha_ganadora") if es_acierto else f"Esperando ({item.get('dias_esperando', 0)}d)",
+            item.get("precio_ganadora") if es_acierto else actual_p,
+            item.get("subida_real_pct") if es_acierto else var_actual,
+            item.get("subida_24h_dia_pct") if es_acierto else 0.0,
+            item.get("dias_demora") if es_acierto else item.get("dias_esperando", 0)
+        ]
+        ws_det.append(row_vals)
+        for c_i in range(1, len(headers) + 1):
+            cell = ws_det.cell(r_idx, c_i)
+            cell.border = thin_border
+            cell.font = Font(name="Arial", size=9.5)
+            if es_acierto:
+                cell.fill = green_fill
+
+    widths = [14, 15, 15, 16, 18, 18, 16, 20, 20, 24]
+    for i, w in enumerate(widths, start=1):
+        ws_det.column_dimensions[openpyxl.utils.get_column_letter(i)].width = w
+
+    wb.save(EXCEL_AUDITORIA_FILE)
+
+# ==============================================================================
+# VISUALIZACIÓN Y TELEGRAM
+# ==============================================================================
+def generar_grafico_diario(top_10, fecha_str, filename="ganadoras_24h.png"):
+    if not top_10:
+        return None
+    tickers = [x["ticker"] for x in top_10][::-1]
+    gains = [x["cambio_24h"] for x in top_10][::-1]
+    colores = ["#00e676" if g >= 15 else ("#29b6f6" if g >= 8 else "#ffd600") for g in gains]
+
+    fig, ax = plt.subplots(figsize=(8.5, 4.6), facecolor='#0b132b')
+    ax.set_facecolor('#0b132b')
+
+    bars = ax.barh(tickers, gains, color=colores, height=0.58, zorder=3)
+    ax.grid(True, axis='x', color='#1e293b', linestyle='--', linewidth=0.8, zorder=1)
+    ax.set_axisbelow(True)
+
+    max_g = max(gains) if gains else 10
+    ax.set_xlim(0, max_g * 1.25)
+
+    for spine in ['top', 'right', 'bottom']:
+        ax.spines[spine].set_visible(False)
+    ax.spines['left'].set_color('#334155')
+
+    ax.tick_params(axis='y', colors='white', labelsize=9.5)
+    ax.tick_params(axis='x', colors='#94a3b8', labelsize=8.5)
+
+    for bar, g in zip(bars, gains):
+        w = bar.get_width()
+        y = bar.get_y() + bar.get_height() / 2.0
+        ax.text(w + (max_g * 0.02), y, f"+{g:.1f}%", va='center', ha='left', color='white', fontweight='bold', fontsize=9)
+
+    plt.title("TOP 10 MONEDAS GANADORAS (24H) • BINANCE SPOT", loc='left', color='#00e676', fontsize=11, fontweight='bold', pad=14)
+    ax.text(0.0, 1.02, f"Cierre: {fecha_str} | Filtro: Spot Activo & Vol >= $1M USDT", transform=ax.transAxes, color='#94a3b8', fontsize=8)
+
+    plt.tight_layout()
+    plt.savefig(filename, dpi=300, facecolor=fig.get_facecolor(), edgecolor='none')
+    plt.close()
+    return filename
+
+def generar_grafico_semanal(reinas, dias_count, filename="ganadoras_semanal.png"):
+    if not reinas:
+        return None
+    top_8 = reinas[:8][::-1]
+    labels = [f"{x['ticker']} ({x['veces']}d)" for x in top_8]
+    max_gains = [x["gain_max"] for x in top_8]
+    colores = ["#ffd700" if x["veces"] >= 3 else ("#00e676" if x["veces"] == 2 else "#38bdf8") for x in top_8]
+
+    fig, ax = plt.subplots(figsize=(8.5, 4.5), facecolor='#0b132b')
+    ax.set_facecolor('#0b132b')
+
+    bars = ax.barh(labels, max_gains, color=colores, height=0.56, zorder=3)
+    ax.grid(True, axis='x', color='#1e293b', linestyle='--', linewidth=0.8, zorder=1)
+    ax.set_axisbelow(True)
+
+    max_v = max(max_gains) if max_gains else 10
+    ax.set_xlim(0, max_v * 1.28)
+
+    for spine in ['top', 'right', 'bottom']:
+        ax.spines[spine].set_visible(False)
+    ax.spines['left'].set_color('#334155')
+
+    ax.tick_params(axis='y', colors='white', labelsize=9.5)
+    ax.tick_params(axis='x', colors='#94a3b8', labelsize=8.5)
+
+    for bar, item in zip(bars, top_8):
+        w = bar.get_width()
+        y = bar.get_y() + bar.get_height() / 2.0
+        ax.text(
+            w + (max_v * 0.02),
+            y,
+            f"Máx +{item['gain_max']:.1f}% | {item['veces']}x",
+            va='center',
+            ha='left',
+            color='white',
+            fontweight='bold',
+            fontsize=8.5
+        )
+
+    plt.title(f"CONSOLIDADO SEMANAL GANADORAS ({dias_count} DÍAS)", loc='left', color='#ffd700', fontsize=11, fontweight='bold', pad=14)
+    ax.text(0.0, 1.02, "Dorado = 3+ días en Top | Verde = 2 días | Celeste = 1 día", transform=ax.transAxes, color='#94a3b8', fontsize=8)
+
+    plt.tight_layout()
+    plt.savefig(filename, dpi=300, facecolor=fig.get_facecolor(), edgecolor='none')
+    plt.close()
+    return filename
+
+def generar_dictamen_ia(modo, lista_items):
+    if not lista_items:
+        return ""
+    if not GEMINI_API_KEY:
+        if modo == "DIARIO":
+            return "Lectura 24h: lideran las altcoins con mayor entrada de volumen Spot; vigilar retrocesos limpios en las próximas 48-72h."
+        return "Lectura Semanal: las monedas recurrentes concentran la rotación de liquidez Spot; buscar entradas en piso tras corrección."
+
+    client = genai.Client(api_key=GEMINI_API_KEY)
+    if modo == "DIARIO":
+        resumen = "\n".join([f"- #{x['rank']} {x['ticker']}: +{x['cambio_24h']}% (Vol: ${x['vol_usdt']/1e6:.1f}M)" for x in lista_items[:6]])
+        prompt = f"Analista Spot Binance. Dá un dictamen breve (máximo 2 líneas) sobre las Top Ganadoras 24h de hoy:\n{resumen}"
+    else:
+        resumen = "\n".join([f"- {x['ticker']}: {x['veces']} días ganando, pico +{x['gain_max']}%, retroceso actual {x['retroceso_pct']}%" for x in lista_items[:6]])
+        prompt = f"Analista Spot Binance. Dá un dictamen breve (máximo 2 líneas) sobre las ganadoras recurrentes de la semana y oportunidades de rebote:\n{resumen}"
+
+    for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
+        try:
+            resp = client.models.generate_content(model=mod, contents=prompt)
+            if resp and resp.text:
+                return resp.text.strip()
+        except Exception:
+            continue
+    return "Lectura Spot: foco en continuidad de volumen y retrocesos ordenados hacia soportes."
+
+def enviar_telegram_foto(image_path, caption_text):
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        return
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
+    payload = {"chat_id": TELEGRAM_CHAT_ID, "caption": caption_text[:1020], "parse_mode": "HTML"}
+    if TELEGRAM_TOPIC_ID.isdigit():
+        payload["message_thread_id"] = int(TELEGRAM_TOPIC_ID)
+    try:
+        with open(image_path, 'rb') as photo:
+            res = requests.post(url, data=payload, files={"photo": photo}, timeout=45).json()
+            if not res.get("ok") and "thread not found" in str(res.get("description", "")).lower():
+                payload.pop("message_thread_id", None)
+                photo.seek(0)
+                requests.post(url, data=payload, files={"photo": photo}, timeout=45)
+    except Exception as e:
+        print(f"❌ Error enviando foto Telegram: {e}")
+
+def enviar_telegram_documento(doc_path, caption_text):
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID or not os.path.exists(doc_path):
+        return
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendDocument"
+    payload = {"chat_id": TELEGRAM_CHAT_ID, "caption": caption_text[:1020], "parse_mode": "HTML"}
+    if TELEGRAM_TOPIC_ID.isdigit():
+        payload["message_thread_id"] = int(TELEGRAM_TOPIC_ID)
+    try:
+        with open(doc_path, 'rb') as doc:
+            res = requests.post(url, data=payload, files={"document": doc}, timeout=45).json()
+            if not res.get("ok") and "thread not found" in str(res.get("description", "")).lower():
+                payload.pop("message_thread_id", None)
+                doc.seek(0)
+                requests.post(url, data=payload, files={"document": doc}, timeout=45)
+    except Exception as e:
+        print(f"❌ Error enviando documento Telegram: {e}")
+
+def enviar_texto_telegram(texto):
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        return
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    tid = int(TELEGRAM_TOPIC_ID) if TELEGRAM_TOPIC_ID.isdigit() else None
+    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": texto.strip(), "parse_mode": "HTML", "disable_web_page_preview": True}
+    if tid:
+        payload["message_thread_id"] = tid
+    try:
+        res = requests.post(url, json=payload, timeout=30).json()
+        if not res.get("ok") and "thread not found" in str(res.get("description", "")).lower():
+            payload.pop("message_thread_id", None)
+            requests.post(url, json=payload, timeout=30)
+    except Exception as e:
+        print(f"⚠️ Error enviando texto Telegram: {e}")
+
+def publicar_reporte_diario(top_10, total_dias_guardados):
+    fecha_str = ahora_art().strftime('%Y-%m-%d %H:%M ART')
+    if not top_10:
+        enviar_texto_telegram(f"🏆 <b>MONEDAS GANADORAS (24H)</b>\n📅 <code>{fecha_str}</code>\n\n⏳ <i>Sin monedas con subida >= +3% y liquidez suficiente hoy.</i>")
         return
 
-    # Ordenar estrictamente de mayor a menor rendimiento con precisión decimal
-    ganadoras_ordenadas = sorted(ganadoras, key=lambda x: x['rendimiento'], reverse=True)
+    fname = generar_grafico_diario(top_10, fecha_str)
+    dictamen = generar_dictamen_ia("DIARIO", top_10)
 
-    tz_arg = timezone(timedelta(hours=-3))
-    fecha_hoy = datetime.now(tz_arg).strftime('%Y-%m-%d')
+    caption = (
+        f"🏆 <b>ETAPA 1 • MONEDAS GANADORAS (24H)</b>\n"
+        f"📅 <code>{fecha_str}</code>\n"
+        f"💾 <i>Base acumulada: {total_dias_guardados} días registrados</i>"
+    )
+    if fname:
+        enviar_telegram_foto(fname, caption)
+        time.sleep(1)
 
-    mensaje = f"🧠 **CENTRAL DE INTELIGENCIA DE MERCADO (1/5)**\n"
-    mensaje = f"🧠 **CENTRAL DE INTELIGENCIA DE MERCADO (1/5)**\n"
-    mensaje += f"🚀 **1. TOP 7 GANADORAS (Detalle)**\n"
-    mensaje += f"📅 Fecha: `{fecha_hoy}`\n\n"
+    cuerpo = f"💡 <i>{html.escape(dictamen)}</i>\n\n"
+    for item in top_10:
+        sim = item["ticker"]
+        precio_str = formatear_precio(item["precio"])
+        vol_m = item["vol_usdt"] / 1_000_000
+        uid = int(time.time() * 1000) + random.randint(1, 9999)
+        url_ia = f"{BASE_URL_NETLIFY}/?coin={sim}&price={item['precio']}&change={item['cambio_24h']}&high={item['high']}&low={item['low']}&v={sim}_{uid}"
+        url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
 
-    for g in ganadoras_ordenadas[:7]:
-        precio_str = f"${g['precio']:.5f}" if g['precio'] < 1.0 else f"${g['precio']:.2f}"
-        bolillas = generar_bolillas(g['rendimiento'])
-        
-        # Guardamos en el CSV exactamente los datos limpios para el reporte diario
-        registrar_en_csv(g['ticker'], g['precio'], g['rendimiento'])
+        medalla = "🥇" if item["rank"] == 1 else ("🥈" if item["rank"] == 2 else ("🥉" if item["rank"] == 3 else f"#{item['rank']}"))
+        cuerpo += (
+            f"{medalla} <b>{sim}</b> (<b>+{item['cambio_24h']:.1f}%</b>) | <code>{precio_str}</code> | Vol: ${vol_m:.1f}M\n"
+            f"   └ <a href=\"{html.escape(url_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n\n"
+        )
 
-        mensaje += f"• **{g['ticker']}** | Precio: `{precio_str}` | `+{g['rendimiento']:.2f}%`\n"
-        mensaje += f"{bolillas}\n"
-        mensaje += f"┗ 📊 [Resumen IA](https://t.me/) | 🔶 Tradear\n\n"
+    enviar_texto_telegram(cuerpo)
 
-    enviar_telegram(mensaje)
+def publicar_reporte_semanal_y_auditoria(reinas, segunda_ola, dias_count, aciertos, stats):
+    fecha_str = ahora_art().strftime('%Y-%m-%d %H:%M ART')
+    if reinas:
+        fname = generar_grafico_semanal(reinas, dias_count)
+        dictamen = generar_dictamen_ia("SEMANAL", reinas)
+
+        caption = (
+            f"👑 <b>ETAPA 2 • CONSOLIDADO SEMANAL GANADORAS</b>\n"
+            f"📅 <code>{fecha_str}</code> | Ventana: <b>{dias_count} días</b>"
+        )
+        if fname:
+            enviar_telegram_foto(fname, caption)
+            time.sleep(1)
+
+        cuerpo = f"💡 <i>{html.escape(dictamen)}</i>\n\n"
+        cuerpo += "📊 <b>RANKING DE RECURRENCIA SEMANAL:</b>\n"
+        for idx, item in enumerate(reinas[:8], start=1):
+            sim = item["ticker"]
+            precio_str = formatear_precio(item["precio_actual"])
+            cuerpo += (
+                f"{idx}. <b>{sim}</b> — <b>{item['veces']}x</b> en Top | Máx: <b>+{item['gain_max']:.1f}%</b> | Actual: <code>{precio_str}</code> ({item['retroceso_pct']:+.1f}% vs pico)\n"
+            )
+
+        cuerpo += "\n🎯 <b>OPORTUNIDADES SEGUNDA OLA (Ganadora Semanal en Retroceso):</b>\n"
+        if segunda_ola:
+            for item in segunda_ola:
+                sim = item["ticker"]
+                precio_str = formatear_precio(item["precio_actual"])
+                url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
+                cuerpo += (
+                    f"• <b>{sim}</b> ({item['veces']}d en Top) | Retroceso: <b>{item['retroceso_pct']:.1f}%</b> | Rango hoy: {item['pos_rango_hoy']:.0f}% | <code>{precio_str}</code> "
+                    f"(<a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>)\n"
+                )
+        else:
+            cuerpo += "<i>Sin ganadoras semanales en zona óptima de retroceso (-6% a -22% en piso) hoy.</i>\n"
+
+        enviar_texto_telegram(cuerpo)
+        time.sleep(1.5)
+
+    # --- ETAPA 3: AUDITORÍA DE REALIDAD (VERDE -> GANADORA) ---
+    demora_txt = f"{stats['demora_prom_dias']} días (Mediana: {stats['demora_mediana_dias']}d)" if stats["demora_prom_dias"] is not None else "En acumulación de datos"
+    msg_auditoria = (
+        f"📐 <b>ETAPA 3 • AUDITORÍA REALIDAD (VERDE ➔ GANADORA)</b>\n"
+        f"📅 <code>{fecha_str}</code>\n\n"
+        f"• Monedas rastreadas desde Verde: <b>{stats['total_registradas']}</b>\n"
+        f"• Convertidas en Ganadoras (Aciertos): <b>{stats['total_aciertos']}</b>\n"
+        f"• En ventana de espera activa: <b>{stats['total_pendientes']}</b>\n"
+        f"• ⏱️ <b>Parámetro de demora Verde ➔ Ganadora:</b> <code>{demora_txt}</code>\n"
+        f"• 📈 <b>Subida promedio al ganar:</b> <code>+{stats['subida_prom_pct']}%</code>\n\n"
+    )
+    if aciertos:
+        msg_auditoria += "✅ <b>Últimos aciertos confirmados (Verde ➔ Top Ganadoras):</b>\n"
+        for a in sorted(aciertos, key=lambda x: x.get("fecha_ganadora", ""), reverse=True)[:6]:
+            tag = "🏆" if a.get("es_oro") else "🟢"
+            msg_auditoria += (
+                f"{tag} <b>{a['ticker']}</b>: Verde <code>{a['fecha_verde'][5:]}</code> ➔ Ganó <code>{a['fecha_ganadora'][5:]}</code> "
+                f"(<b>{a['dias_demora']}d</b> | <b>+{a['subida_24h_dia_pct']:.1f}%</b>)\n"
+            )
+    enviar_texto_telegram(msg_auditoria)
+    time.sleep(1)
+    enviar_telegram_documento(
+        EXCEL_AUDITORIA_FILE,
+        f"📊 <b>Planilla Excel Actualizada:</b> Auditoría Verde ➔ Ganadoras ({stats['total_aciertos']} aciertos confirmados)."
+    )
 
 if __name__ == "__main__":
-    main()
+    print(f"🏆 EJECUTANDO BOT MONEDAS GANADORAS + AUDITORÍA VERDE (3 ETAPAS) - {ahora_art().strftime('%Y-%m-%d %H:%M:%S')} ART")
+    session = crear_sesion_binance()
+    simbolos_activos = obtener_simbolos_spot_activos(session)
+    datos = obtener_datos_binance(session)
+
+    if datos and simbolos_activos:
+        historial = cargar_historial_ganadoras()
+
+        # ETAPA 1: Captura y guarda el cierre diario de 24h
+        top_10_dia, mapa_actual = ejecutar_etapa_1_diaria(datos, simbolos_activos, historial)
+        total_dias = len(historial.get("dias", {}))
+        publicar_reporte_diario(top_10_dia, total_dias)
+
+        # ETAPA 3 (ejecución diaria silenciosa): registra nuevas Verdes y cruza contra ganadoras de hoy
+        aciertos, pendientes, stats = ejecutar_etapa_3_auditoria_verde(historial, mapa_actual)
+
+        # ETAPA 2: Consolida los últimos 7 días y busca Segunda Ola
+        hoy = ahora_art()
+        hoy_str = hoy.strftime('%Y-%m-%d')
+        forzar_semanal = os.getenv("FORZAR_SEMANAL", "").strip() == "1"
+        es_domingo = (hoy.weekday() == 6)
+
+        reinas, segunda_ola, dias_count = ejecutar_etapa_2_semanal(historial, mapa_actual)
+        sincronizar_con_radar_pre_explosion(segunda_ola)
+
+        if (es_domingo or forzar_semanal or total_dias % 7 == 0) and historial.get("ultimo_reporte_semanal") != hoy_str and dias_count >= 1:
+            time.sleep(2)
+            publicar_reporte_semanal_y_auditoria(reinas, segunda_ola, dias_count, aciertos, stats)
+            historial["ultimo_reporte_semanal"] = hoy_str
+            guardar_historial_ganadoras(historial)
+    else:
+        print("❌ ERROR: Sin datos o sin símbolos activos de Binance.")
+
+# FIN BOT MONEDAS GANADORAS V2
