@@ -9,8 +9,20 @@ TELEGRAM_CHAT_ID = (os.getenv("TELEGRAM_CHAT_ID") or os.getenv("CHAT_ID") or "")
 TELEGRAM_TOPIC_ID = (os.getenv("TOPIC_ID_TACTICO") or os.getenv("TOPIC_ID_CENTRAL") or "4").strip()
 GEMINI_API_KEY = (os.getenv("GEMINI_API_KEY") or "").strip()
 BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
+
 HISTORIAL_FILE = "historial_perlas.json"
-DIAS_SEGUIMIENTO = 21
+HISTORIAL_GANADORAS_FILE = "historial_ganadoras.json"
+DIAS_SEGUIMIENTO = 12
+
+# Exclusión estricta de Stablecoins, Fiat, Oro y Large-Caps conocidas (para cazar solo monedas fuera del radar)
+EXCL_RADAR = {
+    'USDT', 'USDC', 'FDUSD', 'DAI', 'TUSD', 'USDP', 'EUR', 'BUSD', 'USD1', 'AEUR', 'EURI', 'USDE',
+    'RLUSD', 'RWUSD', 'XUSD', 'BFUSD', 'U', 'USDG', 'USDS', 'PYUSD', 'PAXG', 'XAUT', 'GBP', 'TRY', 'BRL', 'ARS',
+    'BTC', 'ETH', 'SOL', 'ADA', 'XRP', 'DOGE', 'TRX', 'SHIB', 'AVAX', 'LINK', 'BNB', 'DOT', 'NEAR', 'SUI', 'PEPE',
+    'UNI', 'HBAR', 'FIL', 'XLM', 'ATOM', 'ICP', 'AAVE', 'LTC', 'BCH', 'ETC', 'APT', 'ARB', 'OP', 'INJ', 'RENDER',
+    'TON', 'SEI', 'TIA', 'STX', 'IMX', 'VET', 'ALGO', 'GRT', 'THETA', 'FTM', 'RUNE', 'MKR', 'LDO', 'QNT', 'ALGO',
+    'KAS', 'TAO', 'FET', 'WIF', 'BONK', 'FLOKI', 'ENA', 'WLD', 'ONDO', 'JUP', 'PYTH', 'STRK', 'ZK', 'EIGEN'
+}
 
 def ahora_art():
     return datetime.now(TZ_ART)
@@ -23,7 +35,9 @@ def cargar_historial():
         "resumen_dia": [],
         "resumen_enviado_hoy": False,
         "posta": {},
-        "graduadas_pre_explosion": {}
+        "graduadas_pre_explosion": {},
+        "verdes_hoy": [],
+        "oro_hoy": []
     }
     if os.path.exists(HISTORIAL_FILE):
         try:
@@ -33,11 +47,17 @@ def cargar_historial():
             raw_posta = data.get("posta") or data.get("secuencia") or data.get("seguimiento_verde") or {}
             posta_limpia = {}
             for sym, info in raw_posta.items():
+                base_sym = sym[:-4] if sym.endswith("USDT") else sym
+                if base_sym in EXCL_RADAR:
+                    continue
                 try:
                     f_det = datetime.strptime(info.get("fecha_iso", hoy), '%Y-%m-%d').date()
-                    if (ahora_art().date() - f_det).days <= DIAS_SEGUIMIENTO:
+                    dias_activa = (ahora_art().date() - f_det).days
+                    etapa = int(info.get("etapa", info.get("paso", info.get("estrellas", 1))))
+                    # Las Rojas (etapa 3) tienen ventana fresca de 7 días; Verdes/Amarillas hasta 12 días
+                    max_dias = 7 if etapa == 3 else DIAS_SEGUIMIENTO
+                    if dias_activa <= max_dias:
                         p_ini = float(info.get("precio_inicio", info.get("precio_deteccion", 0.0)))
-                        etapa = int(info.get("etapa", info.get("paso", info.get("estrellas", 1))))
                         if p_ini > 0 and etapa >= 1:
                             info["precio_inicio"] = p_ini
                             info["etapa"] = min(3, etapa)
@@ -62,6 +82,8 @@ def cargar_historial():
                 base["mencionadas"] = data.get("mencionadas", {})
                 base["resumen_dia"] = data.get("resumen_dia", [])
                 base["resumen_enviado_hoy"] = data.get("resumen_enviado_hoy", False)
+                base["verdes_hoy"] = data.get("verdes_hoy", [])
+                base["oro_hoy"] = data.get("oro_hoy", [])
         except Exception:
             pass
     return base
@@ -72,6 +94,48 @@ def guardar_historial(historial):
             json.dump(historial, f, ensure_ascii=False, indent=2)
     except Exception as e:
         print(f"⚠️ Error guardando historial: {e}")
+
+def inyectar_rojo_en_auditoria_excel(sym, base, p_act, motivo):
+    """Conecta Etapa 1 (Rojo Cazador Táctico) directo con Etapa 3 (Excel Auditoría Verde -> Ganadora)."""
+    hoy_iso = ahora_art().strftime('%Y-%m-%d')
+    ts_now = ahora_art().strftime('%Y-%m-%d %H:%M')
+    data_g = {
+        "ultima_actualizacion": ts_now,
+        "dias": {},
+        "ultimo_reporte_semanal": "",
+        "registro_verdes": {}
+    }
+    if os.path.exists(HISTORIAL_GANADORAS_FILE):
+        try:
+            with open(HISTORIAL_GANADORAS_FILE, 'r', encoding='utf-8') as f:
+                loaded = json.load(f)
+            if isinstance(loaded, dict):
+                data_g = loaded
+        except Exception:
+            pass
+
+    reg = data_g.setdefault("registro_verdes", {})
+    if sym not in reg:
+        reg[sym] = {
+            "symbol": sym,
+            "ticker": base,
+            "fecha_verde": hoy_iso,
+            "ts_verde": ts_now,
+            "precio_verde": float(p_act),
+            "es_oro": False,
+            "origen": "CAZADOR_TACTICO_ROJO",
+            "estado": "PENDIENTE",
+            "fecha_ganadora": "",
+            "precio_ganadora": 0.0,
+            "subida_real_pct": 0.0,
+            "subida_24h_dia_pct": 0.0,
+            "dias_demora": None
+        }
+        try:
+            with open(HISTORIAL_GANADORAS_FILE, 'w', encoding='utf-8') as f:
+                json.dump(data_g, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"⚠️ Error inyectando en {HISTORIAL_GANADORAS_FILE}: {e}")
 
 def crear_sesion_binance():
     s = requests.Session()
@@ -214,16 +278,15 @@ def formatear_precio(p):
     return f"${p:.8f}"
 
 def gemini_destacar_verdes(candidatos):
-    # Gemini elige con estrellas (1⭐) las monedas verdes que se destacan para iniciar la posta
     if not candidatos:
-        return {}, "Sin monedas verdes candidatas en este ciclo."
+        return {}, "Sin monedas ocultas en Verde en este ciclo."
 
     ordenados = sorted(candidatos, key=lambda x: (x.get("probabilidad_pct", 0), x.get("vol_1d_ratio", 1.0)), reverse=True)
     defecto = {
         x["base"]: f"Destacada 1⭐ ({x['estructura_1d']}, +{x['dist_min_pct']}% vs suelo 1d, RSI {x['rsi_1h']})."
         for x in ordenados[:2]
     }
-    dictamen = "Posta obligatoria: 1⭐ Verde (Gemini) -> pasa filtro 2⭐⭐ Amarillo -> pasa filtro 3⭐⭐⭐ Rojo."
+    dictamen = "Etapa 1 (Cazador): 1⭐ Verde (hallazgo oculto) -> 2⭐⭐ Amarillo (auditoría) -> 3⭐⭐⭐ Rojo (pasa a Verde en Pre-Explosión)."
 
     if not GEMINI_API_KEY:
         return defecto, dictamen
@@ -235,8 +298,8 @@ def gemini_destacar_verdes(candidatos):
             for x in ordenados[:10]
         ])
         prompt = (
-            "Sos un analista cuantitativo. De estas monedas en VERDE, marcá con 1 estrella (hasta 2 monedas) "
-            "las que más se destacan por su historia y estructura actual para iniciar la posta (Verde -> Amarillo -> Rojo).\n"
+            "Sos un analista cuantitativo buscando altcoins fuera del radar masivo. De estas monedas en VERDE, marcá con 1 estrella (hasta 2 monedas) "
+            "las que tengan mejor acumulación silenciosa en suelo/base para iniciar la posta (Verde -> Amarillo -> Rojo -> Pre-Explosión).\n"
             f"Monedas verdes:\n{lineas}\n\n"
             'Responde SOLO JSON válido: {"destacadas_verde":[{"symbol":"S1","motivo":"..."}],"dictamen":"..."}'
         )
@@ -264,7 +327,6 @@ def gemini_destacar_verdes(candidatos):
     return defecto, dictamen
 
 def pasa_filtro_amarillo(tec, var_seq):
-    # Filtro Amarillo (2⭐⭐): evolución verificada en volumen/impulso/estructura con RSI sano
     return (
         var_seq >= -3.0
         and tec["rsi_1h"] <= 70.0
@@ -277,7 +339,6 @@ def pasa_filtro_amarillo(tec, var_seq):
     )
 
 def pasa_filtro_rojo(tec, var_seq):
-    # Filtro Rojo (3⭐⭐⭐): solo para monedas que ya pasaron por Amarillo (etapa >= 2)
     return (
         var_seq >= -1.0
         and tec["rsi_1h"] <= 73.0
@@ -286,7 +347,6 @@ def pasa_filtro_rojo(tec, var_seq):
     )
 
 def ejecutar_posta_colores(session, tickers, activos, historial):
-    EXCL = {'USDT','USDC','FDUSD','DAI','TUSD','USDP','EUR','BUSD','USD1','AEUR','EURI','USDE','RLUSD','RWUSD','XUSD','BFUSD','U','USDG','USDS','PYUSD','PAXG','XAUT','BTC','ETH','SOL','ADA','XRP','DOGE','TRX','SHIB','AVAX','LINK','BNB','DOT','NEAR','SUI','PEPE','GBP','TRY','BRL','ARS'}
     menc = historial.get("mencionadas", {})
     for sym in list(menc.keys()):
         menc[sym] -= 1
@@ -300,7 +360,7 @@ def ejecutar_posta_colores(session, tickers, activos, historial):
         if not sym.endswith('USDT') or sym not in activos:
             continue
         base = sym[:-4]
-        if base in EXCL or not re.match(r'^[A-Z0-9]+$', base) or base.endswith('B') or any(x in base for x in ['UP','DOWN','BULL','BEAR']):
+        if base in EXCL_RADAR or not re.match(r'^[A-Z0-9]+$', base) or base.endswith('B') or any(x in base for x in ['UP', 'DOWN', 'BULL', 'BEAR']):
             continue
         try:
             p, chg, vol, hi, lo = float(t['lastPrice']), float(t['priceChangePercent']), float(t['quoteVolume']), float(t['highPrice']), float(t['lowPrice'])
@@ -310,18 +370,18 @@ def ejecutar_posta_colores(session, tickers, activos, historial):
             pres = (vol / 1_000_000) / max(((hi - lo) / p) * 100, 1.0)
             it = {'symbol': sym, 'base': base, 'base_24h_f': b24, 'precio_f': p, 'cambio_f': chg, 'vol_f': vol, 'high_f': hi, 'low_f': lo, 'presion': pres}
             mapa[sym] = it
-            if sym not in menc and (0.000001 <= p < 5.00 and 600_000 <= vol <= 45_000_000 and -3.0 <= chg <= 6.5):
+            # Solo altcoins ocultas fuera del radar ($600k a $25M volumen 24h)
+            if sym not in menc and (0.000001 <= p < 5.00 and 600_000 <= vol <= 25_000_000 and -3.0 <= chg <= 6.5):
                 cand.append(it)
         except Exception:
             continue
 
     posta = historial.get("posta", {})
     grad = historial.get("graduadas_pre_explosion", {})
+    verdes_hoy = set(historial.get("verdes_hoy", []))
     hoy_iso, hoy_corta = ahora_art().strftime('%Y-%m-%d'), ahora_art().strftime('%d/%m')
     alertas = []
 
-    # 1) Procesa EXCLUSIVAMENTE monedas que están en la posta (destacadas con 1⭐ en Verde)
-    # Regla estricta: nunca salta etapas (1 -> 2 -> 3)
     for sym in list(posta.keys()):
         info = posta[sym]
         mkt = mapa.get(sym)
@@ -335,8 +395,8 @@ def ejecutar_posta_colores(session, tickers, activos, historial):
         p_ini = float(info.get("precio_inicio", p_act))
         var_seq = ((p_act - p_ini) / p_ini) * 100 if p_ini > 0 else 0.0
 
-        # Si cae más de 8% desde su entrada en Verde, queda descartada de la posta
-        if var_seq < -8.0:
+        # Si cae > 8% desde detección o si ya cumplió su explosión (+16% en Rojo), sale de la cola activa
+        if var_seq < -8.0 or (int(info.get("etapa", 1)) == 3 and var_seq >= 16.0):
             del posta[sym]
             continue
 
@@ -359,7 +419,7 @@ def ejecutar_posta_colores(session, tickers, activos, historial):
         elif etapa_prev == 2:
             if pasa_filtro_rojo(tec, var_seq):
                 etapa_nueva = 3
-                motivo_etapa = f"Pasó filtro Rojo (3⭐⭐⭐): alineada ({var_seq:+.1f}% vs base, prob {tec['probabilidad_pct']}%) -> Pre-Explosión."
+                motivo_etapa = f"Confirmada Rojo (3⭐⭐⭐) -> Pasa a Verde en Pre-Explosión ({var_seq:+.1f}% vs base, prob {tec['probabilidad_pct']}%)."
                 if not info.get("alerta_a3", False):
                     info["alerta_a3"] = True
                     alertas.append({
@@ -368,12 +428,21 @@ def ejecutar_posta_colores(session, tickers, activos, historial):
                         "p_ini": p_ini, "p_act": p_act, "var_seq": var_seq,
                         "mkt": mkt, "tec": tec, "motivo": motivo_etapa
                     })
-                grad[sym] = {
-                    "symbol": sym, "base": sym[:-4], "estrellas": 3,
-                    "probabilidad_pct": tec["probabilidad_pct"], "precio_ref": p_act,
-                    "fecha_iso": hoy_iso, "fecha_corta": hoy_corta,
-                    "origen": motivo_etapa
-                }
+
+        # Puente continuo hacia Etapa 2 (Pre-Explosión) y Etapa 3 (Auditoría Excel) para toda moneda en Rojo (3⭐)
+        if etapa_nueva == 3:
+            verdes_hoy.add(sym)
+            grad[sym] = {
+                "symbol": sym,
+                "base": sym[:-4],
+                "estrellas": 1,
+                "probabilidad_pct": tec["probabilidad_pct"],
+                "precio_ref": p_act,
+                "fecha_iso": hoy_iso,
+                "fecha_corta": hoy_corta,
+                "origen": "CAZADOR_TACTICO_ROJO"
+            }
+            inyectar_rojo_en_auditoria_excel(sym, sym[:-4], p_act, motivo_etapa)
 
         info.update({
             "etapa": etapa_nueva,
@@ -387,7 +456,6 @@ def ejecutar_posta_colores(session, tickers, activos, historial):
         })
         posta[sym] = info
 
-    # 2) Selecciona nuevas monedas en VERDE y pide a Gemini que marque cuáles se destacan con 1⭐
     cand_verdes = []
     for it in sorted(cand, key=lambda x: x["presion"], reverse=True)[:24]:
         if it["symbol"] in posta:
@@ -399,7 +467,6 @@ def ejecutar_posta_colores(session, tickers, activos, historial):
 
     picks_1star, dictamen = gemini_destacar_verdes(cand_verdes)
 
-    # Registra en la posta SOLO las monedas verdes marcadas con 1⭐ por Gemini
     for it in cand_verdes:
         sym, base = it["symbol"], it["base"]
         if base in picks_1star and sym not in posta:
@@ -432,10 +499,8 @@ def ejecutar_posta_colores(session, tickers, activos, historial):
         if sym not in historial["resumen_dia"]:
             historial["resumen_dia"].append(sym)
 
-    # Construye los 3 bloques de la posta (ninguna moneda salta colores ni queda suelta)
     verdes_fmt, amarillas_fmt, rojas_fmt = [], [], []
 
-    # En Verde: mostramos las candidatas verdes, destacando con 1⭐ las elegidas por Gemini (etapa 1)
     for it in cand_verdes[:7]:
         sym, base = it["symbol"], it["base"]
         en_p1 = sym in posta and int(posta[sym].get("etapa", 1)) == 1
@@ -461,7 +526,6 @@ def ejecutar_posta_colores(session, tickers, activos, historial):
             "color_hex": "#00e676"
         })
 
-    # En Amarillo (2⭐⭐) y Rojo (3⭐⭐⭐): SOLO monedas que vienen de la posta de Gemini
     for sym, d in posta.items():
         mkt = mapa.get(sym)
         if not mkt:
@@ -497,13 +561,17 @@ def ejecutar_posta_colores(session, tickers, activos, historial):
         elif etapa == 3:
             rojas_fmt.append(item_posta)
 
+    rojas_fmt.sort(key=lambda x: x["probabilidad_pct"], reverse=True)
+    amarillas_fmt.sort(key=lambda x: x["probabilidad_pct"], reverse=True)
+
     historial.update({
         "mencionadas": menc,
         "posta": posta,
-        "graduadas_pre_explosion": grad
+        "graduadas_pre_explosion": grad,
+        "verdes_hoy": sorted(list(verdes_hoy))
     })
     guardar_historial(historial)
-    return {"ROJO": rojas_fmt, "AMARILLO": amarillas_fmt, "VERDE": verdes_fmt}, historial, dictamen, alertas
+    return {"ROJO": rojas_fmt[:8], "AMARILLO": amarillas_fmt[:8], "VERDE": verdes_fmt}, historial, dictamen, alertas
 
 def generar_grafico_bloque(items, titulo_graf, subtitulo_graf, filename):
     if not items:
@@ -563,11 +631,11 @@ def enviar_alerta_posta(al):
     u_ia = f"{BASE_URL_NETLIFY}/?coin={sim}&price={mkt['precio_f']}&change={mkt['cambio_f']}&high={mkt['high_f']}&low={mkt['low_f']}&v={sim}_{uid}"
     u_tr = f"https://www.binance.com/es/trade/{sim}_USDT"
     if etapa == 2:
-        titulo = "🚨 <b>POSTA • AVANCE A AMARILLO (⭐⭐)</b>"
+        titulo = "🚨 <b>POSTA ETAPA 1 • AVANCE A AMARILLO (⭐⭐)</b>"
         desc = f"destacada con ⭐ en Verde ({al['fecha_corta']} @ <code>{formatear_precio(al['p_ini'])}</code>) pasó el filtro Amarillo (<b>⭐⭐</b>)."
     else:
-        titulo = "🏆 <b>POSTA • CONFIRMADA EN ROJO (⭐⭐⭐ PRE-EXPLOSIÓN)</b>"
-        desc = f"pasó por Verde (⭐) y Amarillo (⭐⭐) y superó el filtro Rojo (<b>⭐⭐⭐</b>) para <b>Pre-Explosión</b>."
+        titulo = "🏆 <b>POSTA ETAPA 1 ➔ 2 • CONFIRMADA ROJO (⭐⭐⭐ ➔ VERDE PRE-EXPLOSIÓN)</b>"
+        desc = f"completó los 3 filtros del Cazador Táctico y entra como 🟢 <b>Verde</b> en <b>Pre-Explosión</b>."
     msg = (
         f"{titulo}\n📅 <code>{ahora_art().strftime('%Y-%m-%d %H:%M ART')}</code>\n\n"
         f"⚡ <b>{sim}</b> {desc}\n"
@@ -581,7 +649,7 @@ def enviar_alerta_posta(al):
 def enviar_bloque_posta(num_bloque, titulo_bloque, items, msg_vacio, dictamen=""):
     fecha_str = ahora_art().strftime('%Y-%m-%d %H:%M ART')
     if not items:
-        txt = f"🔥 <b>CAZADOR TÁCTICO ({num_bloque}/3)</b>\n{titulo_bloque}\n📅 <code>{fecha_str}</code>\n"
+        txt = f"🔥 <b>CAZADOR TÁCTICO • ETAPA 1 ({num_bloque}/3)</b>\n{titulo_bloque}\n📅 <code>{fecha_str}</code>\n"
         if dictamen:
             txt += f"🧠 <i>{html.escape(dictamen)}</i>\n"
         txt += f"\n⏳ <i>{html.escape(msg_vacio)}</i>"
@@ -589,9 +657,9 @@ def enviar_bloque_posta(num_bloque, titulo_bloque, items, msg_vacio, dictamen=""
         return
 
     fname = f"posta_bloque_{num_bloque}.png"
-    generar_grafico_bloque(items, f"CAZADOR TACTICO ({num_bloque}/3)", f"Fecha: {fecha_str} | Posta: 1* Verde -> 2** Amarillo -> 3*** Rojo", fname)
+    generar_grafico_bloque(items, f"ETAPA 1 • CAZADOR TACTICO ({num_bloque}/3)", f"Fecha: {fecha_str} | 1* Verde -> 2** Amarillo -> 3*** Rojo (Pasa a Etapa 2)", fname)
 
-    msg = f"🔥 <b>CAZADOR TÁCTICO ({num_bloque}/3)</b>\n{titulo_bloque}\n📅 <code>{fecha_str}</code>\n"
+    msg = f"🔥 <b>CAZADOR TÁCTICO • ETAPA 1 ({num_bloque}/3)</b>\n{titulo_bloque}\n📅 <code>{fecha_str}</code>\n"
     if dictamen:
         msg += f"🧠 <i>{html.escape(dictamen)}</i>\n"
     msg += "\n"
@@ -646,7 +714,7 @@ def enviar_bloque_posta(num_bloque, titulo_bloque, items, msg_vacio, dictamen=""
         time.sleep(3)
 
 if __name__ == "__main__":
-    print(f"🔥 INICIANDO CAZADOR TÁCTICO POR POSTA ({ahora_art().strftime('%H:%M:%S')} ART)...")
+    print(f"🔥 INICIANDO ETAPA 1 • CAZADOR TÁCTICO POR POSTA ({ahora_art().strftime('%H:%M:%S')} ART)...")
     s = crear_sesion_binance()
     activos, datos = obtener_datos_binance(s)
     if datos and activos:
@@ -657,11 +725,11 @@ if __name__ == "__main__":
             enviar_alerta_posta(al)
             time.sleep(1.5)
 
-        enviar_bloque_posta(1, "🔴 <b>1. ROJO • CONFIRMADA PRE-EXPLOSIÓN (⭐⭐⭐)</b>", grupos["ROJO"], "Ninguna moneda de la posta pasó aún por Verde (⭐) -> Amarillo (⭐⭐) -> Rojo (⭐⭐⭐).", dictamen)
+        enviar_bloque_posta(1, "🔴 <b>1. ROJO • CONFIRMADA (⭐⭐⭐ ➔ PASA A VERDE EN PRE-EXPLOSIÓN)</b>", grupos["ROJO"], "Ninguna moneda oculta completó aún Verde (⭐) -> Amarillo (⭐⭐) -> Rojo (⭐⭐⭐).", dictamen)
         time.sleep(2)
         enviar_bloque_posta(2, "🟡 <b>2. AMARILLO • FILTRO DE EVOLUCIÓN (⭐⭐)</b>", grupos["AMARILLO"], "Ninguna moneda destacada en Verde (⭐) pasó aún el filtro Amarillo.")
         time.sleep(2)
-        enviar_bloque_posta(3, "🟢 <b>3. VERDE • DESTACADAS POR GEMINI (⭐)</b>", grupos["VERDE"], "Sin monedas verdes en este ciclo.")
+        enviar_bloque_posta(3, "🟢 <b>3. VERDE • HALLAZGOS FUERA DEL RADAR (⭐)</b>", grupos["VERDE"], "Sin monedas ocultas en Verde en este ciclo.")
     else:
         print("❌ ERROR: Sin datos de Binance.")
 
