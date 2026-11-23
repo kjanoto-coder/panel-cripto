@@ -10,7 +10,15 @@ TELEGRAM_BOT_TOKEN = (os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("TELEGRAM_TOK
 TELEGRAM_CHAT_ID = (os.getenv("TELEGRAM_CHAT_ID") or os.getenv("CHAT_ID") or "").strip()
 TELEGRAM_TOPIC_ID = (os.getenv("TOPIC_ID_SEMANAL") or "18574").strip()
 GEMINI_API_KEY = (os.getenv("GEMINI_API_KEY") or "").strip()
-BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
+
+# URLs ensambladas para evitar auto-conversión a Markdown al copiar/pegar
+TELEGRAM_API_BASE = "https://" + "api.telegram.org/bot"
+BASE_URL_NETLIFY = "https://" + "gregarious-frangollo-0346c5.netlify.app"
+BINANCE_TRADE_BASE = "https://" + "www.binance.com/es/trade/"
+BINANCE_API_BASES = [
+    "https://" + "api.binance.com",
+    "https://" + "data-api.binance.vision"
+]
 
 HISTORIAL_PERLAS_FILE = "historial_perlas.json"
 HISTORIAL_GANADORAS_FILE = "historial_ganadoras.json"
@@ -55,13 +63,9 @@ def crear_sesion_binance():
     return s
 
 def obtener_tickers_binance(session):
-    urls = [
-        "https://api.binance.com/api/v3/ticker/24hr",
-        "https://data-api.binance.vision/api/v3/ticker/24hr"
-    ]
-    for url in urls:
+    for base_url in BINANCE_API_BASES:
         try:
-            r = session.get(url, timeout=15)
+            r = session.get(f"{base_url}/api/v3/ticker/24hr", timeout=15)
             if r.status_code == 200 and isinstance(r.json(), list):
                 mapa = {}
                 for t in r.json():
@@ -87,8 +91,7 @@ def obtener_tickers_binance(session):
 
 def auditar_order_book_semanal(session, symbol):
     """Verificación final del libro de órdenes en tiempo real antes de asignar capital."""
-    bases = ["https://api.binance.com", "https://data-api.binance.vision"]
-    for base_url in bases:
+    for base_url in BINANCE_API_BASES:
         try:
             r = session.get(f"{base_url}/api/v3/depth", params={"symbol": symbol, "limit": 20}, timeout=5)
             if r.status_code == 200:
@@ -108,8 +111,7 @@ def auditar_order_book_semanal(session, symbol):
 
 def analizar_velas_tf(session, symbol, interval="1h", limit=48):
     """Analiza RSI, Volumen, rechazo de mecha y niveles geométricos de Fibonacci."""
-    bases = ["https://api.binance.com", "https://data-api.binance.vision"]
-    for base_url in bases:
+    for base_url in BINANCE_API_BASES:
         try:
             r = session.get(f"{base_url}/api/v3/klines", params={"symbol": symbol, "interval": interval, "limit": limit}, timeout=7)
             if r.status_code == 200:
@@ -411,6 +413,22 @@ def limpiar_json_ia(raw_text):
         txt = txt[txt.find("{"):txt.rfind("}") + 1]
     return json.loads(txt)
 
+def llamar_gemini_con_reintento(client, prompt):
+    for mod in MODELOS_GEMINI:
+        for intento in range(2):
+            try:
+                res = client.models.generate_content(model=mod, contents=prompt)
+                if res and res.text:
+                    return res.text
+            except Exception as e_mod:
+                err_str = str(e_mod)
+                print(f"⚠️ Modelo {mod} (intento {intento + 1}) sin respuesta: {err_str}")
+                if ("503" in err_str or "UNAVAILABLE" in err_str) and intento == 0:
+                    time.sleep(3)
+                    continue
+                break
+    return None
+
 def evaluar_copiloto_trader_y_auditor_ia(session, mapa_mkt, plan, clima_btc_txt):
     """Módulo IA Integrado: Auditor 24h + Copiloto Trader IA con Geometría Fibonacci 1H/4H."""
     posiciones = plan.get("posiciones", [])
@@ -514,26 +532,20 @@ def evaluar_copiloto_trader_y_auditor_ia(session, mapa_mkt, plan, clima_btc_txt)
                 '"recomendacion_auditor":"consejo técnico concreto incluyendo lectura Fibonacci",'
                 '"ordenes":{"MONEDA":{"orden":"🟢 MANTENER / DEJAR CORRER | 🟡 ASEGURAR 50% (TP1) | 🚨 VENDER AHORA (AGOTAMIENTO) | ⚠️ RIESGO DE BAJADA","razon":"motivo corto 15m/1h y nivel Fibonacci"}}}'
             )
-            for mod in MODELOS_GEMINI:
-                try:
-                    res = client.models.generate_content(model=mod, contents=prompt)
-                    if res and res.text:
-                        ia_json = limpiar_json_ia(res.text)
-                        if ia_json.get("diagnostico_24h"):
-                            auditoria_res["semaforo_meta"] = str(ia_json.get("semaforo_meta", auditoria_res["semaforo_meta"]))[:35]
-                            auditoria_res["factibilidad_pct"] = int(ia_json.get("factibilidad_pct", auditoria_res["factibilidad_pct"]))
-                            auditoria_res["diagnostico_24h"] = str(ia_json.get("diagnostico_24h"))[:220]
-                            auditoria_res["recomendacion_auditor"] = str(ia_json.get("recomendacion_auditor", auditoria_res["recomendacion_auditor"]))[:220]
-                            ordenes_ia = ia_json.get("ordenes", {})
-                            for p in posiciones:
-                                o_mon = ordenes_ia.get(p["base"])
-                                if isinstance(o_mon, dict) and o_mon.get("orden"):
-                                    p["trader_ia_orden"] = str(o_mon["orden"])[:45]
-                                    p["trader_ia_razon"] = str(o_mon.get("razon", p["trader_ia_razon"]))[:165]
-                            break
-                except Exception as e_mod:
-                    print(f"⚠️ Modelo {mod} sin respuesta: {e_mod}")
-                    continue
+            raw_ia = llamar_gemini_con_reintento(client, prompt)
+            if raw_ia:
+                ia_json = limpiar_json_ia(raw_ia)
+                if ia_json.get("diagnostico_24h"):
+                    auditoria_res["semaforo_meta"] = str(ia_json.get("semaforo_meta", auditoria_res["semaforo_meta"]))[:35]
+                    auditoria_res["factibilidad_pct"] = int(ia_json.get("factibilidad_pct", auditoria_res["factibilidad_pct"]))
+                    auditoria_res["diagnostico_24h"] = str(ia_json.get("diagnostico_24h"))[:220]
+                    auditoria_res["recomendacion_auditor"] = str(ia_json.get("recomendacion_auditor", auditoria_res["recomendacion_auditor"]))[:220]
+                    ordenes_ia = ia_json.get("ordenes", {})
+                    for p in posiciones:
+                        o_mon = ordenes_ia.get(p["base"])
+                        if isinstance(o_mon, dict) and o_mon.get("orden"):
+                            p["trader_ia_orden"] = str(o_mon["orden"])[:45]
+                            p["trader_ia_razon"] = str(o_mon.get("razon", p["trader_ia_razon"]))[:165]
         except Exception as e:
             print(f"⚠️ Fallback IA integrada: {e}")
     elif not GEMINI_API_KEY:
@@ -572,13 +584,9 @@ def generar_veredicto_final_ia(plan):
                 "1) Dictamen (FACTIBLE PARA REAL / FACTIBLE CON AJUSTES)\n"
                 "2) Por qué funcionó (consistencia entre las 4 monedas certificadas, tiempo empleado y control de riesgo)."
             )
-            for mod in MODELOS_GEMINI:
-                try:
-                    res = client.models.generate_content(model=mod, contents=prompt)
-                    if res and res.text:
-                        return f"🧠 <b>DICTAMEN FINAL AUDITOR IA:</b>\n{html.escape(res.text.strip())}"
-                except Exception:
-                    continue
+            raw_ver = llamar_gemini_con_reintento(client, prompt)
+            if raw_ver:
+                return f"🧠 <b>DICTAMEN FINAL AUDITOR IA:</b>\n{html.escape(raw_ver.strip())}"
         except Exception:
             pass
     return veredicto_base
@@ -772,7 +780,7 @@ def actualizar_excel_semanal(plan):
 def enviar_telegram_texto(texto):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         return
-    url = f"[https://api.telegram.org/bot](https://api.telegram.org/bot){TELEGRAM_BOT_TOKEN}/sendMessage"
+    url = f"{TELEGRAM_API_BASE}{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {"chat_id": TELEGRAM_CHAT_ID, "text": texto.strip(), "parse_mode": "HTML", "disable_web_page_preview": True}
     if TELEGRAM_TOPIC_ID.isdigit():
         payload["message_thread_id"] = int(TELEGRAM_TOPIC_ID)
@@ -787,7 +795,7 @@ def enviar_telegram_texto(texto):
 def enviar_foto_telegram(imagen_path, caption):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID or not os.path.exists(imagen_path):
         return
-    url = f"[https://api.telegram.org/bot](https://api.telegram.org/bot){TELEGRAM_BOT_TOKEN}/sendPhoto"
+    url = f"{TELEGRAM_API_BASE}{TELEGRAM_BOT_TOKEN}/sendPhoto"
     cabe = len(caption.strip()) <= 1020
     data = {"chat_id": TELEGRAM_CHAT_ID}
     if TELEGRAM_TOPIC_ID.isdigit():
@@ -809,7 +817,7 @@ def enviar_foto_telegram(imagen_path, caption):
 def enviar_excel_telegram(caption):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID or not os.path.exists(EXCEL_SEMANAL_FILE):
         return
-    url = f"[https://api.telegram.org/bot](https://api.telegram.org/bot){TELEGRAM_BOT_TOKEN}/sendDocument"
+    url = f"{TELEGRAM_API_BASE}{TELEGRAM_BOT_TOKEN}/sendDocument"
     data = {"chat_id": TELEGRAM_CHAT_ID, "caption": caption[:1000], "parse_mode": "HTML"}
     if TELEGRAM_TOPIC_ID.isdigit():
         data["message_thread_id"] = int(TELEGRAM_TOPIC_ID)
@@ -880,7 +888,7 @@ def construir_bloque_2_cartera(plan, evento_titulo):
         for idx, p in enumerate(plan["posiciones"], start=1):
             uid = int(time.time() * 1000) + random.randint(1, 999)
             u_ia = f"{BASE_URL_NETLIFY}/?coin={p['base']}&price={p['precio_actual']}&v={p['base']}_{uid}"
-            u_tr = f"[https://www.binance.com/es/trade/](https://www.binance.com/es/trade/){p['base']}_USDT"
+            u_tr = f"{BINANCE_TRADE_BASE}{p['base']}_USDT"
             motivo = html.escape(p.get("motivo_eleccion", p.get("origen", "")))
             fib_l = html.escape(p.get("fib_lectura", "Fib N/D"))
             orden_tr = html.escape(p.get("trader_ia_orden", "🟢 MANTENER"))
