@@ -1,14 +1,5 @@
 [
   [
-    "SUIUSDT",
-    "UNIUSDT",
-    "ATOMUSDT",
-    "FILUSDT",
-    "ONEUSDT",
-    "ICPUSDT",
-    "GRAMUSDT"
-  ],
-  [
     "NEARUSDT",
     "DOGEUSDT",
     "SENTUSDT",
@@ -16,5 +7,14 @@
     "ALLOUSDT",
     "FETUSDT",
     "WLDUSDT"
+  ],
+  [
+    "TRXUSDT",
+    "XRPUSDT",
+    "ADAUSDT",
+    "PEPEUSDT",
+    "ERAUSDT",
+    "JSTUSDT",
+    "DOTUSDT"
   ]
 ]
