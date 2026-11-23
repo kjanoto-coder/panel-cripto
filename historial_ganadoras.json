@@ -707,6 +707,21 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null
+    },
+    "HUMAUSDT": {
+      "symbol": "HUMAUSDT",
+      "ticker": "HUMA",
+      "fecha_verde": "2026-11-23",
+      "ts_verde": "2026-11-23 03:31",
+      "precio_verde": 0.00854,
+      "es_oro": false,
+      "origen": "CAZADOR_TACTICO_ROJO",
+      "estado": "PENDIENTE",
+      "fecha_ganadora": "",
+      "precio_ganadora": 0.0,
+      "subida_real_pct": 0.0,
+      "subida_24h_dia_pct": 0.0,
+      "dias_demora": null
     }
   }
 }
