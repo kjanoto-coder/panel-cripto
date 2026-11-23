@@ -1,14 +1,5 @@
 [
   [
-    "ASTERUSDT",
-    "GRAMUSDT",
-    "DOTUSDT",
-    "ICPUSDT",
-    "ETHFIUSDT",
-    "ONDOUSDT",
-    "ARBUSDT"
-  ],
-  [
     "POLUSDT",
     "ZROUSDT",
     "STRKUSDT",
@@ -16,5 +7,14 @@
     "APTUSDT",
     "RENDERUSDT",
     "TIAUSDT"
+  ],
+  [
+    "NEARUSDT",
+    "SUIUSDT",
+    "CAKEUSDT",
+    "WLDUSDT",
+    "ENAUSDT",
+    "DODOUSDT",
+    "KITEUSDT"
   ]
 ]
