@@ -33,6 +33,10 @@ COOLDOWN_MINUTES = int(os.getenv("COOLDOWN_MINUTES", "180"))
 STATE_FILE = Path(os.getenv("STATE_FILE", "spot_audit_state.json"))
 ALERT_ON_RECHAZO = os.getenv("ALERT_ON_RECHAZO", "true").lower() == "true"
 
+# Parámetros del Radar General de Binance Perdedores
+TOP_MKT_LOSERS = int(os.getenv("TOP_MKT_LOSERS", "8"))
+MIN_VOL_MKT_LOSERS = float(os.getenv("MIN_VOL_MKT_LOSERS", "2000000"))
+
 BINANCE_ENDPOINTS = [
     "https://data-api.binance.vision",
     "https://api.binance.com",
@@ -50,9 +54,7 @@ HEADERS = {
 # 2. BASE DE CONOCIMIENTO DEFINITIVA (60 ACTIVOS AUDITADOS EN SPOT)
 # =====================================================================
 ASSETS_DB: Dict[str, dict] = {
-    # =================================================================
     # GRUPO 1: TOP 5 FAVORITOS ESTRUCTURALES (20% - 35%)
-    # =================================================================
     "JSTUSDT": {
         "group": "ESTRUCTURAL",
         "allocation": "30% - 35%",
@@ -99,9 +101,7 @@ ASSETS_DB: Dict[str, dict] = {
         "risk": "Desbloqueos/eventos programados el 21/11 y 27–28/11.",
     },
 
-    # =================================================================
     # GRUPO 2: TÁCTICAS DESTACADAS / PUENTE (15% - 20%)
-    # =================================================================
     "ZECUSDT": {
         "group": "TACTICA_PUENTE",
         "allocation": "15% - 20%",
@@ -193,9 +193,7 @@ ASSETS_DB: Dict[str, dict] = {
         "risk": "Liquidez baja y desbloqueo previsto el 27/11.",
     },
 
-    # =================================================================
     # GRUPO 3: TÁCTICAS / OBSERVACIÓN (5% - 15%)
-    # =================================================================
     "HOTUSDT": {
         "group": "CAZA_REBOTE",
         "allocation": "10% - 15%",
@@ -278,9 +276,7 @@ ASSETS_DB: Dict[str, dict] = {
         "risk": "Concentración ~0,04, ~30% bloqueado, salidas pico -$73,5K y MACD negativo.",
     },
 
-    # =================================================================
     # GRUPO 4: DESCARTADAS PARA LIMPIAR FAVORITOS (0% - 5%)
-    # =================================================================
     "MANTRAUSDT": {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Mínimos y dilución", "tech": "Estructura bajista extendida sin soporte confirmado.", "risk": "Mínimos históricos (~0,00172), salida -$430,6K, concentración 0,06 y ~1,83M/día desbloqueados."},
     "TNSRUSDT":   {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Mínimos récord", "tech": "Sin demanda compradora sostenida en 15m/1d.", "risk": "Mínimos récord (~0,0178), caída -11,57% y concentración <0,08."},
     "MITOUSDT":   {"group": "DESCARTADA", "allocation": "0% - 5%", "profile": "No apta / Etiqueta En observación", "tech": "Presión vendedora activa bajo medias móviles.", "risk": "Etiqueta En observación (20/11), mínimos 0,00487, salidas >$400K y desbloqueo 15,65M el 28/11."},
@@ -321,7 +317,7 @@ ASSETS_DB: Dict[str, dict] = {
 
 
 # =====================================================================
-# 3. CONSULTAS DE MERCADO E INDICADORES
+# 3. CONSULTAS DE MERCADO, FIBONACCI E INDICADORES
 # =====================================================================
 def fetch_json_debug(url: str, params: Optional[dict] = None) -> Tuple[Optional[dict | list], Optional[str]]:
     try:
@@ -375,6 +371,39 @@ def get_24h_tickers() -> Tuple[Dict[str, dict], str]:
     return {}, "NONE"
 
 
+def construir_universo_ampliado(tickers: Dict[str, dict]) -> Dict[str, dict]:
+    """Combina tus 60 activos auditados con el Top de mayores perdedores líquidos de Binance Spot."""
+    universo = dict(ASSETS_DB)
+    candidatos_mkt = []
+
+    for sym, t in tickers.items():
+        if sym in universo or not sym.endswith("USDT"):
+            continue
+        if any(tag in sym for tag in ("UPUSDT", "DOWNUSDT", "BULL", "BEAR", "EURUSDT", "USDCUSDT", "FDUSDUSDT", "TUSDUSDT")):
+            continue
+        try:
+            precio = float(t.get("lastPrice", 0))
+            pct_24h = float(t.get("priceChangePercent", 0))
+            vol_24h = float(t.get("quoteVolume", 0))
+            if precio > 0 and pct_24h <= -5.5 and vol_24h >= MIN_VOL_MKT_LOSERS:
+                candidatos_mkt.append((sym, pct_24h, vol_24h))
+        except Exception:
+            continue
+
+    candidatos_mkt.sort(key=lambda x: x[1])  # Mayor caída primero
+    for sym, pct_24h, vol_24h in candidatos_mkt[:TOP_MKT_LOSERS]:
+        universo[sym] = {
+            "group": "RADAR_BINANCE",
+            "allocation": "10% - 15%",
+            "profile": f"Top Perdedor Mercado ({pct_24h:+.1f}% | Vol ${vol_24h/1e6:.1f}M)",
+            "dip_targets": [],
+            "min_drop_pct": 5.5,
+            "tech": "Detectada por radar general de caídas Binance con liquidez >$2M; evaluando soporte Fibonacci.",
+            "risk": "Activo externo al catálogo fijo; validar soporte Fibonacci 0.618/0.786 antes de entrar.",
+        }
+    return universo
+
+
 def get_klines(symbol: str, interval: str, limit: int = 120) -> List[dict]:
     for base in BINANCE_ENDPOINTS:
         raw, _ = fetch_json_debug(
@@ -423,6 +452,51 @@ def calc_rsi(values: List[float], period: int = 6) -> Optional[float]:
     return 100.0 - (100.0 / (1.0 + (avg_g / avg_l)))
 
 
+def calc_fibonacci_rebote(k4h: List[dict], price: float) -> dict:
+    """Calcula niveles de Fibonacci sobre el swing de 4H para detectar pisos de rebote (0.618 / 0.786)."""
+    if len(k4h) < 15:
+        return {"ok": False}
+    highs = [x["high"] for x in k4h]
+    lows = [x["low"] for x in k4h]
+    swing_high = max(highs)
+    swing_low = min(lows)
+    rango = swing_high - swing_low
+    if rango <= 0:
+        return {"ok": False}
+
+    ratio = (swing_high - price) / rango
+    fib_382 = swing_high - (rango * 0.382)
+    fib_500 = swing_high - (rango * 0.500)
+    fib_618 = swing_high - (rango * 0.618)
+    fib_786 = swing_high - (rango * 0.786)
+
+    en_piso_dorado = (0.58 <= ratio <= 0.66)
+    en_soporte_profundo = (0.74 <= ratio <= 0.83)
+    perforo_swing = (ratio > 0.96)
+
+    if en_piso_dorado:
+        estado_fib = f"🟢 Piso Dorado Fib 0.618 ({ratio:.2f})"
+    elif en_soporte_profundo:
+        estado_fib = f"🟢 Soporte Profundo Fib 0.786 ({ratio:.2f})"
+    elif perforo_swing:
+        estado_fib = f"🔴 Perforando Mínimo Fib ({ratio:.2f})"
+    else:
+        estado_fib = f"🟡 Retroceso Intermedio Fib ({ratio:.2f})"
+
+    return {
+        "ok": True,
+        "ratio": round(ratio, 3),
+        "estado_fib": estado_fib,
+        "en_piso_dorado": en_piso_dorado,
+        "en_soporte_profundo": en_soporte_profundo,
+        "perforo_swing": perforo_swing,
+        "fib_382": fib_382,
+        "fib_500": fib_500,
+        "fib_618": fib_618,
+        "fib_786": fib_786,
+    }
+
+
 def fmt(p: float) -> str:
     if p >= 100:
         return f"{p:,.2f}"
@@ -436,7 +510,7 @@ def fmt(p: float) -> str:
 
 
 # =====================================================================
-# 4. CÁLCULO DE SENTIMIENTO DE COMPRA Y PROBABILIDAD DE REBOTE (%)
+# 4. CÁLCULO DE SENTIMIENTO DE COMPRA Y PROBABILIDAD DE REBOTE (+ FIB)
 # =====================================================================
 def compute_rebound_scoring(
     group: str,
@@ -445,14 +519,12 @@ def compute_rebound_scoring(
     rsi6_15: Optional[float],
     ema99_1d: Optional[float],
     hit_target: bool,
+    fib_info: dict,
 ) -> Tuple[str, str, int, int, str]:
-    """
-    Devuelve: (veredicto, emoji_semaforo, color_order, probabilidad_pct, barra_5_bloques)
-    color_order: 0 = Rojo (RECHAZO), 1 = Amarillo (PRECAUCIÓN), 2 = Verde (COMPRA)
-    """
     base_map = {
         "ESTRUCTURAL": 62,
         "TACTICA_PUENTE": 48,
+        "RADAR_BINANCE": 45,
         "CAZA_REBOTE": 36,
         "DESCARTADA": 12,
     }
@@ -471,6 +543,15 @@ def compute_rebound_scoring(
     if hit_target:
         score += 10
 
+    # Bono / Penalización geométrica por Fibonacci 4H
+    if fib_info.get("ok"):
+        if fib_info.get("en_piso_dorado"):
+            score += 12
+        elif fib_info.get("en_soporte_profundo"):
+            score += 10
+        elif fib_info.get("perforo_swing"):
+            score -= 8
+
     if ema99_1d is not None and ema99_1d > 0:
         dist_1d = (price - ema99_1d) / ema99_1d
         if dist_1d >= -0.03:
@@ -486,7 +567,7 @@ def compute_rebound_scoring(
     if group == "DESCARTADA":
         prob = max(5, min(28, score))
     else:
-        prob = max(20, min(92, score))
+        prob = max(20, min(94, score))
 
     if group == "DESCARTADA" or prob < 35:
         verdict = "RECHAZO"
@@ -520,6 +601,7 @@ def evaluate_symbol(symbol: str, cfg: dict, ticker: dict, source: str) -> Option
     vol_24h = float(ticker["quoteVolume"])
 
     k15 = get_klines(symbol, "15m", limit=120) if source == "BINANCE" else []
+    k4h = get_klines(symbol, "4h", limit=48) if source == "BINANCE" else []
     k1d = get_klines(symbol, "1d", limit=100) if source == "BINANCE" else []
     has_klines = len(k15) >= 30 and len(k1d) >= 20
 
@@ -532,18 +614,21 @@ def evaluate_symbol(symbol: str, cfg: dict, ticker: dict, source: str) -> Option
     ema99_15 = calc_ema(c15, 99) if has_klines else None
     rsi6_15 = calc_rsi(c15, 6) if has_klines else None
     ema99_1d = calc_ema(c1d, 99) if has_klines else None
+    fib_info = calc_fibonacci_rebote(k4h, price) if len(k4h) >= 15 else {"ok": False}
 
     recent_high = max(h15_12h) if h15_12h else price
     drop_from_12h_high = ((recent_high - price) / recent_high * 100.0) if (has_klines and recent_high > 0) else 0.0
 
     targets: List[float] = list(cfg.get("dip_targets", []))
-    if not targets and ema99_15 is not None:
+    if not targets and fib_info.get("ok"):
+        targets = [round(fib_info["fib_618"], 8), round(fib_info["fib_786"], 8)]
+    elif not targets and ema99_15 is not None:
         targets = [round(ema99_15, 8)]
 
     min_drop = float(cfg.get("min_drop_pct", 6.0))
     matched_target = min([t for t in targets if price <= t * 1.005], default=None)
 
-    hit_target = matched_target is not None
+    hit_target = matched_target is not None or fib_info.get("en_piso_dorado", False) or fib_info.get("en_soporte_profundo", False)
     hit_drop_12h = has_klines and drop_from_12h_high >= min_drop and pct_24h <= -1.5
     hit_drop_24h = (not has_klines) and (pct_24h <= -min_drop)
 
@@ -565,11 +650,13 @@ def evaluate_symbol(symbol: str, cfg: dict, ticker: dict, source: str) -> Option
         rsi6_15=rsi6_15,
         ema99_1d=ema99_1d,
         hit_target=hit_target,
+        fib_info=fib_info,
     )
 
     badge = {
         "ESTRUCTURAL": "⭐ FAVORITO ESTRUCTURAL",
         "TACTICA_PUENTE": "🎯 TÁCTICA PUENTE",
+        "RADAR_BINANCE": "🌐 RADAR MERCADO BINANCE",
         "CAZA_REBOTE": "⚡ CAZA DE REBOTE",
         "DESCARTADA": "🚫 DESCARTADA / EVITAR",
     }.get(group, group)
@@ -580,6 +667,13 @@ def evaluate_symbol(symbol: str, cfg: dict, ticker: dict, source: str) -> Option
     url_ia = f"https://www.binance.com/es/price/{base_coin.lower()}"
     url_trade = f"https://www.binance.com/es/trade/{base_coin}_USDT?type=spot"
 
+    fib_line = ""
+    if fib_info.get("ok"):
+        fib_line = (
+            f"• Geometría Fib (4H): <b>{fib_info['estado_fib']}</b> | "
+            f"Sop 0.618: <code>{fmt(fib_info['fib_618'])}</code> | Obj Rebote 0.382: <code>{fmt(fib_info['fib_382'])}</code>\n"
+        )
+
     if has_klines:
         rsi_txt = f"{rsi6_15:.1f}" if rsi6_15 is not None else "N/A"
         ema25_txt = fmt(ema25_15) if ema25_15 is not None else "N/A"
@@ -587,6 +681,7 @@ def evaluate_symbol(symbol: str, cfg: dict, ticker: dict, source: str) -> Option
         ema99_1d_txt = fmt(ema99_1d) if ema99_1d is not None else "N/A"
         tech_block = (
             f"• Zonas límite: <code>{targets_txt}</code> | Mín 12h: <code>{fmt(min(l15_12h))}</code> | Retroceso 12h: <code>-{drop_from_12h_high:.2f}%</code>\n"
+            f"{fib_line}"
             f"• 15m: <code>RSI(6)={rsi_txt}</code> | <code>EMA25={ema25_txt}</code> | <code>EMA99={ema99_15_txt}</code>\n"
             f"• 1D EMA99: <code>{ema99_1d_txt}</code> | Vol 24h: <code>${vol_24h:,.0f}</code>\n"
         )
@@ -632,7 +727,7 @@ def build_summary_text(sorted_items: List[dict]) -> str:
         (1, "🟡", "PRECAUCIÓN"),
         (2, "🟢", "COMPRA"),
     ]
-    lines = ["📊 <b>RESUMEN DE MONEDAS</b>"]
+    lines = ["📊 <b>RESUMEN DE MONEDAS (FAVORITAS + RADAR BINANCE + FIB)</b>"]
     for c_order, emoji, label in sections:
         group_items = [x for x in sorted_items if x["color_order"] == c_order]
         if not group_items:
@@ -676,7 +771,6 @@ def build_summary_chart_png(sorted_items: List[dict]) -> Optional[bytes]:
     for idx, (bar, it) in enumerate(zip(bars, sorted_items)):
         p = it["prob"]
         c_txt = txt_map[it["color_order"]]
-        # Porcentaje arriba de la barra
         ax.text(
             bar.get_x() + bar.get_width() / 2.0,
             p + 2.5,
@@ -688,7 +782,6 @@ def build_summary_chart_png(sorted_items: List[dict]) -> Optional[bytes]:
             fontweight="bold",
             zorder=5,
         )
-        # Badge circular con el nombre de la moneda
         y_badge = max(p * 0.52, 8.0)
         ax.text(
             bar.get_x() + bar.get_width() / 2.0,
@@ -703,7 +796,7 @@ def build_summary_chart_png(sorted_items: List[dict]) -> Optional[bytes]:
             zorder=6,
         )
 
-    ax.set_title("RESUMEN DE MONEDAS", color="#ffffff", fontsize=13, fontweight="bold", pad=16)
+    ax.set_title("RESUMEN DE MONEDAS • REBOTE & FIBONACCI", color="#ffffff", fontsize=12.5, fontweight="bold", pad=16)
     ax.set_ylim(0, 108)
     ax.set_xticks(x_pos)
     ax.set_xticklabels(coins, rotation=42, ha="right", color="#cbd5e1", fontsize=8.5, fontweight="bold")
@@ -751,7 +844,6 @@ def _get_telegram_target() -> Optional[Tuple[int, List[str]]]:
 
 
 def send_to_perdedoras_topic(text: str) -> bool:
-    """Envía mensaje HTML exclusivamente al tópico TOPIC_ID_PERDEDORAS."""
     target = _get_telegram_target()
     if not target:
         return False
@@ -780,7 +872,6 @@ def send_to_perdedoras_topic(text: str) -> bool:
 
 
 def send_photo_to_perdedoras_topic(png_bytes: bytes, caption: str) -> bool:
-    """Envía gráfico PNG + caption exclusivamente al tópico TOPIC_ID_PERDEDORAS."""
     target = _get_telegram_target()
     if not target:
         return False
@@ -818,8 +909,10 @@ def main() -> None:
         print("[ERROR] No se pudieron obtener los tickers 24h ni de Binance ni del respaldo.")
         return
 
+    universo_total = construir_universo_ampliado(tickers)
+
     triggered: List[dict] = []
-    for symbol, cfg in ASSETS_DB.items():
+    for symbol, cfg in universo_total.items():
         ticker = tickers.get(symbol)
         if not ticker:
             continue
@@ -835,13 +928,11 @@ def main() -> None:
 
     if not triggered:
         ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-        print(f"[{ts}] Auditoría completada ({len(ASSETS_DB)} activos | Fuente: {source}). Sin alertas nuevas.")
+        print(f"[{ts}] Auditoría completada ({len(universo_total)} activos | Fuente: {source}). Sin alertas nuevas.")
         return
 
-    # Ordenar por color (0=Rojo, 1=Amarillo, 2=Verde) y probabilidad de MENOR a MAYOR dentro de cada color
     triggered.sort(key=lambda x: (x["color_order"], x["prob"], x["coin"]))
 
-    # 1) Enviar RESUMEN DE MONEDAS al inicio (gráfico PNG + texto ordenado)
     summary_text = build_summary_text(triggered)
     chart_png = build_summary_chart_png(triggered)
 
@@ -856,7 +947,6 @@ def main() -> None:
 
     time.sleep(0.5)
 
-    # 2) Enviar fichas detalladas en el mismo orden
     alerts_sent = 0
     for item in triggered:
         if send_to_perdedoras_topic(item["card_msg"]):
@@ -866,7 +956,7 @@ def main() -> None:
 
     save_state(state)
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    print(f"[{ts}] Auditoría completada ({len(ASSETS_DB)} activos | Fuente: {source}). Fichas emitidas en Monedas perdedoras: {alerts_sent}")
+    print(f"[{ts}] Auditoría completada ({len(universo_total)} activos | Fuente: {source}). Fichas emitidas en Monedas perdedoras: {alerts_sent}")
 
 
 if __name__ == "__main__":
