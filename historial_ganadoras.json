@@ -617,6 +617,21 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null
+    },
+    "LSKUSDT": {
+      "symbol": "LSKUSDT",
+      "ticker": "LSK",
+      "fecha_verde": "2026-11-23",
+      "ts_verde": "2026-11-23 01:41",
+      "precio_verde": 0.1436,
+      "es_oro": false,
+      "origen": "CAZADOR_TACTICO_ROJO",
+      "estado": "PENDIENTE",
+      "fecha_ganadora": "",
+      "precio_ganadora": 0.0,
+      "subida_real_pct": 0.0,
+      "subida_24h_dia_pct": 0.0,
+      "dias_demora": null
     }
   }
 }
