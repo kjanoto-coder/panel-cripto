@@ -1,14 +1,5 @@
 [
   [
-    "DOGEUSDT",
-    "XRPUSDT",
-    "ADAUSDT",
-    "PEPEUSDT",
-    "SUIUSDT",
-    "YBUSDT",
-    "NEARUSDT"
-  ],
-  [
     "BABYUSDT",
     "UNIUSDT",
     "ALLOUSDT",
@@ -16,5 +7,14 @@
     "ALGOUSDT",
     "CAKEUSDT",
     "GRAMUSDT"
+  ],
+  [
+    "TRXUSDT",
+    "SENTUSDT",
+    "LUNCUSDT",
+    "MORPHOUSDT",
+    "DODOUSDT",
+    "BLURUSDT",
+    "CAKEUSDT"
   ]
 ]
