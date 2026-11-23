@@ -1,14 +1,5 @@
 [
   [
-    "NEARUSDT",
-    "DOGEUSDT",
-    "SENTUSDT",
-    "XLMUSDT",
-    "PUMPUSDT",
-    "ARBUSDT",
-    "DOTUSDT"
-  ],
-  [
     "TRXUSDT",
     "XRPUSDT",
     "ADAUSDT",
@@ -16,5 +7,14 @@
     "SEIUSDT",
     "XPLUSDT",
     "INITUSDT"
+  ],
+  [
+    "FETUSDT",
+    "MORPHOUSDT",
+    "SHIBUSDT",
+    "ALLOUSDT",
+    "CAKEUSDT",
+    "CRVUSDT",
+    "MARSCOINUSDT"
   ]
 ]
