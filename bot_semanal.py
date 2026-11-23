@@ -26,7 +26,7 @@ STOP_PROTECCION_PCT = -8.5
 TRAILING_DESDE_MAX_PCT = 4.0
 HORAS_MAX_SIN_ARRANQUE = 60.0
 
-MODELOS_GEMINI = ["gemini-3.8-flash", "gemini-3.5-flash-lite"]
+MODELOS_GEMINI = ["gemini-3.8-flash", "gemini-4-hydrogen", "gemini-3.5-flash-lite"]
 
 def ahora_art():
     return datetime.now(TZ_ART)
@@ -55,7 +55,11 @@ def crear_sesion_binance():
     return s
 
 def obtener_tickers_binance(session):
-    for url in ["https://api.binance.com/api/v3/ticker/24hr", "https://data-api.binance.vision/api/v3/ticker/24hr"]:
+    urls = [
+        "https://api.binance.com/api/v3/ticker/24hr",
+        "https://data-api.binance.vision/api/v3/ticker/24hr"
+    ]
+    for url in urls:
         try:
             r = session.get(url, timeout=15)
             if r.status_code == 200 and isinstance(r.json(), list):
@@ -83,7 +87,8 @@ def obtener_tickers_binance(session):
 
 def auditar_order_book_semanal(session, symbol):
     """Verificación final del libro de órdenes en tiempo real antes de asignar capital."""
-    for base_url in ["https://api.binance.com", "https://data-api.binance.vision"]:
+    bases = ["https://api.binance.com", "https://data-api.binance.vision"]
+    for base_url in bases:
         try:
             r = session.get(f"{base_url}/api/v3/depth", params={"symbol": symbol, "limit": 20}, timeout=5)
             if r.status_code == 200:
@@ -103,7 +108,8 @@ def auditar_order_book_semanal(session, symbol):
 
 def analizar_velas_tf(session, symbol, interval="1h", limit=48):
     """Analiza RSI, Volumen, rechazo de mecha y niveles geométricos de Fibonacci."""
-    for base_url in ["https://api.binance.com", "https://data-api.binance.vision"]:
+    bases = ["https://api.binance.com", "https://data-api.binance.vision"]
+    for base_url in bases:
         try:
             r = session.get(f"{base_url}/api/v3/klines", params={"symbol": symbol, "interval": interval, "limit": limit}, timeout=7)
             if r.status_code == 200:
