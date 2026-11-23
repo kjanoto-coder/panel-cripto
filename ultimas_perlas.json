@@ -2,18 +2,18 @@
   [
     "TRXUSDT",
     "SENTUSDT",
-    "GRAMUSDT",
     "MORPHOUSDT",
-    "JSTUSDT",
+    "GRAMUSDT",
     "FILUSDT",
-    "ICPUSDT"
+    "ICPUSDT",
+    "CAKEUSDT"
   ],
   [
     "TRXUSDT",
     "SENTUSDT",
     "MORPHOUSDT",
     "GRAMUSDT",
-    "FILUSDT",
+    "ACEUSDT",
     "ICPUSDT",
     "CAKEUSDT"
   ]
