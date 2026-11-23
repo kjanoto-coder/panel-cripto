@@ -827,6 +827,51 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null
+    },
+    "ZKPUSDT": {
+      "symbol": "ZKPUSDT",
+      "ticker": "ZKP",
+      "fecha_verde": "2026-11-23",
+      "ts_verde": "2026-11-23 11:21",
+      "precio_verde": 0.0308,
+      "es_oro": false,
+      "origen": "CAZADOR_TACTICO_ROJO",
+      "estado": "PENDIENTE",
+      "fecha_ganadora": "",
+      "precio_ganadora": 0.0,
+      "subida_real_pct": 0.0,
+      "subida_24h_dia_pct": 0.0,
+      "dias_demora": null
+    },
+    "HOTUSDT": {
+      "symbol": "HOTUSDT",
+      "ticker": "HOT",
+      "fecha_verde": "2026-11-23",
+      "ts_verde": "2026-11-23 11:21",
+      "precio_verde": 0.000337,
+      "es_oro": false,
+      "origen": "CAZADOR_TACTICO_ROJO",
+      "estado": "PENDIENTE",
+      "fecha_ganadora": "",
+      "precio_ganadora": 0.0,
+      "subida_real_pct": 0.0,
+      "subida_24h_dia_pct": 0.0,
+      "dias_demora": null
+    },
+    "INITUSDT": {
+      "symbol": "INITUSDT",
+      "ticker": "INIT",
+      "fecha_verde": "2026-11-23",
+      "ts_verde": "2026-11-23 11:21",
+      "precio_verde": 0.08623,
+      "es_oro": false,
+      "origen": "CAZADOR_TACTICO_ROJO",
+      "estado": "PENDIENTE",
+      "fecha_ganadora": "",
+      "precio_ganadora": 0.0,
+      "subida_real_pct": 0.0,
+      "subida_24h_dia_pct": 0.0,
+      "dias_demora": null
     }
   }
 }
