@@ -26,6 +26,8 @@ STOP_PROTECCION_PCT = -8.5
 TRAILING_DESDE_MAX_PCT = 4.0
 HORAS_MAX_SIN_ARRANQUE = 60.0
 
+MODELOS_GEMINI = ["gemini-3.8-flash", "gemini-3.5-flash-lite"]
+
 def ahora_art():
     return datetime.now(TZ_ART)
 
@@ -506,7 +508,7 @@ def evaluar_copiloto_trader_y_auditor_ia(session, mapa_mkt, plan, clima_btc_txt)
                 '"recomendacion_auditor":"consejo técnico concreto incluyendo lectura Fibonacci",'
                 '"ordenes":{"MONEDA":{"orden":"🟢 MANTENER / DEJAR CORRER | 🟡 ASEGURAR 50% (TP1) | 🚨 VENDER AHORA (AGOTAMIENTO) | ⚠️ RIESGO DE BAJADA","razon":"motivo corto 15m/1h y nivel Fibonacci"}}}'
             )
-            for mod in ["gemini-2.5-flash", "gemini-2.5-flash-lite"]:
+            for mod in MODELOS_GEMINI:
                 try:
                     res = client.models.generate_content(model=mod, contents=prompt)
                     if res and res.text:
@@ -564,7 +566,7 @@ def generar_veredicto_final_ia(plan):
                 "1) Dictamen (FACTIBLE PARA REAL / FACTIBLE CON AJUSTES)\n"
                 "2) Por qué funcionó (consistencia entre las 4 monedas certificadas, tiempo empleado y control de riesgo)."
             )
-            for mod in ["gemini-2.5-flash", "gemini-2.5-flash-lite"]:
+            for mod in MODELOS_GEMINI:
                 try:
                     res = client.models.generate_content(model=mod, contents=prompt)
                     if res and res.text:
