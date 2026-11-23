@@ -1,14 +1,5 @@
 [
   [
-    "UNIUSDT",
-    "ENAUSDT",
-    "XPLUSDT",
-    "ICPUSDT",
-    "STRKUSDT",
-    "ASTERUSDT",
-    "WLDUSDT"
-  ],
-  [
     "XRPUSDT",
     "PEPEUSDT",
     "SUIUSDT",
@@ -16,5 +7,14 @@
     "DODOUSDT",
     "HBARUSDT",
     "CAKEUSDT"
+  ],
+  [
+    "TRXUSDT",
+    "JSTUSDT",
+    "ONDOUSDT",
+    "DOTUSDT",
+    "PENGUUSDT",
+    "FILUSDT",
+    "PUMPUSDT"
   ]
 ]
