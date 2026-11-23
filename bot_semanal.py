@@ -34,7 +34,7 @@ STOP_PROTECCION_PCT = -8.5
 TRAILING_DESDE_MAX_PCT = 4.0
 HORAS_MAX_SIN_ARRANQUE = 60.0
 
-MODELOS_GEMINI = ["gemini-3.8-flash", "gemini-4-hydrogen", "gemini-3.5-flash-lite"]
+MODELOS_GEMINI = ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-4-hydrogen"]
 
 def ahora_art():
     return datetime.now(TZ_ART)
@@ -415,18 +415,13 @@ def limpiar_json_ia(raw_text):
 
 def llamar_gemini_con_reintento(client, prompt):
     for mod in MODELOS_GEMINI:
-        for intento in range(2):
-            try:
-                res = client.models.generate_content(model=mod, contents=prompt)
-                if res and res.text:
-                    return res.text
-            except Exception as e_mod:
-                err_str = str(e_mod)
-                print(f"⚠️ Modelo {mod} (intento {intento + 1}) sin respuesta: {err_str}")
-                if ("503" in err_str or "UNAVAILABLE" in err_str) and intento == 0:
-                    time.sleep(3)
-                    continue
-                break
+        try:
+            res = client.models.generate_content(model=mod, contents=prompt)
+            if res and res.text:
+                return res.text
+        except Exception as e_mod:
+            print(f"⚠️ Modelo {mod} sin respuesta: {e_mod}")
+            continue
     return None
 
 def evaluar_copiloto_trader_y_auditor_ia(session, mapa_mkt, plan, clima_btc_txt):
@@ -779,7 +774,7 @@ def actualizar_excel_semanal(plan):
 
 def enviar_telegram_texto(texto):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        return
+        return False
     url = f"{TELEGRAM_API_BASE}{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {"chat_id": TELEGRAM_CHAT_ID, "text": texto.strip(), "parse_mode": "HTML", "disable_web_page_preview": True}
     if TELEGRAM_TOPIC_ID.isdigit():
@@ -788,13 +783,15 @@ def enviar_telegram_texto(texto):
         r = requests.post(url, json=payload, timeout=15).json()
         if not r.get("ok") and "thread not found" in str(r.get("description", "")).lower():
             payload.pop("message_thread_id", None)
-            requests.post(url, json=payload, timeout=15)
+            r = requests.post(url, json=payload, timeout=15).json()
+        return bool(r.get("ok"))
     except Exception as e:
         print(f"⚠️ Error Telegram Semanal: {e}")
+        return False
 
 def enviar_foto_telegram(imagen_path, caption):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID or not os.path.exists(imagen_path):
-        return
+        return False
     url = f"{TELEGRAM_API_BASE}{TELEGRAM_BOT_TOKEN}/sendPhoto"
     cabe = len(caption.strip()) <= 1020
     data = {"chat_id": TELEGRAM_CHAT_ID}
@@ -811,12 +808,14 @@ def enviar_foto_telegram(imagen_path, caption):
                 r = requests.post(url, data=data, files={"photo": ph}, timeout=25).json()
         if r.get("ok") and not cabe:
             enviar_telegram_texto(caption)
+        return bool(r.get("ok"))
     except Exception as e:
         print(f"⚠️ Error enviando foto Semanal: {e}")
+        return False
 
 def enviar_excel_telegram(caption):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID or not os.path.exists(EXCEL_SEMANAL_FILE):
-        return
+        return False
     url = f"{TELEGRAM_API_BASE}{TELEGRAM_BOT_TOKEN}/sendDocument"
     data = {"chat_id": TELEGRAM_CHAT_ID, "caption": caption[:1000], "parse_mode": "HTML"}
     if TELEGRAM_TOPIC_ID.isdigit():
@@ -827,9 +826,11 @@ def enviar_excel_telegram(caption):
             if not r.get("ok") and "thread not found" in str(r.get("description", "")).lower():
                 data.pop("message_thread_id", None)
                 f.seek(0)
-                requests.post(url, data=data, files={"document": f}, timeout=25)
+                r = requests.post(url, data=data, files={"document": f}, timeout=25).json()
+        return bool(r.get("ok"))
     except Exception as e:
         print(f"⚠️ Error enviando Excel Semanal: {e}")
+        return False
 
 def calcular_horas_abierta(fecha_entrada_str):
     try:
@@ -1078,30 +1079,16 @@ def ejecutar_gestor_semanal():
         plan["auditoria_ia"]["veredicto_final_semana"] = veredicto_final_txt
         aud_actual["veredicto_final_semana"] = veredicto_final_txt
 
-    alertas_ia_inmediatas = [
-        p for p in plan["posiciones"]
-        if any(tag in p.get("trader_ia_orden", "") for tag in ["VENDER AHORA", "ASEGURAR 50%", "RIESGO DE BAJADA"])
-    ]
-    for p_v in alertas_ia_inmediatas:
-        enviar_telegram_texto(
-            f"🚨 <b>COPILOTO TRADER IA + FIB • ALERTA EN VIVO (10m)</b>\n"
-            f"📅 <code>{ahora_str}</code>\n\n"
-            f"💰 <b>{p_v['base']}</b> | PnL actual: <b>{p_v['pnl_pct']:+.2f}%</b> (<code>${p_v['pnl_usd']:+.2f} USD</code>)\n"
-            f"• <b>Orden IA:</b> <b>{html.escape(p_v['trader_ia_orden'])}</b>\n"
-            f"• <b>Geometría Fib:</b> <code>{html.escape(p_v.get('fib_lectura', ''))}</code>\n"
-            f"• <b>Análisis gráfico 15m/1h:</b> <i>{html.escape(p_v.get('trader_ia_razon', ''))}</i>"
-        )
-
+    es_ejecucion_manual = (os.getenv("GITHUB_EVENT_NAME") == "workflow_dispatch")
     es_corte_horario = (plan.get("ultimo_reporte_hora") != ahora_dt.hour)
     hay_novedades = bool(nuevas_entradas or alertas_parciales or alertas_venta or plan["estado_semana"] == "META_CUMPLIDA")
 
-    if hay_novedades or es_corte_horario:
-        plan["ultimo_reporte_hora"] = ahora_dt.hour
+    if hay_novedades or es_corte_horario or es_ejecucion_manual:
         plan.setdefault("historial_auditorias", []).append(dict(aud_actual))
         plan["historial_auditorias"] = plan["historial_auditorias"][-100:]
         actualizar_excel_semanal(plan)
 
-        enviar_telegram_texto(construir_bloque_1_alternativas(plan))
+        ok1 = enviar_telegram_texto(construir_bloque_1_alternativas(plan))
         time.sleep(1.5)
 
         img = generar_tablero_visual(plan)
@@ -1115,15 +1102,30 @@ def ejecutar_gestor_semanal():
             titulo_ev = "📡 <b>RADAR CONTINUO • AUDITORÍA 24H, FIBONACCI Y TRADER IA</b>"
 
         caption = construir_bloque_2_cartera(plan, titulo_ev)
-        enviar_foto_telegram(img, caption)
+        ok2 = enviar_foto_telegram(img, caption)
         time.sleep(1.5)
 
-        enviar_excel_telegram(
+        ok3 = enviar_excel_telegram(
             f"📎 <b>GESTOR Y RADAR SEMANAL • BLOQUE 3/3: PLANILLA EXCEL</b>\n"
             f"📊 Registro completo en 4 pestañas con Certificación IA, Fibonacci 4H y Veredicto (<code>{EXCEL_SEMANAL_FILE}</code>)."
         )
+        if ok1 and ok2 and ok3:
+            plan["ultimo_reporte_hora"] = ahora_dt.hour
     else:
         actualizar_excel_semanal(plan)
+        alertas_ia_inmediatas = [
+            p for p in plan["posiciones"]
+            if any(tag in p.get("trader_ia_orden", "") for tag in ["VENDER AHORA", "ASEGURAR 50%", "RIESGO DE BAJADA"])
+        ]
+        for p_v in alertas_ia_inmediatas:
+            enviar_telegram_texto(
+                f"🚨 <b>COPILOTO TRADER IA + FIB • ALERTA EN VIVO (10m)</b>\n"
+                f"📅 <code>{ahora_str}</code>\n\n"
+                f"💰 <b>{p_v['base']}</b> | PnL actual: <b>{p_v['pnl_pct']:+.2f}%</b> (<code>${p_v['pnl_usd']:+.2f} USD</code>)\n"
+                f"• <b>Orden IA:</b> <b>{html.escape(p_v['trader_ia_orden'])}</b>\n"
+                f"• <b>Geometría Fib:</b> <code>{html.escape(p_v.get('fib_lectura', ''))}</code>\n"
+                f"• <b>Análisis gráfico 15m/1h:</b> <i>{html.escape(p_v.get('trader_ia_razon', ''))}</i>"
+            )
 
     for v in alertas_venta:
         msg_v = (
