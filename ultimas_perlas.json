@@ -1,20 +1,20 @@
 [
   [
     "NEARUSDT",
-    "KITEUSDT",
-    "DODOUSDT",
-    "ASTERUSDT",
-    "POLUSDT",
-    "STRKUSDT",
-    "CAKEUSDT"
-  ],
-  [
-    "NEARUSDT",
     "ASTERUSDT",
     "POLUSDT",
     "DODOUSDT",
     "KITEUSDT",
     "CAKEUSDT",
     "STRKUSDT"
+  ],
+  [
+    "DOGEUSDT",
+    "UNIUSDT",
+    "ENAUSDT",
+    "APTUSDT",
+    "WLDUSDT",
+    "ICPUSDT",
+    "GRAMUSDT"
   ]
 ]
