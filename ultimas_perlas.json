@@ -1,14 +1,5 @@
 [
   [
-    "ENAUSDT",
-    "UNIUSDT",
-    "XPLUSDT",
-    "CAKEUSDT",
-    "FETUSDT",
-    "ETHFIUSDT",
-    "DODOUSDT"
-  ],
-  [
     "NEARUSDT",
     "XRPUSDT",
     "DOGEUSDT",
@@ -16,5 +7,14 @@
     "SUIUSDT",
     "XLMUSDT",
     "ARBUSDT"
+  ],
+  [
+    "TRXUSDT",
+    "ADAUSDT",
+    "NIGHTUSDT",
+    "GRAMUSDT",
+    "SEIUSDT",
+    "TIAUSDT",
+    "ZROUSDT"
   ]
 ]
