@@ -1,20 +1,20 @@
 [
   [
-    "DOGEUSDT",
-    "ATOMUSDT",
-    "XRPUSDT",
-    "ADAUSDT",
-    "PEPEUSDT",
-    "SUIUSDT",
-    "ERAUSDT"
-  ],
-  [
     "TRXUSDT",
     "SENTUSDT",
     "GRAMUSDT",
     "MORPHOUSDT",
     "ERAUSDT",
     "CAKEUSDT",
+    "LUNCUSDT"
+  ],
+  [
+    "TRXUSDT",
+    "SENTUSDT",
+    "ATOMUSDT",
+    "GRAMUSDT",
+    "MORPHOUSDT",
+    "ERAUSDT",
     "LUNCUSDT"
   ]
 ]
