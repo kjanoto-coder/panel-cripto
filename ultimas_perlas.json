@@ -2,19 +2,19 @@
   [
     "NEARUSDT",
     "DODOUSDT",
-    "KITEUSDT",
     "ASTERUSDT",
     "CAKEUSDT",
+    "KITEUSDT",
     "BMTUSDT",
     "WLDUSDT"
   ],
   [
-    "NEARUSDT",
-    "DODOUSDT",
-    "ASTERUSDT",
-    "CAKEUSDT",
-    "KITEUSDT",
-    "BMTUSDT",
-    "WLDUSDT"
+    "STRKUSDT",
+    "ICPUSDT",
+    "GRAMUSDT",
+    "APTUSDT",
+    "ETHFIUSDT",
+    "ARBUSDT",
+    "FILUSDT"
   ]
 ]
