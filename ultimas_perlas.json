@@ -1,14 +1,5 @@
 [
   [
-    "MORPHOUSDT",
-    "FILUSDT",
-    "GRAMUSDT",
-    "WLDUSDT",
-    "DOTUSDT",
-    "INITUSDT",
-    "ALLOUSDT"
-  ],
-  [
     "NEARUSDT",
     "DOGEUSDT",
     "FETUSDT",
@@ -16,5 +7,14 @@
     "XLMUSDT",
     "CAKEUSDT",
     "ASTERUSDT"
+  ],
+  [
+    "TRXUSDT",
+    "XRPUSDT",
+    "ADAUSDT",
+    "PEPEUSDT",
+    "ENAUSDT",
+    "ERAUSDT",
+    "DODOUSDT"
   ]
 ]
