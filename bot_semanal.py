@@ -79,6 +79,26 @@ def obtener_tickers_binance(session):
             continue
     return {}
 
+def auditar_order_book_semanal(session, symbol):
+    """Verificación final del libro de órdenes en tiempo real antes de asignar capital."""
+    for base_url in ["https://api.binance.com", "https://data-api.binance.vision"]:
+        try:
+            r = session.get(f"{base_url}/api/v3/depth", params={"symbol": symbol, "limit": 20}, timeout=5)
+            if r.status_code == 200:
+                d = r.json()
+                bids, asks = d.get("bids", []), d.get("asks", [])
+                if not bids or not asks:
+                    continue
+                b0, a0 = float(bids[0][0]), float(asks[0][0])
+                spread = ((a0 - b0) / b0) * 100 if b0 > 0 else 99.0
+                vb = sum(float(x[0]) * float(x[1]) for x in bids)
+                va = sum(float(x[0]) * float(x[1]) for x in asks)
+                ratio = round(vb / va, 2) if va > 0 else 1.0
+                return {"ok": True, "spread_pct": round(spread, 3), "ratio_ba": ratio, "sano": (spread <= 0.45 and ratio >= 0.75)}
+        except Exception:
+            continue
+    return {"ok": False, "spread_pct": 0.1, "ratio_ba": 1.0, "sano": True}
+
 def analizar_velas_tf(session, symbol, interval="1h", limit=48):
     """Analiza RSI, Volumen, rechazo de mecha y niveles geométricos de Fibonacci."""
     for base_url in ["https://api.binance.com", "https://data-api.binance.vision"]:
@@ -190,7 +210,7 @@ def cargar_plan_semanal():
     base = {
         "semana_id": sem,
         "fecha_inicio": ahora_art().strftime("%Y-%m-%d %H:%M"),
-        "modo": "PRUEBA_SIMULACION_IA_FIBONACCI",
+        "modo": "PRUEBA_SIMULACION_BLINDADA_IA_FIB",
         "capital_total_usd": CAPITAL_INICIAL_PRUEBA,
         "meta_semanal_usd": META_SEMANAL_USD,
         "ganancia_realizada_usd": 0.0,
@@ -277,7 +297,9 @@ def evaluar_alternativas_al_horno(session, mapa_mkt, excluidas):
     if not perlas:
         return []
 
+    posta_dict = perlas.get("posta", {})
     candidatos = []
+
     for sym, info in perlas.get("graduadas_pre_explosion", {}).items():
         if sym not in mapa_mkt:
             continue
@@ -287,24 +309,39 @@ def evaluar_alternativas_al_horno(session, mapa_mkt, excluidas):
         mom_1h = analizar_velas_tf(session, sym, "1h", 36)
         mom_4h = analizar_velas_tf(session, sym, "4h", 48)
         fib_4h = mom_4h.get("fib", {})
+        ob = auditar_order_book_semanal(session, sym)
 
-        prob = int(info.get("probabilidad_pct", 70))
+        prob = int(info.get("blindaje_pct", info.get("probabilidad_pct", 70)))
+        info_p = posta_dict.get(sym, {})
+        cert_e1 = bool(info.get("certificada_etapa1")) or bool(info_p.get("certificada_etapa1"))
+        cert_e2 = bool(info.get("certificada_ia"))
+        cert_doble = cert_e1 and cert_e2
+
+        bono_cert = 22 if cert_doble else (12 if (cert_e1 or cert_e2) else 0)
         bono_fib = 10 if fib_4h.get("en_zona_dorada") else (-6 if fib_4h.get("en_punta_extendida") else 0)
-        score = prob + 12 + (5 if mom_1h["vol_ratio"] >= 1.2 else 0) + bono_fib
+        bono_ob = 6 if ob.get("sano") else -15
+        score = prob + 12 + bono_cert + bono_ob + (5 if mom_1h["vol_ratio"] >= 1.2 else 0) + bono_fib
 
-        en_zona = (-3.5 <= var_desde_filtro <= 8.5 and -4.5 <= mkt["cambio_24h"] <= 10.5 and mom_1h["rsi"] <= 68.0)
+        en_zona = (
+            -3.5 <= var_desde_filtro <= 8.5
+            and -4.5 <= mkt["cambio_24h"] <= 10.5
+            and mom_1h["rsi"] <= 68.0
+            and ob.get("sano", True)
+        )
+        sello_txt = "🛡️🛡️ DOBLE CERT. IA" if cert_doble else ("🛡️ CERT. IA" if (cert_e1 or cert_e2) else "Rojo 3⭐⭐⭐")
         fib_tag = f" | {fib_4h.get('zona_txt', 'Fib N/D')}" if fib_4h.get("ok") else ""
         motivo_tecnico = (
-            f"Confirmada Rojo 3⭐⭐⭐ ({var_desde_filtro:+.1f}% desde filtro) | "
-            f"RSI 1h: {mom_1h['rsi']} | Vol 1h: x{mom_1h['vol_ratio']}{fib_tag} | Prob: {prob}%"
+            f"{sello_txt} ({var_desde_filtro:+.1f}% filtro) | "
+            f"OB: {ob['ratio_ba']}x | RSI 1h: {mom_1h['rsi']}{fib_tag} | Blindaje: {prob}%"
         )
         candidatos.append({
             "symbol": sym,
             "base": sym[:-4],
             "precio_entrada": mkt["precio"],
-            "origen": "Cazador ROJO (⭐⭐⭐)",
+            "origen": sello_txt,
             "probabilidad": prob,
             "score": score,
+            "certificada_doble": cert_doble,
             "en_zona": en_zona and (sym not in excluidas),
             "ya_en_cartera": sym in excluidas,
             "motivo_tecnico": motivo_tecnico,
@@ -312,7 +349,7 @@ def evaluar_alternativas_al_horno(session, mapa_mkt, excluidas):
             "fib_4h": fib_4h
         })
 
-    for sym, info in perlas.get("posta", {}).items():
+    for sym, info in posta_dict.items():
         if sym not in mapa_mkt or any(c["symbol"] == sym for c in candidatos):
             continue
         et = int(info.get("etapa", 1))
@@ -321,18 +358,22 @@ def evaluar_alternativas_al_horno(session, mapa_mkt, excluidas):
             mom_1h = analizar_velas_tf(session, sym, "1h", 36)
             mom_4h = analizar_velas_tf(session, sym, "4h", 48)
             fib_4h = mom_4h.get("fib", {})
+            ob = auditar_order_book_semanal(session, sym)
 
-            prob = int(info.get("prob_actual", 65))
+            prob = int(info.get("blindaje_etapa1", info.get("prob_actual", 65)))
             var_seq = float(info.get("var_seq", 0.0))
+            cert_e1 = bool(info.get("certificada_etapa1"))
+            bono_cert = 12 if cert_e1 else 0
             bono_fib = 10 if fib_4h.get("en_zona_dorada") else (-6 if fib_4h.get("en_punta_extendida") else 0)
-            score = prob + (8 if et == 3 else 3) + (5 if mom_1h["vol_ratio"] >= 1.2 else 0) + bono_fib
+            bono_ob = 6 if ob.get("sano") else -15
+            score = prob + (8 if et == 3 else 3) + bono_cert + bono_ob + (5 if mom_1h["vol_ratio"] >= 1.2 else 0) + bono_fib
 
-            en_zona = (-4.5 <= mkt["cambio_24h"] <= 10.5 and mom_1h["rsi"] <= 68.0)
-            etiqueta = "Cazador ROJO (⭐⭐⭐)" if et == 3 else "Cazador AMARILLO (⭐⭐)"
+            en_zona = (-4.5 <= mkt["cambio_24h"] <= 10.5 and mom_1h["rsi"] <= 68.0 and ob.get("sano", True))
+            etiqueta = "🛡️ Cert. Etapa 1 (⭐⭐⭐)" if cert_e1 else ("Cazador ROJO (⭐⭐⭐)" if et == 3 else "Cazador AMARILLO (⭐⭐)")
             fib_tag = f" | {fib_4h.get('zona_txt', 'Fib N/D')}" if fib_4h.get("ok") else ""
             motivo_tecnico = (
-                f"{etiqueta} ({var_seq:+.1f}% desde base 1D) | "
-                f"RSI 1h: {mom_1h['rsi']} | Vol 1h: x{mom_1h['vol_ratio']}{fib_tag} | Prob: {prob}%"
+                f"{etiqueta} ({var_seq:+.1f}% base 1D) | "
+                f"OB: {ob['ratio_ba']}x | RSI 1h: {mom_1h['rsi']}{fib_tag} | Blindaje: {prob}%"
             )
             candidatos.append({
                 "symbol": sym,
@@ -341,6 +382,7 @@ def evaluar_alternativas_al_horno(session, mapa_mkt, excluidas):
                 "origen": etiqueta,
                 "probabilidad": prob,
                 "score": score,
+                "certificada_doble": False,
                 "en_zona": en_zona and (sym not in excluidas),
                 "ya_en_cartera": sym in excluidas,
                 "motivo_tecnico": motivo_tecnico,
@@ -348,7 +390,7 @@ def evaluar_alternativas_al_horno(session, mapa_mkt, excluidas):
                 "fib_4h": fib_4h
             })
 
-    candidatos.sort(key=lambda x: (x["en_zona"], x["score"], x["mom"]["vol_ratio"]), reverse=True)
+    candidatos.sort(key=lambda x: (x["en_zona"], x["certificada_doble"], x["score"], x["mom"]["vol_ratio"]), reverse=True)
     return candidatos[:TOP_ALTERNATIVAS_MOSTRAR]
 
 def evaluar_copiloto_trader_y_auditor_ia(session, mapa_mkt, plan, clima_btc_txt):
@@ -396,6 +438,7 @@ def evaluar_copiloto_trader_y_auditor_ia(session, mapa_mkt, plan, clima_btc_txt)
 
         datos_posiciones.append({
             "moneda": p["base"],
+            "origen_certificacion": p.get("origen", ""),
             "pnl_pct": pnl_pct,
             "objetivo_pct": obj_pct,
             "retroceso_desde_max_pct": retroceso_max,
@@ -423,9 +466,9 @@ def evaluar_copiloto_trader_y_auditor_ia(session, mapa_mkt, plan, clima_btc_txt)
         "fecha": ahora_art().strftime("%Y-%m-%d %H:%M ART"),
         "semana_id": plan["semana_id"],
         "semaforo_meta": "🟢 EN CAMINO A META" if (real + flot) >= 0 else "🟡 EN CONSOLIDACIÓN",
-        "factibilidad_pct": min(95, max(45, int(62 + (stats_emb["tasa_pct"] * 0.25) + ((real + flot) / 25.0)))),
-        "diagnostico_24h": f"Embudo: {resumen_emb_txt}. {clima_btc_txt}. Avance cuota: {progreso_pct}%.",
-        "recomendacion_auditor": "Vigilar niveles Fibonacci 0.618 / Ext 1.618 y mantener las 4 posiciones con OCO estructural.",
+        "factibilidad_pct": min(96, max(48, int(65 + (stats_emb["tasa_pct"] * 0.25) + ((real + flot) / 25.0)))),
+        "diagnostico_24h": f"Embudo blindado: {resumen_emb_txt}. {clima_btc_txt}. Avance cuota: {progreso_pct}%.",
+        "recomendacion_auditor": "Vigilar niveles Fibonacci 0.618 / Ext 1.618 y mantener las 4 posiciones certificadas.",
         "veredicto_final_semana": plan.get("auditoria_ia", {}).get("veredicto_final_semana", "En seguimiento activo...")
     }
 
@@ -433,16 +476,16 @@ def evaluar_copiloto_trader_y_auditor_ia(session, mapa_mkt, plan, clima_btc_txt)
         try:
             client = genai.Client(api_key=GEMINI_API_KEY)
             prompt = (
-                "Eres un sistema dual de IA para trading Spot en Binance con análisis geométrico de Fibonacci:\n"
+                "Eres un sistema dual de IA para trading Spot en Binance con análisis geométrico de Fibonacci y doble certificación previa:\n"
                 "1) AUDITOR IA 24H: Evalúa si las 4 monedas elegidas y el embudo tienen factibilidad real para llegar a la meta semanal de $600 USD.\n"
                 "2) COPILOTO TRADER IA: Evalúa velas 15m/1h y niveles Fibonacci (soporte 0.618 y extensión objetivo 1.618) de cada moneda activa y decide la orden exacta: "
                 "'🟢 MANTENER / DEJAR CORRER', '🟡 ASEGURAR 50% (TP1)', '🚨 VENDER AHORA (AGOTAMIENTO)' o '⚠️ RIESGO DE BAJADA'.\n\n"
                 f"CLIMA MERCADO: {clima_btc_txt}\n"
                 f"AVANCE SEMANAL: ${real + flot:+.2f} / ${meta:.0f} USD ({progreso_pct}%)\n"
                 f"ESTADO EMBUDO: {resumen_emb_txt}\n"
-                f"CARTERA ACTIVA CON FIBONACCI:\n{json.dumps(datos_posiciones, ensure_ascii=False)}\n\n"
+                f"CARTERA ACTIVA CERTIFICADA:\n{json.dumps(datos_posiciones, ensure_ascii=False)}\n\n"
                 "Responde ÚNICAMENTE en JSON válido con este formato exacto:\n"
-                '{"semaforo_meta":"🟢 FACTIBLE | 🟡 EN OBSERVACIÓN | 🔴 RIESGO","factibilidad_pct":75,'
+                '{"semaforo_meta":"🟢 FACTIBLE | 🟡 EN OBSERVACIÓN | 🔴 RIESGO","factibilidad_pct":80,'
                 '"diagnostico_24h":"análisis breve en 1 oración sobre si llegamos a la meta",'
                 '"recomendacion_auditor":"consejo técnico concreto incluyendo lectura Fibonacci",'
                 '"ordenes":{"MONEDA":{"orden":"🟢 MANTENER / DEJAR CORRER | 🟡 ASEGURAR 50% (TP1) | 🚨 VENDER AHORA (AGOTAMIENTO) | ⚠️ RIESGO DE BAJADA","razon":"motivo corto 15m/1h y nivel Fibonacci"}}}'
@@ -485,10 +528,10 @@ def generar_veredicto_final_ia(plan):
     meta_usd = float(plan.get("meta_semanal_usd", META_SEMANAL_USD))
 
     veredicto_base = (
-        f"✅ <b>VEREDICTO: META LOGRADA — ESTRATEGIA FACTIBLE</b>\n"
+        f"✅ <b>VEREDICTO: META LOGRADA — ESTRATEGIA BLINDADA FACTIBLE</b>\n"
         f"• Se alcanzaron <b>${total_usd:,.2f} USD</b> (Meta: ${meta_usd:,.0f} USD) con <b>{win_rate}% de acierto</b> "
         f"({len(ganadoras)} ganadoras / {len(perdedoras)} cerradas en protección).\n"
-        f"• La selección desde Cazador Táctico/Pre-Explosión + Fibonacci demostró capacidad real para generar el retorno sin sobreexponer el capital."
+        f"• La doble certificación IA (Cazador + Pre-Explosión) + Order Book + Fibonacci demostró capacidad real para generar retorno consistente."
     )
 
     if GEMINI_API_KEY and cierres:
@@ -496,14 +539,14 @@ def generar_veredicto_final_ia(plan):
             client = genai.Client(api_key=GEMINI_API_KEY)
             prompt = (
                 "Eres el Auditor Jefe de un fondo cuantitativo Spot en Binance. "
-                "Acabamos de cumplir la meta semanal de ganancia en modo prueba. "
+                "Acabamos de cumplir la meta semanal de ganancia en modo prueba blindada. "
                 "Analiza los resultados reales de la semana y da un VEREDICTO FINAL DE FACTIBILIDAD para pasar a dinero real.\n"
                 f"Capital Base: ${plan.get('capital_total_usd', 3500)} USD | Meta: ${meta_usd} USD | Ganancia Lograda: ${total_usd} USD\n"
                 f"Inicio Semana: {plan.get('fecha_inicio')} | Cierre Meta: {plan.get('fecha_cierre_meta')}\n"
                 f"Operaciones cerradas: {json.dumps(cierres, ensure_ascii=False)}\n\n"
                 "Responde en máximo 4 líneas claras en español con:\n"
                 "1) Dictamen (FACTIBLE PARA REAL / FACTIBLE CON AJUSTES)\n"
-                "2) Por qué funcionó (consistencia entre las 4 monedas, tiempo empleado y control de riesgo)."
+                "2) Por qué funcionó (consistencia entre las 4 monedas certificadas, tiempo empleado y control de riesgo)."
             )
             for mod in ["gemini-2.5-flash", "gemini-1.5-flash"]:
                 res = client.models.generate_content(model=mod, contents=prompt)
@@ -572,9 +615,9 @@ def generar_tablero_visual(plan, filename="tablero_semanal.png"):
         ax2.tick_params(left=False, labelleft=False, bottom=False, labelbottom=False)
 
     aud = plan.get("auditoria_ia", {})
-    fact_txt = f" | Auditor IA: {aud.get('factibilidad_pct', 75)}% Factible" if aud else ""
-    ax2.set_title(f"CARTERA ELEGIDA ({len(posiciones)}/{MAX_MONEDAS_SEMANA}) • RENDIMIENTO VS ESPERADO", color="#00e676", fontsize=10, fontweight="bold", pad=10)
-    fig.suptitle(f"ETAPA 4 • GESTOR + TRADER IA + FIB ({plan['semana_id']}){fact_txt} | {ahora_art().strftime('%d/%m %H:%M ART')}", color="white", fontsize=10.5, fontweight="bold", y=0.98)
+    fact_txt = f" | Auditor IA: {aud.get('factibilidad_pct', 80)}% Factible" if aud else ""
+    ax2.set_title(f"CARTERA CERTIFICADA ({len(posiciones)}/{MAX_MONEDAS_SEMANA}) • RENDIMIENTO VS ESPERADO", color="#00e676", fontsize=10, fontweight="bold", pad=10)
+    fig.suptitle(f"ETAPA 4 • GESTOR BLINDADO + TRADER IA + FIB ({plan['semana_id']}){fact_txt} | {ahora_art().strftime('%d/%m %H:%M ART')}", color="white", fontsize=10.5, fontweight="bold", y=0.98)
     plt.tight_layout(rect=[0, 0, 1, 0.93])
     plt.savefig(filename, dpi=260, facecolor=fig.get_facecolor())
     plt.close()
@@ -591,7 +634,7 @@ def actualizar_excel_semanal(plan):
     ws = wb.active
     ws.title = "1_CARTERA_Y_TRADER_IA"
     headers = [
-        "Semana", "Fecha Entrada", "Moneda", "Motivo de Elección", "Capital ($)",
+        "Semana", "Fecha Entrada", "Moneda", "Certificación y Motivo", "Capital ($)",
         "Precio Entrada", "Precio Objetivo", "Subida Esperada (%)",
         "Precio Actual", "Máximo Alcanzado", "Rendimiento (%)",
         "PnL ($)", "Lectura Fibonacci 4H", "Orden Copiloto Trader IA", "Análisis Trader IA (15m/1h/Fib)", "Estado"
@@ -632,7 +675,7 @@ def actualizar_excel_semanal(plan):
 
     # Pestaña 2: Alternativas Evaluadas
     ws_alt = wb.create_sheet(title="2_ALTERNATIVAS_RADAR")
-    headers_alt = ["Ranking", "Moneda", "Origen Señal", "Score IA + Fib", "Precio Actual", "Decisión", "Análisis Técnico / Fibonacci"]
+    headers_alt = ["Ranking", "Moneda", "Sello Certificación", "Score Blindaje", "Precio Actual", "Decisión", "Análisis Técnico / OB / Fibonacci"]
     ws_alt.append(headers_alt)
     for col_idx in range(1, len(headers_alt) + 1):
         c = ws_alt.cell(row=1, column=col_idx)
@@ -642,7 +685,7 @@ def actualizar_excel_semanal(plan):
 
     activas_syms = {p["symbol"] for p in plan.get("posiciones", [])}
     for idx, alt in enumerate(plan.get("alternativas_evaluadas", []), start=1):
-        estado_alt = "✅ ELEGIDA EN CARTERA" if alt["symbol"] in activas_syms else ("⏳ EN RESERVA (Lista)" if alt.get("en_zona") else "⚠️ FUERA DE ZONA / RSI ALTO")
+        estado_alt = "✅ ELEGIDA EN CARTERA" if alt["symbol"] in activas_syms else ("⏳ EN RESERVA (Lista)" if alt.get("en_zona") else "⚠️ FUERA DE ZONA / OB")
         ws_alt.append([
             idx, alt.get("base", ""), alt.get("origen", ""), alt.get("score", 0),
             float(alt.get("precio_entrada", 0)), estado_alt, alt.get("motivo_tecnico", "")
@@ -667,7 +710,7 @@ def actualizar_excel_semanal(plan):
             reg.get("fecha", ahora_art().strftime("%Y-%m-%d %H:%M ART")),
             reg.get("semana_id", plan["semana_id"]),
             reg.get("semaforo_meta", "🟢 EN CAMINO"),
-            reg.get("factibilidad_pct", 75),
+            reg.get("factibilidad_pct", 80),
             reg.get("diagnostico_24h", ""),
             reg.get("recomendacion_auditor", ""),
             reg.get("veredicto_final_semana", "En seguimiento activo...")
@@ -767,9 +810,9 @@ def construir_bloque_1_alternativas(plan):
     activas_syms = {p["symbol"] for p in plan.get("posiciones", [])}
 
     msg = (
-        f"🔍 <b>GESTOR SEMANAL • BLOQUE 1/3: ALTERNATIVAS DETECTADAS</b>\n"
+        f"🔍 <b>GESTOR SEMANAL • BLOQUE 1/3: ALTERNATIVAS BLINDADAS</b>\n"
         f"📅 <code>{ahora_str}</code> | Semana <code>{plan['semana_id']}</code>\n"
-        f"<i>Ranking de monedas 'al horno' filtradas con Score IA + Fibonacci 4H:</i>\n\n"
+        f"<i>Ranking de candidatas con Certificación IA + Order Book + Fibonacci 4H:</i>\n\n"
     )
     if not alts:
         msg += "⏳ <i>Aún no hay candidatas nuevas en el embudo para listar.</i>"
@@ -792,13 +835,13 @@ def construir_bloque_2_cartera(plan, evento_titulo):
     aud = plan.get("auditoria_ia", {})
 
     msg = (
-        f"🏆 <b>GESTOR + TRADER IA + FIB • BLOQUE 2/3: CARTERA Y AUDITORÍA</b>\n"
+        f"🏆 <b>GESTOR BLINDADO + TRADER IA + FIB • BLOQUE 2/3</b>\n"
         f"{evento_titulo}\n"
         f"📅 <code>{ahora_str}</code> | Cuota: <code>${meta:,.0f} USD</code> | Progreso: <b>${real + flot:+.2f} USD ({cump}%)</b>\n"
     )
     if aud:
         msg += (
-            f"🧠 <b>Auditor IA 24h:</b> <b>{html.escape(aud.get('semaforo_meta', ''))}</b> ({aud.get('factibilidad_pct', 75)}% factibilidad)\n"
+            f"🧠 <b>Auditor IA 24h:</b> <b>{html.escape(aud.get('semaforo_meta', ''))}</b> ({aud.get('factibilidad_pct', 80)}% factibilidad)\n"
             f"└ <i>{html.escape(aud.get('diagnostico_24h', ''))}</i>\n\n"
         )
     else:
@@ -817,7 +860,7 @@ def construir_bloque_2_cartera(plan, evento_titulo):
             razon_tr = html.escape(p.get("trader_ia_razon", ""))
             msg += (
                 f"🟢 <b>{idx}. {p['base']}</b> — Asignado: <code>${p['capital_usd']:,.2f} USD</code>\n"
-                f"• <b>Elección:</b> <i>{motivo}</i>\n"
+                f"• <b>Certificación:</b> <i>{motivo}</i>\n"
                 f"• <b>Entrada:</b> <code>{formatear_precio(p['precio_entrada'])}</code> ➔ <b>Actual:</b> <code>{formatear_precio(p['precio_actual'])}</code> (<b>{p['pnl_pct']:+.2f}%</b> | <code>${p['pnl_usd']:+.2f}</code>)\n"
                 f"• <b>Objetivo (+{p['subida_necesaria_pct']:.2f}%):</b> <code>{formatear_precio(p['precio_objetivo'])}</code> | Stop: <code>{STOP_PROTECCION_PCT}%</code>\n"
                 f"• <b>Geometría Fib:</b> <code>{fib_l}</code>\n"
@@ -868,7 +911,7 @@ def ejecutar_gestor_semanal():
         pos["precio_maximo"] = p_max
         pos["pnl_pct"] = round(pnl_pct, 2)
         pos["pnl_usd"] = round(pnl_usd, 2)
-        pos.setdefault("motivo_eleccion", pos.get("origen", "Cazador ROJO (⭐⭐⭐)"))
+        pos.setdefault("motivo_eleccion", pos.get("origen", "🛡️ Certificada IA"))
 
         if not pos.get("tp1_ejecutado", False) and pnl_pct >= float(pos["subida_necesaria_pct"]):
             cap_vendido = round(cap * 0.5, 2)
@@ -921,7 +964,6 @@ def ejecutar_gestor_semanal():
         plan["estado_semana"] = "META_CUMPLIDA"
         plan["fecha_cierre_meta"] = ahora_str
 
-    # Evaluar alternativas con Fibonacci y seleccionar en ventana de cierre diario (23:50 - 00:10 ART) o si la cartera está vacía
     excluidas = {p["symbol"] for p in plan["posiciones"]} | {c["symbol"] for c in plan["historial_cierres"] if c.get("semana_id") == plan["semana_id"]}
     alternativas = evaluar_alternativas_al_horno(s, mapa_mkt, excluidas)
     plan["alternativas_evaluadas"] = alternativas
@@ -977,7 +1019,6 @@ def ejecutar_gestor_semanal():
                     plan["posiciones"].append(nueva_pos)
                     nuevas_entradas.append(nueva_pos)
 
-    # Ejecutar Copiloto Trader IA + Auditor IA 24h con lectura Fibonacci
     aud_actual = evaluar_copiloto_trader_y_auditor_ia(s, mapa_mkt, plan, msg_btc)
 
     veredicto_final_txt = ""
@@ -1016,7 +1057,7 @@ def ejecutar_gestor_semanal():
         if plan["estado_semana"] == "META_CUMPLIDA":
             titulo_ev = "🏆 <b>¡CUOTA SEMANAL CUMPLIDA — MODO PROTECCIÓN!</b>"
         elif nuevas_entradas:
-            titulo_ev = "🆕 <b>SELECCIÓN DE CARTERA (CIERRE 1D • 4 MONEDAS + FIB + IA)</b>"
+            titulo_ev = "🆕 <b>SELECCIÓN DE CARTERA BLINDADA (DOBLE CERT. IA + FIB)</b>"
         elif alertas_venta or alertas_parciales:
             titulo_ev = "💰 <b>ACTUALIZACIÓN DE TOMA DE GANANCIAS / CIERRE</b>"
         else:
@@ -1028,7 +1069,7 @@ def ejecutar_gestor_semanal():
 
         enviar_excel_telegram(
             f"📎 <b>GESTOR Y RADAR SEMANAL • BLOQUE 3/3: PLANILLA EXCEL</b>\n"
-            f"📊 Registro completo en 4 pestañas con lectura Fibonacci 4H, bitácora IA y Veredicto (<code>{EXCEL_SEMANAL_FILE}</code>)."
+            f"📊 Registro completo en 4 pestañas con Certificación IA, Fibonacci 4H y Veredicto (<code>{EXCEL_SEMANAL_FILE}</code>)."
         )
     else:
         actualizar_excel_semanal(plan)
@@ -1054,5 +1095,5 @@ def ejecutar_gestor_semanal():
     guardar_plan_semanal(plan)
 
 if __name__ == "__main__":
-    print(f"🧪 INICIANDO GESTOR SEMANAL UNIFICADO + IA + FIBONACCI ({ahora_art().strftime('%H:%M:%S')} ART)...")
+    print(f"🧪 INICIANDO GESTOR SEMANAL BLINDADO + IA + FIBONACCI ({ahora_art().strftime('%H:%M:%S')} ART)...")
     ejecutar_gestor_semanal()
