@@ -1,14 +1,5 @@
 [
   [
-    "FETUSDT",
-    "MORPHOUSDT",
-    "SHIBUSDT",
-    "ALLOUSDT",
-    "CAKEUSDT",
-    "CRVUSDT",
-    "MARSCOINUSDT"
-  ],
-  [
     "NEARUSDT",
     "DOGEUSDT",
     "SENTUSDT",
@@ -16,5 +7,14 @@
     "PUMPUSDT",
     "POLUSDT",
     "TIAUSDT"
+  ],
+  [
+    "TRXUSDT",
+    "XRPUSDT",
+    "PEPEUSDT",
+    "ADAUSDT",
+    "ENAUSDT",
+    "DODOUSDT",
+    "ATOMUSDT"
   ]
 ]
