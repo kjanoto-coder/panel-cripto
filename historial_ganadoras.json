@@ -797,6 +797,36 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null
+    },
+    "PUMPUSDT": {
+      "symbol": "PUMPUSDT",
+      "ticker": "PUMP",
+      "fecha_verde": "2026-11-23",
+      "ts_verde": "2026-11-23 11:11",
+      "precio_verde": 0.002684,
+      "es_oro": false,
+      "origen": "CAZADOR_TACTICO_ROJO",
+      "estado": "PENDIENTE",
+      "fecha_ganadora": "",
+      "precio_ganadora": 0.0,
+      "subida_real_pct": 0.0,
+      "subida_24h_dia_pct": 0.0,
+      "dias_demora": null
+    },
+    "MEGAUSDT": {
+      "symbol": "MEGAUSDT",
+      "ticker": "MEGA",
+      "fecha_verde": "2026-11-23",
+      "ts_verde": "2026-11-23 11:11",
+      "precio_verde": 0.04729,
+      "es_oro": false,
+      "origen": "CAZADOR_TACTICO_ROJO",
+      "estado": "PENDIENTE",
+      "fecha_ganadora": "",
+      "precio_ganadora": 0.0,
+      "subida_real_pct": 0.0,
+      "subida_24h_dia_pct": 0.0,
+      "dias_demora": null
     }
   }
 }
