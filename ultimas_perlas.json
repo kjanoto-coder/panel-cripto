@@ -1,14 +1,5 @@
 [
   [
-    "SENTUSDT",
-    "DODOUSDT",
-    "FILUSDT",
-    "MORPHOUSDT",
-    "FETUSDT",
-    "CAKEUSDT",
-    "ZROUSDT"
-  ],
-  [
     "TRXUSDT",
     "DOGEUSDT",
     "ADAUSDT",
@@ -16,5 +7,14 @@
     "JSTUSDT",
     "KITEUSDT",
     "DOTUSDT"
+  ],
+  [
+    "TRXUSDT",
+    "ADAUSDT",
+    "ERAUSDT",
+    "DODOUSDT",
+    "SENTUSDT",
+    "FILUSDT",
+    "MORPHOUSDT"
   ]
 ]
