@@ -184,14 +184,36 @@ def calcular_rsi(cierres, p=14):
         ap = (ap * (p - 1) + per[i]) / p
     return 100.0 if ap == 0 else round(100.0 - (100.0 / (1.0 + (ag / ap))), 1)
 
+def auditar_order_book_tactico(session, symbol):
+    """Verifica liquidez real en libro de órdenes (spread y proporción compra/venta)."""
+    for base_url in ["https://api.binance.com", "https://data-api.binance.vision"]:
+        try:
+            r = session.get(f"{base_url}/api/v3/depth", params={"symbol": symbol, "limit": 20}, timeout=5)
+            if r.status_code == 200:
+                d = r.json()
+                bids, asks = d.get("bids", []), d.get("asks", [])
+                if not bids or not asks:
+                    continue
+                b0, a0 = float(bids[0][0]), float(asks[0][0])
+                spread = ((a0 - b0) / b0) * 100 if b0 > 0 else 99.0
+                vb = sum(float(x[0]) * float(x[1]) for x in bids)
+                va = sum(float(x[0]) * float(x[1]) for x in asks)
+                ratio = round(vb / va, 2) if va > 0 else 1.0
+                return {"ok": True, "spread_pct": round(spread, 3), "ratio_ba": ratio, "sano": (spread <= 0.50 and ratio >= 0.72)}
+        except Exception:
+            continue
+    return {"ok": False, "spread_pct": 0.1, "ratio_ba": 1.0, "sano": True}
+
 def analizar_historia_y_tecnico(session, symbol):
     for base_url in ["https://api.binance.com", "https://data-api.binance.vision"]:
         try:
             r1d = session.get(f"{base_url}/api/v3/klines", params={"symbol": symbol, "interval": "1d", "limit": 150}, timeout=8)
+            r4h = session.get(f"{base_url}/api/v3/klines", params={"symbol": symbol, "interval": "4h", "limit": 36}, timeout=7)
             r1h = session.get(f"{base_url}/api/v3/klines", params={"symbol": symbol, "interval": "1h", "limit": 25}, timeout=7)
             r15m = session.get(f"{base_url}/api/v3/klines", params={"symbol": symbol, "interval": "15m", "limit": 10}, timeout=7)
             if r1d.status_code == 200 and r1h.status_code == 200 and r15m.status_code == 200:
                 k1d, k1h, k15m = r1d.json(), r1h.json(), r15m.json()
+                k4h = r4h.json() if r4h.status_code == 200 else []
                 if len(k1d) < 20 or len(k1h) < 15:
                     continue
 
@@ -218,6 +240,23 @@ def analizar_historia_y_tecnico(session, symbol):
                 else:
                     estructura_1d = "Tramo Alto 1d"
 
+                # Geometría Fibonacci 4H
+                fib_tag = "Fib N/D"
+                fib_sano = True
+                if len(k4h) >= 12:
+                    hi4 = max(float(x[2]) for x in k4h)
+                    lo4 = min(float(x[3]) for x in k4h)
+                    rng4 = hi4 - lo4
+                    if rng4 > 0:
+                        rat_fib = round((hi4 - p_act) / rng4, 2)
+                        if 0.35 <= rat_fib <= 0.65:
+                            fib_tag = f"Zona Dorada Fib ({rat_fib:.2f})"
+                        elif rat_fib < 0.08:
+                            fib_tag = f"Extendida Fib ({rat_fib:.2f})"
+                            fib_sano = False
+                        else:
+                            fib_tag = f"Fib ({rat_fib:.2f})"
+
                 c1h = [float(x[4]) for x in k1h]
                 v1h = [float(x[7]) for x in k1h]
                 o1h, cl1h = float(k1h[-1][1]), c1h[-1]
@@ -243,6 +282,8 @@ def analizar_historia_y_tecnico(session, symbol):
                     ema_est, prob = "Acumulando Base", prob + 5
                 prob += 12 if 45.0 <= rsi_1h <= 66.0 else (7 if 38.0 <= rsi_1h < 45.0 else 0)
                 prob += 10 if (var_1h > 0.0 and var_15m >= 0.0) else (4 if var_1h >= -0.3 else 0)
+                if not fib_sano:
+                    prob -= 10
 
                 return {
                     "ok": True,
@@ -255,11 +296,58 @@ def analizar_historia_y_tecnico(session, symbol):
                     "estructura_1d": estructura_1d,
                     "pos_rango_pct": pos_rango_pct,
                     "dist_min_pct": dist_min_pct,
-                    "vol_1d_ratio": vol_1d_ratio
+                    "vol_1d_ratio": vol_1d_ratio,
+                    "fib_tag": fib_tag,
+                    "fib_sano": fib_sano
                 }
         except Exception:
             continue
     return {"ok": False, "probabilidad_pct": 0}
+
+def certificar_graduacion_ia(session, sym, base, tec, var_seq):
+    """
+    GESTOR CERTIFICADOR IA ETAPA 1:
+    Verifica Order Book + Fibonacci + Gemini antes de graduar una moneda a Rojo (⭐⭐⭐)
+    y enviarla hacia Pre-Explosión y Cartera Semanal.
+    """
+    ob = auditar_order_book_tactico(session, sym)
+    if not ob.get("sano", True) or not tec.get("fib_sano", True):
+        return False, 45, f"Bloqueada por blindaje (OB ratio {ob['ratio_ba']}x, {tec.get('fib_tag', '')})"
+
+    blindaje = min(98, int(tec["probabilidad_pct"] + (8 if ob["ratio_ba"] >= 1.1 else 0)))
+    nota_cert = f"Certificada Etapa 1 ({tec.get('fib_tag', '')} | OB {ob['ratio_ba']}x)"
+
+    if GEMINI_API_KEY:
+        try:
+            client = genai.Client(api_key=GEMINI_API_KEY)
+            prompt = (
+                "Eres el Gestor Certificador IA de Etapa 1 (Cazador Táctico) en Binance Spot. "
+                "Una moneda está a punto de graduarse a ROJO (⭐⭐⭐) para pasar a Pre-Explosión y Cartera Semanal. "
+                "Evalúa si los datos coinciden y son seguros (sin FOMO ni falta de liquidez):\n"
+                f"Moneda: {base} | Avance secuencia: {var_seq:+.2f}% | Probabilidad: {tec['probabilidad_pct']}% | "
+                f"Estructura: {tec['estructura_1d']} | {tec.get('fib_tag', '')} | RSI 1h: {tec['rsi_1h']} | "
+                f"Vol 1h: x{tec['vol_surge']} | Order Book Bids/Asks: {ob['ratio_ba']}x (Spread {ob['spread_pct']}%)\n\n"
+                'Responde SOLO en JSON válido: {"aprobar":true,"blindaje_pct":84,"motivo":"resumen técnico corto de 1 línea"}'
+            )
+            for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
+                try:
+                    res = client.models.generate_content(model=mod, contents=prompt)
+                    if res and res.text:
+                        raw = res.text.strip()
+                        if "{" in raw and "}" in raw:
+                            raw = raw[raw.find("{"):raw.rfind("}") + 1]
+                        d = json.loads(raw)
+                        aprobar = bool(d.get("aprobar", True))
+                        blindaje = int(d.get("blindaje_pct", blindaje))
+                        if d.get("motivo"):
+                            nota_cert = str(d["motivo"])[:125]
+                        return aprobar, blindaje, nota_cert
+                except Exception:
+                    continue
+        except Exception:
+            pass
+
+    return True, blindaje, nota_cert
 
 def formatear_precio(p):
     if p is None or p <= 0:
@@ -283,7 +371,7 @@ def gemini_destacar_verdes(candidatos):
         x["base"]: f"Destacada 1⭐ ({x['estructura_1d']}, +{x['dist_min_pct']}% vs suelo 1d, RSI {x['rsi_1h']})."
         for x in ordenados[:2]
     }
-    dictamen = "Etapa 1 (Cazador): 1⭐ Verde (hallazgo oculto) -> 2⭐⭐ Amarillo (auditoría) -> 3⭐⭐⭐ Rojo (pasa a Verde en Pre-Explosión)."
+    dictamen = "Etapa 1 + Certificador IA: 1⭐ Verde -> 2⭐⭐ Amarillo -> 3⭐⭐⭐ Rojo Blindado (pasa a Etapa 2)."
 
     if not GEMINI_API_KEY:
         return defecto, dictamen
@@ -291,7 +379,7 @@ def gemini_destacar_verdes(candidatos):
     try:
         client = genai.Client(api_key=GEMINI_API_KEY)
         lineas = "\n".join([
-            f"- {x['base']}: prob={x['probabilidad_pct']}%, 1d={x['estructura_1d']} (rango {x['pos_rango_pct']}%, +{x['dist_min_pct']}% vs min), vol1d=x{x['vol_1d_ratio']}, vol1h=x{x['vol_surge']}, 1h={x['var_1h']:+.2f}%, RSI={x['rsi_1h']}"
+            f"- {x['base']}: prob={x['probabilidad_pct']}%, 1d={x['estructura_1d']} ({x.get('fib_tag', '')}), vol1d=x{x['vol_1d_ratio']}, vol1h=x{x['vol_surge']}, 1h={x['var_1h']:+.2f}%, RSI={x['rsi_1h']}"
             for x in ordenados[:10]
         ])
         prompt = (
@@ -402,7 +490,7 @@ def ejecutar_posta_colores(session, tickers, activos, historial):
         if etapa_prev == 1:
             if pasa_filtro_amarillo(tec, var_seq):
                 etapa_nueva = 2
-                motivo_etapa = f"Pasó filtro Amarillo (2⭐⭐): {var_seq:+.1f}% vs base, Vol 1h x{tec['vol_surge']} / 1d x{tec['vol_1d_ratio']}."
+                motivo_etapa = f"Pasó filtro Amarillo (2⭐⭐): {var_seq:+.1f}% vs base, Vol 1h x{tec['vol_surge']} | {tec.get('fib_tag', '')}."
                 if not info.get("alerta_a2", False):
                     info["alerta_a2"] = True
                     alertas.append({
@@ -413,28 +501,36 @@ def ejecutar_posta_colores(session, tickers, activos, historial):
                     })
         elif etapa_prev == 2:
             if pasa_filtro_rojo(tec, var_seq):
-                etapa_nueva = 3
-                motivo_etapa = f"Confirmada Rojo (3⭐⭐⭐) -> Pasa a Verde en Pre-Explosión ({var_seq:+.1f}% vs base, prob {tec['probabilidad_pct']}%)."
-                if not info.get("alerta_a3", False):
-                    info["alerta_a3"] = True
-                    alertas.append({
-                        "base": sym[:-4], "etapa": 3, "prob": tec["probabilidad_pct"],
-                        "fecha_corta": info.get("fecha_corta", hoy_corta),
-                        "p_ini": p_ini, "p_act": p_act, "var_seq": var_seq,
-                        "mkt": mkt, "tec": tec, "motivo": motivo_etapa
-                    })
+                aprobada_ia, blindaje_e1, nota_e1 = certificar_graduacion_ia(session, sym, sym[:-4], tec, var_seq)
+                if aprobada_ia:
+                    etapa_nueva = 3
+                    info["certificada_etapa1"] = True
+                    info["blindaje_etapa1"] = blindaje_e1
+                    motivo_etapa = f"🛡️ Certificada IA ({blindaje_e1}%): {nota_e1}"
+                    if not info.get("alerta_a3", False):
+                        info["alerta_a3"] = True
+                        alertas.append({
+                            "base": sym[:-4], "etapa": 3, "prob": blindaje_e1,
+                            "fecha_corta": info.get("fecha_corta", hoy_corta),
+                            "p_ini": p_ini, "p_act": p_act, "var_seq": var_seq,
+                            "mkt": mkt, "tec": tec, "motivo": motivo_etapa
+                        })
+                else:
+                    motivo_etapa = f"⏳ Retenida en Amarillo por Certificador IA: {nota_e1}"
 
         if etapa_nueva == 3:
             verdes_hoy.add(sym)
             grad[sym] = {
                 "symbol": sym,
                 "base": sym[:-4],
-                "estrellas": 1,
-                "probabilidad_pct": tec["probabilidad_pct"],
+                "estrellas": 3,
+                "probabilidad_pct": int(info.get("blindaje_etapa1", tec["probabilidad_pct"])),
                 "precio_ref": p_act,
                 "fecha_iso": hoy_iso,
                 "fecha_corta": hoy_corta,
-                "origen": "CAZADOR_TACTICO_ROJO"
+                "origen": "CAZADOR_TACTICO_ROJO",
+                "certificada_etapa1": True,
+                "blindaje_etapa1": int(info.get("blindaje_etapa1", tec["probabilidad_pct"]))
             }
             inyectar_rojo_en_auditoria_excel(sym, sym[:-4], p_act, motivo_etapa)
 
@@ -484,7 +580,8 @@ def ejecutar_posta_colores(session, tickers, activos, historial):
                     "ema_estado": it["ema_estado"],
                     "vol_surge": it["vol_surge"],
                     "estructura_1d": it["estructura_1d"],
-                    "vol_1d_ratio": it["vol_1d_ratio"]
+                    "vol_1d_ratio": it["vol_1d_ratio"],
+                    "fib_tag": it.get("fib_tag", "")
                 },
                 "alerta_a2": False,
                 "alerta_a3": False
@@ -534,7 +631,7 @@ def ejecutar_posta_colores(session, tickers, activos, historial):
             "symbol": sym,
             "base": sym[:-4],
             "estrellas": etapa,
-            "probabilidad_pct": int(d.get("prob_actual", tec.get("probabilidad_pct", 50))),
+            "probabilidad_pct": int(d.get("blindaje_etapa1", d.get("prob_actual", tec.get("probabilidad_pct", 50)))),
             "precio_inicio": p_ini,
             "precio_f": p_act,
             "base_24h_f": mkt["base_24h_f"],
@@ -628,14 +725,14 @@ def enviar_alerta_posta(al):
         titulo = "🚨 <b>POSTA ETAPA 1 • AVANCE A AMARILLO (⭐⭐)</b>"
         desc = f"destacada con ⭐ en Verde ({al['fecha_corta']} @ <code>{formatear_precio(al['p_ini'])}</code>) pasó el filtro Amarillo (<b>⭐⭐</b>)."
     else:
-        titulo = "🏆 <b>POSTA ETAPA 1 ➔ 2 • CONFIRMADA ROJO (⭐⭐⭐ ➔ VERDE PRE-EXPLOSIÓN)</b>"
-        desc = f"completó los 3 filtros del Cazador Táctico y entra como 🟢 <b>Verde</b> en <b>Pre-Explosión</b>."
+        titulo = "🛡️ <b>CERTIFICADA IA ETAPA 1 ➔ 2 • CONFIRMADA ROJO (⭐⭐⭐)</b>"
+        desc = f"superó el filtro técnico + Order Book + Certificador IA y entra blindada a <b>Pre-Explosión</b>."
     msg = (
         f"{titulo}\n📅 <code>{ahora_art().strftime('%Y-%m-%d %H:%M ART')}</code>\n\n"
         f"⚡ <b>{sim}</b> {desc}\n"
         f"• <b>Actual:</b> <code>{formatear_precio(al['p_act'])}</code> (<b>{al['var_seq']:+.2f}%</b> vs inicio)\n"
-        f"• <b>Técnico:</b> <code>{tec['estructura_1d']} | 1h: {tec['var_1h']:+.2f}% | RSI: {tec['rsi_1h']} | Vol 1h: x{tec['vol_surge']}</code>\n"
-        f"• <b>Filtro:</b> <i>{html.escape(al.get('motivo', ''))}</i>\n"
+        f"• <b>Técnico:</b> <code>{tec['estructura_1d']} | {tec.get('fib_tag', '')} | 1h: {tec['var_1h']:+.2f}% | RSI: {tec['rsi_1h']}</code>\n"
+        f"• <b>Certificación:</b> <i>{html.escape(al.get('motivo', ''))}</i>\n"
         f"└ <a href=\"{html.escape(u_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(u_tr)}\">🔶 Tradear</a>"
     )
     enviar_texto_telegram(msg)
@@ -643,7 +740,7 @@ def enviar_alerta_posta(al):
 def enviar_bloque_posta(num_bloque, titulo_bloque, items, msg_vacio, dictamen=""):
     fecha_str = ahora_art().strftime('%Y-%m-%d %H:%M ART')
     if not items:
-        txt = f"🔥 <b>CAZADOR TÁCTICO • ETAPA 1 ({num_bloque}/3)</b>\n{titulo_bloque}\n📅 <code>{fecha_str}</code>\n"
+        txt = f"🔥 <b>CAZADOR TÁCTICO + CERTIFICADOR IA ({num_bloque}/3)</b>\n{titulo_bloque}\n📅 <code>{fecha_str}</code>\n"
         if dictamen:
             txt += f"🧠 <i>{html.escape(dictamen)}</i>\n"
         txt += f"\n⏳ <i>{html.escape(msg_vacio)}</i>"
@@ -651,9 +748,9 @@ def enviar_bloque_posta(num_bloque, titulo_bloque, items, msg_vacio, dictamen=""
         return
 
     fname = f"posta_bloque_{num_bloque}.png"
-    generar_grafico_bloque(items, f"ETAPA 1 • CAZADOR TACTICO ({num_bloque}/3)", f"Fecha: {fecha_str} | 1* Verde -> 2** Amarillo -> 3*** Rojo (Pasa a Etapa 2)", fname)
+    generar_grafico_bloque(items, f"ETAPA 1 • CAZADOR TACTICO + IA ({num_bloque}/3)", f"Fecha: {fecha_str} | 1* Verde -> 2** Amarillo -> 3*** Rojo Certificado IA", fname)
 
-    msg = f"🔥 <b>CAZADOR TÁCTICO • ETAPA 1 ({num_bloque}/3)</b>\n{titulo_bloque}\n📅 <code>{fecha_str}</code>\n"
+    msg = f"🔥 <b>CAZADOR TÁCTICO + CERTIFICADOR IA ({num_bloque}/3)</b>\n{titulo_bloque}\n📅 <code>{fecha_str}</code>\n"
     if dictamen:
         msg += f"🧠 <i>{html.escape(dictamen)}</i>\n"
     msg += "\n"
@@ -667,7 +764,7 @@ def enviar_bloque_posta(num_bloque, titulo_bloque, items, msg_vacio, dictamen=""
 
         if est > 0:
             msg += (
-                f"{'⭐'*est} <b>{sim} [Prob: {it['probabilidad_pct']}%]</b> | Inicio ({it['fecha_corta']}): <code>{formatear_precio(it['precio_inicio'])}</code> ➔ Actual: <code>{formatear_precio(it['precio_f'])}</code> (<b>{it['var_seq']:+.2f}%</b>)\n"
+                f"{'⭐'*est} <b>{sim} [Blindaje: {it['probabilidad_pct']}%]</b> | Inicio ({it['fecha_corta']}): <code>{formatear_precio(it['precio_inicio'])}</code> ➔ Actual: <code>{formatear_precio(it['precio_f'])}</code> (<b>{it['var_seq']:+.2f}%</b>)\n"
                 f"   📐 <code>{it['estructura_1d']} | 1h: {it['var_1h']:+.2f}% | RSI: {it['rsi_1h']} | Vol: x{it['vol_surge']}</code>\n"
             )
             if mot:
@@ -708,7 +805,7 @@ def enviar_bloque_posta(num_bloque, titulo_bloque, items, msg_vacio, dictamen=""
         time.sleep(3)
 
 if __name__ == "__main__":
-    print(f"🔥 INICIANDO ETAPA 1 • CAZADOR TÁCTICO POR POSTA ({ahora_art().strftime('%H:%M:%S')} ART)...")
+    print(f"🔥 INICIANDO ETAPA 1 • CAZADOR TÁCTICO + CERTIFICADOR IA ({ahora_art().strftime('%H:%M:%S')} ART)...")
     s = crear_sesion_binance()
     activos, datos = obtener_datos_binance(s)
     if datos and activos:
@@ -719,12 +816,10 @@ if __name__ == "__main__":
             enviar_alerta_posta(al)
             time.sleep(1.5)
 
-        enviar_bloque_posta(1, "🔴 <b>1. ROJO • CONFIRMADA (⭐⭐⭐ ➔ PASA A VERDE EN PRE-EXPLOSIÓN)</b>", grupos["ROJO"], "Ninguna moneda oculta completó aún Verde (⭐) -> Amarillo (⭐⭐) -> Rojo (⭐⭐⭐).", dictamen)
+        enviar_bloque_posta(1, "🔴 <b>1. ROJO • CERTIFICADAS IA (⭐⭐⭐ ➔ PASA A ETAPA 2)</b>", grupos["ROJO"], "Ninguna moneda oculta completó aún la certificación Verde -> Amarillo -> Rojo.", dictamen)
         time.sleep(2)
         enviar_bloque_posta(2, "🟡 <b>2. AMARILLO • FILTRO DE EVOLUCIÓN (⭐⭐)</b>", grupos["AMARILLO"], "Ninguna moneda destacada en Verde (⭐) pasó aún el filtro Amarillo.")
         time.sleep(2)
         enviar_bloque_posta(3, "🟢 <b>3. VERDE • HALLAZGOS FUERA DEL RADAR (⭐)</b>", grupos["VERDE"], "Sin monedas ocultas en Verde en este ciclo.")
     else:
         print("❌ ERROR: Sin datos de Binance.")
-
-# FIN BOT TACTICO
