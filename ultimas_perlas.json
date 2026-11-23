@@ -2,19 +2,19 @@
   [
     "TRXUSDT",
     "SENTUSDT",
-    "ATOMUSDT",
-    "GRAMUSDT",
-    "MORPHOUSDT",
-    "ERAUSDT",
-    "LUNCUSDT"
-  ],
-  [
-    "TRXUSDT",
-    "SENTUSDT",
     "ERAUSDT",
     "MORPHOUSDT",
     "BLURUSDT",
     "LUNCUSDT",
     "CAKEUSDT"
+  ],
+  [
+    "TRXUSDT",
+    "ATOMUSDT",
+    "SENTUSDT",
+    "MORPHOUSDT",
+    "BLURUSDT",
+    "ERAUSDT",
+    "LUNCUSDT"
   ]
 ]
