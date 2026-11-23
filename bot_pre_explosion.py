@@ -135,10 +135,11 @@ def obtener_datos_binance(session):
     return []
 
 def obtener_metricas_velas(session, symbol):
-    """Obtiene cambio 1h, cambio 4h y volumen relativo 1h (vs promedio últimas 24h)."""
+    """Obtiene cambio 1h, cambio 4h, volumen relativo 1h y niveles geométricos Fibonacci 4H."""
     cambio_1h = 0.0
     cambio_4h = 0.0
     vol_1h_rel = 1.0
+    fib_info = {"ok": False}
 
     urls_1h = [
         f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval=1h&limit=25",
@@ -165,8 +166,8 @@ def obtener_metricas_velas(session, symbol):
             continue
 
     urls_4h = [
-        f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval=4h&limit=2",
-        f"https://data-api.binance.vision/api/v3/klines?symbol={symbol}&interval=4h&limit=2"
+        f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval=4h&limit=36",
+        f"https://data-api.binance.vision/api/v3/klines?symbol={symbol}&interval=4h&limit=36"
     ]
     for u in urls_4h:
         try:
@@ -178,11 +179,46 @@ def obtener_metricas_velas(session, symbol):
                     close_p = float(candles[-1][4])
                     if open_p > 0:
                         cambio_4h = round(((close_p - open_p) / open_p) * 100, 2)
+
+                if len(candles) >= 12:
+                    highs = [float(c[2]) for c in candles]
+                    lows = [float(c[3]) for c in candles]
+                    swing_high = max(highs)
+                    swing_low = min(lows)
+                    rango = swing_high - swing_low
+                    p_act = float(candles[-1][4])
+                    if rango > 0:
+                        ratio = round((swing_high - p_act) / rango, 2)
+                        fib_618 = swing_high - (rango * 0.618)
+                        ext_1272 = swing_low + (rango * 1.272)
+                        ext_1618 = swing_low + (rango * 1.618)
+
+                        en_pullback_sano = (0.35 <= ratio <= 0.65)
+                        extendida_fib = (p_act >= ext_1272 or ratio < 0.08)
+
+                        if en_pullback_sano:
+                            etiqueta_fib = f"Pullback Sano Fib ({ratio:.2f})"
+                        elif extendida_fib:
+                            etiqueta_fib = f"Extendida Fib ({ratio:.2f})"
+                        elif ratio > 0.65:
+                            etiqueta_fib = f"Piso Profundo Fib ({ratio:.2f})"
+                        else:
+                            etiqueta_fib = f"Tramo Alcista Fib ({ratio:.2f})"
+
+                        fib_info = {
+                            "ok": True,
+                            "ratio": ratio,
+                            "etiqueta_fib": etiqueta_fib,
+                            "en_pullback_sano": en_pullback_sano,
+                            "extendida_fib": extendida_fib,
+                            "fib_618": fib_618,
+                            "ext_1618": ext_1618
+                        }
                 break
         except Exception:
             continue
 
-    return cambio_1h, cambio_4h, vol_1h_rel
+    return cambio_1h, cambio_4h, vol_1h_rel, fib_info
 
 def formatear_precio(precio):
     if precio is None or precio <= 0:
@@ -218,23 +254,31 @@ def construir_item_desde_ticker(session, t, desde_posta=False, info_grad=None):
     if precio <= 0:
         return None
 
-    cambio_1h, cambio_4h, vol_1h_rel = obtener_metricas_velas(session, symbol)
+    cambio_1h, cambio_4h, vol_1h_rel, fib_info = obtener_metricas_velas(session, symbol)
     pos_liquidez_pct = round(((precio - low) / (high - low)) * 100, 1) if high > low else 50.0
     rango = high - low
     pct_rango = (rango / precio) * 100 if precio > 0 else 1.0
     factor_spike = (vol_usdt / 1_000_000) / (pct_rango if pct_rango > 0 else 1.0)
 
+    # Ajuste geométrico Fibonacci 4H
+    bono_fib = 0.0
+    if fib_info.get("ok"):
+        if fib_info.get("en_pullback_sano"):
+            bono_fib = 8.5
+        elif fib_info.get("extendida_fib"):
+            bono_fib = -10.0
+
     # Penalización Anti-FOMO en momentum extendido
     penalizacion_extension = 14.0 if (pos_liquidez_pct > 90.0 or cambio_24h > 7.5) else 0.0
     bonus_posta = 18.0 if desde_posta else 0.0
     score_ia = round(
-        (cambio_1h * 3.2) + (cambio_4h * 2.0) + (cambio_24h * 1.1) + (factor_spike * 1.5) + (vol_1h_rel * 1.8) + bonus_posta - penalizacion_extension,
+        (cambio_1h * 3.2) + (cambio_4h * 2.0) + (cambio_24h * 1.1) + (factor_spike * 1.5) + (vol_1h_rel * 1.8) + bonus_posta + bono_fib - penalizacion_extension,
         2
     )
 
-    # Score quirúrgico ORO: premia absorción positiva (+1.8% a +4.5%), volumen 1h relativo y piso de rango (15%-30%)
+    # Score quirúrgico ORO: premia absorción positiva (+1.8% a +4.5%), volumen 1h relativo, piso de rango y apoyo Fibonacci
     score_oro = round(
-        (vol_1h_rel * 2.5) + (factor_spike * 1.5) + (cambio_1h * 2.0) - abs(3.0 - cambio_24h) + (pos_liquidez_pct / 30.0),
+        (vol_1h_rel * 2.5) + (factor_spike * 1.5) + (cambio_1h * 2.0) - abs(3.0 - cambio_24h) + (pos_liquidez_pct / 30.0) + (bono_fib * 0.6),
         2
     )
 
@@ -258,6 +302,7 @@ def construir_item_desde_ticker(session, t, desde_posta=False, info_grad=None):
         'high_f': high,
         'low_f': low,
         'pos_liquidez_pct': pos_liquidez_pct,
+        'fib_info': fib_info,
         'score_ia': score_ia,
         'score_oro': score_oro,
         'es_oro': False,
@@ -362,7 +407,7 @@ def motor_ia_seleccion_tactica(tickers, simbolos_activos, session, historial):
         except (ValueError, TypeError):
             continue
 
-    # --- 1. SELECCIÓN DE ROJO Y AMARILLO (RUPTURA / MOMENTUM ANTI-FOMO) ---
+    # --- 1. SELECCIÓN DE ROJO Y AMARILLO (RUPTURA / MOMENTUM ANTI-FOMO + FIB) ---
     candidatas_mercado.sort(key=lambda x: x['score_ia'], reverse=True)
     candidatas_impulso = [x for x in candidatas_mercado if x['cambio_f'] <= 6.5]
     seleccion_impulso = items_posta_roja[:8]
@@ -387,11 +432,6 @@ def motor_ia_seleccion_tactica(tickers, simbolos_activos, session, historial):
         rango = it['pos_liquidez_pct']
         fresca = (sym not in verdes_ayer)
 
-        # Criterio ORO PURO:
-        # 1) Absorción positiva controlada (+1.8% a +4.5%, sin FOMO)
-        # 2) Compresión en piso (rango diario entre 15% y 30%)
-        # 3) Frescura (no repetida de ayer)
-        # 4) Demanda viva en 1h (cambio_1h >= 0) y volumen relativo 1h >= 1.1x
         if (1.8 <= var_24h <= 4.5) and (15.0 <= rango <= 30.0) and fresca and it['cambio_1h'] >= 0.0 and it['vol_1h_rel'] >= 1.1:
             it['es_oro'] = True
             candidatas_oro.append(it)
@@ -401,7 +441,6 @@ def motor_ia_seleccion_tactica(tickers, simbolos_activos, session, historial):
     candidatas_oro.sort(key=lambda x: x['score_oro'], reverse=True)
     candidatas_piso_respaldo.sort(key=lambda x: x['score_oro'], reverse=True)
 
-    # Máximo 3 Opciones de Oro; si hay menos de 3, completa hasta 5 con acumulaciones limpias en piso
     top_verdes = candidatas_oro[:3]
     syms_oro = {x['symbol'] for x in top_verdes}
     for it in candidatas_piso_respaldo:
@@ -485,16 +524,19 @@ def generar_dictamen_color(cat_key, lista_items):
     if not lista_items:
         return ""
     if not GEMINI_API_KEY:
-        return f"Lectura {cat_key}: foco en velocidad 1h/4h y entradas limpias sin FOMO."
+        return f"Lectura {cat_key}: foco en velocidad 1h/4h, retrocesos Fibonacci y entradas limpias sin FOMO."
 
     client = genai.Client(api_key=GEMINI_API_KEY)
     lista_texto = "\n".join([
-        f"- {i['ticker']} ({'TOP_ORO' if i.get('es_oro') else ('POSTA_ROJA' if i.get('desde_posta') else 'RADAR')}): 1h {i['cambio_1h']:+.2f}%, 4h {i['cambio_4h']:+.2f}%, 24h {i['cambio_f']:+.2f}%, Rango {i['pos_liquidez_pct']:.0f}%, Vol1H {i['vol_1h_rel']:.1f}x"
+        f"- {i['ticker']} ({'TOP_ORO' if i.get('es_oro') else ('POSTA_ROJA' if i.get('desde_posta') else 'RADAR')}): "
+        f"1h {i['cambio_1h']:+.2f}%, 4h {i['cambio_4h']:+.2f}%, 24h {i['cambio_f']:+.2f}%, "
+        f"Rango {i['pos_liquidez_pct']:.0f}%, Vol1H {i['vol_1h_rel']:.1f}x, "
+        f"{i.get('fib_info', {}).get('etiqueta_fib', 'Fib N/D')}"
         for i in lista_items
     ])
     prompt = (
         f"Analista Spot Binance. Dá un dictamen breve (máximo 2 líneas) para el bloque {cat_key} de Pre-Explosión "
-        f"(si hay monedas TOP_ORO, resaltalas como el punto dulce de entrada temprana en piso):\n{lista_texto}"
+        f"(si hay monedas TOP_ORO o en Pullback Sano Fibonacci, resaltalas como el punto dulce de entrada):\n{lista_texto}"
     )
     for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
         try:
@@ -503,7 +545,7 @@ def generar_dictamen_color(cat_key, lista_items):
                 return response.text.strip()
         except Exception:
             continue
-    return f"Lectura {cat_key}: foco en velocidad 1h/4h y entradas limpias sin FOMO."
+    return f"Lectura {cat_key}: foco en velocidad 1h/4h, retrocesos Fibonacci y entradas limpias sin FOMO."
 
 def enviar_telegram_foto(image_path, caption_text):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
@@ -582,15 +624,21 @@ def enviar_mensaje_por_color(num_msg, cat_key, titulo_color, items, total_analiz
             else:
                 etiqueta_extra = " ⭐⭐⭐ [Posta Roja]"
 
+        fib = item.get("fib_info", {})
+        linea_fib = ""
+        if fib.get("ok"):
+            linea_fib = f"  • <i>{html.escape(fib['etiqueta_fib'])}</i> | Ext 1.618: <code>{formatear_precio(fib['ext_1618'])}</code>\n"
+
         cuerpo += (
             f"• <b>{sim}</b>{etiqueta_extra} (1h: {item['cambio_1h']:+.1f}% | 4h: {item['cambio_4h']:+.1f}% | 24h: {item['cambio_f']:+.1f}%) | <code>{precio_str}</code>\n"
+            f"{linea_fib}"
             f"  └ <a href=\"{html.escape(url_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n\n"
         )
 
     enviar_texto_telegram(cuerpo)
 
 if __name__ == "__main__":
-    print(f"🔥 EJECUTANDO PRE-EXPLOSIÓN V7 POR COLOR ({ahora_art().strftime('%Y-%m-%d %H:%M:%S')} ART)...")
+    print(f"🔥 EJECUTANDO PRE-EXPLOSIÓN V7 + FIBONACCI POR COLOR ({ahora_art().strftime('%Y-%m-%d %H:%M:%S')} ART)...")
     session = crear_sesion_binance()
     simbolos_activos = obtener_simbolos_spot_activos(session)
     datos = obtener_datos_binance(session)
@@ -621,5 +669,3 @@ if __name__ == "__main__":
                 guardar_historial(historial)
     else:
         print("❌ ERROR: Sin datos o sin símbolos activos de Binance.")
-
-# FIN BOT PRE EXPLOSION V7
