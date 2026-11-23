@@ -1,14 +1,5 @@
 [
   [
-    "TRXUSDT",
-    "XRPUSDT",
-    "ADAUSDT",
-    "PEPEUSDT",
-    "ERAUSDT",
-    "JSTUSDT",
-    "DOTUSDT"
-  ],
-  [
     "SUIUSDT",
     "ONEUSDT",
     "ICPUSDT",
@@ -16,5 +7,14 @@
     "HBARUSDT",
     "PENGUUSDT",
     "XLMUSDT"
+  ],
+  [
+    "SENTUSDT",
+    "DODOUSDT",
+    "FILUSDT",
+    "MORPHOUSDT",
+    "FETUSDT",
+    "CAKEUSDT",
+    "ZROUSDT"
   ]
 ]
