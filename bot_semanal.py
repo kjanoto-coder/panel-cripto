@@ -79,7 +79,8 @@ def obtener_tickers_binance(session):
             continue
     return {}
 
-def analizar_velas_tf(session, symbol, interval="1h", limit=24):
+def analizar_velas_tf(session, symbol, interval="1h", limit=48):
+    """Analiza RSI, Volumen, rechazo de mecha y niveles geométricos de Fibonacci."""
     for base_url in ["https://api.binance.com", "https://data-api.binance.vision"]:
         try:
             r = session.get(f"{base_url}/api/v3/klines", params={"symbol": symbol, "interval": interval, "limit": limit}, timeout=7)
@@ -90,6 +91,7 @@ def analizar_velas_tf(session, symbol, interval="1h", limit=24):
                 cierres = [float(x[4]) for x in k]
                 aperturas = [float(x[1]) for x in k]
                 maximos = [float(x[2]) for x in k]
+                minimos = [float(x[3]) for x in k]
                 vols = [float(x[7]) for x in k]
 
                 deltas = [cierres[i] - cierres[i - 1] for i in range(1, len(cierres))]
@@ -103,27 +105,72 @@ def analizar_velas_tf(session, symbol, interval="1h", limit=24):
                 vol_ratio = round(v_rec / v_prev, 2) if v_prev > 0 else 1.0
                 var_ultima = round(((cierres[-1] - aperturas[-1]) / aperturas[-1]) * 100, 2) if aperturas[-1] > 0 else 0.0
 
-                rango_vela = maximos[-1] - float(k[-1][3])
+                rango_vela = maximos[-1] - minimos[-1]
                 mecha_sup = maximos[-1] - max(cierres[-1], aperturas[-1])
                 rechazo_techo = (rango_vela > 0 and (mecha_sup / rango_vela) >= 0.55)
+
+                # Cálculo quirúrgico de Fibonacci sobre el swing del periodo
+                swing_high = max(maximos)
+                swing_low = min(minimos)
+                rango_fib = swing_high - swing_low
+                p_act = cierres[-1]
+                fib_data = {"ok": False}
+
+                if rango_fib > 0:
+                    ratio_retroceso = round((swing_high - p_act) / rango_fib, 3)
+                    fib_382 = swing_high - (rango_fib * 0.382)
+                    fib_500 = swing_high - (rango_fib * 0.500)
+                    fib_618 = swing_high - (rango_fib * 0.618)
+                    fib_786 = swing_high - (rango_fib * 0.786)
+                    ext_1272 = swing_low + (rango_fib * 1.272)
+                    ext_1618 = swing_low + (rango_fib * 1.618)
+
+                    en_zona_dorada = (0.35 <= ratio_retroceso <= 0.65)
+                    en_punta_extendida = (ratio_retroceso < 0.12)
+                    cerca_ext_1618 = (p_act >= ext_1618 * 0.985)
+
+                    if en_zona_dorada:
+                        zona_txt = f"Zona Dorada Fib ({ratio_retroceso:.2f})"
+                    elif ratio_retroceso > 0.65:
+                        zona_txt = f"Soporte Profundo Fib ({ratio_retroceso:.2f})"
+                    elif en_punta_extendida:
+                        zona_txt = f"Punta Impulso Fib ({ratio_retroceso:.2f})"
+                    else:
+                        zona_txt = f"Tramo Medio Fib ({ratio_retroceso:.2f})"
+
+                    fib_data = {
+                        "ok": True,
+                        "ratio": ratio_retroceso,
+                        "zona_txt": zona_txt,
+                        "en_zona_dorada": en_zona_dorada,
+                        "en_punta_extendida": en_punta_extendida,
+                        "cerca_ext_1618": cerca_ext_1618,
+                        "fib_382": fib_382,
+                        "fib_500": fib_500,
+                        "fib_618": fib_618,
+                        "fib_786": fib_786,
+                        "ext_1272": ext_1272,
+                        "ext_1618": ext_1618
+                    }
 
                 return {
                     "ok": True,
                     "rsi": rsi,
                     "vol_ratio": vol_ratio,
                     "var_ultima": var_ultima,
-                    "rechazo_techo": rechazo_techo
+                    "rechazo_techo": rechazo_techo,
+                    "fib": fib_data
                 }
         except Exception:
             continue
-    return {"ok": False, "rsi": 50.0, "vol_ratio": 1.0, "var_ultima": 0.0, "rechazo_techo": False}
+    return {"ok": False, "rsi": 50.0, "vol_ratio": 1.0, "var_ultima": 0.0, "rechazo_techo": False, "fib": {"ok": False}}
 
 def verificar_clima_btc(session, mapa_mkt):
     btc = mapa_mkt.get("BTCUSDT")
     if not btc:
         return True, "BTC estable"
     chg_24h = float(btc["cambio_24h"])
-    mom_btc = analizar_velas_tf(session, "BTCUSDT", "1h", 20)
+    mom_btc = analizar_velas_tf(session, "BTCUSDT", "1h", 24)
     rsi_btc = float(mom_btc.get("rsi", 50.0))
     if chg_24h <= -2.5 or rsi_btc < 35.0:
         return False, f"BTC en alerta (24h: {chg_24h:+.2f}%, RSI 1h: {rsi_btc}). Compras pausadas."
@@ -143,7 +190,7 @@ def cargar_plan_semanal():
     base = {
         "semana_id": sem,
         "fecha_inicio": ahora_art().strftime("%Y-%m-%d %H:%M"),
-        "modo": "PRUEBA_SIMULACION_IA_INTEGRADA",
+        "modo": "PRUEBA_SIMULACION_IA_FIBONACCI",
         "capital_total_usd": CAPITAL_INICIAL_PRUEBA,
         "meta_semanal_usd": META_SEMANAL_USD,
         "ganancia_realizada_usd": 0.0,
@@ -180,7 +227,6 @@ def guardar_plan_semanal(plan):
         print(f"⚠️ Error guardando {PLAN_SEMANAL_FILE}: {e}")
 
 def calcular_estadisticas_embudo(mapa_mkt):
-    """Calcula la efectividad real del embudo diferenciando señales resueltas vs en curso."""
     ganadoras_data = cargar_json_seguro(HISTORIAL_GANADORAS_FILE)
     perlas_data = cargar_json_seguro(HISTORIAL_PERLAS_FILE)
 
@@ -201,7 +247,6 @@ def calcular_estadisticas_embudo(mapa_mkt):
         else:
             en_curso += 1
 
-    # Sumar graduadas recientes de Pre-Explosión que aún no entraron al registro de cerradas
     for sym, info in graduadas.items():
         if sym in reg_verdes:
             continue
@@ -239,14 +284,19 @@ def evaluar_alternativas_al_horno(session, mapa_mkt, excluidas):
         mkt = mapa_mkt[sym]
         p_ref = float(info.get("precio_ref", mkt["precio"]))
         var_desde_filtro = ((mkt["precio"] - p_ref) / p_ref) * 100 if p_ref > 0 else 0.0
-        mom = analizar_velas_tf(session, sym, "1h", 20)
-        prob = int(info.get("probabilidad_pct", 70))
-        score = prob + 12 + (5 if mom["vol_ratio"] >= 1.2 else 0)
+        mom_1h = analizar_velas_tf(session, sym, "1h", 36)
+        mom_4h = analizar_velas_tf(session, sym, "4h", 48)
+        fib_4h = mom_4h.get("fib", {})
 
-        en_zona = (-3.5 <= var_desde_filtro <= 8.5 and -4.5 <= mkt["cambio_24h"] <= 10.5 and mom["rsi"] <= 68.0)
+        prob = int(info.get("probabilidad_pct", 70))
+        bono_fib = 10 if fib_4h.get("en_zona_dorada") else (-6 if fib_4h.get("en_punta_extendida") else 0)
+        score = prob + 12 + (5 if mom_1h["vol_ratio"] >= 1.2 else 0) + bono_fib
+
+        en_zona = (-3.5 <= var_desde_filtro <= 8.5 and -4.5 <= mkt["cambio_24h"] <= 10.5 and mom_1h["rsi"] <= 68.0)
+        fib_tag = f" | {fib_4h.get('zona_txt', 'Fib N/D')}" if fib_4h.get("ok") else ""
         motivo_tecnico = (
             f"Confirmada Rojo 3⭐⭐⭐ ({var_desde_filtro:+.1f}% desde filtro) | "
-            f"RSI 1h: {mom['rsi']} | Vol 1h: x{mom['vol_ratio']} | Prob: {prob}%"
+            f"RSI 1h: {mom_1h['rsi']} | Vol 1h: x{mom_1h['vol_ratio']}{fib_tag} | Prob: {prob}%"
         )
         candidatos.append({
             "symbol": sym,
@@ -258,7 +308,8 @@ def evaluar_alternativas_al_horno(session, mapa_mkt, excluidas):
             "en_zona": en_zona and (sym not in excluidas),
             "ya_en_cartera": sym in excluidas,
             "motivo_tecnico": motivo_tecnico,
-            "mom": mom
+            "mom": mom_1h,
+            "fib_4h": fib_4h
         })
 
     for sym, info in perlas.get("posta", {}).items():
@@ -267,15 +318,21 @@ def evaluar_alternativas_al_horno(session, mapa_mkt, excluidas):
         et = int(info.get("etapa", 1))
         if et >= 2:
             mkt = mapa_mkt[sym]
-            mom = analizar_velas_tf(session, sym, "1h", 20)
+            mom_1h = analizar_velas_tf(session, sym, "1h", 36)
+            mom_4h = analizar_velas_tf(session, sym, "4h", 48)
+            fib_4h = mom_4h.get("fib", {})
+
             prob = int(info.get("prob_actual", 65))
             var_seq = float(info.get("var_seq", 0.0))
-            score = prob + (8 if et == 3 else 3) + (5 if mom["vol_ratio"] >= 1.2 else 0)
-            en_zona = (-4.5 <= mkt["cambio_24h"] <= 10.5 and mom["rsi"] <= 68.0)
+            bono_fib = 10 if fib_4h.get("en_zona_dorada") else (-6 if fib_4h.get("en_punta_extendida") else 0)
+            score = prob + (8 if et == 3 else 3) + (5 if mom_1h["vol_ratio"] >= 1.2 else 0) + bono_fib
+
+            en_zona = (-4.5 <= mkt["cambio_24h"] <= 10.5 and mom_1h["rsi"] <= 68.0)
             etiqueta = "Cazador ROJO (⭐⭐⭐)" if et == 3 else "Cazador AMARILLO (⭐⭐)"
+            fib_tag = f" | {fib_4h.get('zona_txt', 'Fib N/D')}" if fib_4h.get("ok") else ""
             motivo_tecnico = (
                 f"{etiqueta} ({var_seq:+.1f}% desde base 1D) | "
-                f"RSI 1h: {mom['rsi']} | Vol 1h: x{mom['vol_ratio']} | Prob: {prob}%"
+                f"RSI 1h: {mom_1h['rsi']} | Vol 1h: x{mom_1h['vol_ratio']}{fib_tag} | Prob: {prob}%"
             )
             candidatos.append({
                 "symbol": sym,
@@ -287,21 +344,25 @@ def evaluar_alternativas_al_horno(session, mapa_mkt, excluidas):
                 "en_zona": en_zona and (sym not in excluidas),
                 "ya_en_cartera": sym in excluidas,
                 "motivo_tecnico": motivo_tecnico,
-                "mom": mom
+                "mom": mom_1h,
+                "fib_4h": fib_4h
             })
 
     candidatos.sort(key=lambda x: (x["en_zona"], x["score"], x["mom"]["vol_ratio"]), reverse=True)
     return candidatos[:TOP_ALTERNATIVAS_MOSTRAR]
 
 def evaluar_copiloto_trader_y_auditor_ia(session, mapa_mkt, plan, clima_btc_txt):
-    """Módulo IA Integrado: Paso 6 (Auditor 24h de factibilidad) + Paso 7 (Copiloto Trader de salida en vivo)."""
+    """Módulo IA Integrado: Auditor 24h + Copiloto Trader IA con Geometría Fibonacci 1H/4H."""
     posiciones = plan.get("posiciones", [])
     datos_posiciones = []
 
     for p in posiciones:
         sym = p["symbol"]
-        v15 = analizar_velas_tf(session, sym, "15m", 20)
-        v1h = analizar_velas_tf(session, sym, "1h", 20)
+        v15 = analizar_velas_tf(session, sym, "15m", 24)
+        v1h = analizar_velas_tf(session, sym, "1h", 36)
+        v4h = analizar_velas_tf(session, sym, "4h", 48)
+        fib = v4h.get("fib", {}) if v4h.get("fib", {}).get("ok") else v1h.get("fib", {})
+
         p_ent = float(p.get("precio_entrada", 0))
         p_max = float(p.get("precio_maximo", p_ent))
         p_act = float(p.get("precio_actual", p_ent))
@@ -310,18 +371,25 @@ def evaluar_copiloto_trader_y_auditor_ia(session, mapa_mkt, plan, clima_btc_txt)
         pnl_pct = float(p.get("pnl_pct", 0.0))
         obj_pct = float(p.get("subida_necesaria_pct", 17.14))
 
-        if pnl_pct >= obj_pct and (v15["rsi"] >= 74 or v15["rechazo_techo"] or retroceso_max <= -2.5):
-            orden_def = "🚨 VENDER AHORA (Techo/Agotamiento)"
-            razon_def = f"Alcanzó objetivo (+{pnl_pct:.1f}%) con RSI 15m={v15['rsi']} y retroceso {retroceso_max:.1f}% desde máx."
+        fib_resumen = "Fib N/D"
+        cerca_techo_fib = False
+        if fib.get("ok"):
+            fib_resumen = f"{fib['zona_txt']} | Sop 0.618: {formatear_precio(fib['fib_618'])} | Ext 1.618: {formatear_precio(fib['ext_1618'])}"
+            cerca_techo_fib = fib.get("cerca_ext_1618", False)
+        p["fib_lectura"] = fib_resumen
+
+        if (pnl_pct >= obj_pct or cerca_techo_fib) and (v15["rsi"] >= 73 or v15["rechazo_techo"] or retroceso_max <= -2.5):
+            orden_def = "🚨 VENDER AHORA (Techo Fib / Agotamiento)"
+            razon_def = f"Tocó zona objetivo (+{pnl_pct:.1f}%) / Ext Fib 1.618 con RSI 15m={v15['rsi']} y retroceso {retroceso_max:.1f}%."
         elif pnl_pct >= obj_pct * 0.85 and (v15["rsi"] >= 76 and v15["rechazo_techo"]):
             orden_def = "🟡 ASEGURAR 50% (TP1 Anticipado)"
             razon_def = f"Cerca de meta (+{pnl_pct:.1f}%) con mecha de rechazo en 15m."
         elif pnl_pct <= STOP_PROTECCION_PCT * 0.80 and v1h["rsi"] < 34:
             orden_def = "⚠️ RIESGO DE BAJADA (Soporte débil)"
-            razon_def = f"Retroceso de {pnl_pct:.1f}% con debilidad en 1h (RSI {v1h['rsi']})."
+            razon_def = f"Retroceso de {pnl_pct:.1f}% cerca de piso Fib 0.786 con RSI 1h={v1h['rsi']}."
         else:
             orden_def = "🟢 MANTENER / DEJAR CORRER"
-            razon_def = f"Estructura sana (RSI 1h: {v1h['rsi']}, Vol 1h: x{v1h['vol_ratio']}). Falta +{max(0.0, obj_pct - pnl_pct):.1f}% para meta."
+            razon_def = f"Estructura sana ({fib.get('zona_txt', 'en curso')}, RSI 1h: {v1h['rsi']}). Falta +{max(0.0, obj_pct - pnl_pct):.1f}% para meta."
 
         p["trader_ia_orden"] = orden_def
         p["trader_ia_razon"] = razon_def
@@ -332,10 +400,10 @@ def evaluar_copiloto_trader_y_auditor_ia(session, mapa_mkt, plan, clima_btc_txt)
             "objetivo_pct": obj_pct,
             "retroceso_desde_max_pct": retroceso_max,
             "rsi_15m": v15["rsi"],
-            "vol_15m_ratio": v15["vol_ratio"],
             "rechazo_15m": v15["rechazo_techo"],
             "rsi_1h": v1h["rsi"],
             "vol_1h_ratio": v1h["vol_ratio"],
+            "fibonacci_4h": fib_resumen,
             "orden_base": orden_def
         })
 
@@ -357,7 +425,7 @@ def evaluar_copiloto_trader_y_auditor_ia(session, mapa_mkt, plan, clima_btc_txt)
         "semaforo_meta": "🟢 EN CAMINO A META" if (real + flot) >= 0 else "🟡 EN CONSOLIDACIÓN",
         "factibilidad_pct": min(95, max(45, int(62 + (stats_emb["tasa_pct"] * 0.25) + ((real + flot) / 25.0)))),
         "diagnostico_24h": f"Embudo: {resumen_emb_txt}. {clima_btc_txt}. Avance cuota: {progreso_pct}%.",
-        "recomendacion_auditor": "Vigilar cierre 1D y mantener las 4 posiciones con órdenes OCO estructurales.",
+        "recomendacion_auditor": "Vigilar niveles Fibonacci 0.618 / Ext 1.618 y mantener las 4 posiciones con OCO estructural.",
         "veredicto_final_semana": plan.get("auditoria_ia", {}).get("veredicto_final_semana", "En seguimiento activo...")
     }
 
@@ -365,19 +433,19 @@ def evaluar_copiloto_trader_y_auditor_ia(session, mapa_mkt, plan, clima_btc_txt)
         try:
             client = genai.Client(api_key=GEMINI_API_KEY)
             prompt = (
-                "Eres un sistema dual de IA para trading Spot en Binance:\n"
+                "Eres un sistema dual de IA para trading Spot en Binance con análisis geométrico de Fibonacci:\n"
                 "1) AUDITOR IA 24H: Evalúa si las 4 monedas elegidas y el embudo tienen factibilidad real para llegar a la meta semanal de $600 USD.\n"
-                "2) COPILOTO TRADER IA: Evalúa velas 15m/1h de cada moneda activa y decide la orden exacta para el trader: "
+                "2) COPILOTO TRADER IA: Evalúa velas 15m/1h y niveles Fibonacci (soporte 0.618 y extensión objetivo 1.618) de cada moneda activa y decide la orden exacta: "
                 "'🟢 MANTENER / DEJAR CORRER', '🟡 ASEGURAR 50% (TP1)', '🚨 VENDER AHORA (AGOTAMIENTO)' o '⚠️ RIESGO DE BAJADA'.\n\n"
                 f"CLIMA MERCADO: {clima_btc_txt}\n"
                 f"AVANCE SEMANAL: ${real + flot:+.2f} / ${meta:.0f} USD ({progreso_pct}%)\n"
                 f"ESTADO EMBUDO: {resumen_emb_txt}\n"
-                f"CARTERA ACTIVA:\n{json.dumps(datos_posiciones, ensure_ascii=False)}\n\n"
+                f"CARTERA ACTIVA CON FIBONACCI:\n{json.dumps(datos_posiciones, ensure_ascii=False)}\n\n"
                 "Responde ÚNICAMENTE en JSON válido con este formato exacto:\n"
                 '{"semaforo_meta":"🟢 FACTIBLE | 🟡 EN OBSERVACIÓN | 🔴 RIESGO","factibilidad_pct":75,'
                 '"diagnostico_24h":"análisis breve en 1 oración sobre si llegamos a la meta",'
-                '"recomendacion_auditor":"consejo técnico concreto",'
-                '"ordenes":{"MONEDA":{"orden":"🟢 MANTENER / DEJAR CORRER | 🟡 ASEGURAR 50% (TP1) | 🚨 VENDER AHORA (AGOTAMIENTO) | ⚠️ RIESGO DE BAJADA","razon":"motivo corto 15m/1h"}}}'
+                '"recomendacion_auditor":"consejo técnico concreto incluyendo lectura Fibonacci",'
+                '"ordenes":{"MONEDA":{"orden":"🟢 MANTENER / DEJAR CORRER | 🟡 ASEGURAR 50% (TP1) | 🚨 VENDER AHORA (AGOTAMIENTO) | ⚠️ RIESGO DE BAJADA","razon":"motivo corto 15m/1h y nivel Fibonacci"}}}'
             )
             for mod in ["gemini-2.5-flash", "gemini-1.5-flash"]:
                 try:
@@ -397,7 +465,7 @@ def evaluar_copiloto_trader_y_auditor_ia(session, mapa_mkt, plan, clima_btc_txt)
                                 o_mon = ordenes_ia.get(p["base"])
                                 if isinstance(o_mon, dict) and o_mon.get("orden"):
                                     p["trader_ia_orden"] = str(o_mon["orden"])[:45]
-                                    p["trader_ia_razon"] = str(o_mon.get("razon", p["trader_ia_razon"]))[:160]
+                                    p["trader_ia_razon"] = str(o_mon.get("razon", p["trader_ia_razon"]))[:165]
                             break
                 except Exception:
                     continue
@@ -420,7 +488,7 @@ def generar_veredicto_final_ia(plan):
         f"✅ <b>VEREDICTO: META LOGRADA — ESTRATEGIA FACTIBLE</b>\n"
         f"• Se alcanzaron <b>${total_usd:,.2f} USD</b> (Meta: ${meta_usd:,.0f} USD) con <b>{win_rate}% de acierto</b> "
         f"({len(ganadoras)} ganadoras / {len(perdedoras)} cerradas en protección).\n"
-        f"• La selección desde Cazador Táctico/Pre-Explosión demostró capacidad real para generar el retorno sin sobreexponer el capital."
+        f"• La selección desde Cazador Táctico/Pre-Explosión + Fibonacci demostró capacidad real para generar el retorno sin sobreexponer el capital."
     )
 
     if GEMINI_API_KEY and cierres:
@@ -506,7 +574,7 @@ def generar_tablero_visual(plan, filename="tablero_semanal.png"):
     aud = plan.get("auditoria_ia", {})
     fact_txt = f" | Auditor IA: {aud.get('factibilidad_pct', 75)}% Factible" if aud else ""
     ax2.set_title(f"CARTERA ELEGIDA ({len(posiciones)}/{MAX_MONEDAS_SEMANA}) • RENDIMIENTO VS ESPERADO", color="#00e676", fontsize=10, fontweight="bold", pad=10)
-    fig.suptitle(f"ETAPA 4 • GESTOR + TRADER IA ({plan['semana_id']}){fact_txt} | {ahora_art().strftime('%d/%m %H:%M ART')}", color="white", fontsize=10.8, fontweight="bold", y=0.98)
+    fig.suptitle(f"ETAPA 4 • GESTOR + TRADER IA + FIB ({plan['semana_id']}){fact_txt} | {ahora_art().strftime('%d/%m %H:%M ART')}", color="white", fontsize=10.5, fontweight="bold", y=0.98)
     plt.tight_layout(rect=[0, 0, 1, 0.93])
     plt.savefig(filename, dpi=260, facecolor=fig.get_facecolor())
     plt.close()
@@ -519,14 +587,14 @@ def actualizar_excel_semanal(plan):
     fill_verde = PatternFill(start_color="D1FAE5", end_color="D1FAE5", fill_type="solid")
     fill_rojo = PatternFill(start_color="FEE2E2", end_color="FEE2E2", fill_type="solid")
 
-    # Pestaña 1: Cartera + Orden del Copiloto Trader IA
+    # Pestaña 1: Cartera + Fibonacci + Orden del Copiloto Trader IA
     ws = wb.active
     ws.title = "1_CARTERA_Y_TRADER_IA"
     headers = [
         "Semana", "Fecha Entrada", "Moneda", "Motivo de Elección", "Capital ($)",
         "Precio Entrada", "Precio Objetivo", "Subida Esperada (%)",
         "Precio Actual", "Máximo Alcanzado", "Rendimiento (%)",
-        "PnL ($)", "Orden Copiloto Trader IA", "Análisis Trader IA (15m/1h)", "Estado"
+        "PnL ($)", "Lectura Fibonacci 4H", "Orden Copiloto Trader IA", "Análisis Trader IA (15m/1h/Fib)", "Estado"
     ]
     ws.append(headers)
     for col_idx in range(1, len(headers) + 1):
@@ -551,6 +619,7 @@ def actualizar_excel_semanal(plan):
             float(pos.get("precio_maximo", 0)),
             round(float(pos.get("pnl_pct", 0)), 2),
             pnl_v,
+            pos.get("fib_lectura", "Fib N/D"),
             pos.get("trader_ia_orden", "🟢 MANTENER"),
             pos.get("trader_ia_razon", ""),
             pos.get("estado", "")
@@ -563,7 +632,7 @@ def actualizar_excel_semanal(plan):
 
     # Pestaña 2: Alternativas Evaluadas
     ws_alt = wb.create_sheet(title="2_ALTERNATIVAS_RADAR")
-    headers_alt = ["Ranking", "Moneda", "Origen Señal", "Score IA", "Precio Actual", "Decisión", "Análisis Técnico / Motivo"]
+    headers_alt = ["Ranking", "Moneda", "Origen Señal", "Score IA + Fib", "Precio Actual", "Decisión", "Análisis Técnico / Fibonacci"]
     ws_alt.append(headers_alt)
     for col_idx in range(1, len(headers_alt) + 1):
         c = ws_alt.cell(row=1, column=col_idx)
@@ -626,7 +695,7 @@ def actualizar_excel_semanal(plan):
     for sheet in (ws, ws_alt, ws_aud, ws2):
         for col in sheet.columns:
             max_len = max(len(str(c.value or "")) for c in col)
-            sheet.column_dimensions[col[0].column_letter].width = min(max_len + 4, 44)
+            sheet.column_dimensions[col[0].column_letter].width = min(max_len + 4, 46)
 
     wb.save(EXCEL_SEMANAL_FILE)
 
@@ -700,7 +769,7 @@ def construir_bloque_1_alternativas(plan):
     msg = (
         f"🔍 <b>GESTOR SEMANAL • BLOQUE 1/3: ALTERNATIVAS DETECTADAS</b>\n"
         f"📅 <code>{ahora_str}</code> | Semana <code>{plan['semana_id']}</code>\n"
-        f"<i>Ranking de monedas 'al horno' filtradas desde Cazador Táctico y Pre-Explosión:</i>\n\n"
+        f"<i>Ranking de monedas 'al horno' filtradas con Score IA + Fibonacci 4H:</i>\n\n"
     )
     if not alts:
         msg += "⏳ <i>Aún no hay candidatas nuevas en el embudo para listar.</i>"
@@ -723,7 +792,7 @@ def construir_bloque_2_cartera(plan, evento_titulo):
     aud = plan.get("auditoria_ia", {})
 
     msg = (
-        f"🏆 <b>GESTOR + TRADER IA • BLOQUE 2/3: CARTERA Y AUDITORÍA</b>\n"
+        f"🏆 <b>GESTOR + TRADER IA + FIB • BLOQUE 2/3: CARTERA Y AUDITORÍA</b>\n"
         f"{evento_titulo}\n"
         f"📅 <code>{ahora_str}</code> | Cuota: <code>${meta:,.0f} USD</code> | Progreso: <b>${real + flot:+.2f} USD ({cump}%)</b>\n"
     )
@@ -743,6 +812,7 @@ def construir_bloque_2_cartera(plan, evento_titulo):
             u_ia = f"{BASE_URL_NETLIFY}/?coin={p['base']}&price={p['precio_actual']}&v={p['base']}_{uid}"
             u_tr = f"https://www.binance.com/es/trade/{p['base']}_USDT"
             motivo = html.escape(p.get("motivo_eleccion", p.get("origen", "")))
+            fib_l = html.escape(p.get("fib_lectura", "Fib N/D"))
             orden_tr = html.escape(p.get("trader_ia_orden", "🟢 MANTENER"))
             razon_tr = html.escape(p.get("trader_ia_razon", ""))
             msg += (
@@ -750,6 +820,7 @@ def construir_bloque_2_cartera(plan, evento_titulo):
                 f"• <b>Elección:</b> <i>{motivo}</i>\n"
                 f"• <b>Entrada:</b> <code>{formatear_precio(p['precio_entrada'])}</code> ➔ <b>Actual:</b> <code>{formatear_precio(p['precio_actual'])}</code> (<b>{p['pnl_pct']:+.2f}%</b> | <code>${p['pnl_usd']:+.2f}</code>)\n"
                 f"• <b>Objetivo (+{p['subida_necesaria_pct']:.2f}%):</b> <code>{formatear_precio(p['precio_objetivo'])}</code> | Stop: <code>{STOP_PROTECCION_PCT}%</code>\n"
+                f"• <b>Geometría Fib:</b> <code>{fib_l}</code>\n"
                 f"• <b>Copiloto Trader IA:</b> <b>{orden_tr}</b> — <i>{razon_tr}</i>\n"
                 f"└ <a href=\"{html.escape(u_ia)}\">📊 Gráfico IA</a> | <a href=\"{html.escape(u_tr)}\">🔶 Tradear Spot</a>\n\n"
             )
@@ -850,7 +921,7 @@ def ejecutar_gestor_semanal():
         plan["estado_semana"] = "META_CUMPLIDA"
         plan["fecha_cierre_meta"] = ahora_str
 
-    # Evaluar alternativas y seleccionar en ventana de cierre diario (23:50 - 00:10 ART) o si la cartera está vacía
+    # Evaluar alternativas con Fibonacci y seleccionar en ventana de cierre diario (23:50 - 00:10 ART) o si la cartera está vacía
     excluidas = {p["symbol"] for p in plan["posiciones"]} | {c["symbol"] for c in plan["historial_cierres"] if c.get("semana_id") == plan["semana_id"]}
     alternativas = evaluar_alternativas_al_horno(s, mapa_mkt, excluidas)
     plan["alternativas_evaluadas"] = alternativas
@@ -906,37 +977,34 @@ def ejecutar_gestor_semanal():
                     plan["posiciones"].append(nueva_pos)
                     nuevas_entradas.append(nueva_pos)
 
-    # Ejecutar Copiloto Trader IA (Paso 7) + Auditor IA 24h (Paso 6)
+    # Ejecutar Copiloto Trader IA + Auditor IA 24h con lectura Fibonacci
     aud_actual = evaluar_copiloto_trader_y_auditor_ia(s, mapa_mkt, plan, msg_btc)
 
-    # Si se cumplió la cuota semanal, emitir Veredicto Final de Factibilidad
     veredicto_final_txt = ""
     if plan["estado_semana"] == "META_CUMPLIDA":
         veredicto_final_txt = generar_veredicto_final_ia(plan)
         plan["auditoria_ia"]["veredicto_final_semana"] = veredicto_final_txt
         aud_actual["veredicto_final_semana"] = veredicto_final_txt
 
-    # Alerta inmediata cada 10 min si el Copiloto Trader IA detecta punto óptimo de venta o riesgo de bajada
     alertas_ia_inmediatas = [
         p for p in plan["posiciones"]
         if any(tag in p.get("trader_ia_orden", "") for tag in ["VENDER AHORA", "ASEGURAR 50%", "RIESGO DE BAJADA"])
     ]
     for p_v in alertas_ia_inmediatas:
         enviar_telegram_texto(
-            f"🚨 <b>COPILOTO TRADER IA • ALERTA EN VIVO (10m)</b>\n"
+            f"🚨 <b>COPILOTO TRADER IA + FIB • ALERTA EN VIVO (10m)</b>\n"
             f"📅 <code>{ahora_str}</code>\n\n"
             f"💰 <b>{p_v['base']}</b> | PnL actual: <b>{p_v['pnl_pct']:+.2f}%</b> (<code>${p_v['pnl_usd']:+.2f} USD</code>)\n"
             f"• <b>Orden IA:</b> <b>{html.escape(p_v['trader_ia_orden'])}</b>\n"
+            f"• <b>Geometría Fib:</b> <code>{html.escape(p_v.get('fib_lectura', ''))}</code>\n"
             f"• <b>Análisis gráfico 15m/1h:</b> <i>{html.escape(p_v.get('trader_ia_razon', ''))}</i>"
         )
 
-    # Enviar los 3 Bloques Ordenados cuando hay novedades o cada hora en punto
     es_corte_horario = (plan.get("ultimo_reporte_hora") != ahora_dt.hour)
     hay_novedades = bool(nuevas_entradas or alertas_parciales or alertas_venta or plan["estado_semana"] == "META_CUMPLIDA")
 
     if hay_novedades or es_corte_horario:
         plan["ultimo_reporte_hora"] = ahora_dt.hour
-        # Registrar snapshot en la bitácora histórica de auditoría para el Excel
         plan.setdefault("historial_auditorias", []).append(dict(aud_actual))
         plan["historial_auditorias"] = plan["historial_auditorias"][-100:]
         actualizar_excel_semanal(plan)
@@ -948,11 +1016,11 @@ def ejecutar_gestor_semanal():
         if plan["estado_semana"] == "META_CUMPLIDA":
             titulo_ev = "🏆 <b>¡CUOTA SEMANAL CUMPLIDA — MODO PROTECCIÓN!</b>"
         elif nuevas_entradas:
-            titulo_ev = "🆕 <b>SELECCIÓN DE CARTERA (CIERRE 1D • 4 MONEDAS + IA)</b>"
+            titulo_ev = "🆕 <b>SELECCIÓN DE CARTERA (CIERRE 1D • 4 MONEDAS + FIB + IA)</b>"
         elif alertas_venta or alertas_parciales:
             titulo_ev = "💰 <b>ACTUALIZACIÓN DE TOMA DE GANANCIAS / CIERRE</b>"
         else:
-            titulo_ev = "📡 <b>RADAR CONTINUO • AUDITORÍA 24H Y COPILOTO TRADER IA</b>"
+            titulo_ev = "📡 <b>RADAR CONTINUO • AUDITORÍA 24H, FIBONACCI Y TRADER IA</b>"
 
         caption = construir_bloque_2_cartera(plan, titulo_ev)
         enviar_foto_telegram(img, caption)
@@ -960,7 +1028,7 @@ def ejecutar_gestor_semanal():
 
         enviar_excel_telegram(
             f"📎 <b>GESTOR Y RADAR SEMANAL • BLOQUE 3/3: PLANILLA EXCEL</b>\n"
-            f"📊 Registro completo en 4 pestañas con bitácora histórica IA y Veredicto (<code>{EXCEL_SEMANAL_FILE}</code>)."
+            f"📊 Registro completo en 4 pestañas con lectura Fibonacci 4H, bitácora IA y Veredicto (<code>{EXCEL_SEMANAL_FILE}</code>)."
         )
     else:
         actualizar_excel_semanal(plan)
@@ -986,5 +1054,5 @@ def ejecutar_gestor_semanal():
     guardar_plan_semanal(plan)
 
 if __name__ == "__main__":
-    print(f"🧪 INICIANDO GESTOR SEMANAL UNIFICADO + IA ({ahora_art().strftime('%H:%M:%S')} ART)...")
+    print(f"🧪 INICIANDO GESTOR SEMANAL UNIFICADO + IA + FIBONACCI ({ahora_art().strftime('%H:%M:%S')} ART)...")
     ejecutar_gestor_semanal()
