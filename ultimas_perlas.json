@@ -1,19 +1,19 @@
 [
   [
-    "SUIUSDT",
-    "POLUSDT",
-    "WLDUSDT",
-    "STRKUSDT",
-    "APTUSDT",
-    "FILUSDT",
-    "BONKUSDT"
-  ],
-  [
     "NEARUSDT",
     "DODOUSDT",
     "KITEUSDT",
     "ASTERUSDT",
     "CAKEUSDT",
+    "BMTUSDT",
+    "WLDUSDT"
+  ],
+  [
+    "NEARUSDT",
+    "DODOUSDT",
+    "ASTERUSDT",
+    "CAKEUSDT",
+    "KITEUSDT",
     "BMTUSDT",
     "WLDUSDT"
   ]
