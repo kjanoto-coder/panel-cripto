@@ -497,6 +497,36 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null
+    },
+    "ARUSDT": {
+      "symbol": "ARUSDT",
+      "ticker": "AR",
+      "fecha_verde": "2026-11-23",
+      "ts_verde": "2026-11-23 00:21",
+      "precio_verde": 2.31,
+      "es_oro": false,
+      "origen": "CAZADOR_TACTICO_ROJO",
+      "estado": "PENDIENTE",
+      "fecha_ganadora": "",
+      "precio_ganadora": 0.0,
+      "subida_real_pct": 0.0,
+      "subida_24h_dia_pct": 0.0,
+      "dias_demora": null
+    },
+    "DODOUSDT": {
+      "symbol": "DODOUSDT",
+      "ticker": "DODO",
+      "fecha_verde": "2026-11-23",
+      "ts_verde": "2026-11-23 00:21",
+      "precio_verde": 0.03993,
+      "es_oro": false,
+      "origen": "CAZADOR_TACTICO_ROJO",
+      "estado": "PENDIENTE",
+      "fecha_ganadora": "",
+      "precio_ganadora": 0.0,
+      "subida_real_pct": 0.0,
+      "subida_24h_dia_pct": 0.0,
+      "dias_demora": null
     }
   }
 }
