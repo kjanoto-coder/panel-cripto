@@ -1,14 +1,5 @@
 [
   [
-    "SUIUSDT",
-    "ONEUSDT",
-    "ICPUSDT",
-    "GRAMUSDT",
-    "HBARUSDT",
-    "PENGUUSDT",
-    "XLMUSDT"
-  ],
-  [
     "SENTUSDT",
     "DODOUSDT",
     "FILUSDT",
@@ -16,5 +7,14 @@
     "FETUSDT",
     "CAKEUSDT",
     "ZROUSDT"
+  ],
+  [
+    "TRXUSDT",
+    "DOGEUSDT",
+    "ADAUSDT",
+    "ACEUSDT",
+    "JSTUSDT",
+    "KITEUSDT",
+    "DOTUSDT"
   ]
 ]
