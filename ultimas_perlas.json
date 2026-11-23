@@ -1,20 +1,20 @@
 [
   [
     "TRXUSDT",
-    "DOGEUSDT",
-    "ADAUSDT",
-    "ACEUSDT",
-    "JSTUSDT",
-    "KITEUSDT",
-    "DOTUSDT"
-  ],
-  [
-    "TRXUSDT",
     "ADAUSDT",
     "ERAUSDT",
     "DODOUSDT",
     "SENTUSDT",
     "FILUSDT",
     "MORPHOUSDT"
+  ],
+  [
+    "GRAMUSDT",
+    "ICPUSDT",
+    "SKYUSDT",
+    "XPLUSDT",
+    "CAKEUSDT",
+    "HBARUSDT",
+    "PENGUUSDT"
   ]
 ]
