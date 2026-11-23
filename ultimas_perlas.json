@@ -1,14 +1,5 @@
 [
   [
-    "XRPUSDT",
-    "DOGEUSDT",
-    "PEPEUSDT",
-    "SUIUSDT",
-    "FETUSDT",
-    "WLDUSDT",
-    "ICPUSDT"
-  ],
-  [
     "TRXUSDT",
     "ONDOUSDT",
     "FILUSDT",
@@ -16,5 +7,14 @@
     "PENGUUSDT",
     "PUMPUSDT",
     "DOTUSDT"
+  ],
+  [
+    "ENAUSDT",
+    "UNIUSDT",
+    "DODOUSDT",
+    "XPLUSDT",
+    "ASTERUSDT",
+    "CAKEUSDT",
+    "LUNCUSDT"
   ]
 ]
