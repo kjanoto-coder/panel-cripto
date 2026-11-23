@@ -1,14 +1,5 @@
 [
   [
-    "NEARUSDT",
-    "ASTERUSDT",
-    "POLUSDT",
-    "DODOUSDT",
-    "KITEUSDT",
-    "XPLUSDT",
-    "CAKEUSDT"
-  ],
-  [
     "DOGEUSDT",
     "UNIUSDT",
     "ENAUSDT",
@@ -16,5 +7,14 @@
     "GRAMUSDT",
     "STRKUSDT",
     "WLDUSDT"
+  ],
+  [
+    "XRPUSDT",
+    "PEPEUSDT",
+    "SUIUSDT",
+    "ADAUSDT",
+    "ETHFIUSDT",
+    "DOTUSDT",
+    "ARBUSDT"
   ]
 ]
