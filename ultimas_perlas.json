@@ -1,14 +1,5 @@
 [
   [
-    "TRXUSDT",
-    "ADAUSDT",
-    "ERAUSDT",
-    "MORPHOUSDT",
-    "GRAMUSDT",
-    "JSTUSDT",
-    "SKYUSDT"
-  ],
-  [
     "SENTUSDT",
     "ATOMUSDT",
     "FILUSDT",
@@ -16,5 +7,14 @@
     "CAKEUSDT",
     "PENGUUSDT",
     "DOTUSDT"
+  ],
+  [
+    "TRXUSDT",
+    "SENTUSDT",
+    "ATOMUSDT",
+    "MORPHOUSDT",
+    "ERAUSDT",
+    "GRAMUSDT",
+    "SKYUSDT"
   ]
 ]
