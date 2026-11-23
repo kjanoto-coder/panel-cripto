@@ -3,18 +3,18 @@
     "TRXUSDT",
     "ADAUSDT",
     "ERAUSDT",
-    "DODOUSDT",
-    "GRAMUSDT",
-    "SKYUSDT",
-    "MORPHOUSDT"
-  ],
-  [
-    "TRXUSDT",
-    "ADAUSDT",
-    "ERAUSDT",
     "MORPHOUSDT",
     "GRAMUSDT",
     "JSTUSDT",
     "SKYUSDT"
+  ],
+  [
+    "SENTUSDT",
+    "ATOMUSDT",
+    "FILUSDT",
+    "ICPUSDT",
+    "CAKEUSDT",
+    "PENGUUSDT",
+    "DOTUSDT"
   ]
 ]
