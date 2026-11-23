@@ -1,14 +1,5 @@
 [
   [
-    "XRPUSDT",
-    "PEPEUSDT",
-    "SUIUSDT",
-    "ADAUSDT",
-    "ZROUSDT",
-    "DODOUSDT",
-    "HBARUSDT"
-  ],
-  [
     "NEARUSDT",
     "JSTUSDT",
     "ONDOUSDT",
@@ -16,5 +7,14 @@
     "DOTUSDT",
     "PUMPUSDT",
     "AIGENSYNUSDT"
+  ],
+  [
+    "UNIUSDT",
+    "ENAUSDT",
+    "XPLUSDT",
+    "ICPUSDT",
+    "STRKUSDT",
+    "ASTERUSDT",
+    "WLDUSDT"
   ]
 ]
