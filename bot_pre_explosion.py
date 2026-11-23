@@ -134,6 +134,38 @@ def obtener_datos_binance(session):
             print(f"⚠️ Error al conectar con {url}: {e}")
     return []
 
+def analizar_order_book_blindaje(session, symbol):
+    """Audita el libro de órdenes real (20 niveles) para detectar muros vendedores o vacío de liquidez."""
+    urls = [
+        f"https://api.binance.com/api/v3/depth?symbol={symbol}&limit=20",
+        f"https://data-api.binance.vision/api/v3/depth?symbol={symbol}&limit=20"
+    ]
+    for u in urls:
+        try:
+            r = session.get(u, timeout=5)
+            if r.status_code == 200:
+                d = r.json()
+                bids = d.get("bids", [])
+                asks = d.get("asks", [])
+                if not bids or not asks:
+                    continue
+                best_bid = float(bids[0][0])
+                best_ask = float(asks[0][0])
+                spread_pct = ((best_ask - best_bid) / best_bid) * 100 if best_bid > 0 else 99.0
+                vol_bids = sum(float(b[0]) * float(b[1]) for b in bids)
+                vol_asks = sum(float(a[0]) * float(a[1]) for a in asks)
+                ratio_ba = round(vol_bids / vol_asks, 2) if vol_asks > 0 else 1.0
+                libro_sano = (spread_pct <= 0.45 and ratio_ba >= 0.75)
+                return {
+                    "ok": True,
+                    "spread_pct": round(spread_pct, 3),
+                    "ratio_bids_asks": ratio_ba,
+                    "libro_sano": libro_sano
+                }
+        except Exception:
+            continue
+    return {"ok": False, "spread_pct": 0.1, "ratio_bids_asks": 1.0, "libro_sano": True}
+
 def obtener_metricas_velas(session, symbol):
     """Obtiene cambio 1h, cambio 4h, volumen relativo 1h y niveles geométricos Fibonacci 4H."""
     cambio_1h = 0.0
@@ -242,7 +274,7 @@ def es_simbolo_valido(base):
         return False
     return True
 
-def construir_item_desde_ticker(session, t, desde_posta=False, info_grad=None):
+def construir_item_desde_ticker(session, t, desde_posta=False, info_grad=None, info_posta=None):
     symbol = t.get('symbol', '')
     base = symbol[:-4] if symbol.endswith('USDT') else symbol
     precio = float(t.get('lastPrice', 0))
@@ -260,7 +292,6 @@ def construir_item_desde_ticker(session, t, desde_posta=False, info_grad=None):
     pct_rango = (rango / precio) * 100 if precio > 0 else 1.0
     factor_spike = (vol_usdt / 1_000_000) / (pct_rango if pct_rango > 0 else 1.0)
 
-    # Ajuste geométrico Fibonacci 4H
     bono_fib = 0.0
     if fib_info.get("ok"):
         if fib_info.get("en_pullback_sano"):
@@ -268,7 +299,6 @@ def construir_item_desde_ticker(session, t, desde_posta=False, info_grad=None):
         elif fib_info.get("extendida_fib"):
             bono_fib = -10.0
 
-    # Penalización Anti-FOMO en momentum extendido
     penalizacion_extension = 14.0 if (pos_liquidez_pct > 90.0 or cambio_24h > 7.5) else 0.0
     bonus_posta = 18.0 if desde_posta else 0.0
     score_ia = round(
@@ -276,7 +306,6 @@ def construir_item_desde_ticker(session, t, desde_posta=False, info_grad=None):
         2
     )
 
-    # Score quirúrgico ORO: premia absorción positiva (+1.8% a +4.5%), volumen 1h relativo, piso de rango y apoyo Fibonacci
     score_oro = round(
         (vol_1h_rel * 2.5) + (factor_spike * 1.5) + (cambio_1h * 2.0) - abs(3.0 - cambio_24h) + (pos_liquidez_pct / 30.0) + (bono_fib * 0.6),
         2
@@ -307,9 +336,131 @@ def construir_item_desde_ticker(session, t, desde_posta=False, info_grad=None):
         'score_oro': score_oro,
         'es_oro': False,
         'desde_posta': bool(desde_posta),
+        'en_cazador_tactico': bool(info_posta),
+        'etapa_tactica': int(info_posta.get("etapa", 0)) if info_posta else 0,
         'var_desde_grad': var_desde_grad,
-        'fecha_grad': fecha_grad
+        'fecha_grad': fecha_grad,
+        'certificada_ia': False,
+        'blindaje_pct': 0,
+        'motivo_certificacion': ""
     }
+
+def certificar_confluencia_ia(session, seleccion_total, historial):
+    """
+    GESTOR CERTIFICADOR IA:
+    Cruza Cazador Táctico + Pre-Explosión + Fibonacci + Order Book Depth y certifica con Gemini
+    qué monedas están blindadas y aptas para pasar a la cartera semanal.
+    """
+    if not seleccion_total:
+        return
+
+    grad = historial.get("graduadas_pre_explosion", {})
+    hoy_str = ahora_art().strftime('%Y-%m-%d')
+    fecha_corta = ahora_art().strftime('%d/%m %H:%M')
+
+    resumen_para_ia = []
+    for item in seleccion_total:
+        sym = item["symbol"]
+        ob = analizar_order_book_blindaje(session, sym)
+        fib = item.get("fib_info", {})
+
+        # Cálculo determinístico base de blindaje (0 a 100)
+        puntos = 50
+        coincide_etapas = item.get("desde_posta") or item.get("en_cazador_tactico")
+        if coincide_etapas:
+            puntos += 18  # Coincidencia confirmada entre Cazador Táctico y Pre-Explosión
+        if fib.get("en_pullback_sano"):
+            puntos += 12
+        elif fib.get("extendida_fib"):
+            puntos -= 15
+        if ob.get("libro_sano"):
+            puntos += 10
+        else:
+            puntos -= 14
+        if item["vol_1h_rel"] >= 1.1:
+            puntos += 8
+        if -1.5 <= item["cambio_f"] <= 7.0:
+            puntos += 7
+
+        blindaje_pct = max(25, min(98, puntos))
+        certificada = (blindaje_pct >= 72 and ob.get("libro_sano", True) and not fib.get("extendida_fib", False))
+
+        razones = []
+        if coincide_etapas:
+            razones.append("Coincide Cazador+PreExplosión")
+        if fib.get("ok"):
+            razones.append(fib.get("etiqueta_fib", ""))
+        razones.append(f"Libro Bids/Asks: {ob['ratio_bids_asks']}x (Spread {ob['spread_pct']}%)")
+
+        item["blindaje_pct"] = blindaje_pct
+        item["certificada_ia"] = certificada
+        item["motivo_certificacion"] = " | ".join(razones)
+
+        resumen_para_ia.append({
+            "moneda": item["ticker"],
+            "categoria": item["categoria"],
+            "coincide_cazador_y_preexplosion": coincide_etapas,
+            "cambio_1h": item["cambio_1h"],
+            "cambio_24h": item["cambio_f"],
+            "vol_1h_rel": item["vol_1h_rel"],
+            "fibonacci": fib.get("etiqueta_fib", "N/D"),
+            "order_book_ratio": ob["ratio_bids_asks"],
+            "spread_pct": ob["spread_pct"],
+            "blindaje_base": blindaje_pct
+        })
+
+    # Segunda opinión IA con Gemini para refinar la certificación
+    if GEMINI_API_KEY and resumen_para_ia:
+        try:
+            client = genai.Client(api_key=GEMINI_API_KEY)
+            prompt = (
+                "Eres el Gestor Certificador IA de un sistema cuantitativo en Binance Spot.\n"
+                "Revisa las siguientes candidatas que pasaron por Cazador Táctico y Pre-Explosión. "
+                "Certifica SOLO las que tengan coincidencia real de impulso sano, buen libro de órdenes (Bids >= Asks, spread bajo) y no estén extendidas en FOMO.\n"
+                f"CANDIDATAS:\n{json.dumps(resumen_para_ia, ensure_ascii=False)}\n\n"
+                "Responde ÚNICAMENTE en JSON válido:\n"
+                '{"MONEDA":{"certificada":true,"blindaje_pct":85,"nota":"motivo técnico corto de 1 línea"}}'
+            )
+            for mod in ["gemini-2.5-flash", "gemini-1.5-flash"]:
+                try:
+                    res = client.models.generate_content(model=mod, contents=prompt)
+                    if res and res.text:
+                        raw = res.text.strip()
+                        if "{" in raw and "}" in raw:
+                            raw = raw[raw.find("{"):raw.rfind("}") + 1]
+                        veredictos = json.loads(raw)
+                        for item in seleccion_total:
+                            v_mon = veredictos.get(item["ticker"])
+                            if isinstance(v_mon, dict):
+                                item["certificada_ia"] = bool(v_mon.get("certificada", item["certificada_ia"]))
+                                item["blindaje_pct"] = int(v_mon.get("blindaje_pct", item["blindaje_pct"]))
+                                if v_mon.get("nota"):
+                                    item["motivo_certificacion"] = str(v_mon["nota"])[:130]
+                        break
+                except Exception:
+                    continue
+        except Exception as e:
+            print(f"⚠️ Fallback Certificador IA: {e}")
+
+    # Grabar el sello de certificación en historial_perlas.json para que el Gestor Semanal lo lea
+    for item in seleccion_total:
+        sym = item["symbol"]
+        if item["certificada_ia"] or sym in grad:
+            prev = grad.get(sym, {})
+            grad[sym] = {
+                "symbol": sym,
+                "base": item["ticker"],
+                "estrellas": 3 if item["categoria"] == "ROJO" else 2,
+                "probabilidad_pct": item["blindaje_pct"],
+                "precio_ref": float(prev.get("precio_ref") or item["precio_f"]),
+                "fecha_iso": prev.get("fecha_iso", hoy_str),
+                "fecha_corta": prev.get("fecha_corta", fecha_corta),
+                "certificada_ia": bool(item["certificada_ia"]),
+                "blindaje_pct": int(item["blindaje_pct"]),
+                "motivo_certificacion": item["motivo_certificacion"]
+            }
+
+    historial["graduadas_pre_explosion"] = grad
 
 def motor_ia_seleccion_tactica(tickers, simbolos_activos, session, historial):
     hoy_str = ahora_art().strftime('%Y-%m-%d')
@@ -382,7 +533,7 @@ def motor_ia_seleccion_tactica(tickers, simbolos_activos, session, historial):
             vol_usdt = float(t.get('quoteVolume', 0))
             if precio > 0 and vol_usdt >= 250_000:
                 total_analizadas += 1
-                it = construir_item_desde_ticker(session, t, desde_posta=True, info_grad=grad.get(sym))
+                it = construir_item_desde_ticker(session, t, desde_posta=True, info_grad=grad.get(sym), info_posta=posta.get(sym))
                 if it:
                     items_posta_roja.append(it)
         except (ValueError, TypeError):
@@ -391,7 +542,6 @@ def motor_ia_seleccion_tactica(tickers, simbolos_activos, session, historial):
     items_posta_roja.sort(key=lambda x: x['score_ia'], reverse=True)
     vistos = {x['symbol'] for x in items_posta_roja}
 
-    # Universo filtrado con liquidez mínima >= $1.0M USDT para eliminar ruido ilíquido
     for sym, t in mapa_tickers.items():
         if sym in vistos or sym in mencionadas:
             continue
@@ -401,13 +551,12 @@ def motor_ia_seleccion_tactica(tickers, simbolos_activos, session, historial):
             vol_usdt = float(t.get('quoteVolume', 0))
             if 0.000001 <= precio < 15.0 and vol_usdt >= 1_000_000 and -2.0 <= cambio_24h <= 9.0:
                 total_analizadas += 1
-                it = construir_item_desde_ticker(session, t, desde_posta=False, info_grad=None)
+                it = construir_item_desde_ticker(session, t, desde_posta=False, info_grad=None, info_posta=posta.get(sym))
                 if it and (it['cambio_1h'] >= -0.2 or it['cambio_4h'] >= 0.3):
                     candidatas_mercado.append(it)
         except (ValueError, TypeError):
             continue
 
-    # --- 1. SELECCIÓN DE ROJO Y AMARILLO (RUPTURA / MOMENTUM ANTI-FOMO + FIB) ---
     candidatas_mercado.sort(key=lambda x: x['score_ia'], reverse=True)
     candidatas_impulso = [x for x in candidatas_mercado if x['cambio_f'] <= 6.5]
     seleccion_impulso = items_posta_roja[:8]
@@ -419,7 +568,6 @@ def motor_ia_seleccion_tactica(tickers, simbolos_activos, session, historial):
     top_amarillas = seleccion_impulso[4:8]
     usadas_arriba = {x['symbol'] for x in (top_rojas + top_amarillas)}
 
-    # --- 2. FILTRO QUIRÚRGICO DE VERDE ("TOP 3 ORO • COMPRA AQUÍ") ---
     candidatas_oro = []
     candidatas_piso_respaldo = []
 
@@ -462,6 +610,10 @@ def motor_ia_seleccion_tactica(tickers, simbolos_activos, session, historial):
         verdes_hoy.add(item['symbol'])
 
     seleccion_total = top_rojas + top_amarillas + top_verdes
+
+    # Ejecutar Gestor Certificador IA sobre las finalistas
+    certificar_confluencia_ia(session, seleccion_total, historial)
+
     for item in seleccion_total:
         sym = item['symbol']
         mencionadas[sym] = 3
@@ -469,7 +621,6 @@ def motor_ia_seleccion_tactica(tickers, simbolos_activos, session, historial):
             historial["resumen_dia"].append(sym)
 
     historial["mencionadas"] = mencionadas
-    historial["graduadas_pre_explosion"] = grad
     historial["verdes_hoy"] = list(verdes_hoy)
     historial["oro_hoy"] = list(oro_hoy)
     guardar_historial(historial)
@@ -480,7 +631,7 @@ def generar_grafico_color(lista_items, titulo_graf, subtitulo_graf, filename):
     if not lista_items:
         return None
     simbolos = [
-        f"{'🏆' if item.get('es_oro') else ('***' if item.get('desde_posta') else '')}{item['ticker']}"
+        f"{'🛡️' if item.get('certificada_ia') else ('🏆' if item.get('es_oro') else '')}{item['ticker']}"
         for item in lista_items
     ]
     posiciones = [item['pos_liquidez_pct'] for item in lista_items]
@@ -504,8 +655,8 @@ def generar_grafico_color(lista_items, titulo_graf, subtitulo_graf, filename):
         yval = bar.get_height()
         xval = bar.get_x() + bar.get_width() / 2.0
         sim = item['ticker']
-        if item.get('desde_posta') or item.get('es_oro'):
-            bar.set_edgecolor('#ffd700')
+        if item.get('certificada_ia') or item.get('es_oro'):
+            bar.set_edgecolor('#00e676' if item.get('certificada_ia') else '#ffd700')
             bar.set_linewidth(2.2)
 
         ax.text(xval, yval + 2.5, f"{pos:.0f}%", ha='center', va='bottom', color=color, fontweight='bold', fontsize=8.5)
@@ -524,19 +675,17 @@ def generar_dictamen_color(cat_key, lista_items):
     if not lista_items:
         return ""
     if not GEMINI_API_KEY:
-        return f"Lectura {cat_key}: foco en velocidad 1h/4h, retrocesos Fibonacci y entradas limpias sin FOMO."
+        return f"Lectura {cat_key}: foco en confluencia Cazador+PreExplosión, libro de órdenes y Fibonacci."
 
     client = genai.Client(api_key=GEMINI_API_KEY)
     lista_texto = "\n".join([
-        f"- {i['ticker']} ({'TOP_ORO' if i.get('es_oro') else ('POSTA_ROJA' if i.get('desde_posta') else 'RADAR')}): "
-        f"1h {i['cambio_1h']:+.2f}%, 4h {i['cambio_4h']:+.2f}%, 24h {i['cambio_f']:+.2f}%, "
-        f"Rango {i['pos_liquidez_pct']:.0f}%, Vol1H {i['vol_1h_rel']:.1f}x, "
-        f"{i.get('fib_info', {}).get('etiqueta_fib', 'Fib N/D')}"
+        f"- {i['ticker']} ({'CERTIFICADA_IA ' + str(i['blindaje_pct']) + '%' if i.get('certificada_ia') else 'OBSERVACIÓN'}): "
+        f"1h {i['cambio_1h']:+.2f}%, 24h {i['cambio_f']:+.2f}%, Vol1H {i['vol_1h_rel']:.1f}x, {i.get('motivo_certificacion', '')}"
         for i in lista_items
     ])
     prompt = (
         f"Analista Spot Binance. Dá un dictamen breve (máximo 2 líneas) para el bloque {cat_key} de Pre-Explosión "
-        f"(si hay monedas TOP_ORO o en Pullback Sano Fibonacci, resaltalas como el punto dulce de entrada):\n{lista_texto}"
+        f"destacando las monedas que recibieron el sello CERTIFICADA_IA para cartera semanal:\n{lista_texto}"
     )
     for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
         try:
@@ -545,7 +694,7 @@ def generar_dictamen_color(cat_key, lista_items):
                 return response.text.strip()
         except Exception:
             continue
-    return f"Lectura {cat_key}: foco en velocidad 1h/4h, retrocesos Fibonacci y entradas limpias sin FOMO."
+    return f"Lectura {cat_key}: foco en confluencia Cazador+PreExplosión, libro de órdenes y Fibonacci."
 
 def enviar_telegram_foto(image_path, caption_text):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
@@ -594,7 +743,7 @@ def enviar_mensaje_por_color(num_msg, cat_key, titulo_color, items, total_analiz
     generar_grafico_color(
         items,
         f"PRE-EXPLOSION ({num_msg}/3) - {cat_key}",
-        f"Fecha: {fecha_str} | Analizadas: {total_analizadas} Spot | *** = Rojo Tactico | 🏆 = Compra Oro",
+        f"Fecha: {fecha_str} | Analizadas: {total_analizadas} Spot | 🛡️ = Certificada IA | 🏆 = Oro",
         fname
     )
     dictamen = generar_dictamen_color(cat_key, items)
@@ -624,6 +773,13 @@ def enviar_mensaje_por_color(num_msg, cat_key, titulo_color, items, total_analiz
             else:
                 etiqueta_extra = " ⭐⭐⭐ [Posta Roja]"
 
+        sello_cert = (
+            f"🛡️ <b>CERTIFICADA IA ({item['blindaje_pct']}%)</b>"
+            if item.get("certificada_ia")
+            else f"⏳ <i>En observación IA ({item['blindaje_pct']}%)</i>"
+        )
+        motivo_c = html.escape(item.get("motivo_certificacion", ""))
+
         fib = item.get("fib_info", {})
         linea_fib = ""
         if fib.get("ok"):
@@ -631,6 +787,7 @@ def enviar_mensaje_por_color(num_msg, cat_key, titulo_color, items, total_analiz
 
         cuerpo += (
             f"• <b>{sim}</b>{etiqueta_extra} (1h: {item['cambio_1h']:+.1f}% | 4h: {item['cambio_4h']:+.1f}% | 24h: {item['cambio_f']:+.1f}%) | <code>{precio_str}</code>\n"
+            f"  • {sello_cert} — <i>{motivo_c}</i>\n"
             f"{linea_fib}"
             f"  └ <a href=\"{html.escape(url_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n\n"
         )
@@ -638,7 +795,7 @@ def enviar_mensaje_por_color(num_msg, cat_key, titulo_color, items, total_analiz
     enviar_texto_telegram(cuerpo)
 
 if __name__ == "__main__":
-    print(f"🔥 EJECUTANDO PRE-EXPLOSIÓN V7 + FIBONACCI POR COLOR ({ahora_art().strftime('%Y-%m-%d %H:%M:%S')} ART)...")
+    print(f"🔥 EJECUTANDO PRE-EXPLOSIÓN V8 + CERTIFICADOR IA ({ahora_art().strftime('%Y-%m-%d %H:%M:%S')} ART)...")
     session = crear_sesion_binance()
     simbolos_activos = obtener_simbolos_spot_activos(session)
     datos = obtener_datos_binance(session)
