@@ -1,19 +1,19 @@
 [
   [
-    "IOSTUSDT",
-    "ALLOUSDT",
-    "KERNELUSDT",
-    "YBUSDT",
-    "RPLUSDT",
-    "REUSDT",
-    "SAPIENUSDT"
-  ],
-  [
     "DODOUSDT",
     "LUNCUSDT",
     "HUMAUSDT",
     "MORPHOUSDT",
     "AIGENSYNUSDT",
+    "SENTUSDT",
+    "MMTUSDT"
+  ],
+  [
+    "LUNCUSDT",
+    "ATOMUSDT",
+    "MORPHOUSDT",
+    "AIGENSYNUSDT",
+    "HUMAUSDT",
     "SENTUSDT",
     "MMTUSDT"
   ]
