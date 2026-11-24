@@ -1,14 +1,5 @@
 [
   [
-    "BARDUSDT",
-    "UNIUSDT",
-    "YBUSDT",
-    "ICPUSDT",
-    "ALLOUSDT",
-    "GALAUSDT",
-    "ALGOUSDT"
-  ],
-  [
     "TRXUSDT",
     "SENTUSDT",
     "MORPHOUSDT",
@@ -16,5 +7,14 @@
     "BLURUSDT",
     "CAKEUSDT",
     "IOSTUSDT"
+  ],
+  [
+    "TRXUSDT",
+    "SENTUSDT",
+    "HUMAUSDT",
+    "MORPHOUSDT",
+    "ICPUSDT",
+    "BLURUSDT",
+    "CAKEUSDT"
   ]
 ]
