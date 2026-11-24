@@ -3517,6 +3517,16 @@
       "certificada_ia": true,
       "blindaje_pct": 75,
       "motivo_certificacion": "Piso Profundo Fib (0.82) | Libro Bids/Asks: 1.17x (Spread 0.184%)"
+    },
+    "NBISBUSDT": {
+      "symbol": "NBISBUSDT",
+      "base": "NBISB",
+      "estrellas": 3,
+      "probabilidad_pct": 80,
+      "precio_ref": 92.92,
+      "fecha_iso": "2026-11-24",
+      "fecha_corta": "24/11",
+      "origen": "SEGUNDA_OLA_GANADORAS"
     }
   },
   "verdes_hoy": [
