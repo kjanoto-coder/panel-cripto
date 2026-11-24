@@ -3532,6 +3532,16 @@
       "certificada_ia": true,
       "blindaje_pct": 75,
       "motivo_certificacion": "Piso Profundo Fib (0.78) | Libro Bids/Asks: 9.24x (Spread 0.025%)"
+    },
+    "SOXLBUSDT": {
+      "symbol": "SOXLBUSDT",
+      "base": "SOXLB",
+      "estrellas": 3,
+      "probabilidad_pct": 80,
+      "precio_ref": 37.75,
+      "fecha_iso": "2026-11-24",
+      "fecha_corta": "24/11",
+      "origen": "SEGUNDA_OLA_GANADORAS"
     }
   },
   "verdes_hoy": [
