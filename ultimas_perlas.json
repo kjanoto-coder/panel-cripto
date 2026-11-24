@@ -1,14 +1,5 @@
 [
   [
-    "DODOUSDT",
-    "LUNCUSDT",
-    "HUMAUSDT",
-    "MORPHOUSDT",
-    "AIGENSYNUSDT",
-    "SENTUSDT",
-    "MMTUSDT"
-  ],
-  [
     "LUNCUSDT",
     "ATOMUSDT",
     "MORPHOUSDT",
@@ -16,5 +7,14 @@
     "HUMAUSDT",
     "SENTUSDT",
     "MMTUSDT"
+  ],
+  [
+    "PEPEUSDT",
+    "OPGUSDT",
+    "SHELLUSDT",
+    "BLURUSDT",
+    "ZILUSDT",
+    "KITEUSDT",
+    "ALLOUSDT"
   ]
 ]
