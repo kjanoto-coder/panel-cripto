@@ -1,14 +1,5 @@
 [
   [
-    "SENTUSDT",
-    "MORPHOUSDT",
-    "DODOUSDT",
-    "HUMAUSDT",
-    "KAVAUSDT",
-    "MMTUSDT",
-    "IOSTUSDT"
-  ],
-  [
     "DODOUSDT",
     "MORPHOUSDT",
     "SENTUSDT",
@@ -16,5 +7,14 @@
     "HUMAUSDT",
     "MMTUSDT",
     "KAVAUSDT"
+  ],
+  [
+    "TRXUSDT",
+    "PEPEUSDT",
+    "OPGUSDT",
+    "BLURUSDT",
+    "ATOMUSDT",
+    "ZILUSDT",
+    "KITEUSDT"
   ]
 ]
