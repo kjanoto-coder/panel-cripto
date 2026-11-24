@@ -3793,6 +3793,36 @@
       "fecha_iso": "2026-11-24",
       "fecha_corta": "24/11",
       "origen": "SEGUNDA_OLA_GANADORAS"
+    },
+    "IRENBUSDT": {
+      "symbol": "IRENBUSDT",
+      "base": "IRENB",
+      "estrellas": 3,
+      "probabilidad_pct": 80,
+      "precio_ref": 14.06,
+      "fecha_iso": "2026-11-24",
+      "fecha_corta": "24/11",
+      "origen": "SEGUNDA_OLA_GANADORAS"
+    },
+    "MUBUSDT": {
+      "symbol": "MUBUSDT",
+      "base": "MUB",
+      "estrellas": 3,
+      "probabilidad_pct": 80,
+      "precio_ref": 665.74,
+      "fecha_iso": "2026-11-24",
+      "fecha_corta": "24/11",
+      "origen": "SEGUNDA_OLA_GANADORAS"
+    },
+    "BIGTIMEUSDT": {
+      "symbol": "BIGTIMEUSDT",
+      "base": "BIGTIME",
+      "estrellas": 3,
+      "probabilidad_pct": 80,
+      "precio_ref": 0.00424,
+      "fecha_iso": "2026-11-24",
+      "fecha_corta": "24/11",
+      "origen": "SEGUNDA_OLA_GANADORAS"
     }
   },
   "verdes_hoy": [
