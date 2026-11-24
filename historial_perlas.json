@@ -3531,6 +3531,26 @@
       "certificada_ia": true,
       "blindaje_pct": 79,
       "motivo_certificacion": "Pullback Sano Fib (0.41) | Libro Bids/Asks: 1.4x (Spread 0.036%)"
+    },
+    "MUBARAKUSDT": {
+      "symbol": "MUBARAKUSDT",
+      "base": "MUBARAK",
+      "estrellas": 3,
+      "probabilidad_pct": 80,
+      "precio_ref": 0.02374,
+      "fecha_iso": "2026-11-24",
+      "fecha_corta": "24/11",
+      "origen": "SEGUNDA_OLA_GANADORAS"
+    },
+    "DRAMBUSDT": {
+      "symbol": "DRAMBUSDT",
+      "base": "DRAMB",
+      "estrellas": 3,
+      "probabilidad_pct": 80,
+      "precio_ref": 37.55,
+      "fecha_iso": "2026-11-24",
+      "fecha_corta": "24/11",
+      "origen": "SEGUNDA_OLA_GANADORAS"
     }
   },
   "verdes_hoy": [
