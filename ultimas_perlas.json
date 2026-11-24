@@ -4,17 +4,17 @@
     "SENTUSDT",
     "AIGENSYNUSDT",
     "MORPHOUSDT",
-    "HUMAUSDT",
     "FILUSDT",
-    "ICPUSDT"
+    "ICPUSDT",
+    "HUMAUSDT"
   ],
   [
     "TRXUSDT",
     "SENTUSDT",
     "AIGENSYNUSDT",
     "MORPHOUSDT",
-    "FILUSDT",
-    "ICPUSDT",
-    "HUMAUSDT"
+    "HUMAUSDT",
+    "IOSTUSDT",
+    "ICPUSDT"
   ]
 ]
