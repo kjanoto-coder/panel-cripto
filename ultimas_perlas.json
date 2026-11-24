@@ -6,15 +6,15 @@
     "SENTUSDT",
     "CAKEUSDT",
     "ICPUSDT",
-    "MORPHOUSDT"
+    "FILUSDT"
   ],
   [
     "TRXUSDT",
     "ADAUSDT",
     "HUMAUSDT",
     "SENTUSDT",
-    "CAKEUSDT",
     "ICPUSDT",
-    "FILUSDT"
+    "CAKEUSDT",
+    "MORPHOUSDT"
   ]
 ]
