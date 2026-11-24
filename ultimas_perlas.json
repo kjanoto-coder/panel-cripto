@@ -1,14 +1,5 @@
 [
   [
-    "JSTUSDT",
-    "LUNCUSDT",
-    "KITEUSDT",
-    "SHELLUSDT",
-    "INITUSDT",
-    "AIGENSYNUSDT",
-    "DODOUSDT"
-  ],
-  [
     "SENTUSDT",
     "KAVAUSDT",
     "PSGUSDT",
@@ -16,5 +7,14 @@
     "NIGHTUSDT",
     "RPLUSDT",
     "REUSDT"
+  ],
+  [
+    "USUALUSDT",
+    "OPGUSDT",
+    "ASRUSDT",
+    "ZILUSDT",
+    "BABYUSDT",
+    "BIGTIMEUSDT",
+    "ATOMUSDT"
   ]
 ]
