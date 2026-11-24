@@ -90,6 +90,7 @@ def cargar_historial_ganadoras():
         "ultima_actualizacion": "",
         "dias": {},
         "ultimo_reporte_semanal": "",
+        "ultimo_envio_excel": "",
         "registro_verdes": {}
     }
     if os.path.exists(HISTORIAL_GANADORAS_FILE):
@@ -109,6 +110,7 @@ def cargar_historial_ganadoras():
                 base["dias"] = dias_limpios
                 base["ultima_actualizacion"] = data.get("ultima_actualizacion", "")
                 base["ultimo_reporte_semanal"] = data.get("ultimo_reporte_semanal", "")
+                base["ultimo_envio_excel"] = data.get("ultimo_envio_excel", "")
                 base["registro_verdes"] = data.get("registro_verdes", {}) if isinstance(data.get("registro_verdes"), dict) else {}
         except Exception as e:
             print(f"⚠️ Error cargando {HISTORIAL_GANADORAS_FILE}: {e}")
@@ -248,7 +250,9 @@ def obtener_datos_binance(session):
 # ETAPA 1: CAPTURA DIARIA DE MONEDAS GANADORAS (24H)
 # ==============================================================================
 def ejecutar_etapa_1_diaria(tickers, simbolos_activos, historial):
-    hoy_str = ahora_art().strftime('%Y-%m-%d')
+    ahora_dt = ahora_art()
+    hoy_str = ahora_dt.strftime('%Y-%m-%d')
+    ayer_str = (ahora_dt - timedelta(days=1)).strftime('%Y-%m-%d')
     candidatas = []
     mapa_actual = {}
 
@@ -292,8 +296,12 @@ def ejecutar_etapa_1_diaria(tickers, simbolos_activos, historial):
     for idx, item in enumerate(top_20_dia, start=1):
         item["rank"] = idx
 
+    # Si el cron de cierre nocturno se atrasó pasando medianoche (00:00..02:59), respalda el cierre de ayer si faltaba
+    if ahora_dt.hour <= 2 and ayer_str not in historial["dias"]:
+        historial["dias"][ayer_str] = [dict(x) for x in top_20_dia]
+
     historial["dias"][hoy_str] = top_20_dia
-    historial["ultima_actualizacion"] = ahora_art().strftime('%Y-%m-%d %H:%M:%S ART')
+    historial["ultima_actualizacion"] = ahora_dt.strftime('%Y-%m-%d %H:%M:%S ART')
     guardar_historial_ganadoras(historial)
 
     return top_20_dia[:10], mapa_actual
@@ -501,7 +509,6 @@ def construir_hoja_mensual_ganadoras(wb, anio, mes, dias_dict, reg_verdes):
 
     fila_base = 3
     for lunes in sorted(semanas_map.keys()):
-        dias_semana = semanas_map[lunes]
         max_filas_bloque = 20
 
         # Dibujar los 7 días de la semana (Lunes=0 .. Domingo=6) lado a lado
@@ -512,8 +519,8 @@ def construir_hoja_mensual_ganadoras(wb, anio, mes, dias_dict, reg_verdes):
             lista_dia = dias_dict.get(f_str, []) if dia_dt.month == mes else []
 
             # Encabezado del día: [Día N°] [MES - DÍA SEMANA]
-            c_num_dia = ws.cell(fila_base, col_ini, dia_dt.day)
-            c_nom_dia = ws.cell(fila_base, col_ini + 1, f"{MESES_ES[dia_dt.month]} - {DIAS_SEMANA_ES[w_idx]}")
+            ws.cell(fila_base, col_ini, dia_dt.day)
+            ws.cell(fila_base, col_ini + 1, f"{MESES_ES[dia_dt.month]} - {DIAS_SEMANA_ES[w_idx]}")
             ws.merge_cells(start_row=fila_base, start_column=col_ini + 1, end_row=fila_base, end_column=col_ini + 3)
 
             for cc in range(col_ini, col_ini + 4):
@@ -628,7 +635,7 @@ def construir_hoja_mensual_ganadoras(wb, anio, mes, dias_dict, reg_verdes):
         ws.row_dimensions[fila_base + 1].height = 19
         fila_base += max_filas_bloque + 4
 
-    # Ajustar anchos de las 8 bloques (7 días + 1 resumen semanal)
+    # Ajustar anchos de los 8 bloques (7 días + 1 resumen semanal)
     for b_idx in range(8):
         c_start = 1 + (b_idx * 5)
         ws.column_dimensions[openpyxl.utils.get_column_letter(c_start)].width = 4.5
@@ -860,7 +867,7 @@ def generar_dictamen_ia(modo, lista_items):
         resumen = "\n".join([f"- {x['ticker']}: {x['veces']} días ganando, pico +{x['gain_max']}%, retroceso actual {x['retroceso_pct']}%" for x in lista_items[:6]])
         prompt = f"Analista Spot Binance. Dá un dictamen breve (máximo 2 líneas) sobre las ganadoras recurrentes de la semana y oportunidades de rebote:\n{resumen}"
 
-    for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
+    for mod in ['gemini-2.5-flash', 'gemini-3.5-flash-lite', 'gemini-1.5-flash']:
         try:
             resp = client.models.generate_content(model=mod, contents=prompt)
             if resp and resp.text:
@@ -888,7 +895,7 @@ def enviar_telegram_foto(image_path, caption_text):
 
 def enviar_telegram_documento(doc_path, caption_text):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID or not os.path.exists(doc_path):
-        return
+        return False
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendDocument"
     payload = {"chat_id": TELEGRAM_CHAT_ID, "caption": caption_text[:1020], "parse_mode": "HTML"}
     if TELEGRAM_TOPIC_ID.isdigit():
@@ -899,9 +906,11 @@ def enviar_telegram_documento(doc_path, caption_text):
             if not res.get("ok") and "thread not found" in str(res.get("description", "")).lower():
                 payload.pop("message_thread_id", None)
                 doc.seek(0)
-                requests.post(url, data=payload, files={"document": doc}, timeout=45)
+                res = requests.post(url, data=payload, files={"document": doc}, timeout=45).json()
+            return bool(res.get("ok"))
     except Exception as e:
         print(f"❌ Error enviando documento Telegram: {e}")
+        return False
 
 def enviar_texto_telegram(texto):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
@@ -953,6 +962,14 @@ def publicar_reporte_diario(top_10, total_dias_guardados):
         )
 
     enviar_texto_telegram(cuerpo)
+
+def publicar_excel_diario(stats, fecha_cierre_str):
+    """Envía diariamente la planilla Excel actualizada al cierre de cada jornada."""
+    caption = (
+        f"📊 <b>Planilla Excel Diaria Actualizada (Cierre {fecha_cierre_str}):</b> "
+        f"Bloques Diarios + Resumen Semanal + Auditoría Verde ➔ Ganadoras ({stats['total_aciertos']} aciertos)."
+    )
+    return enviar_telegram_documento(EXCEL_AUDITORIA_FILE, caption)
 
 def publicar_reporte_semanal_y_auditoria(reinas, segunda_ola, dias_count, aciertos, stats):
     fecha_str = ahora_art().strftime('%Y-%m-%d %H:%M ART')
@@ -1033,23 +1050,42 @@ if __name__ == "__main__":
         total_dias = len(historial.get("dias", {}))
         publicar_reporte_diario(top_10_dia, total_dias)
 
-        # ETAPA 3 (ejecución diaria silenciosa): registra nuevas Verdes y cruza contra ganadoras de hoy
+        # ETAPA 3 (ejecución diaria): registra nuevas Verdes, cruza contra ganadoras y actualiza AUDITORIA_VERDE_GANADORAS.xlsx
         aciertos, pendientes, stats = ejecutar_etapa_3_auditoria_verde(historial, mapa_actual)
 
         # ETAPA 2: Consolida los últimos 7 días y busca Segunda Ola
         hoy = ahora_art()
         hoy_str = hoy.strftime('%Y-%m-%d')
+        ayer_str = (hoy - timedelta(days=1)).strftime('%Y-%m-%d')
         forzar_semanal = os.getenv("FORZAR_SEMANAL", "").strip() == "1"
+        es_ejecucion_manual = (os.getenv("GITHUB_EVENT_NAME") == "workflow_dispatch")
         es_domingo = (hoy.weekday() == 6)
 
         reinas, segunda_ola, dias_count = ejecutar_etapa_2_semanal(historial, mapa_actual)
         sincronizar_con_radar_pre_explosion(segunda_ola)
 
+        excel_ya_enviado_en_ciclo = False
         if (es_domingo or forzar_semanal or total_dias % 7 == 0) and historial.get("ultimo_reporte_semanal") != hoy_str and dias_count >= 1:
             time.sleep(2)
             publicar_reporte_semanal_y_auditoria(reinas, segunda_ola, dias_count, aciertos, stats)
             historial["ultimo_reporte_semanal"] = hoy_str
+            historial["ultimo_envio_excel"] = hoy_str
             guardar_historial_ganadoras(historial)
+            excel_ya_enviado_en_ciclo = True
+
+        # Envío diario garantizado del Excel al cierre del día (o post-medianoche si el cron se demoró)
+        if not excel_ya_enviado_en_ciclo:
+            ultimo_excel = historial.get("ultimo_envio_excel", "")
+            es_cierre_diario = (hoy.hour == 23 and hoy.minute >= 30 and ultimo_excel != hoy_str)
+            es_cierre_recuperado = (hoy.hour <= 2 and ultimo_excel != ayer_str)
+
+            if es_cierre_diario or es_cierre_recuperado or es_ejecucion_manual:
+                fecha_cierre_label = ayer_str if (es_cierre_recuperado and not es_cierre_diario) else hoy_str
+                time.sleep(1.5)
+                if publicar_excel_diario(stats, fecha_cierre_label):
+                    if not es_ejecucion_manual:
+                        historial["ultimo_envio_excel"] = fecha_cierre_label
+                    guardar_historial_ganadoras(historial)
     else:
         print("❌ ERROR: Sin datos o sin símbolos activos de Binance.")
 
