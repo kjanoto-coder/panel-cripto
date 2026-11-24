@@ -1,14 +1,5 @@
 [
   [
-    "USUALUSDT",
-    "INITUSDT",
-    "SENTUSDT",
-    "AIGENSYNUSDT",
-    "2ZUSDT",
-    "SHELLUSDT",
-    "KITEUSDT"
-  ],
-  [
     "LUNCUSDT",
     "ASRUSDT",
     "ZILUSDT",
@@ -16,5 +7,14 @@
     "RPLUSDT",
     "BIGTIMEUSDT",
     "REUSDT"
+  ],
+  [
+    "JSTUSDT",
+    "INITUSDT",
+    "AIGENSYNUSDT",
+    "SHELLUSDT",
+    "USUALUSDT",
+    "KITEUSDT",
+    "DODOUSDT"
   ]
 ]
