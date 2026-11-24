@@ -4,17 +4,17 @@
     "ADAUSDT",
     "HUMAUSDT",
     "SENTUSDT",
-    "CAKEUSDT",
     "ICPUSDT",
-    "FILUSDT"
+    "CAKEUSDT",
+    "MORPHOUSDT"
   ],
   [
     "TRXUSDT",
     "ADAUSDT",
     "HUMAUSDT",
     "SENTUSDT",
+    "MMTUSDT",
     "ICPUSDT",
-    "CAKEUSDT",
     "MORPHOUSDT"
   ]
 ]
