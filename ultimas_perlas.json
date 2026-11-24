@@ -1,14 +1,5 @@
 [
   [
-    "DODOUSDT",
-    "MORPHOUSDT",
-    "SENTUSDT",
-    "AIGENSYNUSDT",
-    "HUMAUSDT",
-    "MMTUSDT",
-    "KAVAUSDT"
-  ],
-  [
     "TRXUSDT",
     "PEPEUSDT",
     "OPGUSDT",
@@ -16,5 +7,14 @@
     "ATOMUSDT",
     "ZILUSDT",
     "KITEUSDT"
+  ],
+  [
+    "IOSTUSDT",
+    "ALLOUSDT",
+    "KERNELUSDT",
+    "YBUSDT",
+    "RPLUSDT",
+    "REUSDT",
+    "SAPIENUSDT"
   ]
 ]
