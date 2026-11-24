@@ -1,20 +1,20 @@
 [
   [
     "TRXUSDT",
-    "PEPEUSDT",
-    "SENTUSDT",
-    "HUMAUSDT",
-    "ICPUSDT",
-    "MORPHOUSDT",
-    "AIGENSYNUSDT"
-  ],
-  [
-    "TRXUSDT",
     "HUMAUSDT",
     "SENTUSDT",
     "AIGENSYNUSDT",
     "LUNCUSDT",
     "ICPUSDT",
     "MORPHOUSDT"
+  ],
+  [
+    "TRXUSDT",
+    "SENTUSDT",
+    "HUMAUSDT",
+    "AIGENSYNUSDT",
+    "MORPHOUSDT",
+    "ICPUSDT",
+    "FILUSDT"
   ]
 ]
