@@ -3471,13 +3471,13 @@
       "symbol": "ETCUSDT",
       "base": "ETC",
       "estrellas": 2,
-      "probabilidad_pct": 79,
+      "probabilidad_pct": 97,
       "precio_ref": 5.8,
       "fecha_iso": "2026-11-24",
       "fecha_corta": "24/11 00:46",
       "certificada_ia": true,
-      "blindaje_pct": 79,
-      "motivo_certificacion": "Pullback Sano Fib (0.42) | Libro Bids/Asks: 1.58x (Spread 0.172%)"
+      "blindaje_pct": 97,
+      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.40) | Libro Bids/Asks: 1.33x (Spread 0.172%)"
     },
     "DEXEUSDT": {
       "symbol": "DEXEUSDT",
