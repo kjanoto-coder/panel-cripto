@@ -3,18 +3,18 @@
     "LUNCUSDT",
     "ASRUSDT",
     "RPLUSDT",
-    "AIGENSYNUSDT",
-    "SHELLUSDT",
-    "SAHARAUSDT",
-    "KITEUSDT"
-  ],
-  [
-    "LUNCUSDT",
-    "ASRUSDT",
-    "RPLUSDT",
     "SAHARAUSDT",
     "SHELLUSDT",
     "KITEUSDT",
     "ZILUSDT"
+  ],
+  [
+    "ASRUSDT",
+    "LUNCUSDT",
+    "DODOUSDT",
+    "AIGENSYNUSDT",
+    "RPLUSDT",
+    "SHELLUSDT",
+    "KITEUSDT"
   ]
 ]
