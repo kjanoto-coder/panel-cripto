@@ -85,6 +85,17 @@ def formatear_precio(precio):
         return f"${precio:.6f}"
     return f"${precio:.8f}"
 
+def calcular_precio_base_0(precio_actual, cambio_pct, precio_base_guardado=0.0):
+    """Obtiene el precio base (0%) desde openPrice o lo reconstruye desde precio_actual y % subida."""
+    p_base = float(precio_base_guardado or 0.0)
+    if p_base > 0:
+        return round(p_base, 8)
+    p_act = float(precio_actual or 0.0)
+    factor = 1.0 + (float(cambio_pct or 0.0) / 100.0)
+    if p_act > 0 and factor > 0:
+        return round(p_act / factor, 8)
+    return p_act
+
 def cargar_historial_ganadoras():
     base = {
         "ultima_actualizacion": "",
@@ -266,16 +277,19 @@ def ejecutar_etapa_1_diaria(tickers, simbolos_activos, historial):
         try:
             precio = float(t.get('lastPrice', 0))
             cambio_24h = float(t.get('priceChangePercent', 0))
+            open_price = float(t.get('openPrice', 0))
             vol_usdt = float(t.get('quoteVolume', 0))
             high = float(t.get('highPrice', 0))
             low = float(t.get('lowPrice', 0))
             if precio <= 0:
                 continue
 
+            precio_base = calcular_precio_base_0(precio, cambio_24h, open_price)
             pos_rango = round(((precio - low) / (high - low)) * 100, 1) if high > low else 50.0
             info_ticker = {
                 "symbol": sym,
                 "ticker": base,
+                "precio_base": precio_base,
                 "precio": precio,
                 "cambio_24h": round(cambio_24h, 2),
                 "vol_usdt": round(vol_usdt, 2),
@@ -486,13 +500,13 @@ def construir_hoja_mensual_ganadoras(wb, anio, mes, dias_dict, reg_verdes):
         bottom=Side(style='thin', color='CBD5E1')
     )
 
-    ws["A1"] = f"MONEDAS GANADORAS • {nombre_mes} {anio} (CIERRES DIARIOS + RESUMEN SEMANAL)"
+    # 8 bloques x 6 columnas - 1 separador final = 47 columnas (A..AU)
+    ws["A1"] = f"MONEDAS GANADORAS • {nombre_mes} {anio} (CIERRES DIARIOS: BASE 0% VS ACTUAL + RESUMEN SEMANAL)"
     ws["A1"].font = Font(name="Arial", size=12, bold=True, color="FFFFFF")
     ws["A1"].fill = fill_titulo
-    ws.merge_cells("A1:AN1")
+    ws.merge_cells("A1:AU1")
     ws.row_dimensions[1].height = 26
 
-    # Agrupar las fechas registradas de este mes por semana ISO (Lunes a Domingo)
     fechas_mes = []
     for f_str in sorted(dias_dict.keys()):
         try:
@@ -508,12 +522,14 @@ def construir_hoja_mensual_ganadoras(wb, anio, mes, dias_dict, reg_verdes):
         semanas_map.setdefault(lunes, {})[d.weekday()] = d
 
     fila_base = 3
+    sub_hdrs = ["N°", "NOMBRE", "Base 0%", "$ Actual", "% subida"]
+
     for lunes in sorted(semanas_map.keys()):
         max_filas_bloque = 20
 
         # Dibujar los 7 días de la semana (Lunes=0 .. Domingo=6) lado a lado
         for w_idx in range(7):
-            col_ini = 1 + (w_idx * 5)  # 4 columnas de datos + 1 separadora
+            col_ini = 1 + (w_idx * 6)  # 5 columnas de datos + 1 separadora
             dia_dt = lunes + timedelta(days=w_idx)
             f_str = dia_dt.strftime('%Y-%m-%d')
             lista_dia = dias_dict.get(f_str, []) if dia_dt.month == mes else []
@@ -521,17 +537,16 @@ def construir_hoja_mensual_ganadoras(wb, anio, mes, dias_dict, reg_verdes):
             # Encabezado del día: [Día N°] [MES - DÍA SEMANA]
             ws.cell(fila_base, col_ini, dia_dt.day)
             ws.cell(fila_base, col_ini + 1, f"{MESES_ES[dia_dt.month]} - {DIAS_SEMANA_ES[w_idx]}")
-            ws.merge_cells(start_row=fila_base, start_column=col_ini + 1, end_row=fila_base, end_column=col_ini + 3)
+            ws.merge_cells(start_row=fila_base, start_column=col_ini + 1, end_row=fila_base, end_column=col_ini + 4)
 
-            for cc in range(col_ini, col_ini + 4):
+            for cc in range(col_ini, col_ini + 5):
                 cell_h = ws.cell(fila_base, cc)
                 cell_h.fill = fill_dia_hdr
                 cell_h.font = Font(name="Arial", size=9.5, bold=True, color="0F172A")
                 cell_h.border = borde_suave
                 cell_h.alignment = Alignment(horizontal="center" if cc == col_ini else "left", vertical="center")
 
-            # Sub-encabezado: N° | NOMBRE | $ valor | % subida
-            sub_hdrs = ["N°", "NOMBRE", "$ valor", "% subida"]
+            # Sub-encabezado: N° | NOMBRE | Base 0% | $ Actual | % subida
             for off, h_txt in enumerate(sub_hdrs):
                 ch = ws.cell(fila_base + 1, col_ini + off, h_txt)
                 ch.fill = fill_col_hdr
@@ -546,40 +561,45 @@ def construir_hoja_mensual_ganadoras(wb, anio, mes, dias_dict, reg_verdes):
                     item = lista_dia[r_off]
                     sym = item.get("symbol", "")
                     es_verde = sym in reg_verdes
+                    p_act = float(item.get("precio", 0.0))
+                    gain_pct = float(item.get("cambio_24h", 0.0))
+                    p_base = calcular_precio_base_0(p_act, gain_pct, item.get("precio_base", 0.0))
 
                     c1 = ws.cell(fila_actual, col_ini, item.get("rank", r_off + 1))
                     c2 = ws.cell(fila_actual, col_ini + 1, item.get("ticker", ""))
-                    c3 = ws.cell(fila_actual, col_ini + 2, float(item.get("precio", 0.0)))
-                    c4 = ws.cell(fila_actual, col_ini + 3, round(float(item.get("cambio_24h", 0.0)) / 100.0, 4))
+                    c3 = ws.cell(fila_actual, col_ini + 2, p_base)
+                    c4 = ws.cell(fila_actual, col_ini + 3, p_act)
+                    c5 = ws.cell(fila_actual, col_ini + 4, round(gain_pct / 100.0, 4))
 
                     c1.alignment = Alignment(horizontal="center")
                     c2.alignment = Alignment(horizontal="left")
                     c3.alignment = Alignment(horizontal="right")
                     c4.alignment = Alignment(horizontal="right")
-                    c4.number_format = "0.0%"
+                    c5.alignment = Alignment(horizontal="right")
+                    c5.number_format = "0.0%"
 
-                    for cx in (c1, c2, c3, c4):
+                    for cx in (c1, c2, c3, c4, c5):
                         cx.font = Font(name="Arial", size=9, bold=es_verde)
                         cx.border = borde_suave
                         if es_verde:
                             cx.fill = fill_verde
                 else:
-                    for off in range(4):
+                    for off in range(5):
                         ce = ws.cell(fila_actual, col_ini + off, "")
                         ce.border = borde_suave
 
-        # Bloque RESUMEN SEMANAL a la derecha del Domingo (columna 36 = AJ)
-        col_res = 1 + (7 * 5)
+        # Bloque RESUMEN SEMANAL a la derecha del Domingo
+        col_res = 1 + (7 * 6)
         ws.cell(fila_base, col_res, "RESUMEN SEMANAL")
-        ws.merge_cells(start_row=fila_base, start_column=col_res, end_row=fila_base, end_column=col_res + 3)
-        for cc in range(col_res, col_res + 4):
+        ws.merge_cells(start_row=fila_base, start_column=col_res, end_row=fila_base, end_column=col_res + 4)
+        for cc in range(col_res, col_res + 5):
             cr = ws.cell(fila_base, cc)
             cr.fill = fill_res_hdr
             cr.font = Font(name="Arial", size=9.5, bold=True, color="78350F")
             cr.alignment = Alignment(horizontal="center", vertical="center")
             cr.border = borde_suave
 
-        for off, h_txt in enumerate(["N°", "NOMBRE", "$ valor", "% subida"]):
+        for off, h_txt in enumerate(sub_hdrs):
             ch = ws.cell(fila_base + 1, col_res + off, h_txt)
             ch.fill = fill_res_col
             ch.font = Font(name="Arial", size=9, bold=True, color="FFFFFF")
@@ -596,11 +616,14 @@ def construir_hoja_mensual_ganadoras(wb, anio, mes, dias_dict, reg_verdes):
             for item in dias_dict.get(f_str, []):
                 sym = item.get("symbol", "")
                 gain = float(item.get("cambio_24h", 0.0))
+                p_act = float(item.get("precio", 0.0))
+                p_base = calcular_precio_base_0(p_act, gain, item.get("precio_base", 0.0))
                 if sym not in consolidado_sem or gain > consolidado_sem[sym]["gain"]:
                     consolidado_sem[sym] = {
                         "symbol": sym,
                         "ticker": item.get("ticker", ""),
-                        "precio": float(item.get("precio", 0.0)),
+                        "precio_base": p_base,
+                        "precio": p_act,
                         "gain": gain
                     }
 
@@ -612,22 +635,24 @@ def construir_hoja_mensual_ganadoras(wb, anio, mes, dias_dict, reg_verdes):
                 es_verde = it["symbol"] in reg_verdes
                 c1 = ws.cell(fila_actual, col_res, r_off + 1)
                 c2 = ws.cell(fila_actual, col_res + 1, it["ticker"])
-                c3 = ws.cell(fila_actual, col_res + 2, it["precio"])
-                c4 = ws.cell(fila_actual, col_res + 3, round(it["gain"] / 100.0, 4))
+                c3 = ws.cell(fila_actual, col_res + 2, it["precio_base"])
+                c4 = ws.cell(fila_actual, col_res + 3, it["precio"])
+                c5 = ws.cell(fila_actual, col_res + 4, round(it["gain"] / 100.0, 4))
 
                 c1.alignment = Alignment(horizontal="center")
                 c2.alignment = Alignment(horizontal="left")
                 c3.alignment = Alignment(horizontal="right")
                 c4.alignment = Alignment(horizontal="right")
-                c4.number_format = "0.0%"
+                c5.alignment = Alignment(horizontal="right")
+                c5.number_format = "0.0%"
 
-                for cx in (c1, c2, c3, c4):
+                for cx in (c1, c2, c3, c4, c5):
                     cx.font = Font(name="Arial", size=9, bold=es_verde)
                     cx.border = borde_suave
                     if es_verde:
                         cx.fill = fill_verde
             else:
-                for off in range(4):
+                for off in range(5):
                     ce = ws.cell(fila_actual, col_res + off, "")
                     ce.border = borde_suave
 
@@ -637,13 +662,14 @@ def construir_hoja_mensual_ganadoras(wb, anio, mes, dias_dict, reg_verdes):
 
     # Ajustar anchos de los 8 bloques (7 días + 1 resumen semanal)
     for b_idx in range(8):
-        c_start = 1 + (b_idx * 5)
+        c_start = 1 + (b_idx * 6)
         ws.column_dimensions[openpyxl.utils.get_column_letter(c_start)].width = 4.5
         ws.column_dimensions[openpyxl.utils.get_column_letter(c_start + 1)].width = 11.5
-        ws.column_dimensions[openpyxl.utils.get_column_letter(c_start + 2)].width = 10.5
-        ws.column_dimensions[openpyxl.utils.get_column_letter(c_start + 3)].width = 9.5
+        ws.column_dimensions[openpyxl.utils.get_column_letter(c_start + 2)].width = 11.0
+        ws.column_dimensions[openpyxl.utils.get_column_letter(c_start + 3)].width = 11.0
+        ws.column_dimensions[openpyxl.utils.get_column_letter(c_start + 4)].width = 9.5
         if b_idx < 7:
-            ws.column_dimensions[openpyxl.utils.get_column_letter(c_start + 4)].width = 2.5
+            ws.column_dimensions[openpyxl.utils.get_column_letter(c_start + 5)].width = 2.5
 
 def generar_excel_auditoria(aciertos, pendientes, stats, mapa_actual, historial):
     wb = openpyxl.Workbook()
@@ -967,7 +993,7 @@ def publicar_excel_diario(stats, fecha_cierre_str):
     """Envía diariamente la planilla Excel actualizada al cierre de cada jornada."""
     caption = (
         f"📊 <b>Planilla Excel Diaria Actualizada (Cierre {fecha_cierre_str}):</b> "
-        f"Bloques Diarios + Resumen Semanal + Auditoría Verde ➔ Ganadoras ({stats['total_aciertos']} aciertos)."
+        f"Bloques Diarios (Base 0% vs Actual) + Resumen Semanal + Auditoría Verde ➔ Ganadoras ({stats['total_aciertos']} aciertos)."
     )
     return enviar_telegram_documento(EXCEL_AUDITORIA_FILE, caption)
 
@@ -1033,7 +1059,7 @@ def publicar_reporte_semanal_y_auditoria(reinas, segunda_ola, dias_count, aciert
     time.sleep(1)
     enviar_telegram_documento(
         EXCEL_AUDITORIA_FILE,
-        f"📊 <b>Planilla Excel Actualizada:</b> Bloques Diarios + Resumen Semanal + Auditoría Verde ➔ Ganadoras ({stats['total_aciertos']} aciertos)."
+        f"📊 <b>Planilla Excel Actualizada:</b> Bloques Diarios (Base 0% vs Actual) + Resumen Semanal + Auditoría Verde ➔ Ganadoras ({stats['total_aciertos']} aciertos)."
     )
 
 if __name__ == "__main__":
