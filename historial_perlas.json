@@ -4010,6 +4010,16 @@
       "certificada_ia": true,
       "blindaje_pct": 98,
       "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.38) | Libro Bids/Asks: 1.55x (Spread 0.325%)"
+    },
+    "BABYUSDT": {
+      "symbol": "BABYUSDT",
+      "base": "BABY",
+      "estrellas": 3,
+      "probabilidad_pct": 80,
+      "precio_ref": 0.00833,
+      "fecha_iso": "2026-11-24",
+      "fecha_corta": "24/11",
+      "origen": "SEGUNDA_OLA_GANADORAS"
     }
   },
   "verdes_hoy": [
