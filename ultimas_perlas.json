@@ -1,20 +1,20 @@
 [
   [
-    "PSGUSDT",
-    "ONGUSDT",
-    "KAVAUSDT",
-    "REUSDT",
-    "ATOMUSDT",
-    "BABYUSDT",
-    "BIGTIMEUSDT"
-  ],
-  [
     "AIGENSYNUSDT",
     "INITUSDT",
     "SHELLUSDT",
     "KITEUSDT",
     "SENTUSDT",
     "DODOUSDT",
+    "PSGUSDT"
+  ],
+  [
+    "AIGENSYNUSDT",
+    "LUNCUSDT",
+    "KITEUSDT",
+    "SHELLUSDT",
+    "DODOUSDT",
+    "SENTUSDT",
     "PSGUSDT"
   ]
 ]
