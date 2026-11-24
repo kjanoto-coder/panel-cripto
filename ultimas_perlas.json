@@ -3,18 +3,18 @@
     "TRXUSDT",
     "MMTUSDT",
     "SENTUSDT",
-    "HUMAUSDT",
-    "DODOUSDT",
-    "ICPUSDT",
-    "MORPHOUSDT"
-  ],
-  [
-    "TRXUSDT",
-    "MMTUSDT",
-    "SENTUSDT",
     "DODOUSDT",
     "HUMAUSDT",
     "MORPHOUSDT",
     "ICPUSDT"
+  ],
+  [
+    "XRPUSDT",
+    "BLURUSDT",
+    "ATOMUSDT",
+    "LUNCUSDT",
+    "ADAUSDT",
+    "DOGEUSDT",
+    "PEPEUSDT"
   ]
 ]
