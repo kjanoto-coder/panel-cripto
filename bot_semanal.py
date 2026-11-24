@@ -25,17 +25,20 @@ HISTORIAL_GANADORAS_FILE = "historial_ganadoras.json"
 PLAN_SEMANAL_FILE = "plan_semanal.json"
 EXCEL_SEMANAL_FILE = "AUDITORIA_SEMANAL_PRUEBA.xlsx"
 
-# Parámetros operativos: Motor Siempre en Verde + Cosecha Escalonada + Consenso Multi-Bot
+# Parámetros operativos: Consenso Ecosistema + Siempre en Verde + Precisión Institucional
 CAPITAL_INICIAL_PRUEBA = 3500.0
 META_SEMANAL_USD = 600.0
 MAX_MONEDAS_SEMANA = 4
+CUPOS_MODO_DEFENSIVO = 2        # Reduce de 4 a 2 monedas cuando el mercado general está débil
 TOP_ALTERNATIVAS_MOSTRAR = 8
 
-MAX_PERDIDA_USD = 16.0          # Tope preventivo en -$16 para evitar deslizamientos > -$20 entre ciclos de 15m
+COMISION_SPOT_TOTAL_PCT = 0.20  # 0.10% compra + 0.10% venta en Binance Spot (PnL Neto Real)
+MAX_PERDIDA_USD = 16.0          # Tope preventivo en -$16 neto para evitar deslizamientos > -$20
 PREALERTA_PERDIDA_USD = 10.0    # Pre-alerta temprana
-TP1_ASEGURAR_PCT = 4.8          # Vende 50% al tocar +4.8% para asegurar ganancia real en caja
+TP1_ASEGURAR_PCT = 4.8          # Vende 50% al tocar +4.8% neto para asegurar ganancia real en caja
 TRAILING_DESDE_MAX_PCT = 2.2    # Trailing Stop para la 2ª mitad corredora
 HORAS_MAX_SIN_ARRANQUE = 8.0    # Rotación rápida (8h) si no arranca
+COOLDOWN_PANICO_BTC_MIN = 60    # Antispam de 60 minutos para alerta de pánico BTC 1H
 
 MODELOS_GEMINI = ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-4-hydrogen"]
 
@@ -112,8 +115,7 @@ def recopilar_inteligencia_ecosistema():
     """
     INTEGRADOR DE TRABAJO PREVIO DE TODOS LOS BOTS:
     Lee historial_perlas.json, historial_ganadoras.json y escanea automáticamente
-    cualquier otro JSON generado por los bots de Sentimiento, Central Inteligencia o Perdedoras
-    en el repositorio para construir un expediente unificado por moneda y macro.
+    cualquier otro JSON generado por los bots de Sentimiento, Central Inteligencia o Perdedoras.
     """
     perlas = cargar_json_seguro(HISTORIAL_PERLAS_FILE)
     ganadoras = cargar_json_seguro(HISTORIAL_GANADORAS_FILE)
@@ -135,7 +137,6 @@ def recopilar_inteligencia_ecosistema():
             continue
         nombre_l = ruta.lower()
 
-        # Captura listas de perdedoras si existen en el repo
         if "perdedor" in nombre_l or "loser" in nombre_l or "negra" in nombre_l:
             for k, v in data.items():
                 if isinstance(k, str) and k.endswith("USDT"):
@@ -151,7 +152,6 @@ def recopilar_inteligencia_ecosistema():
                         elif isinstance(item, dict) and str(item.get("symbol", "")).endswith("USDT"):
                             vetadas_perdedoras.add(item["symbol"])
 
-        # Captura diagnósticos de Sentimiento / Central de Inteligencia / Noticias
         if any(tag in nombre_l for tag in ("sentimiento", "noticia", "central", "inteligencia", "mercado", "macro", "clima")):
             for campo in ("resumen", "diagnostico", "sentimiento", "estado_mercado", "veredicto", "alerta", "conclusiones"):
                 val = data.get(campo)
@@ -159,7 +159,6 @@ def recopilar_inteligencia_ecosistema():
                     resumen_macro_bots.append(f"[{ruta}] {val.strip()[:140]}")
                     break
 
-        # Captura cualquier análisis puntual por moneda guardado en otros JSON
         for k, v in data.items():
             if isinstance(k, str) and k.endswith("USDT") and isinstance(v, dict):
                 txt_nota = v.get("razon") or v.get("analisis") or v.get("motivo") or v.get("diagnostico") or ""
@@ -227,7 +226,10 @@ def construir_expediente_moneda(sym, p_actual, eco):
     }
 
 def auditar_order_book_semanal(session, symbol):
-    """Verificación estricta del libro de órdenes en tiempo real (exige presión compradora >= 1.15x)."""
+    """
+    Profundidad institucional del Order Book (±2.5% + Detector de Muro Vendedor):
+    Verifica presión compradora y descarta activos con pared vendedora desproporcionada antes de TP1.
+    """
     for base_url in BINANCE_API_BASES:
         try:
             r = session.get(f"{base_url}/api/v3/depth", params={"symbol": symbol, "limit": 20}, timeout=5)
@@ -238,21 +240,37 @@ def auditar_order_book_semanal(session, symbol):
                     continue
                 b0, a0 = float(bids[0][0]), float(asks[0][0])
                 spread = ((a0 - b0) / b0) * 100 if b0 > 0 else 99.0
-                vb = sum(float(x[0]) * float(x[1]) for x in bids)
-                va = sum(float(x[0]) * float(x[1]) for x in asks)
+
+                # Filtra profundidad dentro de ±2.5% del precio actual
+                bids_cerca = [float(x[0]) * float(x[1]) for x in bids if float(x[0]) >= b0 * 0.975]
+                asks_cerca = [float(x[0]) * float(x[1]) for x in asks if float(x[0]) <= a0 * 1.025]
+
+                vb = sum(bids_cerca) if bids_cerca else sum(float(x[0]) * float(x[1]) for x in bids)
+                va = sum(asks_cerca) if asks_cerca else sum(float(x[0]) * float(x[1]) for x in asks)
                 ratio = round(vb / va, 2) if va > 0 else 1.0
+
+                # Detector de muro vendedor institucional justo encima de la entrada (+0% a +3.5%)
+                asks_techo = [float(x[0]) * float(x[1]) for x in asks if float(x[0]) <= a0 * 1.035]
+                muro_vendedor = False
+                if len(asks_techo) >= 4:
+                    prom_ask = sum(asks_techo) / len(asks_techo)
+                    if prom_ask > 0 and max(asks_techo) >= prom_ask * 4.0:
+                        muro_vendedor = True
+
+                sano = (spread <= 0.40 and ratio >= 1.25 and not muro_vendedor)
                 return {
                     "ok": True,
                     "spread_pct": round(spread, 3),
                     "ratio_ba": ratio,
-                    "sano": (spread <= 0.40 and ratio >= 1.15)
+                    "muro_vendedor": muro_vendedor,
+                    "sano": sano
                 }
         except Exception:
             continue
-    return {"ok": False, "spread_pct": 0.1, "ratio_ba": 1.0, "sano": False}
+    return {"ok": False, "spread_pct": 0.1, "ratio_ba": 1.0, "muro_vendedor": False, "sano": False}
 
 def analizar_velas_tf(session, symbol, interval="1h", limit=48):
-    """Analiza RSI, Volumen, impulso en 3 velas, rachas, rechazo de mecha y Fibonacci."""
+    """Analiza RSI, Volumen, impulso en 3 velas, rachas, rechazo de mecha (>60%) y Fibonacci."""
     for base_url in BINANCE_API_BASES:
         try:
             r = session.get(f"{base_url}/api/v3/klines", params={"symbol": symbol, "interval": interval, "limit": limit}, timeout=7)
@@ -294,7 +312,7 @@ def analizar_velas_tf(session, symbol, interval="1h", limit=48):
 
                 rango_vela = maximos[-1] - minimos[-1]
                 mecha_sup = maximos[-1] - max(cierres[-1], aperturas[-1])
-                rechazo_techo = (rango_vela > 0 and (mecha_sup / rango_vela) >= 0.55)
+                rechazo_techo = (rango_vela > 0 and (mecha_sup / rango_vela) >= 0.60)
 
                 swing_high = max(maximos)
                 swing_low = min(minimos)
@@ -363,80 +381,91 @@ def analizar_velas_tf(session, symbol, interval="1h", limit=48):
     }
 
 def evaluar_palanca_emergencia(pos, v1m, v15, v1h, fib, ob, pnl_pct, max_pnl_pct, retroceso_desde_max, exp_previo):
-    """
-    Palanca de Emergencia ('3 pasos adelante') integrada con la tesis previa de los bots:
-    Corta caídas reales o invalidación de tesis antes de tocar -$16/-$20 USD.
-    """
+    """Palanca de Emergencia integrada con tesis previa de bots, 1m/15m, Fib y Order Book."""
     p_act = float(pos.get("precio_actual", 0))
     perdio_fib_618 = False
     if fib.get("ok"):
         perdio_fib_618 = (p_act < float(fib["fib_618"]) or float(fib["ratio"]) > 0.62)
 
-    # Sensor 0 (CONSENSO ECOSISTEMA): Si otro bot la marcó como perdedora activa y está en negativo, corta ya
     if exp_previo.get("alertada_en_perdedoras") and pnl_pct <= -0.5:
         return True, (
-            f"🚨 PALANCA ECOSISTEMA (Alerta Bot Perdedoras): marcada en baja por radar previo y en {pnl_pct:+.2f}%. "
-            f"Corta inmediatamente."
+            f"🚨 PALANCA ECOSISTEMA (Alerta Bot Perdedoras): marcada en baja por radar previo y en {pnl_pct:+.2f}% neto."
         )
 
-    # Sensor 1 (EN VIVO 1m): Desplome real en 3 minutos o vela violenta con volumen
     if v1m.get("ok"):
         if (v1m["var_3velas"] <= -1.10 and v1m["vol_ratio"] >= 1.5) or (v1m["var_ultima"] <= -0.95 and v1m["vol_ratio"] >= 1.8):
             return True, (
                 f"🚨 PALANCA EMERGENCIA 1M (Desplome en Vivo): caída {v1m['var_3velas']:+.2f}% en 3m "
-                f"(vol {v1m['vol_ratio']}x). Corta antes de profundizar en {pnl_pct:+.2f}%."
+                f"(vol {v1m['vol_ratio']}x). Corta en {pnl_pct:+.2f}% neto."
             )
 
-    # Sensor 2 (EN VIVO 1m + 15m): La moneda venía ganando (+2.0% o más) y gira brusco desde el pico
     if max_pnl_pct >= 2.0 and retroceso_desde_max <= -1.2:
         giro_1m = v1m.get("ok") and (v1m["velas_rojas_seg"] >= 2 or v1m["var_3velas"] <= -0.70)
         giro_15m = v15.get("ok") and (v15.get("rechazo_techo") or v15.get("var_ultima", 0) <= -0.75)
         if giro_1m or giro_15m:
             return True, (
                 f"🚨 PALANCA EMERGENCIA (Giro en Vivo 1m/15m): subió hasta +{max_pnl_pct:.1f}% y retrocedió "
-                f"{retroceso_desde_max:.1f}% ({v1m.get('velas_rojas_seg', 0)} velas rojas 1m). Asegura salida en {pnl_pct:+.2f}%."
+                f"{retroceso_desde_max:.1f}%. Asegura salida en {pnl_pct:+.2f}% neto."
             )
 
-    # Sensor 3: Invalidación de tesis previa (perdió Fib 0.618 y cayó bajo precio_ref del radar)
     p_ref_radar = float(exp_previo.get("precio_referencia_radar", 0))
     bajo_precio_radar = (p_ref_radar > 0 and p_act < p_ref_radar * 0.992)
-    if pnl_pct <= -0.80 and (perdio_fib_618 or bajo_precio_radar):
+    if pnl_pct <= -0.95 and (perdio_fib_618 or bajo_precio_radar):
         return True, (
-            f"🚨 PALANCA TESIS INVALIDADA: rompió Fib 0.618 / precio base del radar en {pnl_pct:+.2f}%. "
-            f"Corta antes del tope."
+            f"🚨 PALANCA TESIS INVALIDADA: rompió Fib 0.618 / precio base del radar en {pnl_pct:+.2f}% neto."
         )
 
-    if pnl_pct <= -1.0 and v15.get("ok") and v15.get("velas_rojas_seg", 0) >= 3:
+    if pnl_pct <= -1.15 and v15.get("ok") and v15.get("velas_rojas_seg", 0) >= 3:
         return True, (
-            f"🚨 PALANCA EMERGENCIA (3 Velas Rojas 15m): presión vendedora sostenida en {pnl_pct:+.2f}%. "
-            f"Libera capital."
+            f"🚨 PALANCA EMERGENCIA (3 Velas Rojas 15m): presión vendedora sostenida en {pnl_pct:+.2f}% neto."
         )
 
     return False, ""
 
-def verificar_clima_btc(session, mapa_mkt):
+def verificar_clima_y_regimen_mercado(session, mapa_mkt):
+    """
+    Evalúa clima BTC (incluyendo Interruptor de Pánico 1H <= -1.0%)
+    y amplitud del mercado Spot para definir si operamos con 4 cupos o 2 cupos defensivos.
+    """
     btc = mapa_mkt.get("BTCUSDT")
     if not btc:
-        return True, "BTC estable"
+        return True, False, MAX_MONEDAS_SEMANA, "BTC estable | Régimen normal (4 cupos)"
+
     chg_24h = float(btc["cambio_24h"])
     mom_btc = analizar_velas_tf(session, "BTCUSDT", "1h", 24)
     rsi_btc = float(mom_btc.get("rsi", 50.0))
-    if chg_24h <= -2.0 or rsi_btc < 35.0:
-        return False, f"BTC en alerta (24h: {chg_24h:+.2f}%, RSI 1h: {rsi_btc}). Compras pausadas."
-    return True, f"BTC estable (24h: {chg_24h:+.2f}%, RSI 1h: {rsi_btc})"
+    var_1h_btc = float(mom_btc.get("var_ultima", 0.0))
+
+    # Amplitud de mercado Spot (altcoins líquidas en verde en 24h)
+    liquidas = [v for k, v in mapa_mkt.items() if k != "BTCUSDT" and v.get("vol_24h", 0) >= 1_500_000]
+    verdes_mkt = sum(1 for v in liquidas if v.get("cambio_24h", 0) > 0)
+    pct_verdes = round((verdes_mkt / len(liquidas)) * 100, 1) if liquidas else 50.0
+
+    cupos_max = CUPOS_MODO_DEFENSIVO if pct_verdes < 30.0 else MAX_MONEDAS_SEMANA
+    regimen_txt = f"Amplitud Verde: {pct_verdes}% ({cupos_max} cupos)"
+
+    panico_1h = (var_1h_btc <= -1.0)
+    if panico_1h or chg_24h <= -2.0 or rsi_btc < 35.0:
+        motivo = (
+            f"BTC en alerta (1h: {var_1h_btc:+.2f}%, 24h: {chg_24h:+.2f}%, RSI 1h: {rsi_btc}) | {regimen_txt}. Compras pausadas."
+        )
+        return False, panico_1h, cupos_max, motivo
+
+    return True, False, cupos_max, f"BTC estable (1h: {var_1h_btc:+.2f}%, 24h: {chg_24h:+.2f}%, RSI 1h: {rsi_btc}) | {regimen_txt}"
 
 def cargar_plan_semanal():
     sem = id_semana_actual()
     base = {
         "semana_id": sem,
         "fecha_inicio": ahora_art().strftime("%Y-%m-%d %H:%M"),
-        "modo": "CONSENSO_ECOSISTEMA_SIEMPRE_VERDE_MAX16USD",
+        "modo": "CONSENSO_BOTS_NETO_FEES_OB_PANICO_BTC",
         "capital_total_usd": CAPITAL_INICIAL_PRUEBA,
         "meta_semanal_usd": META_SEMANAL_USD,
         "ganancia_realizada_usd": 0.0,
         "estado_semana": "ACTIVA",
         "fecha_cierre_meta": "",
         "aviso_btc_enviado": False,
+        "ultimo_panico_btc_iso": "",
         "ultimo_reporte_hora": -1,
         "auditoria_ia": {},
         "historial_auditorias": [],
@@ -447,6 +476,7 @@ def cargar_plan_semanal():
     data = cargar_json_seguro(PLAN_SEMANAL_FILE)
     if data and data.get("semana_id") == sem:
         data.setdefault("aviso_btc_enviado", False)
+        data.setdefault("ultimo_panico_btc_iso", "")
         data.setdefault("ultimo_reporte_hora", -1)
         data.setdefault("auditoria_ia", {})
         data.setdefault("historial_auditorias", [])
@@ -511,8 +541,7 @@ def calcular_estadisticas_embudo(mapa_mkt, eco):
 
 def evaluar_alternativas_al_horno(session, mapa_mkt, excluidas, eco):
     """
-    Selección guiada por el ecosistema completo:
-    Cruza Pre-Explosión + Cazador Táctico + Ganadoras + Perdedoras + Order Book + Fib 4H.
+    Selección guiada por el ecosistema completo + Profundidad Order Book (sin muros vendedores) + Fib <= 0.62.
     """
     graduadas = eco["graduadas"]
     posta_dict = eco["posta"]
@@ -549,7 +578,7 @@ def evaluar_alternativas_al_horno(session, mapa_mkt, excluidas, eco):
         bono_semaforo = 12 if "VERDE" in semaforo else (6 if "AMARILLO" in semaforo else 0)
         bono_cert = 20 if cert_doble else (10 if (sym in graduadas) else 0)
         bono_fib = 14 if fib_4h.get("en_zona_dorada") else (6 if fib_4h.get("en_tramo_alcista") else (-25 if not fib_sano else -6))
-        bono_ob = 10 if ob.get("ratio_ba", 0) >= 1.25 else (5 if ob.get("sano") else -20)
+        bono_ob = 12 if ob.get("ratio_ba", 0) >= 1.50 and not ob.get("muro_vendedor") else (6 if ob.get("sano") else -25)
         bono_verde = 12 if impulso_verde else -18
         bono_hist = -35 if exp["alertada_en_perdedoras"] else (12 if "GANADORA" in exp["estado_historial_ganadoras"] else 0)
 
@@ -566,9 +595,10 @@ def evaluar_alternativas_al_horno(session, mapa_mkt, excluidas, eco):
 
         sello_txt = "🛡️🛡️ DOBLE CERT. IA" if cert_doble else (f"🛡️ Semáforo {semaforo} (E{etapa})" if semaforo != "N/D" else f"Cazador Etapa {etapa}")
         fib_tag = f" | {fib_4h.get('zona_txt', 'Fib N/D')}" if fib_4h.get("ok") else ""
+        muro_tag = " [⚠️MURO VENTA]" if ob.get("muro_vendedor") else ""
         motivo_tecnico = (
             f"{sello_txt} ({var_radar:+.1f}% radar | 1h: {mom_1h['var_3velas']:+.1f}%) | "
-            f"OB: {ob['ratio_ba']}x | RSI 1h: {mom_1h['rsi']}{fib_tag} | Blindaje: {prob}%"
+            f"OB: {ob['ratio_ba']}x{muro_tag} | RSI 1h: {mom_1h['rsi']}{fib_tag}"
         )
         candidatos.append({
             "symbol": sym,
@@ -611,11 +641,7 @@ def llamar_gemini_con_reintento(client, prompt):
     return None
 
 def evaluar_copiloto_trader_y_auditor_ia(session, mapa_mkt, plan, clima_btc_txt, lecturas_tecnicas, eco):
-    """
-    Módulo IA Integrado con MEMORIA COMPLETA DEL ECOSISTEMA:
-    Cruza el trabajo previo de Pre-Explosión, Cazador Táctico, Ganadoras, Perdedoras y Sentimiento
-    con el pulso en vivo de 1m + 15m + Fibonacci para decidir si la tesis sigue viva o hay que salir.
-    """
+    """Módulo IA Integrado con Memoria Completa del Ecosistema, PnL Neto de Comisiones y Max Drawdown."""
     posiciones = plan.get("posiciones", [])
     datos_posiciones = []
 
@@ -637,6 +663,7 @@ def evaluar_copiloto_trader_y_auditor_ia(session, mapa_mkt, plan, clima_btc_txt,
 
         pnl_pct = float(p.get("pnl_pct", 0.0))
         pnl_usd = float(p.get("pnl_usd", 0.0))
+        max_dd_pct = float(p.get("max_drawdown_pct", min(0.0, pnl_pct)))
         obj_pct = float(p.get("subida_necesaria_pct", 17.14))
         stop_act = float(p.get("stop_actual_pct", calcular_stop_usd_pct(p.get("capital_usd", 875))))
 
@@ -664,13 +691,13 @@ def evaluar_copiloto_trader_y_auditor_ia(session, mapa_mkt, plan, clima_btc_txt,
             orden_def = "🚨 VENDER AHORA (Techo 1m/Fib + Recorrido Radar)"
             razon_def = f"Acumula {var_radar:+.1f}% desde detección radar y muestra agotamiento (RSI 1m={v1m['rsi']}, 15m={v15['rsi']})."
         elif not p.get("tp1_ejecutado", False) and pnl_pct >= TP1_ASEGURAR_PCT * 0.85:
-            orden_def = f"🟡 CERCA TP1 (+{TP1_ASEGURAR_PCT}%)"
-            razon_def = f"Tesis {exp_previo['semaforo_radar']} confirmada (+{pnl_pct:.1f}%): próximo a asegurar 50% en +{TP1_ASEGURAR_PCT}%."
-        elif pnl_usd <= -PREALERTA_PERDIDA_USD or (pnl_pct <= -0.9 and not tesis_viva):
+            orden_def = f"🟡 CERCA TP1 (+{TP1_ASEGURAR_PCT}% Neto)"
+            razon_def = f"Tesis {exp_previo['semaforo_radar']} confirmada (+{pnl_pct:.1f}% neto): próximo a asegurar 50%."
+        elif pnl_usd <= -PREALERTA_PERDIDA_USD or (pnl_pct <= -1.0 and not tesis_viva):
             orden_def = "⚠️ ALERTA PALANCA / TESIS EN RIESGO"
-            razon_def = f"PnL ${pnl_usd:+.2f} USD | {pulso_1m_txt} | Vigilar invalidación de soporte Fib 0.618."
+            razon_def = f"PnL Neto ${pnl_usd:+.2f} USD (DD {max_dd_pct:.2f}%) | {pulso_1m_txt}. Vigilar Fib 0.618."
         else:
-            proteccion_txt = f"Trailing BE +{stop_act:.2f}%" if stop_act > 0 else f"Tope -${MAX_PERDIDA_USD:.0f}"
+            proteccion_txt = f"Trailing BE +{stop_act:.2f}% neto" if stop_act > 0 else f"Tope -${MAX_PERDIDA_USD:.0f}"
             orden_def = "🟢 MANTENER / TESIS VIVA"
             razon_def = f"Tesis {exp_previo['semaforo_radar']} activa ({var_radar:+.1f}% radar) | {pulso_1m_txt} | {proteccion_txt}."
 
@@ -681,11 +708,11 @@ def evaluar_copiloto_trader_y_auditor_ia(session, mapa_mkt, plan, clima_btc_txt,
             "moneda": p["base"],
             "inteligencia_previa_bots": exp_previo,
             "tesis_original_sigue_viva": tesis_viva,
-            "pnl_pct": pnl_pct,
-            "pnl_usd": pnl_usd,
+            "pnl_neto_pct": pnl_pct,
+            "pnl_neto_usd": pnl_usd,
+            "max_drawdown_pct": max_dd_pct,
             "tp1_ejecutado": bool(p.get("tp1_ejecutado", False)),
-            "tp1_objetivo_pct": TP1_ASEGURAR_PCT,
-            "max_perdida_permitida_usd": -MAX_PERDIDA_USD,
+            "tp1_objetivo_neto_pct": TP1_ASEGURAR_PCT,
             "stop_proteccion_actual_pct": stop_act,
             "retroceso_desde_max_pct": retroceso_max,
             "pulso_en_vivo_1m": {
@@ -722,8 +749,8 @@ def evaluar_copiloto_trader_y_auditor_ia(session, mapa_mkt, plan, clima_btc_txt,
         "semana_id": plan["semana_id"],
         "semaforo_meta": "🟢 EN CAMINO A META" if (real + flot) >= 0 else "🟡 EN CONSOLIDACIÓN",
         "factibilidad_pct": min(96, max(48, int(68 + (stats_emb["tasa_pct"] * 0.25) + ((real + flot) / 25.0)))),
-        "diagnostico_24h": f"Consenso Ecosistema: {resumen_emb_txt}. {clima_btc_txt}. Avance cuota: {progreso_pct}%.",
-        "recomendacion_auditor": f"Trader IA integrado con análisis previo (Pre-Explosión + Ganadoras + Fib <= 0.62) y TP1 +{TP1_ASEGURAR_PCT}%.",
+        "diagnostico_24h": f"Consenso Ecosistema (Neto Fees 0.20%): {resumen_emb_txt}. {clima_btc_txt}. Avance: {progreso_pct}%.",
+        "recomendacion_auditor": f"Filtro sin muros OB (>=1.25x), Fib <= 0.62, TP1 +{TP1_ASEGURAR_PCT}% neto e Interruptor Pánico BTC -1% 1H.",
         "veredicto_final_semana": plan.get("auditoria_ia", {}).get("veredicto_final_semana", "En seguimiento activo...")
     }
 
@@ -731,20 +758,19 @@ def evaluar_copiloto_trader_y_auditor_ia(session, mapa_mkt, plan, clima_btc_txt,
         try:
             client = genai.Client(api_key=GEMINI_API_KEY)
             prompt = (
-                "Eres el Director de Ejecución y Copiloto Trader IA de un ecosistema multi-bot en Binance Spot.\n"
+                "Eres el Director de Ejecución y Copiloto Trader IA de un ecosistema multi-bot en Binance Spot (PnL ya descontando 0.20% de comisiones).\n"
                 "REGLA FUNDAMENTAL: TODO el trabajo previo de análisis de los otros bots ('inteligencia_previa_bots': Pre-Explosión, Cazador Táctico, Ganadoras, Perdedoras y Sentimiento) "
                 "DEBE ser la base de tu decisión en vivo:\n"
-                "1) Si 'tesis_original_sigue_viva' es true y la moneda recién inicia su recorrido desde 'precio_referencia_radar', NO cierres por ruido menor de 1m; deja madurar hacia TP1 (+4.8%) y el corredor.\n"
-                "2) Si ya acumuló mucho recorrido desde 'precio_referencia_radar' (+15% o más) o toca Ext Fib 1.618 con rechazo en 1m/15m, ordena asegurar ganancia.\n"
+                "1) Si 'tesis_original_sigue_viva' es true y recién inicia recorrido desde 'precio_referencia_radar', NO cierres por ruido menor de 1m; deja madurar hacia TP1 (+4.8% neto).\n"
+                "2) Si ya acumuló mucho recorrido desde 'precio_referencia_radar' (+15% o más) o toca Ext Fib 1.618 con rechazo >60% en 1m/15m, ordena asegurar ganancia.\n"
                 "3) Si la tesis previa se invalida (pierde Fib 0.618, cae bajo precio del radar o entra en Perdedoras), corta de inmediato antes de tocar -$16 USD.\n\n"
-                f"CLIMA BTC: {clima_btc_txt}\n"
+                f"CLIMA MERCADO: {clima_btc_txt}\n"
                 f"CONTEXTO OTROS BOTS MACRO/NOTICIAS: {macro_bots_txt}\n"
-                f"AVANCE SEMANAL: ${real + flot:+.2f} / ${meta:.0f} USD ({progreso_pct}%)\n"
-                f"ESTADO EMBUDO PREVIO: {resumen_emb_txt}\n"
+                f"AVANCE SEMANAL NETO: ${real + flot:+.2f} / ${meta:.0f} USD ({progreso_pct}%)\n"
                 f"POSICIONES CON EXPEDIENTE PREVIO + PULSO EN VIVO:\n{json.dumps(datos_posiciones, ensure_ascii=False)}\n\n"
                 "Responde ÚNICAMENTE en JSON válido sin bloques markdown:\n"
                 '{"semaforo_meta":"🟢 FACTIBLE | 🟡 EN OBSERVACIÓN | 🔴 RIESGO","factibilidad_pct":80,'
-                '"diagnostico_24h":"análisis breve en 1 oración integrando el avance y el contexto de los bots",'
+                '"diagnostico_24h":"análisis breve en 1 oración integrando el avance neto y el contexto de los bots",'
                 '"recomendacion_auditor":"consejo técnico concreto considerando la tesis previa y el pulso actual",'
                 '"ordenes":{"MONEDA":{"orden":"🟢 MANTENER / TESIS VIVA | 🟡 ASEGURAR 50% (TP1) | 🚨 VENDER AHORA (AGOTAMIENTO) | ⚠️ ALERTA PALANCA / TESIS EN RIESGO","razon":"motivo corto citando el análisis previo (semáforo/recorrido radar/Fib) y el pulso 1m/15m"}}}'
             )
@@ -777,10 +803,10 @@ def generar_veredicto_final_ia(plan):
     meta_usd = float(plan.get("meta_semanal_usd", META_SEMANAL_USD))
 
     veredicto_base = (
-        f"✅ <b>VEREDICTO: META LOGRADA — CONSENSO MULTI-BOT FACTIBLE</b>\n"
-        f"• Se alcanzaron <b>${total_usd:,.2f} USD</b> (Meta: ${meta_usd:,.0f} USD) con <b>{win_rate}% de acierto</b> "
+        f"✅ <b>VEREDICTO: META LOGRADA — CONSENSO MULTI-BOT FACTIBLE (NETO COMISIONES)</b>\n"
+        f"• Se alcanzaron <b>${total_usd:,.2f} USD netos</b> (Meta: ${meta_usd:,.0f} USD) con <b>{win_rate}% de acierto</b> "
         f"({len(ganadoras)} ganadoras / {len(perdedoras)} cerradas en protección).\n"
-        f"• La integración del análisis previo de todos los bots con el Copiloto en vivo 1m/15m + TP1 +{TP1_ASEGURAR_PCT}% protegió el capital y capturó ganancias."
+        f"• La integración del análisis previo de todos los bots + descuento real de comisiones (0.20%) + Order Book sin muros validó la estrategia."
     )
 
     if GEMINI_API_KEY and cierres:
@@ -788,9 +814,9 @@ def generar_veredicto_final_ia(plan):
             client = genai.Client(api_key=GEMINI_API_KEY)
             prompt = (
                 "Eres el Auditor Jefe de un fondo cuantitativo Spot en Binance. "
-                "Cumplimos la meta semanal integrando el análisis previo de todo el ecosistema de bots con el Trader IA en vivo. "
+                "Cumplimos la meta semanal neta (ya descontando 0.20% de comisiones Binance) integrando el análisis previo de todo el ecosistema de bots. "
                 "Da un VEREDICTO FINAL DE FACTIBILIDAD para pasar a dinero real.\n"
-                f"Capital Base: ${plan.get('capital_total_usd', 3500)} USD | Meta: ${meta_usd} USD | Ganancia Lograda: ${total_usd} USD\n"
+                f"Capital Base: ${plan.get('capital_total_usd', 3500)} USD | Meta: ${meta_usd} USD | Ganancia Neta Lograda: ${total_usd} USD\n"
                 f"Operaciones cerradas: {json.dumps(cierres, ensure_ascii=False)}\n\n"
                 "Responde en máximo 4 líneas claras en español."
             )
@@ -813,7 +839,7 @@ def generar_tablero_visual(plan, filename="tablero_semanal.png"):
     flotante = sum(float(p.get("pnl_usd", 0.0)) for p in plan.get("posiciones", []))
     total_actual = realizada + flotante
 
-    categorias = ["Cerrada\n(Caja)", "Flotante\n(En curso)", "Total\nSemana"]
+    categorias = ["Cerrada\n(Caja Neta)", "Flotante\n(Neta)", "Total\nSemana"]
     valores = [realizada, flotante, total_actual]
     colores = ["#00e676" if v >= 0 else "#ff1744" for v in valores]
 
@@ -825,7 +851,7 @@ def generar_tablero_visual(plan, filename="tablero_semanal.png"):
     ax1.set_ylim(lim_inf, lim_sup)
     ax1.grid(True, axis="y", color="#1e293b", linewidth=0.7, zorder=1)
     ax1.tick_params(colors="white", labelsize=8.5)
-    ax1.set_title("PROGRESO CUOTA SEMANAL ($ USD)", color="#ffd600", fontsize=10, fontweight="bold", pad=10)
+    ax1.set_title("PROGRESO CUOTA NETA (-0.20% FEES)", color="#ffd600", fontsize=9.8, fontweight="bold", pad=10)
     ax1.legend(loc="upper left", facecolor="#0b132b", edgecolor="#ffd600", labelcolor="white", fontsize=8)
 
     for b, v in zip(bars1, valores):
@@ -842,7 +868,7 @@ def generar_tablero_visual(plan, filename="tablero_semanal.png"):
         x = range(len(nombres))
 
         ax2.bar([i - 0.17 for i in x], objs, width=0.32, color="#334155", edgecolor="#94a3b8", label="Meta Semanal (%)", zorder=2)
-        bars_act = ax2.bar([i + 0.17 for i in x], pnls, width=0.32, color=["#00e676" if v >= 0 else "#ff1744" for v in pnls], zorder=3, label="Actual (%)")
+        bars_act = ax2.bar([i + 0.17 for i in x], pnls, width=0.32, color=["#00e676" if v >= 0 else "#ff1744" for v in pnls], zorder=3, label="Actual Neto (%)")
         ax2.axhline(0, color="#475569", linewidth=1.0)
         ax2.axhline(TP1_ASEGURAR_PCT, color="#00e676", linestyle="--", linewidth=1.2, label=f"TP1 50% (+{TP1_ASEGURAR_PCT}%)")
         ax2.axhline(stop_ref_pct, color="#ff1744", linestyle=":", linewidth=1.3, label=f"Tope -${MAX_PERDIDA_USD:.0f} ({stop_ref_pct}%)")
@@ -864,8 +890,8 @@ def generar_tablero_visual(plan, filename="tablero_semanal.png"):
 
     aud = plan.get("auditoria_ia", {})
     fact_txt = f" | Auditor IA: {aud.get('factibilidad_pct', 80)}% Factible" if aud else ""
-    ax2.set_title(f"CARTERA CONSENSO BOTS ({len(posiciones)}/{MAX_MONEDAS_SEMANA}) • TP1 +{TP1_ASEGURAR_PCT}% + TOPE -${MAX_PERDIDA_USD:.0f}", color="#00e676", fontsize=9.6, fontweight="bold", pad=10)
-    fig.suptitle(f"ETAPA 4 • GESTOR INTEGRADO CON ECOSISTEMA ({plan['semana_id']}){fact_txt} | {ahora_art().strftime('%d/%m %H:%M ART')}", color="white", fontsize=10.3, fontweight="bold", y=0.98)
+    ax2.set_title(f"CARTERA CONSENSO BOTS ({len(posiciones)}/{MAX_MONEDAS_SEMANA}) • TP1 +{TP1_ASEGURAR_PCT}% + TOPE -${MAX_PERDIDA_USD:.0f}", color="#00e676", fontsize=9.5, fontweight="bold", pad=10)
+    fig.suptitle(f"ETAPA 4 • GESTOR QUIRÚRGICO NETO FEES ({plan['semana_id']}){fact_txt} | {ahora_art().strftime('%d/%m %H:%M ART')}", color="white", fontsize=10.2, fontweight="bold", y=0.98)
     plt.tight_layout(rect=[0, 0, 1, 0.93])
     plt.savefig(filename, dpi=260, facecolor=fig.get_facecolor())
     plt.close()
@@ -883,8 +909,8 @@ def actualizar_excel_semanal(plan):
     headers = [
         "Semana", "Fecha Entrada", "Moneda", "Certificación y Motivo", "Expediente Previo Bots", "Capital ($)",
         "Precio Entrada", "Precio Objetivo", "Subida Esperada (%)",
-        "Precio Actual", "Máximo Alcanzado", "Rendimiento (%)",
-        "PnL ($)", "Lectura Fibonacci 4H", "Orden Copiloto Trader IA", "Análisis Trader IA (Tesis + 1m/15m)", "Estado"
+        "Precio Actual", "Máximo Alcanzado", "Max Drawdown (%)", "Rend. Neto (%)",
+        "PnL Neto ($)", "Lectura Fibonacci 4H", "Orden Copiloto Trader IA", "Análisis Trader IA (Tesis + 1m/15m)", "Estado"
     ]
     ws.append(headers)
     for col_idx in range(1, len(headers) + 1):
@@ -908,6 +934,7 @@ def actualizar_excel_semanal(plan):
             round(float(pos.get("subida_necesaria_pct", 0)), 2),
             float(pos.get("precio_actual", 0)),
             float(pos.get("precio_maximo", 0)),
+            round(float(pos.get("max_drawdown_pct", 0)), 2),
             round(float(pos.get("pnl_pct", 0)), 2),
             pnl_v,
             pos.get("fib_lectura", "Fib N/D"),
@@ -915,7 +942,7 @@ def actualizar_excel_semanal(plan):
             pos.get("trader_ia_razon", ""),
             pos.get("estado", "")
         ])
-        celda_pnl = ws.cell(row=row_idx, column=13)
+        celda_pnl = ws.cell(row=row_idx, column=14)
         if pnl_v > 0:
             celda_pnl.fill = fill_verde
         elif pnl_v < 0:
@@ -963,7 +990,7 @@ def actualizar_excel_semanal(plan):
         ])
 
     ws2 = wb.create_sheet(title="4_RESUMEN_CUOTA")
-    headers2 = ["Semana", "Fecha Inicio", "Capital Base ($)", "Meta Semanal ($)", "Ganancia Cerrada ($)", "Ganancia Flotante ($)", "Cumplimiento (%)", "Estado Semana"]
+    headers2 = ["Semana", "Fecha Inicio", "Capital Base ($)", "Meta Semanal ($)", "Ganancia Cerrada Neta ($)", "Ganancia Flotante Neta ($)", "Cumplimiento (%)", "Estado Semana"]
     ws2.append(headers2)
     for col_idx in range(1, len(headers2) + 1):
         c = ws2.cell(row=1, column=col_idx)
@@ -1055,6 +1082,15 @@ def calcular_horas_abierta(fecha_entrada_str):
     except Exception:
         return 0.0
 
+def cooldown_panico_cumplido(ultimo_iso):
+    if not ultimo_iso:
+        return True
+    try:
+        dt_prev = datetime.fromisoformat(ultimo_iso)
+        return (ahora_art() - dt_prev).total_seconds() >= (COOLDOWN_PANICO_BTC_MIN * 60)
+    except Exception:
+        return True
+
 def construir_bloque_1_alternativas(plan):
     ahora_str = ahora_art().strftime("%Y-%m-%d %H:%M ART")
     alts = plan.get("alternativas_evaluadas", [])
@@ -1063,10 +1099,10 @@ def construir_bloque_1_alternativas(plan):
     msg = (
         f"🔍 <b>GESTOR SEMANAL • BLOQUE 1/3: ALTERNATIVAS CONSENSO BOTS</b>\n"
         f"📅 <code>{ahora_str}</code> | Semana <code>{plan['semana_id']}</code>\n"
-        f"<i>Ranking cruzado (Pre-Explosión + Ganadoras + OB &gt;= 1.15x + Fib &lt;= 0.62):</i>\n\n"
+        f"<i>Ranking cruzado (Pre-Explosión + Ganadoras + OB &gt;= 1.25x sin muros + Fib &lt;= 0.62):</i>\n\n"
     )
     if not alts:
-        msg += "⏳ <i>Aún no hay candidatas en verde que superen el filtro de consenso.</i>"
+        msg += "⏳ <i>Aún no hay candidatas en verde que superen el filtro institucional.</i>"
         return msg.strip()
 
     for idx, a in enumerate(alts, start=1):
@@ -1086,9 +1122,9 @@ def construir_bloque_2_cartera(plan, evento_titulo):
     aud = plan.get("auditoria_ia", {})
 
     msg = (
-        f"🏆 <b>GESTOR CONSENSO BOTS • BLOQUE 2/3</b>\n"
+        f"🏆 <b>GESTOR CONSENSO BOTS (NETO FEES 0.20%) • BLOQUE 2/3</b>\n"
         f"{evento_titulo}\n"
-        f"📅 <code>{ahora_str}</code> | Cuota: <code>${meta:,.0f} USD</code> | Progreso: <b>${real + flot:+.2f} USD ({cump}%)</b>\n"
+        f"📅 <code>{ahora_str}</code> | Cuota: <code>${meta:,.0f} USD</code> | Progreso Neto: <b>${real + flot:+.2f} USD ({cump}%)</b>\n"
     )
     if aud:
         msg += (
@@ -1112,11 +1148,12 @@ def construir_bloque_2_cartera(plan, evento_titulo):
             stop_act = float(p.get("stop_actual_pct", calcular_stop_usd_pct(p.get("capital_usd", 875))))
             stop_label = f"🛡️ Trailing BE: <code>+{stop_act:.2f}%</code>" if stop_act > 0 else f"Tope -${MAX_PERDIDA_USD:.0f}: <code>{stop_act:.2f}%</code>"
             tp1_tag = "✅ TP1 50% cobrado" if p.get("tp1_ejecutado") else f"TP1 50%: <code>+{TP1_ASEGURAR_PCT}%</code>"
+            dd_val = float(p.get("max_drawdown_pct", 0.0))
 
             msg += (
                 f"🟢 <b>{idx}. {p['base']}</b> — Asignado: <code>${p['capital_usd']:,.2f} USD</code>\n"
                 f"• <b>Memoria Bots Previos:</b> <i>{exp_res}</i>\n"
-                f"• <b>Entrada:</b> <code>{formatear_precio(p['precio_entrada'])}</code> ➔ <b>Actual:</b> <code>{formatear_precio(p['precio_actual'])}</code> (<b>{p['pnl_pct']:+.2f}%</b> | <code>${p['pnl_usd']:+.2f}</code>)\n"
+                f"• <b>Entrada:</b> <code>{formatear_precio(p['precio_entrada'])}</code> ➔ <b>Actual:</b> <code>{formatear_precio(p['precio_actual'])}</code> (<b>{p['pnl_pct']:+.2f}% neto</b> | <code>${p['pnl_usd']:+.2f}</code> | MaxDD: <code>{dd_val:.2f}%</code>)\n"
                 f"• <b>Cosecha:</b> {tp1_tag} | {stop_label}\n"
                 f"• <b>Geometría Fib:</b> <code>{fib_l}</code>\n"
                 f"• <b>Copiloto Trader IA (Tesis + 1m/15m):</b> <b>{orden_tr}</b> — <i>{razon_tr}</i>\n"
@@ -1131,7 +1168,6 @@ def ejecutar_gestor_semanal():
         print("❌ Sin datos de Binance.")
         return
 
-    # Carga unificada de TODO el trabajo previo de los otros bots
     eco = recopilar_inteligencia_ecosistema()
     plan = cargar_plan_semanal()
     ahora_dt = ahora_art()
@@ -1145,6 +1181,22 @@ def ejecutar_gestor_semanal():
     if plan["estado_semana"] == "META_CUMPLIDA":
         print(f"✅ Semana {plan['semana_id']} ya tiene META CUMPLIDA. Modo protección activo.")
         return
+
+    # Verifica clima BTC + Interruptor de Pánico 1H (-1.0%) + Régimen de cupos (4 vs 2)
+    btc_ok, panico_btc_1h, cupos_max_regimen, msg_btc = verificar_clima_y_regimen_mercado(s, mapa_mkt)
+
+    if panico_btc_1h and plan["posiciones"]:
+        for p_prot in plan["posiciones"]:
+            if float(p_prot.get("pnl_pct", 0.0)) >= 0.60:
+                p_prot["forzar_be_panico_btc"] = True
+        if cooldown_panico_cumplido(plan.get("ultimo_panico_btc_iso", "")):
+            plan["ultimo_panico_btc_iso"] = ahora_dt.isoformat()
+            enviar_telegram_texto(
+                f"🚨 <b>INTERRUPTOR PÁNICO MACRO BTC (-1.0% EN 1H)</b>\n"
+                f"📅 <code>{ahora_str}</code>\n\n"
+                f"⚠️ {html.escape(msg_btc)}\n"
+                f"🛡️ <i>Compras pausadas y Stops elevados automáticamente a Break-Even neto (+0.25%) en posiciones en verde.</i>"
+            )
 
     ganancia_flotante_total = 0.0
     posiciones_siguen_activas = []
@@ -1161,11 +1213,17 @@ def ejecutar_gestor_semanal():
         cap = float(pos["capital_usd"])
         p_max = max(float(pos.get("precio_maximo", p_ent)), p_act)
 
-        pnl_pct = ((p_act - p_ent) / p_ent) * 100 if p_ent > 0 else 0.0
-        max_pnl_pct = ((p_max - p_ent) / p_ent) * 100 if p_ent > 0 else 0.0
+        # Cálculo de rendimiento NETO real descontando 0.20% de comisiones Binance Spot
+        var_bruta_pct = ((p_act - p_ent) / p_ent) * 100 if p_ent > 0 else 0.0
+        max_bruta_pct = ((p_max - p_ent) / p_ent) * 100 if p_ent > 0 else 0.0
+        pnl_pct = var_bruta_pct - COMISION_SPOT_TOTAL_PCT
+        max_pnl_pct = max_bruta_pct - COMISION_SPOT_TOTAL_PCT
         pnl_usd = cap * (pnl_pct / 100.0)
         retroceso_desde_max = ((p_act - p_max) / p_max) * 100 if p_max > 0 else 0.0
         horas_abierta = calcular_horas_abierta(pos.get("fecha_entrada", ""))
+
+        prev_dd = float(pos.get("max_drawdown_pct", 0.0))
+        max_dd_pct = round(min(prev_dd, pnl_pct), 2)
 
         v1m = analizar_velas_tf(s, sym, "1m", 30)
         v15 = analizar_velas_tf(s, sym, "15m", 24)
@@ -1180,6 +1238,7 @@ def ejecutar_gestor_semanal():
             "expediente_previo": exp_previo
         }
 
+        # Trailing Break-Even Neto (cubre comisiones 0.20% y blinda ganancias)
         stop_base_usd_pct = calcular_stop_usd_pct(cap)
         stop_dinamico_pct = stop_base_usd_pct
         if pos.get("tp1_ejecutado", False):
@@ -1189,10 +1248,13 @@ def ejecutar_gestor_semanal():
         elif max_pnl_pct >= 3.5:
             stop_dinamico_pct = 1.5
         elif max_pnl_pct >= 2.2:
-            stop_dinamico_pct = 0.4
+            stop_dinamico_pct = 0.35
+        elif pos.get("forzar_be_panico_btc", False):
+            stop_dinamico_pct = 0.25
 
         pos["precio_actual"] = p_act
         pos["precio_maximo"] = p_max
+        pos["max_drawdown_pct"] = max_dd_pct
         pos["pnl_pct"] = round(pnl_pct, 2)
         pos["pnl_usd"] = round(pnl_usd, 2)
         pos["stop_actual_pct"] = stop_dinamico_pct
@@ -1224,15 +1286,15 @@ def ejecutar_gestor_semanal():
         if pos.get("tp1_ejecutado", False) and retroceso_desde_max <= -TRAILING_DESDE_MAX_PCT:
             motivo_cierre = f"🎯 CIERRE 2ª MITAD (Trailing Stop): tocó máx +{max_pnl_pct:.1f}% y retrocedió {retroceso_desde_max:.1f}%."
         elif not pos.get("tp1_ejecutado", False) and pnl_pct >= 18.0 and retroceso_desde_max <= -2.0:
-            motivo_cierre = f"🚀 EXPLOSIÓN CAPTURADA: +{pnl_pct:.1f}% asegurado antes de corrección."
+            motivo_cierre = f"🚀 EXPLOSIÓN CAPTURADA: +{pnl_pct:.1f}% neto asegurado antes de corrección."
         elif pnl_usd <= -MAX_PERDIDA_USD:
-            motivo_cierre = f"🛑 TOPE PREVENTIVO -${MAX_PERDIDA_USD:.0f} USD ({pnl_pct:.2f}% | ${pnl_usd:+.2f}): corta pérdida y libera capital."
+            motivo_cierre = f"🛑 TOPE PREVENTIVO -${MAX_PERDIDA_USD:.0f} USD ({pnl_pct:.2f}% neto | ${pnl_usd:+.2f}): corta pérdida y libera capital."
         elif stop_dinamico_pct > 0 and pnl_pct <= stop_dinamico_pct:
-            motivo_cierre = f"🛡️ TRAILING BREAK-EVEN (+{stop_dinamico_pct:.2f}%): subió hasta +{max_pnl_pct:.1f}% y aseguró ganancia en {pnl_pct:+.2f}%."
+            motivo_cierre = f"🛡️ TRAILING BREAK-EVEN (+{stop_dinamico_pct:.2f}% neto): subió hasta +{max_pnl_pct:.1f}% y aseguró ganancia en {pnl_pct:+.2f}%."
         elif not pos.get("tp1_ejecutado", False) and palanca_activada:
             motivo_cierre = motivo_palanca
         elif not pos.get("tp1_ejecutado", False) and horas_abierta >= HORAS_MAX_SIN_ARRANQUE and pnl_pct < 1.5:
-            motivo_cierre = f"⏳ ROTACIÓN RÁPIDA ({int(horas_abierta)}h lateral en {pnl_pct:+.1f}%): libera cupo para moneda en verde."
+            motivo_cierre = f"⏳ ROTACIÓN RÁPIDA ({int(horas_abierta)}h lateral en {pnl_pct:+.1f}% neto): libera cupo para moneda en verde."
 
         if motivo_cierre:
             pos["estado"] = "CERRADA"
@@ -1270,16 +1332,14 @@ def ejecutar_gestor_semanal():
     alternativas = evaluar_alternativas_al_horno(s, mapa_mkt, excluidas, eco)
     plan["alternativas_evaluadas"] = alternativas
 
-    btc_ok, msg_btc = verificar_clima_btc(s, mapa_mkt)
-
-    if plan["estado_semana"] == "ACTIVA" and len(plan["posiciones"]) < MAX_MONEDAS_SEMANA:
+    if plan["estado_semana"] == "ACTIVA" and len(plan["posiciones"]) < cupos_max_regimen:
         if not btc_ok:
             if not plan.get("aviso_btc_enviado", False):
                 enviar_telegram_texto(f"🛑 <b>FRENO DE MANO BTC ACTIVADO</b>\n📅 <code>{ahora_str}</code>\n\n⚠️ {html.escape(msg_btc)}")
                 plan["aviso_btc_enviado"] = True
         else:
             plan["aviso_btc_enviado"] = False
-            cupos = MAX_MONEDAS_SEMANA - len(plan["posiciones"])
+            cupos = cupos_max_regimen - len(plan["posiciones"])
             elegidas = [a for a in alternativas if a.get("en_zona")][:cupos]
 
             if elegidas:
@@ -1303,6 +1363,8 @@ def ejecutar_gestor_semanal():
                     p_ent = float(el["precio_entrada"])
                     p_obj = p_ent * (1.0 + (subida_nec_pct / 100.0))
                     exp_el = el.get("expediente_previo", {})
+                    pnl_init_pct = -COMISION_SPOT_TOTAL_PCT
+                    pnl_init_usd = round(cap_objetivo_por_moneda * (pnl_init_pct / 100.0), 2)
                     nueva_pos = {
                         "semana_id": plan["semana_id"],
                         "symbol": el["symbol"],
@@ -1317,8 +1379,9 @@ def ejecutar_gestor_semanal():
                         "subida_necesaria_pct": subida_nec_pct,
                         "precio_actual": p_ent,
                         "precio_maximo": p_ent,
-                        "pnl_pct": 0.0,
-                        "pnl_usd": 0.0,
+                        "max_drawdown_pct": pnl_init_pct,
+                        "pnl_pct": pnl_init_pct,
+                        "pnl_usd": pnl_init_usd,
                         "stop_actual_pct": calcular_stop_usd_pct(cap_objetivo_por_moneda),
                         "tp1_ejecutado": False,
                         "prealerta_palanca_enviada": False,
@@ -1339,17 +1402,17 @@ def ejecutar_gestor_semanal():
         enviar_telegram_texto(
             f"⚠️ <b>PRE-ALERTA PALANCA EMERGENCIA (1M/15M) • {pre['base']}</b>\n"
             f"📅 <code>{ahora_str}</code>\n\n"
-            f"• <b>Pérdida flotante:</b> <b>${pre['pnl_usd']:+.2f} USD</b> ({pre['pnl_pct']:+.2f}%) — <i>Tope preventivo: -${MAX_PERDIDA_USD:.0f}.00 USD</i>\n"
+            f"• <b>Pérdida flotante neta:</b> <b>${pre['pnl_usd']:+.2f} USD</b> ({pre['pnl_pct']:+.2f}%) — <i>Tope preventivo: -${MAX_PERDIDA_USD:.0f}.00 USD</i>\n"
             f"• <b>Memoria Bots:</b> <code>{html.escape(pre.get('expediente_previo_resumen', ''))}</code>\n"
             f"• <b>Lectura en vivo:</b> <i>{html.escape(pre.get('trader_ia_razon', ''))}</i>"
         )
 
     for parc in alertas_parciales:
         enviar_telegram_texto(
-            f"💰 <b>COSECHA PARCIAL TP1 (+{TP1_ASEGURAR_PCT}%) • {parc['base']}</b>\n"
+            f"💰 <b>COSECHA PARCIAL TP1 (+{TP1_ASEGURAR_PCT}% NETO) • {parc['base']}</b>\n"
             f"📅 <code>{ahora_str}</code>\n\n"
-            f"• <b>Rendimiento alcanzado:</b> <b>+{parc['pnl_pct']:.2f}%</b> en <code>{formatear_precio(parc['precio_actual'])}</code>\n"
-            f"• <b>Ganancia asegurada en caja:</b> <b>+${parc['ganancia_tp1']:.2f} USD</b> (50% vendido)\n"
+            f"• <b>Rendimiento neto alcanzado:</b> <b>+{parc['pnl_pct']:.2f}%</b> en <code>{formatear_precio(parc['precio_actual'])}</code>\n"
+            f"• <b>Ganancia neta en caja:</b> <b>+${parc['ganancia_tp1']:.2f} USD</b> (50% vendido)\n"
             f"• <b>Saldo restante corriendo:</b> <code>${parc['capital_restante']:,.2f} USD</code> blindado en <b>+2.0%</b> con Trailing Stop."
         )
 
@@ -1371,9 +1434,9 @@ def ejecutar_gestor_semanal():
         elif alertas_venta and nuevas_entradas:
             titulo_ev = f"🔄 <b>ROTACIÓN CONSENSO BOTS / ESCUDO (-${MAX_PERDIDA_USD:.0f} MAX)</b>"
         elif nuevas_entradas:
-            titulo_ev = "🆕 <b>NUEVA ENTRADA VALIDADA POR ECOSISTEMA DE BOTS</b>"
+            titulo_ev = "🆕 <b>NUEVA ENTRADA VALIDADA (OB SIN MUROS + FIB + CONSENSO)</b>"
         elif alertas_venta or alertas_parciales:
-            titulo_ev = f"💰 <b>COSECHA DE GANANCIAS TP1 (+{TP1_ASEGURAR_PCT}%) / CIERRE</b>"
+            titulo_ev = f"💰 <b>COSECHA DE GANANCIAS TP1 (+{TP1_ASEGURAR_PCT}% NETO) / CIERRE</b>"
         else:
             titulo_ev = "📡 <b>RADAR CONTINUO • TRADER IA + MEMORIA DE TODOS LOS BOTS</b>"
 
@@ -1383,7 +1446,7 @@ def ejecutar_gestor_semanal():
 
         ok3 = enviar_excel_telegram(
             f"📎 <b>GESTOR Y RADAR SEMANAL • BLOQUE 3/3: PLANILLA EXCEL</b>\n"
-            f"📊 Registro completo en 4 pestañas con Expediente Previo de Bots, TP1 +{TP1_ASEGURAR_PCT}% y Tope -${MAX_PERDIDA_USD:.0f} USD (<code>{EXCEL_SEMANAL_FILE}</code>)."
+            f"📊 Registro completo en 4 pestañas con PnL Neto (-0.20% fees), Max Drawdown, Expediente Previo y TP1 +{TP1_ASEGURAR_PCT}% (<code>{EXCEL_SEMANAL_FILE}</code>)."
         )
         if ok1 and ok2 and ok3:
             plan["ultimo_reporte_hora"] = ahora_dt.hour
@@ -1393,7 +1456,7 @@ def ejecutar_gestor_semanal():
     for v in alertas_venta:
         msg_v = (
             f"🔔 <b>EJECUCIÓN DE CIERRE • {v['base']}</b>\n"
-            f"• Resultado: <b>{v['pnl_pct']:+.2f}%</b> (<b>${v['pnl_usd']:+.2f} USD</b>) | Máx: <code>{formatear_precio(v['precio_maximo'])}</code>\n"
+            f"• Resultado Neto: <b>{v['pnl_pct']:+.2f}%</b> (<b>${v['pnl_usd']:+.2f} USD</b>) | Máx: <code>{formatear_precio(v['precio_maximo'])}</code> | MaxDD: <code>{v.get('max_drawdown_pct', 0.0):.2f}%</code>\n"
             f"• Motivo: <i>{html.escape(v.get('motivo_cierre', ''))}</i>"
         )
         enviar_telegram_texto(msg_v)
@@ -1402,7 +1465,7 @@ def ejecutar_gestor_semanal():
         msg_m = (
             f"🏆 <b>¡CUOTA SEMANAL CUMPLIDA EN MODO PRUEBA!</b>\n"
             f"📅 Semana <code>{plan['semana_id']}</code> cerrada el <code>{ahora_str}</code>\n\n"
-            f"✅ <b>Ganancia Total Simulada:</b> <code>${plan['ganancia_realizada_usd']:,.2f} USD</code> (Meta: <code>${plan['meta_semanal_usd']:,.2f} USD</code>)\n\n"
+            f"✅ <b>Ganancia Total Neta Simulada:</b> <code>${plan['ganancia_realizada_usd']:,.2f} USD</code> (Meta: <code>${plan['meta_semanal_usd']:,.2f} USD</code>)\n\n"
             f"{veredicto_final_txt}\n\n"
             f"🛡️ <i>El bot entra en MODO PROTECCIÓN hasta el próximo lunes para asegurar el resultado.</i>"
         )
@@ -1411,5 +1474,5 @@ def ejecutar_gestor_semanal():
     guardar_plan_semanal(plan)
 
 if __name__ == "__main__":
-    print(f"🧪 INICIANDO GESTOR SEMANAL INTEGRADO CON ECOSISTEMA (TP1 +{TP1_ASEGURAR_PCT}% | MAX -${MAX_PERDIDA_USD:.0f} USD) ({ahora_art().strftime('%H:%M:%S')} ART)...")
+    print(f"🧪 INICIANDO GESTOR SEMANAL QUIRÚRGICO (NETO FEES 0.20% | OB SIN MUROS | TP1 +{TP1_ASEGURAR_PCT}%) ({ahora_art().strftime('%H:%M:%S')} ART)...")
     ejecutar_gestor_semanal()
