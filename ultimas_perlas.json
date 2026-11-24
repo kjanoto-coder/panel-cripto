@@ -1,20 +1,20 @@
 [
   [
-    "INITUSDT",
-    "SHELLUSDT",
-    "ASRUSDT",
-    "OPGUSDT",
-    "RPLUSDT",
-    "BLURUSDT",
-    "BABYUSDT"
-  ],
-  [
     "SHELLUSDT",
     "LUNCUSDT",
     "ASRUSDT",
     "RPLUSDT",
     "KITEUSDT",
     "OPGUSDT",
+    "BLURUSDT"
+  ],
+  [
+    "LUNCUSDT",
+    "ASRUSDT",
+    "SHELLUSDT",
+    "RPLUSDT",
+    "AIGENSYNUSDT",
+    "KITEUSDT",
     "BLURUSDT"
   ]
 ]
