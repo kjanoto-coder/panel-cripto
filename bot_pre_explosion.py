@@ -1,24 +1,60 @@
 import os
 import re
+import sys
 import json
 import time
 import random
 import html
+import subprocess
 from datetime import datetime, timezone, timedelta
+
+# Auto-instalación blindada de dependencias
+for mod, pkg in [
+    ("requests", "requests"),
+    ("matplotlib", "matplotlib"),
+    ("openpyxl", "openpyxl"),
+    ("google.genai", "google-genai")
+]:
+    try:
+        __import__(mod)
+    except ImportError:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", pkg])
+
 import requests
 import matplotlib.pyplot as plt
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from google import genai
 
 # --- CONFIGURACIÓN DE ENTORNO BLINDADA ---
 TZ_ART = timezone(timedelta(hours=-3))
 TELEGRAM_BOT_TOKEN = (os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("TELEGRAM_TOKEN") or "").strip()
 TELEGRAM_CHAT_ID = (os.getenv("TELEGRAM_CHAT_ID") or os.getenv("CHAT_ID") or "").strip()
-TELEGRAM_TOPIC_ID = (os.getenv("TOPIC_ID_PRE_EXPLOSION") or os.getenv("TELEGRAM_MESSAGE_THREAD_ID") or os.getenv("TOPIC_ID_CENTRAL") or "").strip()
+TELEGRAM_TOPIC_ID = (
+    os.getenv("TOPIC_ID_PRE_EXPLOSION")
+    or os.getenv("TELEGRAM_MESSAGE_THREAD_ID")
+    or os.getenv("TOPIC_ID_CENTRAL")
+    or ""
+).strip()
 GEMINI_API_KEY = (os.getenv("GEMINI_API_KEY") or "").strip()
 BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
 
 HISTORIAL_FILE = "historial_perlas.json"
+HISTORIAL_GANADORAS_FILE = "historial_ganadoras.json"
+EXCEL_PRE_EXPLOSION_FILE = "AUDITORIA_PRE_EXPLOSION.xlsx"
 DIAS_GRADUADAS = 7
+DIAS_RETENCION_CALENDARIO = 90
+
+MESES_ES = {
+    1: "ENERO", 2: "FEBRERO", 3: "MARZO", 4: "ABRIL",
+    5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGOSTO",
+    9: "SEPTIEMBRE", 10: "OCTUBRE", 11: "NOVIEMBRE", 12: "DICIEMBRE"
+}
+DIAS_SEMANA_ES = {
+    0: "LUNES", 1: "MARTES", 2: "MIERCOLES", 3: "JUEVES",
+    4: "VIERNES", 5: "SABADO", 6: "DOMINGO"
+}
+PRIORIDAD_COLOR = {"VERDE": 1, "AMARILLO": 2, "ROJO": 3}
 
 EXCL_BASE = {
     'USDT', 'USDC', 'FDUSD', 'DAI', 'TUSD', 'USDP', 'EUR', 'GBP', 'AUD', 'BRL', 'ARS', 'TRY', 'BUSD',
@@ -41,7 +77,10 @@ def cargar_historial():
         "graduadas_pre_explosion": {},
         "verdes_hoy": [],
         "verdes_ayer": [],
-        "oro_hoy": []
+        "oro_hoy": [],
+        "registro_cronologico": {},
+        "apariciones_por_dia": {},
+        "ultimo_envio_excel_pre": ""
     }
     if os.path.exists(HISTORIAL_FILE):
         try:
@@ -49,6 +88,20 @@ def cargar_historial():
                 data = json.load(f)
 
             base["posta"] = data.get("posta", {}) if isinstance(data.get("posta"), dict) else {}
+            base["registro_cronologico"] = data.get("registro_cronologico", {}) if isinstance(data.get("registro_cronologico"), dict) else {}
+            base["ultimo_envio_excel_pre"] = data.get("ultimo_envio_excel_pre", "")
+
+            # Preservar calendario histórico hasta DIAS_RETENCION_CALENDARIO
+            por_dia_limpio = {}
+            hoy_dt = ahora_art().date()
+            for f_str, bucket in (data.get("apariciones_por_dia") or {}).items():
+                try:
+                    f_dt = datetime.strptime(f_str, '%Y-%m-%d').date()
+                    if (hoy_dt - f_dt).days <= DIAS_RETENCION_CALENDARIO and isinstance(bucket, dict):
+                        por_dia_limpio[f_str] = bucket
+                except Exception:
+                    continue
+            base["apariciones_por_dia"] = por_dia_limpio
 
             grad_limpia = {}
             for sym, info in (data.get("graduadas_pre_explosion") or {}).items():
@@ -342,7 +395,9 @@ def construir_item_desde_ticker(session, t, desde_posta=False, info_grad=None, i
         'fecha_grad': fecha_grad,
         'certificada_ia': False,
         'blindaje_pct': 0,
-        'motivo_certificacion': ""
+        'motivo_certificacion': "",
+        'ratio_bids_asks': 1.0,
+        'spread_pct': 0.1
     }
 
 def certificar_confluencia_ia(session, seleccion_total, historial):
@@ -364,11 +419,10 @@ def certificar_confluencia_ia(session, seleccion_total, historial):
         ob = analizar_order_book_blindaje(session, sym)
         fib = item.get("fib_info", {})
 
-        # Cálculo determinístico base de blindaje (0 a 100)
         puntos = 50
         coincide_etapas = item.get("desde_posta") or item.get("en_cazador_tactico")
         if coincide_etapas:
-            puntos += 18  # Coincidencia confirmada entre Cazador Táctico y Pre-Explosión
+            puntos += 18
         if fib.get("en_pullback_sano"):
             puntos += 12
         elif fib.get("extendida_fib"):
@@ -395,6 +449,8 @@ def certificar_confluencia_ia(session, seleccion_total, historial):
         item["blindaje_pct"] = blindaje_pct
         item["certificada_ia"] = certificada
         item["motivo_certificacion"] = " | ".join(razones)
+        item["ratio_bids_asks"] = ob["ratio_bids_asks"]
+        item["spread_pct"] = ob["spread_pct"]
 
         resumen_para_ia.append({
             "moneda": item["ticker"],
@@ -409,7 +465,6 @@ def certificar_confluencia_ia(session, seleccion_total, historial):
             "blindaje_base": blindaje_pct
         })
 
-    # Segunda opinión IA con Gemini para refinar la certificación
     if GEMINI_API_KEY and resumen_para_ia:
         try:
             client = genai.Client(api_key=GEMINI_API_KEY)
@@ -442,7 +497,6 @@ def certificar_confluencia_ia(session, seleccion_total, historial):
         except Exception as e:
             print(f"⚠️ Fallback Certificador IA: {e}")
 
-    # Grabar el sello de certificación en historial_perlas.json para que el Gestor Semanal lo lea
     for item in seleccion_total:
         sym = item["symbol"]
         if item["certificada_ia"] or sym in grad:
@@ -625,7 +679,776 @@ def motor_ia_seleccion_tactica(tickers, simbolos_activos, session, historial):
     historial["oro_hoy"] = list(oro_hoy)
     guardar_historial(historial)
 
-    return {"ROJO": top_rojas, "AMARILLO": top_amarillas, "VERDE": top_verdes}, total_analizadas, historial
+    return {"ROJO": top_rojas, "AMARILLO": top_amarillas, "VERDE": top_verdes}, total_analizadas, historial, mapa_tickers
+
+# ==============================================================================
+# AUDITORÍA HISTÓRICA + CRUCE CON MONEDAS GANADORAS + EXCEL DIARIO
+# ==============================================================================
+def _normalizar_symbol(raw):
+    s = str(raw or "").strip().upper()
+    if not s:
+        return ""
+    if not s.endswith("USDT"):
+        s = f"{s}USDT"
+    return s
+
+def _normalizar_ts(ts_raw, fallback_fecha):
+    txt = str(ts_raw or "").strip().replace("T", " ")
+    m_full = re.search(r"(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})", txt)
+    if m_full:
+        return m_full.group(1), f"{m_full.group(1)} {m_full.group(2)}"
+    m_date = re.search(r"(\d{4}-\d{2}-\d{2})", txt)
+    if m_date:
+        return m_date.group(1), f"{m_date.group(1)} 00:00"
+    m_short = re.search(r"(\d{2})/(\d{2})(?:[ T](\d{2}:\d{2}))?", txt)
+    if m_short:
+        anio = fallback_fecha[:4] if len(fallback_fecha) >= 4 else str(ahora_art().year)
+        f_iso = f"{anio}-{m_short.group(2)}-{m_short.group(1)}"
+        hhmm = m_short.group(3) or "00:00"
+        return f_iso, f"{f_iso} {hhmm}"
+    f_base = fallback_fecha[:10] if len(fallback_fecha) >= 10 else ahora_art().strftime("%Y-%m-%d")
+    return f_base, f"{f_base} 00:00"
+
+def _formatear_demora(horas_totales):
+    if horas_totales is None or horas_totales < 0:
+        return "-"
+    dias = int(horas_totales // 24)
+    horas = int(round(horas_totales % 24))
+    if horas == 24:
+        dias += 1
+        horas = 0
+    if dias > 0:
+        return f"{dias}d {horas:02d}h"
+    return f"{horas}h"
+
+def _etiqueta_semaforo(rec_o_item):
+    col = str(rec_o_item.get("color_inicial") or rec_o_item.get("color") or "VERDE").upper()
+    if col == "VERDE" and rec_o_item.get("es_oro"):
+        return "🏆 TOP ORO"
+    return {"VERDE": "🟢 VERDE", "AMARILLO": "🟡 AMARILLO", "ROJO": "🔴 ROJO"}.get(col, col)
+
+def _insertar_evento_historico(registro, por_dia, evento):
+    sym = _normalizar_symbol(evento.get("symbol") or evento.get("ticker"))
+    if not sym:
+        return
+    ticker = sym[:-4]
+    if not es_simbolo_valido(ticker):
+        return
+
+    color = str(evento.get("color") or "VERDE").upper()
+    if color not in PRIORIDAD_COLOR:
+        color = "VERDE"
+    es_oro = bool(evento.get("es_oro", False))
+    coincide_caz = bool(evento.get("coincide_cazador", False))
+    precio = float(evento.get("precio") or 0.0)
+    ia_pct = int(float(evento.get("ia_pct") or 0))
+    fib_zona = float(evento.get("fib_zona") or 0.0)
+    fib_etiqueta = str(evento.get("fib_etiqueta") or "")
+    ext_1618 = float(evento.get("ext_1618") or 0.0)
+    bids_asks = float(evento.get("bids_asks") or 0.0)
+    fecha_det, ts_det = _normalizar_ts(evento.get("ts"), evento.get("fecha") or ahora_art().strftime("%Y-%m-%d"))
+
+    if sym not in registro:
+        registro[sym] = {
+            "symbol": sym,
+            "ticker": ticker,
+            "fecha_primera": fecha_det,
+            "ts_primera": ts_det,
+            "color_inicial": color,
+            "color_maximo": color,
+            "es_oro": es_oro,
+            "coincide_cazador": coincide_caz,
+            "precio_inicial": precio,
+            "ia_max_pct": ia_pct,
+            "fib_zona": fib_zona,
+            "fib_etiqueta": fib_etiqueta,
+            "ext_1618": ext_1618,
+            "bids_asks": bids_asks,
+            "apariciones_count": 1,
+            "fechas_vistas": [fecha_det],
+            "ts_verde": ts_det if color == "VERDE" else "",
+            "ts_amarillo": ts_det if color == "AMARILLO" else "",
+            "ts_rojo": ts_det if color == "ROJO" else "",
+            "estado": "ACTIVA",
+            "fecha_ganadora": "",
+            "ts_ganadora": "",
+            "precio_ganadora": 0.0,
+            "subida_real_pct": 0.0,
+            "subida_dia_win_pct": 0.0,
+            "horas_hasta_ganadora": None,
+            "dias_hasta_ganadora": None,
+            "alcanzo_fib_1618": False
+        }
+    else:
+        rec = registro[sym]
+        vistas = rec.setdefault("fechas_vistas", [])
+        if fecha_det not in vistas:
+            vistas.append(fecha_det)
+            vistas.sort()
+        rec["apariciones_count"] = max(len(vistas), int(rec.get("apariciones_count") or 1))
+
+        if ts_det < rec.get("ts_primera", "9999-99-99"):
+            rec["fecha_primera"] = fecha_det
+            rec["ts_primera"] = ts_det
+            rec["color_inicial"] = color
+            if precio > 0:
+                rec["precio_inicial"] = precio
+
+        if es_oro:
+            rec["es_oro"] = True
+        if coincide_caz:
+            rec["coincide_cazador"] = True
+        if PRIORIDAD_COLOR[color] > PRIORIDAD_COLOR.get(rec.get("color_maximo", "VERDE"), 1):
+            rec["color_maximo"] = color
+        if color == "VERDE" and (not rec.get("ts_verde") or ts_det < rec["ts_verde"]):
+            rec["ts_verde"] = ts_det
+        elif color == "AMARILLO" and (not rec.get("ts_amarillo") or ts_det < rec["ts_amarillo"]):
+            rec["ts_amarillo"] = ts_det
+        elif color == "ROJO" and (not rec.get("ts_rojo") or ts_det < rec["ts_rojo"]):
+            rec["ts_rojo"] = ts_det
+
+        if rec.get("precio_inicial", 0.0) <= 0 and precio > 0:
+            rec["precio_inicial"] = precio
+        if ia_pct > int(rec.get("ia_max_pct") or 0):
+            rec["ia_max_pct"] = ia_pct
+        if fib_zona > 0 and rec.get("fib_zona", 0.0) <= 0:
+            rec["fib_zona"] = fib_zona
+        if fib_etiqueta and not rec.get("fib_etiqueta"):
+            rec["fib_etiqueta"] = fib_etiqueta
+        if ext_1618 > 0 and rec.get("ext_1618", 0.0) <= 0:
+            rec["ext_1618"] = ext_1618
+        if bids_asks > 0 and rec.get("bids_asks", 0.0) <= 0:
+            rec["bids_asks"] = bids_asks
+
+    dia_bucket = por_dia.setdefault(fecha_det, {})
+    hora_str = ts_det[11:16] if len(ts_det) >= 16 else "00:00"
+    if sym not in dia_bucket:
+        dia_bucket[sym] = {
+            "symbol": sym,
+            "ticker": ticker,
+            "hora": hora_str,
+            "color": color,
+            "es_oro": es_oro,
+            "ia_pct": ia_pct,
+            "fib_zona": fib_zona,
+            "precio": precio,
+            "ext_1618": ext_1618
+        }
+    else:
+        db = dia_bucket[sym]
+        if hora_str != "00:00" and (db.get("hora") in ("", "00:00") or hora_str < db["hora"]):
+            db["hora"] = hora_str
+        if PRIORIDAD_COLOR[color] > PRIORIDAD_COLOR.get(db.get("color", "VERDE"), 1):
+            db["color"] = color
+        if es_oro:
+            db["es_oro"] = True
+        if ia_pct > int(db.get("ia_pct") or 0):
+            db["ia_pct"] = ia_pct
+        if fib_zona > 0:
+            db["fib_zona"] = fib_zona
+        if db.get("precio", 0.0) <= 0 and precio > 0:
+            db["precio"] = precio
+        if ext_1618 > 0:
+            db["ext_1618"] = ext_1618
+
+def migrar_historial_existente(historial, ganadoras, registro, por_dia):
+    """Rescata todo el historial previo en historial_perlas.json e historial_ganadoras.json."""
+    hoy_str = historial.get("fecha") or ahora_art().strftime("%Y-%m-%d")
+    ayer_str = (ahora_art() - timedelta(days=1)).strftime("%Y-%m-%d")
+
+    # 1. Desde registro_verdes en historial_ganadoras.json
+    for sym, info in (ganadoras.get("registro_verdes") or {}).items():
+        if not isinstance(info, dict):
+            continue
+        _insertar_evento_historico(registro, por_dia, {
+            "symbol": sym,
+            "ticker": info.get("ticker"),
+            "color": "VERDE",
+            "es_oro": bool(info.get("es_oro", False)),
+            "precio": info.get("precio_verde") or 0.0,
+            "fecha": info.get("fecha_verde") or hoy_str,
+            "ts": info.get("ts_verde") or info.get("fecha_verde") or hoy_str
+        })
+
+    # 2. Desde posta en historial_perlas.json (Cazador Táctico / Posta Roja)
+    for sym, info in (historial.get("posta") or {}).items():
+        if not isinstance(info, dict):
+            continue
+        etapa = int(info.get("etapa", info.get("paso", 1)))
+        col_posta = "ROJO" if etapa >= 3 else ("AMARILLO" if etapa == 2 else "VERDE")
+        _insertar_evento_historico(registro, por_dia, {
+            "symbol": sym,
+            "ticker": info.get("base") or info.get("ticker"),
+            "color": col_posta,
+            "coincide_cazador": True,
+            "precio": info.get("precio_inicio") or info.get("precio_actual") or 0.0,
+            "ia_pct": info.get("prob_actual") or 0,
+            "fecha": info.get("fecha_iso") or hoy_str,
+            "ts": info.get("ts") or info.get("fecha_iso") or hoy_str
+        })
+
+    # 3. Desde graduadas_pre_explosion en historial_perlas.json
+    for sym, info in (historial.get("graduadas_pre_explosion") or {}).items():
+        if not isinstance(info, dict):
+            continue
+        origen = str(info.get("origen", "")).upper()
+        estrellas = int(info.get("estrellas") or 0)
+        col_grad = "AMARILLO" if "SEGUNDA_OLA" in origen else ("ROJO" if estrellas >= 3 else "VERDE")
+        _insertar_evento_historico(registro, por_dia, {
+            "symbol": sym,
+            "ticker": info.get("base") or info.get("ticker"),
+            "color": col_grad,
+            "es_oro": estrellas >= 3 and col_grad == "VERDE",
+            "coincide_cazador": True,
+            "precio": info.get("precio_ref") or info.get("precio") or 0.0,
+            "ia_pct": info.get("blindaje_pct") or info.get("probabilidad_pct") or 0,
+            "fecha": info.get("fecha_iso") or hoy_str,
+            "ts": info.get("ts") or info.get("fecha_iso") or hoy_str
+        })
+
+    # 4. Desde verdes_ayer, verdes_hoy, oro_hoy y resumen_dia
+    for sym in (historial.get("verdes_ayer") or []):
+        _insertar_evento_historico(registro, por_dia, {
+            "symbol": sym,
+            "color": "VERDE",
+            "fecha": ayer_str,
+            "ts": ayer_str
+        })
+
+    oros_set = set(historial.get("oro_hoy") or [])
+    for sym in (historial.get("verdes_hoy") or []):
+        _insertar_evento_historico(registro, por_dia, {
+            "symbol": sym,
+            "color": "VERDE",
+            "es_oro": sym in oros_set,
+            "fecha": hoy_str,
+            "ts": hoy_str
+        })
+
+    for sym in (historial.get("resumen_dia") or []):
+        _insertar_evento_historico(registro, por_dia, {
+            "symbol": sym,
+            "color": "VERDE",
+            "es_oro": sym in oros_set,
+            "fecha": hoy_str,
+            "ts": hoy_str
+        })
+
+def _generar_excel_pre_explosion(registro, por_dia, mapa_tickers):
+    wb = openpyxl.Workbook()
+    wb.remove(wb.active)
+
+    fill_titulo = PatternFill(start_color="0F172A", end_color="0F172A", fill_type="solid")
+    fill_dia_hdr = PatternFill(start_color="E2E8F0", end_color="E2E8F0", fill_type="solid")
+    fill_col_hdr = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
+    fill_verde = PatternFill(start_color="DCFCE7", end_color="DCFCE7", fill_type="solid")
+    fill_amarillo = PatternFill(start_color="FEF9C3", end_color="FEF9C3", fill_type="solid")
+    fill_rojo = PatternFill(start_color="FEE2E2", end_color="FEE2E2", fill_type="solid")
+    fill_win = PatternFill(start_color="DBEAFE", end_color="DBEAFE", fill_type="solid")
+    fill_gold = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+
+    borde = Border(
+        left=Side(style="thin", color="CBD5E1"),
+        right=Side(style="thin", color="CBD5E1"),
+        top=Side(style="thin", color="CBD5E1"),
+        bottom=Side(style="thin", color="CBD5E1")
+    )
+    color_fills = {"VERDE": fill_verde, "AMARILLO": fill_amarillo, "ROJO": fill_rojo}
+
+    # --- 1. HOJAS MENSUALES (CALENDARIO LUNES A DOMINGO) ---
+    meses = set()
+    for f_str in por_dia.keys():
+        try:
+            d = datetime.strptime(f_str, "%Y-%m-%d").date()
+            meses.add((d.year, d.month))
+        except Exception:
+            continue
+    if not meses:
+        h = ahora_art().date()
+        meses.add((h.year, h.month))
+
+    sub_hdrs = ["Hora", "MONEDA", "Semáforo", "IA %", "$ Entrada", "Estado"]
+
+    for anio, mes in sorted(meses):
+        ws = wb.create_sheet(f"{MESES_ES[mes]} {anio}")
+        ws.views.sheetView[0].showGridLines = True
+
+        ws["A1"] = f"RADAR PRE-EXPLOSIÓN • {MESES_ES[mes]} {anio} (APARICIONES POR FECHA + CONVERSIÓN A GANADORA)"
+        ws["A1"].font = Font(name="Arial", size=12, bold=True, color="FFFFFF")
+        ws["A1"].fill = fill_titulo
+        ws.merge_cells("A1:AW1")
+        ws.row_dimensions[1].height = 26
+
+        fechas_mes = []
+        for f_str in sorted(por_dia.keys()):
+            try:
+                d = datetime.strptime(f_str, "%Y-%m-%d").date()
+                if d.year == anio and d.month == mes:
+                    fechas_mes.append(d)
+            except Exception:
+                continue
+
+        semanas_map = {}
+        for d in fechas_mes:
+            lunes = d - timedelta(days=d.weekday())
+            semanas_map.setdefault(lunes, {})[d.weekday()] = d
+
+        fila_base = 3
+        for lunes in sorted(semanas_map.keys()):
+            max_filas = 25
+            for w_idx in range(7):
+                col_ini = 1 + (w_idx * 7)
+                dia_dt = lunes + timedelta(days=w_idx)
+                f_str = dia_dt.strftime("%Y-%m-%d")
+                bucket = por_dia.get(f_str, {}) if dia_dt.month == mes else {}
+
+                lista_dia = sorted(
+                    bucket.values(),
+                    key=lambda x: (-PRIORIDAD_COLOR.get(x.get("color", "VERDE"), 1), -int(x.get("ia_pct") or 0), x.get("hora", ""))
+                )
+
+                ws.cell(fila_base, col_ini, dia_dt.day)
+                ws.cell(fila_base, col_ini + 1, f"{MESES_ES[dia_dt.month]} - {DIAS_SEMANA_ES[w_idx]}")
+                ws.merge_cells(start_row=fila_base, start_column=col_ini + 1, end_row=fila_base, end_column=col_ini + 5)
+
+                for cc in range(col_ini, col_ini + 6):
+                    ch = ws.cell(fila_base, cc)
+                    ch.fill = fill_dia_hdr
+                    ch.font = Font(name="Arial", size=9.5, bold=True, color="0F172A")
+                    ch.border = borde
+                    ch.alignment = Alignment(horizontal="center" if cc == col_ini else "left", vertical="center")
+
+                for off, h_txt in enumerate(sub_hdrs):
+                    sh = ws.cell(fila_base + 1, col_ini + off, h_txt)
+                    sh.fill = fill_col_hdr
+                    sh.font = Font(name="Arial", size=9, bold=True, color="FFFFFF")
+                    sh.alignment = Alignment(horizontal="center", vertical="center")
+                    sh.border = borde
+
+                for r_off in range(max_filas):
+                    fa = fila_base + 2 + r_off
+                    if r_off < len(lista_dia):
+                        it = lista_dia[r_off]
+                        sym = it["symbol"]
+                        rec_global = registro.get(sym, {})
+                        es_win = (rec_global.get("estado") == "GANADORA")
+                        col_cod = it.get("color", "VERDE")
+
+                        estado_txt = (
+                            f"🏆 WIN ({_formatear_demora(rec_global.get('horas_hasta_ganadora'))})"
+                            if es_win else "⏳ Activa"
+                        )
+
+                        vals = [
+                            it.get("hora", ""),
+                            it.get("ticker", ""),
+                            _etiqueta_semaforo(it),
+                            f"{it.get('ia_pct', 0)}%" if it.get("ia_pct") else "-",
+                            float(it.get("precio") or 0.0),
+                            estado_txt
+                        ]
+                        for off, val in enumerate(vals):
+                            c = ws.cell(fa, col_ini + off, val)
+                            c.font = Font(name="Arial", size=8.5, bold=es_win)
+                            c.border = borde
+                            c.alignment = Alignment(
+                                horizontal="center" if off in (0, 2, 3, 5) else ("right" if off == 4 else "left")
+                            )
+                            if off == 2:
+                                c.fill = color_fills.get(col_cod, fill_verde)
+                            elif es_win:
+                                c.fill = fill_win
+                    else:
+                        for off in range(6):
+                            ce = ws.cell(fa, col_ini + off, "")
+                            ce.border = borde
+
+            ws.row_dimensions[fila_base].height = 20
+            ws.row_dimensions[fila_base + 1].height = 19
+            fila_base += max_filas + 4
+
+        for b_idx in range(7):
+            cs = 1 + (b_idx * 7)
+            ws.column_dimensions[openpyxl.utils.get_column_letter(cs)].width = 6.5
+            ws.column_dimensions[openpyxl.utils.get_column_letter(cs + 1)].width = 10.5
+            ws.column_dimensions[openpyxl.utils.get_column_letter(cs + 2)].width = 13.5
+            ws.column_dimensions[openpyxl.utils.get_column_letter(cs + 3)].width = 6.5
+            ws.column_dimensions[openpyxl.utils.get_column_letter(cs + 4)].width = 10.5
+            ws.column_dimensions[openpyxl.utils.get_column_letter(cs + 5)].width = 15.0
+            if b_idx < 6:
+                ws.column_dimensions[openpyxl.utils.get_column_letter(cs + 6)].width = 2.5
+
+    # --- 2. PESTAÑA CRUCE_TIEMPOS_GANADORA ---
+    ws_cruce = wb.create_sheet("CRUCE_TIEMPOS_GANADORA")
+    headers_cruce = [
+        "MONEDA", "1ª APARICIÓN", "SEMÁFORO INICIAL", "SEMÁFORO MÁX",
+        "VECES VISTA", "IA MÁX %", "FIB ZONA", "BIDS/ASKS", "$ ENTRADA",
+        "ESTADO", "FECHA GANADORA", "$ GANADORA / ACTUAL",
+        "VAR. REAL %", "TIEMPO HASTA GANADORA", "DÍAS DECIMALES", "FIB 1.618"
+    ]
+    ws_cruce.append(headers_cruce)
+    ws_cruce.row_dimensions[1].height = 25
+    for ci in range(1, len(headers_cruce) + 1):
+        ch = ws_cruce.cell(1, ci)
+        ch.font = Font(name="Arial", size=9.5, bold=True, color="FFFFFF")
+        ch.fill = fill_titulo
+        ch.alignment = Alignment(horizontal="center", vertical="center")
+
+    ordenadas = sorted(registro.values(), key=lambda x: x.get("ts_primera", ""), reverse=True)
+    hoy_dt = ahora_art()
+
+    for r_i, rec in enumerate(ordenadas, start=2):
+        sym = rec["symbol"]
+        es_win = (rec.get("estado") == "GANADORA")
+        p_ini = float(rec.get("precio_inicial") or 0.0)
+        t_live = mapa_tickers.get(sym, {})
+        p_live = float(t_live.get("lastPrice", 0) or 0.0)
+
+        if es_win:
+            p_ref_final = float(rec.get("precio_ganadora") or p_live)
+            var_pct = float(rec.get("subida_real_pct") or 0.0)
+            tiempo_str = _formatear_demora(rec.get("horas_hasta_ganadora"))
+            dias_dec = rec.get("dias_hasta_ganadora")
+        else:
+            p_ref_final = p_live
+            var_pct = round(((p_live - p_ini) / p_ini) * 100, 2) if (p_ini > 0 and p_live > 0) else 0.0
+            try:
+                dt0 = datetime.strptime(rec["ts_primera"][:16], "%Y-%m-%d %H:%M").replace(tzinfo=TZ_ART)
+                h_esp = max(0.0, (hoy_dt - dt0).total_seconds() / 3600.0)
+                tiempo_str = f"Esperando ({_formatear_demora(h_esp)})"
+                dias_dec = round(h_esp / 24.0, 2)
+            except Exception:
+                tiempo_str = "Esperando"
+                dias_dec = 0.0
+
+        row = [
+            rec.get("ticker"),
+            rec.get("ts_primera"),
+            _etiqueta_semaforo(rec),
+            {"VERDE": "🟢 VERDE", "AMARILLO": "🟡 AMARILLO", "ROJO": "🔴 ROJO"}.get(rec.get("color_maximo", "VERDE"), ""),
+            int(rec.get("apariciones_count") or 1),
+            f"{rec.get('ia_max_pct', 0)}%" if rec.get("ia_max_pct") else "-",
+            round(float(rec.get("fib_zona") or 0.0), 2) if rec.get("fib_zona") else "-",
+            f"{rec.get('bids_asks')}x" if rec.get("bids_asks") else "-",
+            p_ini,
+            "🏆 GANADORA" if es_win else "⏳ EN SEGUIMIENTO",
+            rec.get("ts_ganadora") if es_win else "-",
+            p_ref_final,
+            f"{var_pct:+.2f}%" if (p_ini > 0 or es_win) else "-",
+            tiempo_str,
+            dias_dec,
+            "SÍ" if rec.get("alcanzo_fib_1618") else ("NO" if es_win else "-")
+        ]
+        ws_cruce.append(row)
+        for ci in range(1, len(headers_cruce) + 1):
+            cell = ws_cruce.cell(r_i, ci)
+            cell.border = borde
+            cell.font = Font(name="Arial", size=9.5, bold=es_win)
+            if es_win:
+                cell.fill = fill_win
+            elif var_pct >= 5.0:
+                cell.fill = fill_verde
+
+    anchos_cruce = [12, 18, 17, 16, 13, 11, 11, 12, 13, 18, 18, 19, 13, 22, 15, 11]
+    for i, w in enumerate(anchos_cruce, start=1):
+        ws_cruce.column_dimensions[openpyxl.utils.get_column_letter(i)].width = w
+
+    # --- 3. PESTAÑA ANALISIS_PATRONES ---
+    ws_pat = wb.create_sheet("ANALISIS_PATRONES")
+    ws_pat["A1"] = "ANÁLISIS ESTADÍSTICO DE PATRONES • PRE-EXPLOSIÓN ➔ GANADORA"
+    ws_pat["A1"].font = Font(name="Arial", size=12, bold=True, color="FFFFFF")
+    ws_pat["A1"].fill = fill_titulo
+    ws_pat.merge_cells("A1:F1")
+    ws_pat.row_dimensions[1].height = 26
+
+    todas = list(registro.values())
+    ganadas = [r for r in todas if r.get("estado") == "GANADORA"]
+
+    def _resumir_grupo(nombre, sublista):
+        tot = len(sublista)
+        wins = [x for x in sublista if x.get("estado") == "GANADORA"]
+        horas = [x["horas_hasta_ganadora"] for x in wins if x.get("horas_hasta_ganadora") is not None]
+        subs = [float(x.get("subida_real_pct") or 0.0) for x in wins]
+        tasa = f"{round((len(wins)/tot)*100, 1)}%" if tot > 0 else "0.0%"
+        dem_prom = _formatear_demora(sum(horas)/len(horas)) if horas else "-"
+        sub_prom = f"+{round(sum(subs)/len(subs), 1)}%" if subs else "-"
+        return [nombre, tot, len(wins), tasa, dem_prom, sub_prom]
+
+    bloques_tabla = [
+        ("1. RENDIMIENTO SEGÚN SEMÁFORO DE ENTRADA", [
+            _resumir_grupo("🏆 TOP ORO (Verde Prioritario)", [r for r in todas if r.get("color_inicial") == "VERDE" and r.get("es_oro")]),
+            _resumir_grupo("🟢 VERDE (Compra Temprana)", [r for r in todas if r.get("color_inicial") == "VERDE" and not r.get("es_oro")]),
+            _resumir_grupo("🟡 AMARILLO (Confirmación Táctica)", [r for r in todas if r.get("color_inicial") == "AMARILLO"]),
+            _resumir_grupo("🔴 ROJO (Explosión Inminente)", [r for r in todas if r.get("color_inicial") == "ROJO"]),
+        ]),
+        ("2. RENDIMIENTO SEGÚN CERTIFICACIÓN IA Y CONFLUENCIA", [
+            _resumir_grupo("Coincide Cazador + Pre-Explosión", [r for r in todas if r.get("coincide_cazador")]),
+            _resumir_grupo("IA >= 90% (Alta Convicción)", [r for r in todas if int(r.get("ia_max_pct") or 0) >= 90]),
+            _resumir_grupo("IA 75% – 89% (Validada)", [r for r in todas if 75 <= int(r.get("ia_max_pct") or 0) < 90]),
+            _resumir_grupo("IA < 75% o Sin Dato Histórico", [r for r in todas if int(r.get("ia_max_pct") or 0) < 75]),
+        ]),
+        ("3. RENDIMIENTO SEGÚN ZONA FIBONACCI Y RECURRENCIA", [
+            _resumir_grupo("Pullback Sano Fib (0.35 – 0.65)", [r for r in todas if 0.35 <= float(r.get("fib_zona") or 0.0) <= 0.65]),
+            _resumir_grupo("Piso Profundo Fib (> 0.65)", [r for r in todas if float(r.get("fib_zona") or 0.0) > 0.65]),
+            _resumir_grupo("Persistentes (2+ días en Pre-Explosión)", [r for r in todas if int(r.get("apariciones_count") or 1) >= 2]),
+        ]),
+        ("4. RENDIMIENTO SEGÚN DÍA DE APARICIÓN", [
+            _resumir_grupo(DIAS_SEMANA_ES[d_idx], [
+                r for r in todas
+                if r.get("fecha_primera") and datetime.strptime(r["fecha_primera"], "%Y-%m-%d").weekday() == d_idx
+            ])
+            for d_idx in range(7)
+        ])
+    ]
+
+    fila_p = 3
+    cols_pat = ["Segmento / Patrón", "Detectadas", "Ganadoras", "Tasa Acierto", "Demora Promedio", "Subida Prom."]
+    for titulo_bloque, filas_datos in bloques_tabla:
+        ws_pat.cell(fila_p, 1, titulo_bloque).font = Font(name="Arial", size=10.5, bold=True, color="0F172A")
+        ws_pat.cell(fila_p, 1).fill = fill_dia_hdr
+        ws_pat.merge_cells(start_row=fila_p, start_column=1, end_row=fila_p, end_column=6)
+        fila_p += 1
+
+        for ci, h_txt in enumerate(cols_pat, start=1):
+            c = ws_pat.cell(fila_p, ci, h_txt)
+            c.fill = fill_col_hdr
+            c.font = Font(name="Arial", size=9.5, bold=True, color="FFFFFF")
+            c.alignment = Alignment(horizontal="center")
+            c.border = borde
+        fila_p += 1
+
+        for row_vals in filas_datos:
+            for ci, val in enumerate(row_vals, start=1):
+                c = ws_pat.cell(fila_p, ci, val)
+                c.border = borde
+                c.font = Font(name="Arial", size=9.5, bold=(ci == 4 and val != "0.0%"))
+                c.alignment = Alignment(horizontal="left" if ci == 1 else "center")
+                if row_vals[2] > 0:
+                    c.fill = fill_verde
+            fila_p += 1
+        fila_p += 1
+
+    anchos_pat = [40, 14, 14, 16, 20, 16]
+    for i, w in enumerate(anchos_pat, start=1):
+        ws_pat.column_dimensions[openpyxl.utils.get_column_letter(i)].width = w
+
+    # --- 4. PESTAÑA DIAGNOSTICO_HISTORICO ---
+    ws_diag = wb.create_sheet("DIAGNOSTICO_HISTORICO")
+    ws_diag["A1"] = "DIAGNÓSTICO AUTOMÁTICO DE DATOS ACUMULADOS"
+    ws_diag["A1"].font = Font(name="Arial", size=12, bold=True, color="FFFFFF")
+    ws_diag["A1"].fill = fill_titulo
+    ws_diag.merge_cells("A1:B1")
+    ws_diag.row_dimensions[1].height = 26
+
+    horas_all = [r["horas_hasta_ganadora"] for r in ganadas if r.get("horas_hasta_ganadora") is not None]
+    prom_h = round(sum(horas_all) / len(horas_all), 1) if horas_all else None
+    med_h = sorted(horas_all)[len(horas_all) // 2] if horas_all else None
+    tasa_global = round((len(ganadas) / len(todas)) * 100, 1) if todas else 0.0
+
+    en_curso_subiendo = []
+    for r in todas:
+        if r.get("estado") != "GANADORA":
+            p0 = float(r.get("precio_inicial") or 0.0)
+            p1 = float(mapa_tickers.get(r["symbol"], {}).get("lastPrice", 0) or 0.0)
+            if p0 > 0 and p1 > 0:
+                v = round(((p1 - p0) / p0) * 100, 2)
+                if v > 0:
+                    en_curso_subiendo.append((r["ticker"], v, r["fecha_primera"]))
+    en_curso_subiendo.sort(key=lambda x: x[1], reverse=True)
+
+    top_flotantes_txt = (
+        ", ".join([f"{t} (+{v}% desde {f})" for t, v, f in en_curso_subiendo[:6]])
+        if en_curso_subiendo else "Aún sin precios de entrada históricos previos"
+    )
+    ganadas_txt = (
+        ", ".join([f"{g['ticker']} ({_formatear_demora(g.get('horas_hasta_ganadora'))}, +{g.get('subida_real_pct', 0)}%)" for g in ganadas[:8]])
+        if ganadas else "En acumulación de cierres"
+    )
+
+    diag_rows = [
+        ("Universo Histórico Migrado", f"{len(todas)} monedas únicas distribuidas en {len(por_dia)} días registrados"),
+        ("Conversión Confirmada a Ganadoras", f"{len(ganadas)} monedas ({tasa_global}% del total detectado)"),
+        ("Tiempo Promedio de Consolidación", f"{_formatear_demora(prom_h)} (Mediana: {_formatear_demora(med_h)})" if prom_h is not None else "En acumulación"),
+        ("Monedas que ya Completaron el Ciclo", ganadas_txt),
+        ("Monedas Históricas Subiendo en Seguimiento", top_flotantes_txt),
+    ]
+
+    for idx, (k, v) in enumerate(diag_rows, start=3):
+        c1 = ws_diag.cell(idx, 1, k)
+        c2 = ws_diag.cell(idx, 2, v)
+        c1.font = Font(name="Arial", size=10, bold=True)
+        c2.font = Font(name="Arial", size=10)
+        c1.fill = fill_gold if idx in (4, 5) else fill_dia_hdr
+        c2.fill = fill_gold if idx in (4, 5) else PatternFill(fill_type=None)
+        c1.border = borde
+        c2.border = borde
+
+    ws_diag.column_dimensions["A"].width = 40
+    ws_diag.column_dimensions["B"].width = 75
+
+    wb.save(EXCEL_PRE_EXPLOSION_FILE)
+    return {
+        "total": len(todas),
+        "dias_hist": len(por_dia),
+        "ganadas": len(ganadas),
+        "tasa_pct": tasa_global,
+        "prom_txt": _formatear_demora(prom_h)
+    }
+
+def enviar_telegram_documento(doc_path, caption_text):
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID or not os.path.exists(doc_path):
+        return False
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendDocument"
+    payload = {"chat_id": TELEGRAM_CHAT_ID, "caption": caption_text[:1020], "parse_mode": "HTML"}
+    if TELEGRAM_TOPIC_ID.isdigit():
+        payload["message_thread_id"] = int(TELEGRAM_TOPIC_ID)
+    try:
+        with open(doc_path, "rb") as doc:
+            res = requests.post(url, data=payload, files={"document": doc}, timeout=45).json()
+            if not res.get("ok") and "thread not found" in str(res.get("description", "")).lower():
+                payload.pop("message_thread_id", None)
+                doc.seek(0)
+                res = requests.post(url, data=payload, files={"document": doc}, timeout=45).json()
+            return bool(res.get("ok"))
+    except Exception as e:
+        print(f"❌ Error enviando Excel Pre-Explosión: {e}")
+        return False
+
+def ejecutar_auditoria_y_excel_pre_explosion(historial, bloques, mapa_tickers):
+    """Migra historial, cruza con Monedas Ganadoras, genera AUDITORIA_PRE_EXPLOSION.xlsx y lo envía al cierre."""
+    ahora = ahora_art()
+    hoy_str = ahora.strftime("%Y-%m-%d")
+    ayer_str = (ahora - timedelta(days=1)).strftime("%Y-%m-%d")
+    ts_now_str = ahora.strftime("%Y-%m-%d %H:%M")
+
+    ganadoras = {"dias": {}, "registro_verdes": {}}
+    if os.path.exists(HISTORIAL_GANADORAS_FILE):
+        try:
+            with open(HISTORIAL_GANADORAS_FILE, "r", encoding="utf-8") as f:
+                data_g = json.load(f)
+            if isinstance(data_g, dict):
+                ganadoras = data_g
+        except Exception as e:
+            print(f"⚠️ Error leyendo {HISTORIAL_GANADORAS_FILE}: {e}")
+
+    registro = historial.setdefault("registro_cronologico", {})
+    por_dia = historial.setdefault("apariciones_por_dia", {})
+
+    # 1. Migrar toda la historia previa acumulada en los JSON
+    migrar_historial_existente(historial, ganadoras, registro, por_dia)
+
+    # 2. Registrar las detecciones ricas del ciclo actual (ROJO, AMARILLO, VERDE)
+    for cat_key in ("ROJO", "AMARILLO", "VERDE"):
+        for it in (bloques.get(cat_key) or []):
+            fib = it.get("fib_info") or {}
+            _insertar_evento_historico(registro, por_dia, {
+                "symbol": it["symbol"],
+                "ticker": it["ticker"],
+                "color": cat_key,
+                "es_oro": bool(it.get("es_oro", False)),
+                "coincide_cazador": bool(it.get("desde_posta") or it.get("en_cazador_tactico")),
+                "precio": it.get("precio_f", 0.0),
+                "ia_pct": it.get("blindaje_pct", 0),
+                "fib_zona": fib.get("ratio", 0.0) if fib.get("ok") else 0.0,
+                "fib_etiqueta": fib.get("etiqueta_fib", "") if fib.get("ok") else "",
+                "ext_1618": fib.get("ext_1618", 0.0) if fib.get("ok") else 0.0,
+                "bids_asks": it.get("ratio_bids_asks", 0.0),
+                "fecha": hoy_str,
+                "ts": ts_now_str
+            })
+
+    # 3. Cruzar con historial_ganadoras.json para calcular tiempos reales hasta Top 20
+    dias_win = ganadoras.get("dias", {})
+    fechas_win_ord = sorted(dias_win.keys())
+    ts_cierre_win_default = str(ganadoras.get("ultima_actualizacion", ""))[:16]
+
+    precios_hist_win = {}
+    for f_w, lista_w in dias_win.items():
+        for g in lista_w:
+            sym_g = g.get("symbol", "")
+            if sym_g:
+                precios_hist_win.setdefault(sym_g, {})[f_w] = g
+
+    for sym, rec in registro.items():
+        f_ini = rec.get("fecha_primera", "")
+        if not f_ini:
+            continue
+
+        # Completar precio_inicial si faltaba en registros antiguos usando precio_base de Ganadoras o precio live de hoy
+        if float(rec.get("precio_inicial") or 0.0) <= 0:
+            if sym in precios_hist_win and f_ini in precios_hist_win[sym]:
+                p_b = float(precios_hist_win[sym][f_ini].get("precio_base") or 0.0)
+                if p_b > 0:
+                    rec["precio_inicial"] = p_b
+            elif sym in mapa_tickers and f_ini == hoy_str:
+                rec["precio_inicial"] = float(mapa_tickers[sym].get("lastPrice", 0) or 0.0)
+
+        dia_b = por_dia.get(f_ini, {}).get(sym)
+        if dia_b and float(dia_b.get("precio") or 0.0) <= 0 and float(rec.get("precio_inicial") or 0.0) > 0:
+            dia_b["precio"] = rec["precio_inicial"]
+
+        if rec.get("estado") != "GANADORA":
+            for f_win in fechas_win_ord:
+                if f_win < f_ini:
+                    continue
+                match = precios_hist_win.get(sym, {}).get(f_win)
+                if match:
+                    p_ini = float(rec.get("precio_inicial") or 0.0)
+                    p_win = float(match.get("precio") or 0.0)
+                    subida_real = (
+                        round(((p_win - p_ini) / p_ini) * 100, 2)
+                        if p_ini > 0 else float(match.get("cambio_24h", 0.0))
+                    )
+
+                    try:
+                        dt_ini = datetime.strptime(rec["ts_primera"][:16], "%Y-%m-%d %H:%M")
+                    except Exception:
+                        dt_ini = datetime.strptime(f_ini, "%Y-%m-%d")
+
+                    ts_w_str = ts_cierre_win_default if ts_cierre_win_default.startswith(f_win) else f"{f_win} 23:45"
+                    try:
+                        dt_win = datetime.strptime(ts_w_str, "%Y-%m-%d %H:%M")
+                    except Exception:
+                        dt_win = datetime.strptime(f_win, "%Y-%m-%d") + timedelta(hours=23, minutes=45)
+
+                    horas_diff = max(0.0, round((dt_win - dt_ini).total_seconds() / 3600.0, 1))
+                    dias_diff = round(horas_diff / 24.0, 2)
+
+                    rec["estado"] = "GANADORA"
+                    rec["fecha_ganadora"] = f_win
+                    rec["ts_ganadora"] = ts_w_str
+                    rec["precio_ganadora"] = p_win
+                    rec["subida_real_pct"] = subida_real
+                    rec["subida_dia_win_pct"] = float(match.get("cambio_24h", 0.0))
+                    rec["horas_hasta_ganadora"] = horas_diff
+                    rec["dias_hasta_ganadora"] = dias_diff
+                    ext_target = float(rec.get("ext_1618") or 0.0)
+                    rec["alcanzo_fib_1618"] = bool(ext_target > 0 and p_win >= ext_target)
+                    break
+
+    # 4. Construir Excel completo
+    stats = _generar_excel_pre_explosion(registro, por_dia, mapa_tickers)
+
+    # 5. Enviar Excel diario a Telegram (cierre nocturno, recupero post-medianoche o ejecución manual)
+    ultimo_envio = historial.get("ultimo_envio_excel_pre", "")
+    es_cierre = (ahora.hour == 23 and ahora.minute >= 30 and ultimo_envio != hoy_str)
+    es_recupero = (ahora.hour <= 2 and ultimo_envio != ayer_str)
+    es_manual = (os.getenv("GITHUB_EVENT_NAME") == "workflow_dispatch")
+
+    if es_cierre or es_recupero or es_manual:
+        fecha_lbl = ayer_str if (es_recupero and not es_cierre) else hoy_str
+        caption = (
+            f"📊 <b>Excel Pre-Explosión + Historial Migrado ({fecha_lbl})</b>\n"
+            f"• Universo histórico: <b>{stats['total']} monedas</b> en <b>{stats['dias_hist']} días</b>\n"
+            f"• Convertidas en Ganadoras: <b>{stats['ganadas']}</b> ({stats['tasa_pct']}%)\n"
+            f"• ⏱️ Tiempo medio hasta Ganadora: <code>{stats['prom_txt']}</code>"
+        )
+        time.sleep(1.5)
+        if enviar_telegram_documento(EXCEL_PRE_EXPLOSION_FILE, caption):
+            if not es_manual:
+                historial["ultimo_envio_excel_pre"] = fecha_lbl
+
+    guardar_historial(historial)
 
 def generar_grafico_color(lista_items, titulo_graf, subtitulo_graf, filename):
     if not lista_items:
@@ -795,14 +1618,14 @@ def enviar_mensaje_por_color(num_msg, cat_key, titulo_color, items, total_analiz
     enviar_texto_telegram(cuerpo)
 
 if __name__ == "__main__":
-    print(f"🔥 EJECUTANDO PRE-EXPLOSIÓN V8 + CERTIFICADOR IA ({ahora_art().strftime('%Y-%m-%d %H:%M:%S')} ART)...")
+    print(f"🔥 EJECUTANDO PRE-EXPLOSIÓN V8 + CERTIFICADOR IA + EXCEL ({ahora_art().strftime('%Y-%m-%d %H:%M:%S')} ART)...")
     session = crear_sesion_binance()
     simbolos_activos = obtener_simbolos_spot_activos(session)
     datos = obtener_datos_binance(session)
 
     if datos and simbolos_activos:
         historial = cargar_historial()
-        bloques, total_analizadas, historial = motor_ia_seleccion_tactica(datos, simbolos_activos, session, historial)
+        bloques, total_analizadas, historial, mapa_tickers = motor_ia_seleccion_tactica(datos, simbolos_activos, session, historial)
 
         enviar_mensaje_por_color(1, "ROJO", "🔴 <b>1. EXPLOSIÓN INMINENTE (ROJO)</b>", bloques["ROJO"], total_analizadas)
         time.sleep(2)
@@ -824,5 +1647,8 @@ if __name__ == "__main__":
                 enviar_texto_telegram(resumen_texto)
                 historial["resumen_enviado_hoy"] = True
                 guardar_historial(historial)
+
+        # Ejecutar migración histórica, cruce con Monedas Ganadoras y generación/envío de AUDITORIA_PRE_EXPLOSION.xlsx
+        ejecutar_auditoria_y_excel_pre_explosion(historial, bloques, mapa_tickers)
     else:
         print("❌ ERROR: Sin datos o sin símbolos activos de Binance.")
