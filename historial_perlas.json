@@ -3750,6 +3750,36 @@
       "certificada_ia": true,
       "blindaje_pct": 85,
       "motivo_certificacion": "Coincide Cazador+PreExplosión | Piso Profundo Fib (0.77) | Libro Bids/Asks: 0.78x (Spread 0.138%)"
+    },
+    "LITEBUSDT": {
+      "symbol": "LITEBUSDT",
+      "base": "LITEB",
+      "estrellas": 3,
+      "probabilidad_pct": 80,
+      "precio_ref": 517.18,
+      "fecha_iso": "2026-11-24",
+      "fecha_corta": "24/11",
+      "origen": "SEGUNDA_OLA_GANADORAS"
+    },
+    "MRVLBUSDT": {
+      "symbol": "MRVLBUSDT",
+      "base": "MRVLB",
+      "estrellas": 3,
+      "probabilidad_pct": 80,
+      "precio_ref": 137.53,
+      "fecha_iso": "2026-11-24",
+      "fecha_corta": "24/11",
+      "origen": "SEGUNDA_OLA_GANADORAS"
+    },
+    "NVDABUSDT": {
+      "symbol": "NVDABUSDT",
+      "base": "NVDAB",
+      "estrellas": 3,
+      "probabilidad_pct": 80,
+      "precio_ref": 157.36,
+      "fecha_iso": "2026-11-24",
+      "fecha_corta": "24/11",
+      "origen": "SEGUNDA_OLA_GANADORAS"
     }
   },
   "verdes_hoy": [
