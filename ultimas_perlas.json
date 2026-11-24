@@ -3,18 +3,18 @@
     "TRXUSDT",
     "MMTUSDT",
     "SENTUSDT",
-    "DODOUSDT",
     "HUMAUSDT",
+    "DODOUSDT",
     "ICPUSDT",
-    "AIGENSYNUSDT"
+    "MORPHOUSDT"
   ],
   [
     "TRXUSDT",
     "MMTUSDT",
     "SENTUSDT",
-    "HUMAUSDT",
     "DODOUSDT",
-    "ICPUSDT",
-    "MORPHOUSDT"
+    "HUMAUSDT",
+    "MORPHOUSDT",
+    "ICPUSDT"
   ]
 ]
