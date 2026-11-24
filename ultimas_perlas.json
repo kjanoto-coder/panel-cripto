@@ -1,14 +1,5 @@
 [
   [
-    "ONGUSDT",
-    "LUNCUSDT",
-    "RPLUSDT",
-    "MMTUSDT",
-    "PSGUSDT",
-    "ASRUSDT",
-    "KAVAUSDT"
-  ],
-  [
     "PEPEUSDT",
     "JSTUSDT",
     "SKYUSDT",
@@ -16,5 +7,14 @@
     "USUALUSDT",
     "INITUSDT",
     "SHELLUSDT"
+  ],
+  [
+    "PEPEUSDT",
+    "JSTUSDT",
+    "KITEUSDT",
+    "SKYUSDT",
+    "USUALUSDT",
+    "INITUSDT",
+    "2ZUSDT"
   ]
 ]
