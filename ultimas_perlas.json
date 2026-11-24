@@ -1,14 +1,5 @@
 [
   [
-    "ASRUSDT",
-    "SHELLUSDT",
-    "OPGUSDT",
-    "BLURUSDT",
-    "RPLUSDT",
-    "KAVAUSDT",
-    "REUSDT"
-  ],
-  [
     "TRXUSDT",
     "ZILUSDT",
     "KERNELUSDT",
@@ -16,5 +7,14 @@
     "FFUSDT",
     "HUMAUSDT",
     "ONGUSDT"
+  ],
+  [
+    "LUNCUSDT",
+    "MORPHOUSDT",
+    "KITEUSDT",
+    "SENTUSDT",
+    "ATOMUSDT",
+    "SOPHUSDT",
+    "AIGENSYNUSDT"
   ]
 ]
