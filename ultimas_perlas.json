@@ -1,20 +1,20 @@
 [
   [
+    "ASRUSDT",
     "LUNCUSDT",
     "DODOUSDT",
-    "ASRUSDT",
     "RPLUSDT",
     "KITEUSDT",
     "SHELLUSDT",
     "SAHARAUSDT"
   ],
   [
-    "ASRUSDT",
     "LUNCUSDT",
-    "DODOUSDT",
-    "RPLUSDT",
+    "AIGENSYNUSDT",
     "KITEUSDT",
+    "DODOUSDT",
     "SHELLUSDT",
-    "SAHARAUSDT"
+    "RPLUSDT",
+    "FFUSDT"
   ]
 ]
