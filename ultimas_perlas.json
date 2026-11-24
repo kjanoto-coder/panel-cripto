@@ -1,14 +1,5 @@
 [
   [
-    "TRXUSDT",
-    "MMTUSDT",
-    "AIGENSYNUSDT",
-    "BLURUSDT",
-    "MORPHOUSDT",
-    "ICPUSDT",
-    "HUMAUSDT"
-  ],
-  [
     "MORPHOUSDT",
     "ICPUSDT",
     "AIGENSYNUSDT",
@@ -16,5 +7,14 @@
     "BLURUSDT",
     "HUMAUSDT",
     "BONKUSDT"
+  ],
+  [
+    "TRXUSDT",
+    "SENTUSDT",
+    "MORPHOUSDT",
+    "ICPUSDT",
+    "FILUSDT",
+    "HUMAUSDT",
+    "IOSTUSDT"
   ]
 ]
