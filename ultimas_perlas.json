@@ -1,14 +1,5 @@
 [
   [
-    "LUNCUSDT",
-    "MORPHOUSDT",
-    "KITEUSDT",
-    "SENTUSDT",
-    "ATOMUSDT",
-    "SOPHUSDT",
-    "AIGENSYNUSDT"
-  ],
-  [
     "INITUSDT",
     "SHELLUSDT",
     "ASRUSDT",
@@ -16,5 +7,14 @@
     "RPLUSDT",
     "BLURUSDT",
     "BABYUSDT"
+  ],
+  [
+    "SHELLUSDT",
+    "LUNCUSDT",
+    "ASRUSDT",
+    "RPLUSDT",
+    "KITEUSDT",
+    "OPGUSDT",
+    "BLURUSDT"
   ]
 ]
