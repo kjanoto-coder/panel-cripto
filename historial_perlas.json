@@ -1,15 +1,16 @@
 {
   "fecha": "2026-11-24",
   "mencionadas": {
-    "INTWBUSDT": 1,
-    "AIGENSYNUSDT": 1,
-    "MMTUSDT": 1,
-    "DRAMBUSDT": 1,
-    "MORPHOUSDT": 1,
-    "UNIUSDT": 1,
-    "WIFUSDT": 1,
-    "DEXEUSDT": 1,
-    "KERNELUSDT": 1
+    "ATMUSDT": 3,
+    "AIGENSYNUSDT": 3,
+    "LUNCUSDT": 3,
+    "NBISBUSDT": 3,
+    "MMTUSDT": 3,
+    "MUBARAKUSDT": 3,
+    "DRAMBUSDT": 3,
+    "INTWBUSDT": 3,
+    "BONKUSDT": 3,
+    "KERNELUSDT": 3
   },
   "resumen_dia": [
     "MMTUSDT",
@@ -2500,13 +2501,13 @@
       "symbol": "AIGENSYNUSDT",
       "base": "AIGENSYN",
       "estrellas": 3,
-      "probabilidad_pct": 75,
+      "probabilidad_pct": 97,
       "precio_ref": 0.01623,
       "fecha_iso": "2026-11-24",
       "fecha_corta": "24/11",
       "certificada_ia": true,
       "blindaje_pct": 97,
-      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.37) | Libro Bids/Asks: 2.21x (Spread 0.124%)"
+      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.35) | Libro Bids/Asks: 0.81x (Spread 0.061%)"
     },
     "ANIMEUSDT": {
       "symbol": "ANIMEUSDT",
@@ -2607,14 +2608,14 @@
     "MMTUSDT": {
       "symbol": "MMTUSDT",
       "base": "MMT",
-      "estrellas": 3,
+      "estrellas": 2,
       "probabilidad_pct": 90,
       "precio_ref": 0.2367,
       "fecha_iso": "2026-11-24",
       "fecha_corta": "24/11",
       "certificada_ia": true,
       "blindaje_pct": 90,
-      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.63) | Libro Bids/Asks: 0.75x (Spread 0.085%)"
+      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.63) | Libro Bids/Asks: 0.83x (Spread 0.085%)"
     },
     "CAKEUSDT": {
       "symbol": "CAKEUSDT",
@@ -2788,13 +2789,13 @@
       "symbol": "LUNCUSDT",
       "base": "LUNC",
       "estrellas": 3,
-      "probabilidad_pct": 97,
+      "probabilidad_pct": 73,
       "precio_ref": 4.498e-05,
       "fecha_iso": "2026-11-24",
       "fecha_corta": "24/11",
-      "certificada_ia": true,
-      "blindaje_pct": 97,
-      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.43) | Libro Bids/Asks: 0.96x (Spread 0.089%)"
+      "certificada_ia": false,
+      "blindaje_pct": 73,
+      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.43) | Libro Bids/Asks: 0.72x (Spread 0.112%)"
     },
     "MORPHOUSDT": {
       "symbol": "MORPHOUSDT",
@@ -3435,14 +3436,14 @@
     "ATMUSDT": {
       "symbol": "ATMUSDT",
       "base": "ATM",
-      "estrellas": 2,
-      "probabilidad_pct": 86,
+      "estrellas": 3,
+      "probabilidad_pct": 78,
       "precio_ref": 0.735,
       "fecha_iso": "2026-11-24",
       "fecha_corta": "24/11 00:16",
       "certificada_ia": true,
-      "blindaje_pct": 86,
-      "motivo_certificacion": "Coincide Cazador+PreExplosión | Tramo Alcista Fib (0.23) | Libro Bids/Asks: 2.5x (Spread 0.305%)"
+      "blindaje_pct": 78,
+      "motivo_certificacion": "Coincide Cazador+PreExplosión | Tramo Alcista Fib (0.23) | Libro Bids/Asks: 2.42x (Spread 0.308%)"
     },
     "WIFUSDT": {
       "symbol": "WIFUSDT",
@@ -3538,7 +3539,7 @@
       "fecha_corta": "24/11",
       "certificada_ia": true,
       "blindaje_pct": 97,
-      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.62) | Libro Bids/Asks: 1.06x (Spread 0.021%)"
+      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.62) | Libro Bids/Asks: 2.2x (Spread 0.032%)"
     },
     "FETUSDT": {
       "symbol": "FETUSDT",
@@ -3562,7 +3563,7 @@
       "fecha_corta": "24/11 07:02",
       "certificada_ia": true,
       "blindaje_pct": 97,
-      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.50) | Libro Bids/Asks: 1.45x (Spread 0.198%)"
+      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.51) | Libro Bids/Asks: 1.36x (Spread 0.198%)"
     },
     "FILUSDT": {
       "symbol": "FILUSDT",
@@ -3580,13 +3581,13 @@
       "symbol": "MUBARAKUSDT",
       "base": "MUBARAK",
       "estrellas": 2,
-      "probabilidad_pct": 90,
+      "probabilidad_pct": 97,
       "precio_ref": 0.02374,
       "fecha_iso": "2026-11-24",
       "fecha_corta": "24/11",
       "certificada_ia": true,
-      "blindaje_pct": 90,
-      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.49) | Libro Bids/Asks: 2.13x (Spread 0.126%)"
+      "blindaje_pct": 97,
+      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.48) | Libro Bids/Asks: 1.62x (Spread 0.042%)"
     },
     "DRAMBUSDT": {
       "symbol": "DRAMBUSDT",
@@ -3598,7 +3599,7 @@
       "fecha_corta": "24/11",
       "certificada_ia": true,
       "blindaje_pct": 97,
-      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.50) | Libro Bids/Asks: 1.22x (Spread 0.027%)"
+      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.50) | Libro Bids/Asks: 1.15x (Spread 0.027%)"
     },
     "SAPIENUSDT": {
       "symbol": "SAPIENUSDT",
@@ -3694,89 +3695,89 @@
     }
   },
   "verdes_hoy": [
-    "ALLOUSDT",
-    "WIFUSDT",
-    "NILUSDT",
-    "BMTUSDT",
-    "PNUTUSDT",
-    "EIGENUSDT",
-    "STEEMUSDT",
-    "MEGAUSDT",
-    "RUNEUSDT",
-    "REUSDT",
-    "CYBERUSDT",
-    "BERAUSDT",
-    "RAYUSDT",
-    "WCTUSDT",
-    "TRUMPUSDT",
-    "BARDUSDT",
-    "ORCAUSDT",
-    "JSTUSDT",
-    "ACEUSDT",
-    "GRAMUSDT",
-    "FILUSDT",
-    "CVXUSDT",
-    "MARSCOINUSDT",
-    "YGGUSDT",
-    "ARUSDT",
-    "OPGUSDT",
-    "YBUSDT",
-    "PENGUUSDT",
-    "USUALUSDT",
-    "INTWBUSDT",
-    "XPLUSDT",
-    "SUSHIUSDT",
-    "FFUSDT",
-    "SENTUSDT",
-    "ICPUSDT",
-    "KERNELUSDT",
-    "ZROUSDT",
-    "RAREUSDT",
-    "ALGOUSDT",
     "ATMUSDT",
-    "POLUSDT",
-    "SKYUSDT",
-    "ETHFIUSDT",
-    "LUNCUSDT",
-    "NIGHTUSDT",
-    "AEROUSDT",
-    "CAKEUSDT",
-    "SAPIENUSDT",
-    "SPKUSDT",
-    "KITEUSDT",
-    "ERAUSDT",
-    "SUSDT",
-    "WLFIUSDT",
-    "DEXEUSDT",
-    "ZAMAUSDT",
-    "0GUSDT",
-    "CRVUSDT",
-    "ANIMEUSDT",
-    "ONGUSDT",
-    "ASTERUSDT",
-    "IOSTUSDT",
-    "HOTUSDT",
     "BREVUSDT",
-    "MORPHOUSDT",
-    "PUMPUSDT",
-    "GLMRUSDT",
-    "VIRTUALUSDT",
-    "KAVAUSDT",
-    "PLUMEUSDT",
-    "AIGENSYNUSDT",
-    "XTZUSDT",
-    "INJUSDT",
-    "JTOUSDT",
-    "MMTUSDT",
+    "BARDUSDT",
+    "ONGUSDT",
+    "NIGHTUSDT",
     "FETUSDT",
-    "BONKUSDT",
-    "ZENUSDT",
-    "BLURUSDT",
-    "ETCUSDT",
-    "HMSTRUSDT",
+    "ALLOUSDT",
+    "ANIMEUSDT",
+    "AEROUSDT",
+    "WLFIUSDT",
+    "PENGUUSDT",
+    "SUSDT",
+    "ZAMAUSDT",
+    "LUNCUSDT",
+    "CYBERUSDT",
+    "ORCAUSDT",
+    "ACEUSDT",
+    "YGGUSDT",
+    "WCTUSDT",
+    "SUSHIUSDT",
+    "STEEMUSDT",
+    "AIGENSYNUSDT",
+    "ASTERUSDT",
+    "DEXEUSDT",
+    "SAPIENUSDT",
+    "CRVUSDT",
     "SEIUSDT",
+    "SPKUSDT",
+    "RAREUSDT",
+    "MMTUSDT",
+    "HUMAUSDT",
+    "REUSDT",
+    "RUNEUSDT",
+    "WIFUSDT",
+    "RAYUSDT",
+    "NILUSDT",
+    "BLURUSDT",
+    "MORPHOUSDT",
+    "PNUTUSDT",
+    "VIRTUALUSDT",
     "DODOUSDT",
-    "HUMAUSDT"
+    "INJUSDT",
+    "XPLUSDT",
+    "IOSTUSDT",
+    "KAVAUSDT",
+    "HOTUSDT",
+    "MARSCOINUSDT",
+    "HMSTRUSDT",
+    "ETCUSDT",
+    "BMTUSDT",
+    "ICPUSDT",
+    "USUALUSDT",
+    "ARUSDT",
+    "KERNELUSDT",
+    "SENTUSDT",
+    "GRAMUSDT",
+    "JSTUSDT",
+    "CAKEUSDT",
+    "ALGOUSDT",
+    "JTOUSDT",
+    "ZENUSDT",
+    "BERAUSDT",
+    "PUMPUSDT",
+    "ETHFIUSDT",
+    "BONKUSDT",
+    "TRUMPUSDT",
+    "SKYUSDT",
+    "ZROUSDT",
+    "OPGUSDT",
+    "GLMRUSDT",
+    "XTZUSDT",
+    "FILUSDT",
+    "POLUSDT",
+    "MEGAUSDT",
+    "INTWBUSDT",
+    "YBUSDT",
+    "FFUSDT",
+    "KITEUSDT",
+    "PLUMEUSDT",
+    "ERAUSDT",
+    "0GUSDT",
+    "CVXUSDT",
+    "EIGENUSDT"
   ],
   "verdes_ayer": [],
   "oro_hoy": [],
@@ -3813,7 +3814,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.1444,
+      "subida_pico_pct": 7.68
     },
     "OPGUSDT": {
       "symbol": "OPGUSDT",
@@ -3825,7 +3828,7 @@
       "es_oro": false,
       "coincide_cazador": true,
       "precio_inicial": 0.1317,
-      "ia_max_pct": 37,
+      "ia_max_pct": 41,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
       "ext_1618": 0.0,
@@ -3847,7 +3850,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.1375,
+      "subida_pico_pct": 4.4
     },
     "GLMRUSDT": {
       "symbol": "GLMRUSDT",
@@ -3881,7 +3886,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.006639,
+      "subida_pico_pct": 0.0
     },
     "GRAMUSDT": {
       "symbol": "GRAMUSDT",
@@ -3893,7 +3900,7 @@
       "es_oro": false,
       "coincide_cazador": true,
       "precio_inicial": 1.013,
-      "ia_max_pct": 25,
+      "ia_max_pct": 35,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
       "ext_1618": 0.0,
@@ -3915,7 +3922,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 1.013,
+      "subida_pico_pct": 0.0
     },
     "SKYUSDT": {
       "symbol": "SKYUSDT",
@@ -3948,7 +3957,10 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.04224,
+      "subida_pico_pct": 0.0
     },
     "WCTUSDT": {
       "symbol": "WCTUSDT",
@@ -3960,7 +3972,7 @@
       "es_oro": false,
       "coincide_cazador": true,
       "precio_inicial": 0.02974,
-      "ia_max_pct": 25,
+      "ia_max_pct": 29,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
       "ext_1618": 0.0,
@@ -3982,7 +3994,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.02974,
+      "subida_pico_pct": 0.0
     },
     "ANIMEUSDT": {
       "symbol": "ANIMEUSDT",
@@ -4016,7 +4030,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.002156,
+      "subida_pico_pct": 0.0
     },
     "FFUSDT": {
       "symbol": "FFUSDT",
@@ -4050,7 +4066,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.10293,
+      "subida_pico_pct": 2.44
     },
     "BMTUSDT": {
       "symbol": "BMTUSDT",
@@ -4083,7 +4101,10 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.01999,
+      "subida_pico_pct": 0.0
     },
     "AIGENSYNUSDT": {
       "symbol": "AIGENSYNUSDT",
@@ -4117,7 +4138,10 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.01627,
+      "subida_pico_pct": 10.01
     },
     "STEEMUSDT": {
       "symbol": "STEEMUSDT",
@@ -4151,7 +4175,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.04352,
+      "subida_pico_pct": 4.26
     },
     "HMSTRUSDT": {
       "symbol": "HMSTRUSDT",
@@ -4184,7 +4210,10 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.0001463,
+      "subida_pico_pct": 0.0
     },
     "SUSHIUSDT": {
       "symbol": "SUSHIUSDT",
@@ -4218,7 +4247,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.1536,
+      "subida_pico_pct": 4.07
     },
     "YGGUSDT": {
       "symbol": "YGGUSDT",
@@ -4252,7 +4283,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.01965,
+      "subida_pico_pct": 8.32
     },
     "RAREUSDT": {
       "symbol": "RAREUSDT",
@@ -4286,18 +4319,21 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.0143,
+      "subida_pico_pct": 0.0
     },
     "POLUSDT": {
       "symbol": "POLUSDT",
       "ticker": "POL",
       "fecha_primera": "2026-11-22",
-      "ts_primera": "2026-11-22 00:00",
-      "color_inicial": "ROJO",
+      "ts_primera": "2026-11-22 12:51",
+      "color_inicial": "VERDE",
       "color_maximo": "ROJO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 0.07548,
+      "precio_inicial": 0.07568,
       "ia_max_pct": 32,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -4319,7 +4355,10 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.07635,
+      "subida_pico_pct": 0.89
     },
     "MMTUSDT": {
       "symbol": "MMTUSDT",
@@ -4346,24 +4385,28 @@
       "ts_rojo": "2026-11-24 00:00",
       "estado": "GANADORA",
       "fecha_ganadora": "2026-11-24",
-      "ts_ganadora": "2026-11-24 09:51",
-      "precio_ganadora": 0.2348,
-      "subida_real_pct": 2.89,
-      "subida_dia_win_pct": 15.61,
-      "horas_hasta_ganadora": 44.7,
-      "dias_hasta_ganadora": 1.86,
-      "alcanzo_fib_1618": false
+      "ts_ganadora": "2026-11-24 10:01",
+      "precio_ganadora": 0.2355,
+      "subida_real_pct": 3.2,
+      "subida_dia_win_pct": 17.75,
+      "horas_hasta_ganadora": 44.8,
+      "dias_hasta_ganadora": 1.87,
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.2749,
+      "subida_pico_pct": 20.46,
+      "mismo_dia_sin_hora": false
     },
     "CAKEUSDT": {
       "symbol": "CAKEUSDT",
       "ticker": "CAKE",
       "fecha_primera": "2026-11-22",
-      "ts_primera": "2026-11-22 00:00",
-      "color_inicial": "ROJO",
+      "ts_primera": "2026-11-22 13:41",
+      "color_inicial": "VERDE",
       "color_maximo": "ROJO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 1.458,
+      "precio_inicial": 1.524,
       "ia_max_pct": 41,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -4385,18 +4428,21 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 1.549,
+      "subida_pico_pct": 1.64
     },
     "RAYUSDT": {
       "symbol": "RAYUSDT",
       "ticker": "RAY",
       "fecha_primera": "2026-11-22",
-      "ts_primera": "2026-11-22 00:00",
-      "color_inicial": "ROJO",
+      "ts_primera": "2026-11-22 13:52",
+      "color_inicial": "VERDE",
       "color_maximo": "ROJO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 1.3092,
+      "precio_inicial": 1.3236,
       "ia_max_pct": 44,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -4418,7 +4464,10 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 1.3236,
+      "subida_pico_pct": 0.0
     },
     "ENSOUSDT": {
       "symbol": "ENSOUSDT",
@@ -4451,14 +4500,17 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.476,
+      "subida_pico_pct": 0.0
     },
     "BARDUSDT": {
       "symbol": "BARDUSDT",
       "ticker": "BARD",
       "fecha_primera": "2026-11-22",
-      "ts_primera": "2026-11-22 00:00",
-      "color_inicial": "ROJO",
+      "ts_primera": "2026-11-22 14:41",
+      "color_inicial": "VERDE",
       "color_maximo": "ROJO",
       "es_oro": false,
       "coincide_cazador": true,
@@ -4484,18 +4536,21 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.0905,
+      "subida_pico_pct": 0.0
     },
     "ZENUSDT": {
       "symbol": "ZENUSDT",
       "ticker": "ZEN",
       "fecha_primera": "2026-11-22",
-      "ts_primera": "2026-11-22 00:00",
-      "color_inicial": "ROJO",
+      "ts_primera": "2026-11-22 14:51",
+      "color_inicial": "VERDE",
       "color_maximo": "ROJO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 3.686,
+      "precio_inicial": 3.7,
       "ia_max_pct": 52,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -4517,19 +4572,22 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 3.7,
+      "subida_pico_pct": 0.0
     },
     "PLUMEUSDT": {
       "symbol": "PLUMEUSDT",
       "ticker": "PLUME",
       "fecha_primera": "2026-11-22",
-      "ts_primera": "2026-11-22 00:00",
-      "color_inicial": "ROJO",
+      "ts_primera": "2026-11-22 16:11",
+      "color_inicial": "VERDE",
       "color_maximo": "ROJO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 0.01076,
-      "ia_max_pct": 32,
+      "precio_inicial": 0.01082,
+      "ia_max_pct": 35,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
       "ext_1618": 0.0,
@@ -4550,7 +4608,10 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.01082,
+      "subida_pico_pct": 0.0
     },
     "WLFIUSDT": {
       "symbol": "WLFIUSDT",
@@ -4584,18 +4645,20 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.044,
+      "subida_pico_pct": 0.46
     },
     "PNUTUSDT": {
       "symbol": "PNUTUSDT",
       "ticker": "PNUT",
       "fecha_primera": "2026-11-22",
-      "ts_primera": "2026-11-22 00:00",
-      "color_inicial": "ROJO",
+      "ts_primera": "2026-11-22 16:21",
+      "color_inicial": "VERDE",
       "color_maximo": "ROJO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 0.0262,
+      "precio_inicial": 0.0263,
       "ia_max_pct": 52,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -4617,19 +4680,22 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.0263,
+      "subida_pico_pct": 0.0
     },
     "JSTUSDT": {
       "symbol": "JSTUSDT",
       "ticker": "JST",
       "fecha_primera": "2026-11-22",
-      "ts_primera": "2026-11-22 00:00",
-      "color_inicial": "ROJO",
+      "ts_primera": "2026-11-22 17:11",
+      "color_inicial": "VERDE",
       "color_maximo": "ROJO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 0.14528,
-      "ia_max_pct": 47,
+      "precio_inicial": 0.14615,
+      "ia_max_pct": 53,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
       "ext_1618": 0.0,
@@ -4650,18 +4716,21 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.14642,
+      "subida_pico_pct": 0.18
     },
     "ORCAUSDT": {
       "symbol": "ORCAUSDT",
       "ticker": "ORCA",
       "fecha_primera": "2026-11-22",
-      "ts_primera": "2026-11-22 00:00",
-      "color_inicial": "ROJO",
+      "ts_primera": "2026-11-22 17:51",
+      "color_inicial": "VERDE",
       "color_maximo": "ROJO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 1.19,
+      "precio_inicial": 1.189,
       "ia_max_pct": 64,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -4683,18 +4752,21 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 1.192,
+      "subida_pico_pct": 0.25
     },
     "USUALUSDT": {
       "symbol": "USUALUSDT",
       "ticker": "USUAL",
       "fecha_primera": "2026-11-22",
-      "ts_primera": "2026-11-22 00:00",
-      "color_inicial": "ROJO",
+      "ts_primera": "2026-11-22 17:51",
+      "color_inicial": "VERDE",
       "color_maximo": "ROJO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 0.01097,
+      "precio_inicial": 0.01102,
       "ia_max_pct": 53,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -4716,18 +4788,21 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.01134,
+      "subida_pico_pct": 2.9
     },
     "NIGHTUSDT": {
       "symbol": "NIGHTUSDT",
       "ticker": "NIGHT",
       "fecha_primera": "2026-11-22",
-      "ts_primera": "2026-11-22 00:00",
-      "color_inicial": "ROJO",
+      "ts_primera": "2026-11-22 18:11",
+      "color_inicial": "VERDE",
       "color_maximo": "ROJO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 0.04799,
+      "precio_inicial": 0.04894,
       "ia_max_pct": 75,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -4749,7 +4824,10 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.04901,
+      "subida_pico_pct": 0.14
     },
     "ZROUSDT": {
       "symbol": "ZROUSDT",
@@ -4782,18 +4860,21 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 1.191,
+      "subida_pico_pct": 0.0
     },
     "CRVUSDT": {
       "symbol": "CRVUSDT",
       "ticker": "CRV",
       "fecha_primera": "2026-11-22",
-      "ts_primera": "2026-11-22 00:00",
-      "color_inicial": "ROJO",
+      "ts_primera": "2026-11-22 20:41",
+      "color_inicial": "VERDE",
       "color_maximo": "ROJO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 0.1838,
+      "precio_inicial": 0.1821,
       "ia_max_pct": 44,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -4815,7 +4896,10 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.1838,
+      "subida_pico_pct": 0.93
     },
     "LUNCUSDT": {
       "symbol": "LUNCUSDT",
@@ -4840,26 +4924,30 @@
       "ts_verde": "2026-11-22 20:41",
       "ts_amarillo": "2026-11-24 00:00",
       "ts_rojo": "2026-11-24 00:00",
-      "estado": "ACTIVA",
-      "fecha_ganadora": "",
-      "ts_ganadora": "",
-      "precio_ganadora": 0.0,
-      "subida_real_pct": 0.0,
-      "subida_dia_win_pct": 0.0,
-      "horas_hasta_ganadora": null,
-      "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "estado": "GANADORA",
+      "fecha_ganadora": "2026-11-24",
+      "ts_ganadora": "2026-11-24 10:01",
+      "precio_ganadora": 4.491e-05,
+      "subida_real_pct": 14.86,
+      "subida_dia_win_pct": 6.9,
+      "horas_hasta_ganadora": 37.3,
+      "dias_hasta_ganadora": 1.55,
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 4.65e-05,
+      "subida_pico_pct": 18.93,
+      "mismo_dia_sin_hora": false
     },
     "MORPHOUSDT": {
       "symbol": "MORPHOUSDT",
       "ticker": "MORPHO",
       "fecha_primera": "2026-11-22",
-      "ts_primera": "2026-11-22 00:00",
-      "color_inicial": "ROJO",
+      "ts_primera": "2026-11-22 22:31",
+      "color_inicial": "VERDE",
       "color_maximo": "ROJO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 1.574,
+      "precio_inicial": 1.57,
       "ia_max_pct": 97,
       "fib_zona": 0.35,
       "fib_etiqueta": "Pullback Sano Fib (0.35)",
@@ -4881,7 +4969,10 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 1.627,
+      "subida_pico_pct": 3.63
     },
     "ARUSDT": {
       "symbol": "ARUSDT",
@@ -4915,7 +5006,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 2.332,
+      "subida_pico_pct": 0.56
     },
     "DODOUSDT": {
       "symbol": "DODOUSDT",
@@ -4943,13 +5036,16 @@
       "ts_rojo": "2026-11-22 00:00",
       "estado": "GANADORA",
       "fecha_ganadora": "2026-11-24",
-      "ts_ganadora": "2026-11-24 09:51",
-      "precio_ganadora": 0.04368,
-      "subida_real_pct": 9.64,
-      "subida_dia_win_pct": 9.28,
-      "horas_hasta_ganadora": 57.9,
-      "dias_hasta_ganadora": 2.41,
-      "alcanzo_fib_1618": false
+      "ts_ganadora": "2026-11-24 10:01",
+      "precio_ganadora": 0.04358,
+      "subida_real_pct": 9.39,
+      "subida_dia_win_pct": 9.01,
+      "horas_hasta_ganadora": 58.0,
+      "dias_hasta_ganadora": 2.42,
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.04399,
+      "subida_pico_pct": 10.42,
+      "mismo_dia_sin_hora": false
     },
     "XPLUSDT": {
       "symbol": "XPLUSDT",
@@ -4983,7 +5079,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.04589,
+      "subida_pico_pct": 0.0
     },
     "ASTERUSDT": {
       "symbol": "ASTERUSDT",
@@ -5017,7 +5115,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.5069,
+      "subida_pico_pct": 0.94
     },
     "VIRTUALUSDT": {
       "symbol": "VIRTUALUSDT",
@@ -5029,7 +5129,7 @@
       "es_oro": false,
       "coincide_cazador": true,
       "precio_inicial": 0.3798,
-      "ia_max_pct": 25,
+      "ia_max_pct": 29,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
       "ext_1618": 0.0,
@@ -5051,7 +5151,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.3798,
+      "subida_pico_pct": 0.0
     },
     "PENGUUSDT": {
       "symbol": "PENGUUSDT",
@@ -5085,7 +5187,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.004303,
+      "subida_pico_pct": 0.61
     },
     "SENTUSDT": {
       "symbol": "SENTUSDT",
@@ -5119,7 +5223,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.02003,
+      "subida_pico_pct": 1.16
     },
     "TRUMPUSDT": {
       "symbol": "TRUMPUSDT",
@@ -5153,18 +5259,20 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.894,
+      "subida_pico_pct": 0.0
     },
     "LSKUSDT": {
       "symbol": "LSKUSDT",
       "ticker": "LSK",
       "fecha_primera": "2026-11-23",
-      "ts_primera": "2026-11-23 00:00",
+      "ts_primera": "2026-11-23 01:41",
       "color_inicial": "VERDE",
       "color_maximo": "AMARILLO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 0.1616,
+      "precio_inicial": 0.1436,
       "ia_max_pct": 97,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -5186,7 +5294,10 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.1616,
+      "subida_pico_pct": 12.53
     },
     "ETHFIUSDT": {
       "symbol": "ETHFIUSDT",
@@ -5220,7 +5331,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.5063,
+      "subida_pico_pct": 2.2
     },
     "MARSCOINUSDT": {
       "symbol": "MARSCOINUSDT",
@@ -5253,18 +5366,21 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.0302,
+      "subida_pico_pct": 0.0
     },
     "ONEUSDT": {
       "symbol": "ONEUSDT",
       "ticker": "ONE",
       "fecha_primera": "2026-11-23",
-      "ts_primera": "2026-11-23 00:00",
-      "color_inicial": "ROJO",
+      "ts_primera": "2026-11-23 01:51",
+      "color_inicial": "VERDE",
       "color_maximo": "ROJO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 0.001049,
+      "precio_inicial": 0.000963,
       "ia_max_pct": 90,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -5282,22 +5398,26 @@
       "fecha_ganadora": "2026-11-23",
       "ts_ganadora": "2026-11-23 23:45",
       "precio_ganadora": 0.001056,
-      "subida_real_pct": 0.67,
+      "subida_real_pct": 9.66,
       "subida_dia_win_pct": 12.22,
-      "horas_hasta_ganadora": 23.8,
-      "dias_hasta_ganadora": 0.99,
-      "alcanzo_fib_1618": false
+      "horas_hasta_ganadora": 21.9,
+      "dias_hasta_ganadora": 0.91,
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.001144,
+      "subida_pico_pct": 18.8,
+      "mismo_dia_sin_hora": false
     },
     "CHIPUSDT": {
       "symbol": "CHIPUSDT",
       "ticker": "CHIP",
       "fecha_primera": "2026-11-23",
-      "ts_primera": "2026-11-23 00:00",
-      "color_inicial": "AMARILLO",
+      "ts_primera": "2026-11-23 02:51",
+      "color_inicial": "VERDE",
       "color_maximo": "AMARILLO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 0.02856,
+      "precio_inicial": 0.02707,
       "ia_max_pct": 97,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -5319,7 +5439,10 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.0296,
+      "subida_pico_pct": 9.35
     },
     "ZAMAUSDT": {
       "symbol": "ZAMAUSDT",
@@ -5353,7 +5476,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.06133,
+      "subida_pico_pct": 0.0
     },
     "HUMAUSDT": {
       "symbol": "HUMAUSDT",
@@ -5387,7 +5512,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.00854,
+      "subida_pico_pct": 0.23
     },
     "AEROUSDT": {
       "symbol": "AEROUSDT",
@@ -5421,18 +5548,20 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.4226,
+      "subida_pico_pct": 0.6
     },
     "SUSDT": {
       "symbol": "SUSDT",
       "ticker": "S",
       "fecha_primera": "2026-11-23",
-      "ts_primera": "2026-11-23 00:00",
-      "color_inicial": "ROJO",
+      "ts_primera": "2026-11-23 05:51",
+      "color_inicial": "VERDE",
       "color_maximo": "ROJO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 0.02826,
+      "precio_inicial": 0.02834,
       "ia_max_pct": 76,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -5454,18 +5583,21 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.02834,
+      "subida_pico_pct": 0.0
     },
     "CVXUSDT": {
       "symbol": "CVXUSDT",
       "ticker": "CVX",
       "fecha_primera": "2026-11-23",
-      "ts_primera": "2026-11-23 00:00",
-      "color_inicial": "ROJO",
+      "ts_primera": "2026-11-23 07:51",
+      "color_inicial": "VERDE",
       "color_maximo": "ROJO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 1.175,
+      "precio_inicial": 1.18,
       "ia_max_pct": 76,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -5487,7 +5619,10 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 1.18,
+      "subida_pico_pct": 0.0
     },
     "ALLOUSDT": {
       "symbol": "ALLOUSDT",
@@ -5521,18 +5656,20 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.1288,
+      "subida_pico_pct": 0.7
     },
     "JTOUSDT": {
       "symbol": "JTOUSDT",
       "ticker": "JTO",
       "fecha_primera": "2026-11-23",
-      "ts_primera": "2026-11-23 00:00",
-      "color_inicial": "ROJO",
+      "ts_primera": "2026-11-23 10:21",
+      "color_inicial": "VERDE",
       "color_maximo": "ROJO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 0.2399,
+      "precio_inicial": 0.2446,
       "ia_max_pct": 72,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -5554,7 +5691,10 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.2446,
+      "subida_pico_pct": 0.0
     },
     "PUMPUSDT": {
       "symbol": "PUMPUSDT",
@@ -5588,18 +5728,20 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.002684,
+      "subida_pico_pct": 11.74
     },
     "MEGAUSDT": {
       "symbol": "MEGAUSDT",
       "ticker": "MEGA",
       "fecha_primera": "2026-11-23",
-      "ts_primera": "2026-11-23 00:00",
-      "color_inicial": "ROJO",
+      "ts_primera": "2026-11-23 11:11",
+      "color_inicial": "VERDE",
       "color_maximo": "ROJO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 0.046,
+      "precio_inicial": 0.04729,
       "ia_max_pct": 76,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -5621,18 +5763,21 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.04729,
+      "subida_pico_pct": 0.0
     },
     "ZKPUSDT": {
       "symbol": "ZKPUSDT",
       "ticker": "ZKP",
       "fecha_primera": "2026-11-23",
-      "ts_primera": "2026-11-23 00:00",
-      "color_inicial": "ROJO",
+      "ts_primera": "2026-11-23 11:21",
+      "color_inicial": "VERDE",
       "color_maximo": "ROJO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 0.0287,
+      "precio_inicial": 0.0308,
       "ia_max_pct": 84,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -5653,7 +5798,10 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.0308,
+      "subida_pico_pct": 0.0
     },
     "HOTUSDT": {
       "symbol": "HOTUSDT",
@@ -5687,18 +5835,20 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.000339,
+      "subida_pico_pct": 0.0
     },
     "INITUSDT": {
       "symbol": "INITUSDT",
       "ticker": "INIT",
       "fecha_primera": "2026-11-23",
-      "ts_primera": "2026-11-23 00:00",
+      "ts_primera": "2026-11-23 11:21",
       "color_inicial": "VERDE",
       "color_maximo": "AMARILLO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 0.07913,
+      "precio_inicial": 0.08623,
       "ia_max_pct": 61,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -5720,7 +5870,10 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.08623,
+      "subida_pico_pct": 0.0
     },
     "ERAUSDT": {
       "symbol": "ERAUSDT",
@@ -5754,18 +5907,20 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.0766,
+      "subida_pico_pct": 0.0
     },
     "XTZUSDT": {
       "symbol": "XTZUSDT",
       "ticker": "XTZ",
       "fecha_primera": "2026-11-23",
-      "ts_primera": "2026-11-23 00:00",
-      "color_inicial": "ROJO",
+      "ts_primera": "2026-11-23 11:51",
+      "color_inicial": "VERDE",
       "color_maximo": "ROJO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 0.2123,
+      "precio_inicial": 0.2138,
       "ia_max_pct": 86,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -5787,18 +5942,21 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.2138,
+      "subida_pico_pct": 0.0
     },
     "BERAUSDT": {
       "symbol": "BERAUSDT",
       "ticker": "BERA",
       "fecha_primera": "2026-11-23",
-      "ts_primera": "2026-11-23 00:00",
-      "color_inicial": "ROJO",
+      "ts_primera": "2026-11-23 12:02",
+      "color_inicial": "VERDE",
       "color_maximo": "ROJO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 0.0843,
+      "precio_inicial": 0.0848,
       "ia_max_pct": 96,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -5820,18 +5978,21 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.0848,
+      "subida_pico_pct": 0.0
     },
     "BREVUSDT": {
       "symbol": "BREVUSDT",
       "ticker": "BREV",
       "fecha_primera": "2026-11-23",
-      "ts_primera": "2026-11-23 00:00",
-      "color_inicial": "ROJO",
+      "ts_primera": "2026-11-23 21:21",
+      "color_inicial": "VERDE",
       "color_maximo": "ROJO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 0.0649,
+      "precio_inicial": 0.0678,
       "ia_max_pct": 83,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -5853,18 +6014,21 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.0678,
+      "subida_pico_pct": 0.0
     },
     "ACEUSDT": {
       "symbol": "ACEUSDT",
       "ticker": "ACE",
       "fecha_primera": "2026-11-23",
-      "ts_primera": "2026-11-23 00:00",
-      "color_inicial": "ROJO",
+      "ts_primera": "2026-11-23 23:11",
+      "color_inicial": "VERDE",
       "color_maximo": "ROJO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 0.0772,
+      "precio_inicial": 0.0783,
       "ia_max_pct": 75,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -5882,17 +6046,21 @@
       "fecha_ganadora": "2026-11-23",
       "ts_ganadora": "2026-11-23 23:45",
       "precio_ganadora": 0.0748,
-      "subida_real_pct": -3.11,
+      "subida_real_pct": -4.47,
       "subida_dia_win_pct": 15.43,
-      "horas_hasta_ganadora": 23.8,
-      "dias_hasta_ganadora": 0.99,
-      "alcanzo_fib_1618": false
+      "horas_hasta_ganadora": 0.6,
+      "dias_hasta_ganadora": 0.02,
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.09,
+      "subida_pico_pct": 14.94,
+      "mismo_dia_sin_hora": false
     },
     "SPKUSDT": {
       "symbol": "SPKUSDT",
       "ticker": "SPK",
       "fecha_primera": "2026-11-24",
-      "ts_primera": "2026-11-24 00:00",
+      "ts_primera": "2026-11-24 00:41",
       "color_inicial": "VERDE",
       "color_maximo": "VERDE",
       "es_oro": false,
@@ -5918,45 +6086,52 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.011921,
+      "subida_pico_pct": 0.0
     },
     "ATMUSDT": {
       "symbol": "ATMUSDT",
       "ticker": "ATM",
       "fecha_primera": "2026-11-24",
-      "ts_primera": "2026-11-24 00:00",
+      "ts_primera": "2026-11-24 00:41",
       "color_inicial": "VERDE",
-      "color_maximo": "VERDE",
+      "color_maximo": "ROJO",
       "es_oro": false,
       "coincide_cazador": true,
       "precio_inicial": 0.735,
       "ia_max_pct": 86,
-      "fib_zona": 0.0,
-      "fib_etiqueta": "",
-      "ext_1618": 0.0,
-      "bids_asks": 0.0,
+      "fib_zona": 0.23,
+      "fib_etiqueta": "Tramo Alcista Fib (0.23)",
+      "ext_1618": 1.340122,
+      "bids_asks": 2.42,
       "apariciones_count": 1,
       "fechas_vistas": [
         "2026-11-24"
       ],
       "ts_verde": "2026-11-24 00:00",
       "ts_amarillo": "",
-      "ts_rojo": "",
+      "ts_rojo": "2026-11-24 10:04",
       "estado": "GANADORA",
       "fecha_ganadora": "2026-11-24",
-      "ts_ganadora": "2026-11-24 09:51",
-      "precio_ganadora": 0.942,
-      "subida_real_pct": 28.16,
-      "subida_dia_win_pct": 32.86,
-      "horas_hasta_ganadora": 9.8,
-      "dias_hasta_ganadora": 0.41,
-      "alcanzo_fib_1618": false
+      "ts_ganadora": "2026-11-24 10:01",
+      "precio_ganadora": 0.956,
+      "subida_real_pct": 30.07,
+      "subida_dia_win_pct": 35.03,
+      "horas_hasta_ganadora": 9.3,
+      "dias_hasta_ganadora": 0.39,
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 1.075,
+      "subida_pico_pct": 46.26,
+      "mismo_dia_sin_hora": false
     },
     "INJUSDT": {
       "symbol": "INJUSDT",
       "ticker": "INJ",
       "fecha_primera": "2026-11-24",
-      "ts_primera": "2026-11-24 00:00",
+      "ts_primera": "2026-11-24 00:51",
       "color_inicial": "VERDE",
       "color_maximo": "VERDE",
       "es_oro": false,
@@ -5982,13 +6157,16 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 6.182,
+      "subida_pico_pct": 0.0
     },
     "WIFUSDT": {
       "symbol": "WIFUSDT",
       "ticker": "WIF",
       "fecha_primera": "2026-11-24",
-      "ts_primera": "2026-11-24 00:00",
+      "ts_primera": "2026-11-24 00:51",
       "color_inicial": "VERDE",
       "color_maximo": "VERDE",
       "es_oro": false,
@@ -6014,18 +6192,21 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.1244,
+      "subida_pico_pct": 0.0
     },
     "RUNEUSDT": {
       "symbol": "RUNEUSDT",
       "ticker": "RUNE",
       "fecha_primera": "2026-11-24",
-      "ts_primera": "2026-11-24 00:00",
+      "ts_primera": "2026-11-24 00:51",
       "color_inicial": "VERDE",
       "color_maximo": "VERDE",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 0.512,
+      "precio_inicial": 0.511,
       "ia_max_pct": 79,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -6046,13 +6227,16 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.512,
+      "subida_pico_pct": 0.2
     },
     "ETCUSDT": {
       "symbol": "ETCUSDT",
       "ticker": "ETC",
       "fecha_primera": "2026-11-24",
-      "ts_primera": "2026-11-24 00:00",
+      "ts_primera": "2026-11-24 00:51",
       "color_inicial": "VERDE",
       "color_maximo": "VERDE",
       "es_oro": false,
@@ -6078,18 +6262,21 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 5.82,
+      "subida_pico_pct": 0.34
     },
     "DEXEUSDT": {
       "symbol": "DEXEUSDT",
       "ticker": "DEXE",
       "fecha_primera": "2026-11-24",
-      "ts_primera": "2026-11-24 00:00",
+      "ts_primera": "2026-11-24 01:11",
       "color_inicial": "VERDE",
       "color_maximo": "VERDE",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 1.175,
+      "precio_inicial": 1.183,
       "ia_max_pct": 97,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -6110,18 +6297,21 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 1.183,
+      "subida_pico_pct": 0.0
     },
     "NILUSDT": {
       "symbol": "NILUSDT",
       "ticker": "NIL",
       "fecha_primera": "2026-11-24",
-      "ts_primera": "2026-11-24 00:00",
+      "ts_primera": "2026-11-24 01:11",
       "color_inicial": "VERDE",
       "color_maximo": "VERDE",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 0.04739,
+      "precio_inicial": 0.04713,
       "ia_max_pct": 79,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -6142,18 +6332,21 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.04739,
+      "subida_pico_pct": 0.55
     },
     "SAPIENUSDT": {
       "symbol": "SAPIENUSDT",
       "ticker": "SAPIEN",
       "fecha_primera": "2026-11-24",
-      "ts_primera": "2026-11-24 00:00",
-      "color_inicial": "ROJO",
+      "ts_primera": "2026-11-24 01:11",
+      "color_inicial": "VERDE",
       "color_maximo": "ROJO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 0.03941,
+      "precio_inicial": 0.03861,
       "ia_max_pct": 85,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -6174,13 +6367,16 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.03941,
+      "subida_pico_pct": 2.07
     },
     "SEIUSDT": {
       "symbol": "SEIUSDT",
       "ticker": "SEI",
       "fecha_primera": "2026-11-24",
-      "ts_primera": "2026-11-24 00:00",
+      "ts_primera": "2026-11-24 01:11",
       "color_inicial": "VERDE",
       "color_maximo": "VERDE",
       "es_oro": false,
@@ -6206,18 +6402,21 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.03396,
+      "subida_pico_pct": 0.0
     },
     "FETUSDT": {
       "symbol": "FETUSDT",
       "ticker": "FET",
       "fecha_primera": "2026-11-24",
-      "ts_primera": "2026-11-24 00:00",
+      "ts_primera": "2026-11-24 01:11",
       "color_inicial": "VERDE",
       "color_maximo": "VERDE",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 0.1086,
+      "precio_inicial": 0.1081,
       "ia_max_pct": 75,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -6238,13 +6437,16 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.1086,
+      "subida_pico_pct": 0.46
     },
     "ALGOUSDT": {
       "symbol": "ALGOUSDT",
       "ticker": "ALGO",
       "fecha_primera": "2026-11-24",
-      "ts_primera": "2026-11-24 00:00",
+      "ts_primera": "2026-11-24 02:21",
       "color_inicial": "VERDE",
       "color_maximo": "VERDE",
       "es_oro": false,
@@ -6270,13 +6472,16 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.0808,
+      "subida_pico_pct": 0.0
     },
     "EIGENUSDT": {
       "symbol": "EIGENUSDT",
       "ticker": "EIGEN",
       "fecha_primera": "2026-11-24",
-      "ts_primera": "2026-11-24 00:00",
+      "ts_primera": "2026-11-24 02:21",
       "color_inicial": "VERDE",
       "color_maximo": "VERDE",
       "es_oro": false,
@@ -6302,18 +6507,21 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.1158,
+      "subida_pico_pct": 0.0
     },
     "BLURUSDT": {
       "symbol": "BLURUSDT",
       "ticker": "BLUR",
       "fecha_primera": "2026-11-24",
-      "ts_primera": "2026-11-24 00:00",
-      "color_inicial": "ROJO",
+      "ts_primera": "2026-11-24 02:32",
+      "color_inicial": "VERDE",
       "color_maximo": "ROJO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 0.00806,
+      "precio_inicial": 0.00805,
       "ia_max_pct": 98,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -6334,18 +6542,21 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.00823,
+      "subida_pico_pct": 2.24
     },
     "0GUSDT": {
       "symbol": "0GUSDT",
       "ticker": "0G",
       "fecha_primera": "2026-11-24",
-      "ts_primera": "2026-11-24 00:00",
+      "ts_primera": "2026-11-24 04:41",
       "color_inicial": "VERDE",
       "color_maximo": "VERDE",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 0.1087,
+      "precio_inicial": 0.1084,
       "ia_max_pct": 75,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -6366,18 +6577,21 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.1087,
+      "subida_pico_pct": 0.28
     },
     "YBUSDT": {
       "symbol": "YBUSDT",
       "ticker": "YB",
       "fecha_primera": "2026-11-24",
-      "ts_primera": "2026-11-24 00:00",
-      "color_inicial": "ROJO",
+      "ts_primera": "2026-11-24 05:21",
+      "color_inicial": "VERDE",
       "color_maximo": "ROJO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 0.0552,
+      "precio_inicial": 0.0548,
       "ia_max_pct": 97,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -6398,23 +6612,26 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.0554,
+      "subida_pico_pct": 1.09
     },
     "BONKUSDT": {
       "symbol": "BONKUSDT",
       "ticker": "BONK",
       "fecha_primera": "2026-11-24",
-      "ts_primera": "2026-11-24 00:00",
+      "ts_primera": "2026-11-24 05:41",
       "color_inicial": "VERDE",
       "color_maximo": "VERDE",
       "es_oro": false,
       "coincide_cazador": false,
       "precio_inicial": 2.21e-06,
-      "ia_max_pct": 0,
-      "fib_zona": 0.0,
-      "fib_etiqueta": "",
-      "ext_1618": 0.0,
-      "bids_asks": 0.0,
+      "ia_max_pct": 55,
+      "fib_zona": 0.54,
+      "fib_etiqueta": "Pullback Sano Fib (0.54)",
+      "ext_1618": 2.6942799999999996e-06,
+      "bids_asks": 1.59,
       "apariciones_count": 1,
       "fechas_vistas": [
         "2026-11-24"
@@ -6430,13 +6647,16 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 2.21e-06,
+      "subida_pico_pct": 0.0
     },
     "CYBERUSDT": {
       "symbol": "CYBERUSDT",
       "ticker": "CYBER",
       "fecha_primera": "2026-11-24",
-      "ts_primera": "2026-11-24 00:00",
+      "ts_primera": "2026-11-24 06:21",
       "color_inicial": "VERDE",
       "color_maximo": "VERDE",
       "es_oro": false,
@@ -6462,18 +6682,21 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.215,
+      "subida_pico_pct": 0.0
     },
     "INTWBUSDT": {
       "symbol": "INTWBUSDT",
       "ticker": "INTWB",
       "fecha_primera": "2026-11-24",
-      "ts_primera": "2026-11-24 00:00",
+      "ts_primera": "2026-11-24 07:11",
       "color_inicial": "VERDE",
       "color_maximo": "AMARILLO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 5.11,
+      "precio_inicial": 5.13,
       "ia_max_pct": 97,
       "fib_zona": 0.5,
       "fib_etiqueta": "Pullback Sano Fib (0.50)",
@@ -6494,13 +6717,16 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 5.13,
+      "subida_pico_pct": 0.0
     },
     "ONGUSDT": {
       "symbol": "ONGUSDT",
       "ticker": "ONG",
       "fecha_primera": "2026-11-24",
-      "ts_primera": "2026-11-24 00:00",
+      "ts_primera": "2026-11-24 07:21",
       "color_inicial": "VERDE",
       "color_maximo": "VERDE",
       "es_oro": false,
@@ -6526,18 +6752,21 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.05136,
+      "subida_pico_pct": 0.0
     },
     "FILUSDT": {
       "symbol": "FILUSDT",
       "ticker": "FIL",
       "fecha_primera": "2026-11-24",
-      "ts_primera": "2026-11-24 00:00",
+      "ts_primera": "2026-11-24 07:21",
       "color_inicial": "VERDE",
       "color_maximo": "VERDE",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 0.5502,
+      "precio_inicial": 0.5517,
       "ia_max_pct": 79,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -6558,18 +6787,21 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.5517,
+      "subida_pico_pct": 0.0
     },
     "REUSDT": {
       "symbol": "REUSDT",
       "ticker": "RE",
       "fecha_primera": "2026-11-24",
-      "ts_primera": "2026-11-24 00:00",
-      "color_inicial": "AMARILLO",
+      "ts_primera": "2026-11-24 08:51",
+      "color_inicial": "VERDE",
       "color_maximo": "AMARILLO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 0.2061,
+      "precio_inicial": 0.2088,
       "ia_max_pct": 85,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -6590,18 +6822,21 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.2088,
+      "subida_pico_pct": 0.0
     },
     "ICPUSDT": {
       "symbol": "ICPUSDT",
       "ticker": "ICP",
       "fecha_primera": "2026-11-24",
-      "ts_primera": "2026-11-24 00:00",
+      "ts_primera": "2026-11-24 08:51",
       "color_inicial": "VERDE",
       "color_maximo": "VERDE",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 2.062,
+      "precio_inicial": 2.071,
       "ia_max_pct": 79,
       "fib_zona": 0.0,
       "fib_etiqueta": "",
@@ -6622,23 +6857,26 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 2.071,
+      "subida_pico_pct": 0.0
     },
     "KERNELUSDT": {
       "symbol": "KERNELUSDT",
       "ticker": "KERNEL",
       "fecha_primera": "2026-11-24",
-      "ts_primera": "2026-11-24 00:00",
+      "ts_primera": "2026-11-24 09:21",
       "color_inicial": "VERDE",
       "color_maximo": "VERDE",
       "es_oro": false,
       "coincide_cazador": false,
       "precio_inicial": 0.0421,
-      "ia_max_pct": 0,
-      "fib_zona": 0.0,
-      "fib_etiqueta": "",
-      "ext_1618": 0.0,
-      "bids_asks": 0.0,
+      "ia_max_pct": 67,
+      "fib_zona": 0.84,
+      "fib_etiqueta": "Piso Profundo Fib (0.84)",
+      "ext_1618": 0.07949719999999999,
+      "bids_asks": 1.3,
       "apariciones_count": 1,
       "fechas_vistas": [
         "2026-11-24"
@@ -6654,7 +6892,10 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "tiene_hora_primera": true,
+      "precio_pico": 0.0424,
+      "subida_pico_pct": 0.71
     },
     "KAVAUSDT": {
       "symbol": "KAVAUSDT",
@@ -6687,7 +6928,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.02529,
+      "subida_pico_pct": 0.0
     },
     "ENSUSDT": {
       "symbol": "ENSUSDT",
@@ -6719,7 +6962,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 3.67,
+      "subida_pico_pct": 0.0
     },
     "PENDLEUSDT": {
       "symbol": "PENDLEUSDT",
@@ -6751,7 +6996,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 1.318,
+      "subida_pico_pct": 0.69
     },
     "GALAUSDT": {
       "symbol": "GALAUSDT",
@@ -6783,7 +7030,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.001327,
+      "subida_pico_pct": 0.0
     },
     "SANDUSDT": {
       "symbol": "SANDUSDT",
@@ -6816,7 +7065,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.03359,
+      "subida_pico_pct": 0.0
     },
     "ALTUSDT": {
       "symbol": "ALTUSDT",
@@ -6849,7 +7100,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.00443,
+      "subida_pico_pct": 2.31
     },
     "ORDIUSDT": {
       "symbol": "ORDIUSDT",
@@ -6882,19 +7135,21 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 2.664,
+      "subida_pico_pct": 2.46
     },
     "MUBARAKUSDT": {
       "symbol": "MUBARAKUSDT",
       "ticker": "MUBARAK",
       "fecha_primera": "2026-11-24",
-      "ts_primera": "2026-11-24 00:00",
+      "ts_primera": "2026-11-24 10:04",
       "color_inicial": "AMARILLO",
       "color_maximo": "AMARILLO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 0.02402,
-      "ia_max_pct": 90,
+      "precio_inicial": 0.02386,
+      "ia_max_pct": 97,
       "fib_zona": 0.49,
       "fib_etiqueta": "Pullback Sano Fib (0.49)",
       "ext_1618": 0.03177196,
@@ -6914,7 +7169,10 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.02402,
+      "tiene_hora_primera": true,
+      "subida_pico_pct": 0.67
     },
     "IOSTUSDT": {
       "symbol": "IOSTUSDT",
@@ -6946,7 +7204,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.000602,
+      "subida_pico_pct": 0.0
     },
     "SHELLUSDT": {
       "symbol": "SHELLUSDT",
@@ -6973,13 +7233,16 @@
       "ts_rojo": "2026-11-20 00:00",
       "estado": "GANADORA",
       "fecha_ganadora": "2026-11-24",
-      "ts_ganadora": "2026-11-24 09:51",
-      "precio_ganadora": 0.02616,
-      "subida_real_pct": 1.91,
-      "subida_dia_win_pct": 7.74,
-      "horas_hasta_ganadora": 105.8,
-      "dias_hasta_ganadora": 4.41,
-      "alcanzo_fib_1618": false
+      "ts_ganadora": "2026-11-24 10:01",
+      "precio_ganadora": 0.02614,
+      "subida_real_pct": 1.83,
+      "subida_dia_win_pct": 8.06,
+      "horas_hasta_ganadora": 106.0,
+      "dias_hasta_ganadora": 4.42,
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.02687,
+      "subida_pico_pct": 4.67,
+      "mismo_dia_sin_hora": false
     },
     "PORTALUSDT": {
       "symbol": "PORTALUSDT",
@@ -7011,7 +7274,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.01233,
+      "subida_pico_pct": 0.0
     },
     "VANAUSDT": {
       "symbol": "VANAUSDT",
@@ -7044,7 +7309,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.57,
+      "subida_pico_pct": 0.0
     },
     "MITOUSDT": {
       "symbol": "MITOUSDT",
@@ -7076,7 +7343,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.00474,
+      "subida_pico_pct": 0.0
     },
     "BNCBUSDT": {
       "symbol": "BNCBUSDT",
@@ -7108,7 +7377,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 3.21,
+      "subida_pico_pct": 0.0
     },
     "RENDERUSDT": {
       "symbol": "RENDERUSDT",
@@ -7141,7 +7412,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 1.336,
+      "subida_pico_pct": 0.0
     },
     "OPUSDT": {
       "symbol": "OPUSDT",
@@ -7173,7 +7446,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.0716,
+      "subida_pico_pct": 0.0
     },
     "PYTHUSDT": {
       "symbol": "PYTHUSDT",
@@ -7206,7 +7481,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.05145,
+      "subida_pico_pct": 0.0
     },
     "ENAUSDT": {
       "symbol": "ENAUSDT",
@@ -7238,7 +7515,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.1023,
+      "subida_pico_pct": 0.0
     },
     "WLDUSDT": {
       "symbol": "WLDUSDT",
@@ -7271,7 +7550,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.2405,
+      "subida_pico_pct": 0.0
     },
     "APTUSDT": {
       "symbol": "APTUSDT",
@@ -7304,7 +7585,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.3853,
+      "subida_pico_pct": 0.0
     },
     "ONDOUSDT": {
       "symbol": "ONDOUSDT",
@@ -7336,7 +7619,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.2878,
+      "subida_pico_pct": 0.0
     },
     "TIAUSDT": {
       "symbol": "TIAUSDT",
@@ -7368,7 +7653,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.3351,
+      "subida_pico_pct": 0.0
     },
     "STRKUSDT": {
       "symbol": "STRKUSDT",
@@ -7400,7 +7687,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.03174,
+      "subida_pico_pct": 0.0
     },
     "UNIUSDT": {
       "symbol": "UNIUSDT",
@@ -7433,7 +7722,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 4.817,
+      "subida_pico_pct": 0.0
     },
     "XLMUSDT": {
       "symbol": "XLMUSDT",
@@ -7466,7 +7757,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.1296,
+      "subida_pico_pct": 0.0
     },
     "HBARUSDT": {
       "symbol": "HBARUSDT",
@@ -7498,7 +7791,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.05235,
+      "subida_pico_pct": 0.0
     },
     "STXUSDT": {
       "symbol": "STXUSDT",
@@ -7531,7 +7826,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.2583,
+      "subida_pico_pct": 0.0
     },
     "LDOUSDT": {
       "symbol": "LDOUSDT",
@@ -7563,7 +7860,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.2402,
+      "subida_pico_pct": 0.0
     },
     "ARBUSDT": {
       "symbol": "ARBUSDT",
@@ -7596,7 +7895,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 0.114,
+      "subida_pico_pct": 0.0
     },
     "BMNRBUSDT": {
       "symbol": "BMNRBUSDT",
@@ -7628,18 +7929,20 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 14.36,
+      "subida_pico_pct": 0.0
     },
     "NBISBUSDT": {
       "symbol": "NBISBUSDT",
       "ticker": "NBISB",
       "fecha_primera": "2026-11-24",
-      "ts_primera": "2026-11-24 00:00",
+      "ts_primera": "2026-11-24 10:04",
       "color_inicial": "ROJO",
       "color_maximo": "ROJO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 92.92,
+      "precio_inicial": 93.9,
       "ia_max_pct": 97,
       "fib_zona": 0.62,
       "fib_etiqueta": "Pullback Sano Fib (0.62)",
@@ -7654,24 +7957,28 @@
       "ts_rojo": "2026-11-24 00:00",
       "estado": "GANADORA",
       "fecha_ganadora": "2026-11-24",
-      "ts_ganadora": "2026-11-24 09:51",
-      "precio_ganadora": 94.59,
-      "subida_real_pct": 1.8,
-      "subida_dia_win_pct": 8.45,
-      "horas_hasta_ganadora": 9.8,
-      "dias_hasta_ganadora": 0.41,
-      "alcanzo_fib_1618": false
+      "ts_ganadora": "2026-11-24 10:01",
+      "precio_ganadora": 94.02,
+      "subida_real_pct": 0.13,
+      "subida_dia_win_pct": 6.68,
+      "horas_hasta_ganadora": 0.0,
+      "dias_hasta_ganadora": 0.0,
+      "alcanzo_fib_1618": false,
+      "precio_pico": 110.47,
+      "tiene_hora_primera": true,
+      "subida_pico_pct": 17.65,
+      "mismo_dia_sin_hora": false
     },
     "DRAMBUSDT": {
       "symbol": "DRAMBUSDT",
       "ticker": "DRAMB",
       "fecha_primera": "2026-11-24",
-      "ts_primera": "2026-11-24 00:00",
-      "color_inicial": "VERDE",
+      "ts_primera": "2026-11-24 10:04",
+      "color_inicial": "AMARILLO",
       "color_maximo": "AMARILLO",
       "es_oro": false,
       "coincide_cazador": true,
-      "precio_inicial": 37.55,
+      "precio_inicial": 37.47,
       "ia_max_pct": 97,
       "fib_zona": 0.5,
       "fib_etiqueta": "Pullback Sano Fib (0.50)",
@@ -7692,7 +7999,10 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 37.55,
+      "tiene_hora_primera": true,
+      "subida_pico_pct": 0.21
     },
     "SOXLBUSDT": {
       "symbol": "SOXLBUSDT",
@@ -7724,7 +8034,9 @@
       "subida_dia_win_pct": 0.0,
       "horas_hasta_ganadora": null,
       "dias_hasta_ganadora": null,
-      "alcanzo_fib_1618": false
+      "alcanzo_fib_1618": false,
+      "precio_pico": 37.75,
+      "subida_pico_pct": 0.0
     },
     "MUUBUSDT": {
       "symbol": "MUUBUSDT",
@@ -7750,13 +8062,16 @@
       "ts_rojo": "",
       "estado": "GANADORA",
       "fecha_ganadora": "2026-11-24",
-      "ts_ganadora": "2026-11-24 09:51",
-      "precio_ganadora": 11.77,
-      "subida_real_pct": 4.16,
-      "subida_dia_win_pct": 11.78,
-      "horas_hasta_ganadora": 9.8,
-      "dias_hasta_ganadora": 0.41,
-      "alcanzo_fib_1618": false
+      "ts_ganadora": "2026-11-24 10:01",
+      "precio_ganadora": 11.7,
+      "subida_real_pct": 3.54,
+      "subida_dia_win_pct": 9.35,
+      "horas_hasta_ganadora": 0.0,
+      "dias_hasta_ganadora": 0.0,
+      "alcanzo_fib_1618": false,
+      "precio_pico": 13.89,
+      "subida_pico_pct": 22.92,
+      "mismo_dia_sin_hora": true
     }
   },
   "apariciones_por_dia": {
@@ -8009,7 +8324,7 @@
         "hora": "16:11",
         "color": "ROJO",
         "es_oro": false,
-        "ia_pct": 32,
+        "ia_pct": 35,
         "fib_zona": 0.0,
         "precio": 0.01082,
         "ext_1618": 0.0
@@ -8042,7 +8357,7 @@
         "hora": "17:11",
         "color": "ROJO",
         "es_oro": false,
-        "ia_pct": 47,
+        "ia_pct": 53,
         "fib_zona": 0.0,
         "precio": 0.14615,
         "ext_1618": 0.0
@@ -8127,10 +8442,10 @@
       "ETHFIUSDT": {
         "symbol": "ETHFIUSDT",
         "ticker": "ETHFI",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
-        "ia_pct": 25,
+        "ia_pct": 29,
         "fib_zona": 0.0,
         "precio": 0.4954,
         "ext_1618": 0.0
@@ -8138,7 +8453,7 @@
       "ASTERUSDT": {
         "symbol": "ASTERUSDT",
         "ticker": "ASTER",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 29,
@@ -8149,10 +8464,10 @@
       "VIRTUALUSDT": {
         "symbol": "VIRTUALUSDT",
         "ticker": "VIRTUAL",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
-        "ia_pct": 25,
+        "ia_pct": 29,
         "fib_zona": 0.0,
         "precio": 0.3798,
         "ext_1618": 0.0
@@ -8160,7 +8475,7 @@
       "ARUSDT": {
         "symbol": "ARUSDT",
         "ticker": "AR",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 44,
@@ -8171,10 +8486,10 @@
       "TRUMPUSDT": {
         "symbol": "TRUMPUSDT",
         "ticker": "TRUMP",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
-        "ia_pct": 25,
+        "ia_pct": 29,
         "fib_zona": 0.0,
         "precio": 0.894,
         "ext_1618": 0.0
@@ -8182,7 +8497,7 @@
       "ZAMAUSDT": {
         "symbol": "ZAMAUSDT",
         "ticker": "ZAMA",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 41,
@@ -8193,7 +8508,7 @@
       "PENGUUSDT": {
         "symbol": "PENGUUSDT",
         "ticker": "PENGU",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 44,
@@ -8204,10 +8519,10 @@
       "AEROUSDT": {
         "symbol": "AEROUSDT",
         "ticker": "AERO",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
-        "ia_pct": 40,
+        "ia_pct": 56,
         "fib_zona": 0.0,
         "precio": 0.4201,
         "ext_1618": 0.0
@@ -8215,7 +8530,7 @@
       "HUMAUSDT": {
         "symbol": "HUMAUSDT",
         "ticker": "HUMA",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 37,
@@ -8226,7 +8541,7 @@
       "HOTUSDT": {
         "symbol": "HOTUSDT",
         "ticker": "HOT",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 36,
@@ -8237,7 +8552,7 @@
       "SENTUSDT": {
         "symbol": "SENTUSDT",
         "ticker": "SENT",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 47,
@@ -8248,10 +8563,10 @@
       "ALLOUSDT": {
         "symbol": "ALLOUSDT",
         "ticker": "ALLO",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
-        "ia_pct": 56,
+        "ia_pct": 57,
         "fib_zona": 0.0,
         "precio": 0.1279,
         "ext_1618": 0.0
@@ -8259,7 +8574,7 @@
       "KAVAUSDT": {
         "symbol": "KAVAUSDT",
         "ticker": "KAVA",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "AMARILLO",
         "es_oro": false,
         "ia_pct": 65,
@@ -8270,7 +8585,7 @@
       "DODOUSDT": {
         "symbol": "DODOUSDT",
         "ticker": "DODO",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 58,
@@ -8473,7 +8788,7 @@
         "hora": "07:51",
         "color": "ROJO",
         "es_oro": false,
-        "ia_pct": 61,
+        "ia_pct": 65,
         "fib_zona": 0.0,
         "precio": 1.18,
         "ext_1618": 0.0
@@ -8517,7 +8832,7 @@
         "hora": "11:11",
         "color": "ROJO",
         "es_oro": false,
-        "ia_pct": 25,
+        "ia_pct": 29,
         "fib_zona": 0.0,
         "precio": 0.04729,
         "ext_1618": 0.0
@@ -8594,7 +8909,7 @@
         "hora": "21:21",
         "color": "ROJO",
         "es_oro": false,
-        "ia_pct": 25,
+        "ia_pct": 29,
         "fib_zona": 0.0,
         "precio": 0.0678,
         "ext_1618": 0.0
@@ -8605,7 +8920,7 @@
         "hora": "23:11",
         "color": "ROJO",
         "es_oro": false,
-        "ia_pct": 47,
+        "ia_pct": 62,
         "fib_zona": 0.0,
         "precio": 0.0783,
         "ext_1618": 0.0
@@ -8613,7 +8928,7 @@
       "AIGENSYNUSDT": {
         "symbol": "AIGENSYNUSDT",
         "ticker": "AIGENSYN",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 62,
@@ -8624,7 +8939,7 @@
       "RAREUSDT": {
         "symbol": "RAREUSDT",
         "ticker": "RARE",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 29,
@@ -8635,7 +8950,7 @@
       "ENSUSDT": {
         "symbol": "ENSUSDT",
         "ticker": "ENS",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "AMARILLO",
         "es_oro": false,
         "ia_pct": 97,
@@ -8646,7 +8961,7 @@
       "PENDLEUSDT": {
         "symbol": "PENDLEUSDT",
         "ticker": "PENDLE",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "AMARILLO",
         "es_oro": false,
         "ia_pct": 79,
@@ -8657,7 +8972,7 @@
       "ENSOUSDT": {
         "symbol": "ENSOUSDT",
         "ticker": "ENSO",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 68,
@@ -8668,7 +8983,7 @@
       "VANAUSDT": {
         "symbol": "VANAUSDT",
         "ticker": "VANA",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 97,
@@ -8679,7 +8994,7 @@
       "MITOUSDT": {
         "symbol": "MITOUSDT",
         "ticker": "MITO",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 75,
@@ -8690,7 +9005,7 @@
       "BNCBUSDT": {
         "symbol": "BNCBUSDT",
         "ticker": "BNCB",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 97,
@@ -8701,7 +9016,7 @@
       "RENDERUSDT": {
         "symbol": "RENDERUSDT",
         "ticker": "RENDER",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 98,
@@ -8712,7 +9027,7 @@
       "OPUSDT": {
         "symbol": "OPUSDT",
         "ticker": "OP",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 87,
@@ -8723,7 +9038,7 @@
       "SANDUSDT": {
         "symbol": "SANDUSDT",
         "ticker": "SAND",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 79,
@@ -8734,7 +9049,7 @@
       "PYTHUSDT": {
         "symbol": "PYTHUSDT",
         "ticker": "PYTH",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 97,
@@ -8745,7 +9060,7 @@
       "ENAUSDT": {
         "symbol": "ENAUSDT",
         "ticker": "ENA",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 79,
@@ -8756,7 +9071,7 @@
       "WLDUSDT": {
         "symbol": "WLDUSDT",
         "ticker": "WLD",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 97,
@@ -8767,7 +9082,7 @@
       "APTUSDT": {
         "symbol": "APTUSDT",
         "ticker": "APT",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 98,
@@ -8778,7 +9093,7 @@
       "ONDOUSDT": {
         "symbol": "ONDOUSDT",
         "ticker": "ONDO",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 79,
@@ -8789,7 +9104,7 @@
       "TIAUSDT": {
         "symbol": "TIAUSDT",
         "ticker": "TIA",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 79,
@@ -8800,7 +9115,7 @@
       "STRKUSDT": {
         "symbol": "STRKUSDT",
         "ticker": "STRK",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 97,
@@ -8811,7 +9126,7 @@
       "ORDIUSDT": {
         "symbol": "ORDIUSDT",
         "ticker": "ORDI",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 97,
@@ -8822,7 +9137,7 @@
       "UNIUSDT": {
         "symbol": "UNIUSDT",
         "ticker": "UNI",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 97,
@@ -8833,7 +9148,7 @@
       "XLMUSDT": {
         "symbol": "XLMUSDT",
         "ticker": "XLM",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 97,
@@ -8844,7 +9159,7 @@
       "ALTUSDT": {
         "symbol": "ALTUSDT",
         "ticker": "ALT",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 97,
@@ -8855,7 +9170,7 @@
       "HBARUSDT": {
         "symbol": "HBARUSDT",
         "ticker": "HBAR",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 79,
@@ -8866,7 +9181,7 @@
       "STXUSDT": {
         "symbol": "STXUSDT",
         "ticker": "STX",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 98,
@@ -8877,7 +9192,7 @@
       "LDOUSDT": {
         "symbol": "LDOUSDT",
         "ticker": "LDO",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 79,
@@ -8888,7 +9203,7 @@
       "ARBUSDT": {
         "symbol": "ARBUSDT",
         "ticker": "ARB",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 97,
@@ -8899,7 +9214,7 @@
       "BMNRBUSDT": {
         "symbol": "BMNRBUSDT",
         "ticker": "BMNRB",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 79,
@@ -8924,12 +9239,12 @@
         "symbol": "ATMUSDT",
         "ticker": "ATM",
         "hora": "00:41",
-        "color": "VERDE",
+        "color": "ROJO",
         "es_oro": false,
         "ia_pct": 86,
-        "fib_zona": 0.0,
+        "fib_zona": 0.23,
         "precio": 0.735,
-        "ext_1618": 0.0
+        "ext_1618": 1.340122
       },
       "INJUSDT": {
         "symbol": "INJUSDT",
@@ -9091,10 +9406,10 @@
         "hora": "05:41",
         "color": "VERDE",
         "es_oro": false,
-        "ia_pct": 0,
-        "fib_zona": 0.0,
+        "ia_pct": 55,
+        "fib_zona": 0.54,
         "precio": 2.21e-06,
-        "ext_1618": 0.0
+        "ext_1618": 2.6942799999999996e-06
       },
       "CYBERUSDT": {
         "symbol": "CYBERUSDT",
@@ -9114,7 +9429,7 @@
         "color": "AMARILLO",
         "es_oro": false,
         "ia_pct": 97,
-        "fib_zona": 0.5,
+        "fib_zona": 0.51,
         "precio": 5.13,
         "ext_1618": 6.820259999999999
       },
@@ -9168,15 +9483,15 @@
         "hora": "09:21",
         "color": "VERDE",
         "es_oro": false,
-        "ia_pct": 0,
-        "fib_zona": 0.0,
+        "ia_pct": 67,
+        "fib_zona": 0.84,
         "precio": 0.0421,
-        "ext_1618": 0.0
+        "ext_1618": 0.07949719999999999
       },
       "GALAUSDT": {
         "symbol": "GALAUSDT",
         "ticker": "GALA",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "AMARILLO",
         "es_oro": false,
         "ia_pct": 32,
@@ -9187,7 +9502,7 @@
       "SANDUSDT": {
         "symbol": "SANDUSDT",
         "ticker": "SAND",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "AMARILLO",
         "es_oro": false,
         "ia_pct": 48,
@@ -9198,7 +9513,7 @@
       "ONEUSDT": {
         "symbol": "ONEUSDT",
         "ticker": "ONE",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 37,
@@ -9209,7 +9524,7 @@
       "LSKUSDT": {
         "symbol": "LSKUSDT",
         "ticker": "LSK",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "AMARILLO",
         "es_oro": false,
         "ia_pct": 40,
@@ -9220,7 +9535,7 @@
       "INITUSDT": {
         "symbol": "INITUSDT",
         "ticker": "INIT",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "AMARILLO",
         "es_oro": false,
         "ia_pct": 47,
@@ -9231,7 +9546,7 @@
       "ALTUSDT": {
         "symbol": "ALTUSDT",
         "ticker": "ALT",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "AMARILLO",
         "es_oro": false,
         "ia_pct": 37,
@@ -9242,10 +9557,10 @@
       "ORDIUSDT": {
         "symbol": "ORDIUSDT",
         "ticker": "ORDI",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "AMARILLO",
         "es_oro": false,
-        "ia_pct": 32,
+        "ia_pct": 35,
         "fib_zona": 0.0,
         "precio": 2.664,
         "ext_1618": 0.0
@@ -9267,15 +9582,15 @@
         "hora": "10:02",
         "color": "AMARILLO",
         "es_oro": false,
-        "ia_pct": 90,
-        "fib_zona": 0.49,
+        "ia_pct": 97,
+        "fib_zona": 0.48,
         "precio": 0.02402,
         "ext_1618": 0.03177196
       },
       "SKYUSDT": {
         "symbol": "SKYUSDT",
         "ticker": "SKY",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 85,
@@ -9308,7 +9623,7 @@
       "DODOUSDT": {
         "symbol": "DODOUSDT",
         "ticker": "DODO",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 58,
@@ -9319,7 +9634,7 @@
       "FFUSDT": {
         "symbol": "FFUSDT",
         "ticker": "FF",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 37,
@@ -9330,7 +9645,7 @@
       "KITEUSDT": {
         "symbol": "KITEUSDT",
         "ticker": "KITE",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 88,
@@ -9341,10 +9656,10 @@
       "WCTUSDT": {
         "symbol": "WCTUSDT",
         "ticker": "WCT",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
-        "ia_pct": 25,
+        "ia_pct": 29,
         "fib_zona": 0.0,
         "precio": 0.02819,
         "ext_1618": 0.0
@@ -9352,7 +9667,7 @@
       "SENTUSDT": {
         "symbol": "SENTUSDT",
         "ticker": "SENT",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 47,
@@ -9363,10 +9678,10 @@
       "OPGUSDT": {
         "symbol": "OPGUSDT",
         "ticker": "OPG",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
-        "ia_pct": 37,
+        "ia_pct": 41,
         "fib_zona": 0.0,
         "precio": 0.1378,
         "ext_1618": 0.0
@@ -9374,7 +9689,7 @@
       "GLMRUSDT": {
         "symbol": "GLMRUSDT",
         "ticker": "GLMR",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 36,
@@ -9385,10 +9700,10 @@
       "GRAMUSDT": {
         "symbol": "GRAMUSDT",
         "ticker": "GRAM",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
-        "ia_pct": 25,
+        "ia_pct": 35,
         "fib_zona": 0.0,
         "precio": 0.964,
         "ext_1618": 0.0
@@ -9400,14 +9715,14 @@
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 97,
-        "fib_zona": 0.37,
+        "fib_zona": 0.35,
         "precio": 0.0163,
         "ext_1618": 0.02143158
       },
       "ANIMEUSDT": {
         "symbol": "ANIMEUSDT",
         "ticker": "ANIME",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 32,
@@ -9418,7 +9733,7 @@
       "STEEMUSDT": {
         "symbol": "STEEMUSDT",
         "ticker": "STEEM",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 37,
@@ -9429,7 +9744,7 @@
       "HMSTRUSDT": {
         "symbol": "HMSTRUSDT",
         "ticker": "HMSTR",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 29,
@@ -9440,7 +9755,7 @@
       "SUSHIUSDT": {
         "symbol": "SUSHIUSDT",
         "ticker": "SUSHI",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 49,
@@ -9451,7 +9766,7 @@
       "YGGUSDT": {
         "symbol": "YGGUSDT",
         "ticker": "YGG",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 52,
@@ -9462,7 +9777,7 @@
       "BMTUSDT": {
         "symbol": "BMTUSDT",
         "ticker": "BMT",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 25,
@@ -9473,7 +9788,7 @@
       "RAREUSDT": {
         "symbol": "RAREUSDT",
         "ticker": "RARE",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 77,
@@ -9484,7 +9799,7 @@
       "POLUSDT": {
         "symbol": "POLUSDT",
         "ticker": "POL",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 32,
@@ -9495,7 +9810,7 @@
       "CAKEUSDT": {
         "symbol": "CAKEUSDT",
         "ticker": "CAKE",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 41,
@@ -9506,7 +9821,7 @@
       "RAYUSDT": {
         "symbol": "RAYUSDT",
         "ticker": "RAY",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 44,
@@ -9517,7 +9832,7 @@
       "BARDUSDT": {
         "symbol": "BARDUSDT",
         "ticker": "BARD",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 57,
@@ -9528,7 +9843,7 @@
       "ZENUSDT": {
         "symbol": "ZENUSDT",
         "ticker": "ZEN",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 52,
@@ -9539,10 +9854,10 @@
       "PLUMEUSDT": {
         "symbol": "PLUMEUSDT",
         "ticker": "PLUME",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
-        "ia_pct": 32,
+        "ia_pct": 35,
         "fib_zona": 0.0,
         "precio": 0.01067,
         "ext_1618": 0.0
@@ -9550,7 +9865,7 @@
       "WLFIUSDT": {
         "symbol": "WLFIUSDT",
         "ticker": "WLFI",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 29,
@@ -9561,7 +9876,7 @@
       "PNUTUSDT": {
         "symbol": "PNUTUSDT",
         "ticker": "PNUT",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 52,
@@ -9572,10 +9887,10 @@
       "JSTUSDT": {
         "symbol": "JSTUSDT",
         "ticker": "JST",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
-        "ia_pct": 47,
+        "ia_pct": 53,
         "fib_zona": 0.0,
         "precio": 0.14629,
         "ext_1618": 0.0
@@ -9583,7 +9898,7 @@
       "ORCAUSDT": {
         "symbol": "ORCAUSDT",
         "ticker": "ORCA",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 64,
@@ -9594,7 +9909,7 @@
       "USUALUSDT": {
         "symbol": "USUALUSDT",
         "ticker": "USUAL",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 53,
@@ -9605,7 +9920,7 @@
       "NIGHTUSDT": {
         "symbol": "NIGHTUSDT",
         "ticker": "NIGHT",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 75,
@@ -9616,7 +9931,7 @@
       "ZROUSDT": {
         "symbol": "ZROUSDT",
         "ticker": "ZRO",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 25,
@@ -9627,7 +9942,7 @@
       "CRVUSDT": {
         "symbol": "CRVUSDT",
         "ticker": "CRV",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 44,
@@ -9639,7 +9954,7 @@
         "symbol": "MORPHOUSDT",
         "ticker": "MORPHO",
         "hora": "10:02",
-        "color": "AMARILLO",
+        "color": "ROJO",
         "es_oro": false,
         "ia_pct": 97,
         "fib_zona": 0.35,
@@ -9649,7 +9964,7 @@
       "ARUSDT": {
         "symbol": "ARUSDT",
         "ticker": "AR",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 44,
@@ -9660,7 +9975,7 @@
       "XPLUSDT": {
         "symbol": "XPLUSDT",
         "ticker": "XPL",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 32,
@@ -9671,7 +9986,7 @@
       "ASTERUSDT": {
         "symbol": "ASTERUSDT",
         "ticker": "ASTER",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 29,
@@ -9682,10 +9997,10 @@
       "VIRTUALUSDT": {
         "symbol": "VIRTUALUSDT",
         "ticker": "VIRTUAL",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
-        "ia_pct": 25,
+        "ia_pct": 29,
         "fib_zona": 0.0,
         "precio": 0.3602,
         "ext_1618": 0.0
@@ -9693,7 +10008,7 @@
       "PENGUUSDT": {
         "symbol": "PENGUUSDT",
         "ticker": "PENGU",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 44,
@@ -9704,7 +10019,7 @@
       "TRUMPUSDT": {
         "symbol": "TRUMPUSDT",
         "ticker": "TRUMP",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 81,
@@ -9715,7 +10030,7 @@
       "ETHFIUSDT": {
         "symbol": "ETHFIUSDT",
         "ticker": "ETHFI",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 82,
@@ -9726,7 +10041,7 @@
       "MARSCOINUSDT": {
         "symbol": "MARSCOINUSDT",
         "ticker": "MARSCOIN",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 96,
@@ -9737,7 +10052,7 @@
       "ZAMAUSDT": {
         "symbol": "ZAMAUSDT",
         "ticker": "ZAMA",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 88,
@@ -9748,7 +10063,7 @@
       "HUMAUSDT": {
         "symbol": "HUMAUSDT",
         "ticker": "HUMA",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 81,
@@ -9759,7 +10074,7 @@
       "ERAUSDT": {
         "symbol": "ERAUSDT",
         "ticker": "ERA",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 82,
@@ -9770,7 +10085,7 @@
       "AEROUSDT": {
         "symbol": "AEROUSDT",
         "ticker": "AERO",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 77,
@@ -9781,7 +10096,7 @@
       "ALLOUSDT": {
         "symbol": "ALLOUSDT",
         "ticker": "ALLO",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 76,
@@ -9792,7 +10107,7 @@
       "SUSDT": {
         "symbol": "SUSDT",
         "ticker": "S",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 76,
@@ -9803,7 +10118,7 @@
       "CVXUSDT": {
         "symbol": "CVXUSDT",
         "ticker": "CVX",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 76,
@@ -9814,7 +10129,7 @@
       "BERAUSDT": {
         "symbol": "BERAUSDT",
         "ticker": "BERA",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 96,
@@ -9825,7 +10140,7 @@
       "JTOUSDT": {
         "symbol": "JTOUSDT",
         "ticker": "JTO",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 72,
@@ -9836,7 +10151,7 @@
       "PUMPUSDT": {
         "symbol": "PUMPUSDT",
         "ticker": "PUMP",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 84,
@@ -9847,7 +10162,7 @@
       "MEGAUSDT": {
         "symbol": "MEGAUSDT",
         "ticker": "MEGA",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 76,
@@ -9858,7 +10173,7 @@
       "HOTUSDT": {
         "symbol": "HOTUSDT",
         "ticker": "HOT",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 88,
@@ -9869,7 +10184,7 @@
       "XTZUSDT": {
         "symbol": "XTZUSDT",
         "ticker": "XTZ",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 86,
@@ -9880,7 +10195,7 @@
       "BREVUSDT": {
         "symbol": "BREVUSDT",
         "ticker": "BREV",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 83,
@@ -9891,7 +10206,7 @@
       "ACEUSDT": {
         "symbol": "ACEUSDT",
         "ticker": "ACE",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 75,
@@ -9924,7 +10239,7 @@
       "SOXLBUSDT": {
         "symbol": "SOXLBUSDT",
         "ticker": "SOXLB",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "AMARILLO",
         "es_oro": false,
         "ia_pct": 80,
@@ -9935,7 +10250,7 @@
       "MUUBUSDT": {
         "symbol": "MUUBUSDT",
         "ticker": "MUUB",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "AMARILLO",
         "es_oro": false,
         "ia_pct": 80,
@@ -9957,7 +10272,7 @@
       "CHIPUSDT": {
         "symbol": "CHIPUSDT",
         "ticker": "CHIP",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 0,
@@ -9968,7 +10283,7 @@
       "XLMUSDT": {
         "symbol": "XLMUSDT",
         "ticker": "XLM",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 0,
@@ -9979,7 +10294,7 @@
       "UNIUSDT": {
         "symbol": "UNIUSDT",
         "ticker": "UNI",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 0,
@@ -9990,7 +10305,7 @@
       "SHELLUSDT": {
         "symbol": "SHELLUSDT",
         "ticker": "SHELL",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 0,
@@ -10001,7 +10316,7 @@
       "WLDUSDT": {
         "symbol": "WLDUSDT",
         "ticker": "WLD",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 0,
@@ -10012,7 +10327,7 @@
       "ARBUSDT": {
         "symbol": "ARBUSDT",
         "ticker": "ARB",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 0,
@@ -10023,7 +10338,7 @@
       "STXUSDT": {
         "symbol": "STXUSDT",
         "ticker": "STX",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 0,
@@ -10034,7 +10349,7 @@
       "PYTHUSDT": {
         "symbol": "PYTHUSDT",
         "ticker": "PYTH",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 0,
@@ -10045,7 +10360,7 @@
       "VANAUSDT": {
         "symbol": "VANAUSDT",
         "ticker": "VANA",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 0,
@@ -10056,7 +10371,7 @@
       "RENDERUSDT": {
         "symbol": "RENDERUSDT",
         "ticker": "RENDER",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 0,
@@ -10067,7 +10382,7 @@
       "APTUSDT": {
         "symbol": "APTUSDT",
         "ticker": "APT",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "VERDE",
         "es_oro": false,
         "ia_pct": 0,
@@ -10080,7 +10395,7 @@
       "KITEUSDT": {
         "symbol": "KITEUSDT",
         "ticker": "KITE",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 88,
@@ -10091,7 +10406,7 @@
       "ERAUSDT": {
         "symbol": "ERAUSDT",
         "ticker": "ERA",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 32,
@@ -10102,10 +10417,10 @@
       "OPGUSDT": {
         "symbol": "OPGUSDT",
         "ticker": "OPG",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
-        "ia_pct": 37,
+        "ia_pct": 41,
         "fib_zona": 0.0,
         "precio": 0.1317,
         "ext_1618": 0.0
@@ -10113,7 +10428,7 @@
       "GLMRUSDT": {
         "symbol": "GLMRUSDT",
         "ticker": "GLMR",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 36,
@@ -10124,10 +10439,10 @@
       "GRAMUSDT": {
         "symbol": "GRAMUSDT",
         "ticker": "GRAM",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
-        "ia_pct": 25,
+        "ia_pct": 35,
         "fib_zona": 0.0,
         "precio": 1.013,
         "ext_1618": 0.0
@@ -10135,10 +10450,10 @@
       "WCTUSDT": {
         "symbol": "WCTUSDT",
         "ticker": "WCT",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
-        "ia_pct": 25,
+        "ia_pct": 29,
         "fib_zona": 0.0,
         "precio": 0.02974,
         "ext_1618": 0.0
@@ -10146,7 +10461,7 @@
       "ANIMEUSDT": {
         "symbol": "ANIMEUSDT",
         "ticker": "ANIME",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 32,
@@ -10157,7 +10472,7 @@
       "FFUSDT": {
         "symbol": "FFUSDT",
         "ticker": "FF",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 37,
@@ -10168,7 +10483,7 @@
       "STEEMUSDT": {
         "symbol": "STEEMUSDT",
         "ticker": "STEEM",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 37,
@@ -10179,7 +10494,7 @@
       "XPLUSDT": {
         "symbol": "XPLUSDT",
         "ticker": "XPL",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 32,
@@ -10190,7 +10505,7 @@
       "SHELLUSDT": {
         "symbol": "SHELLUSDT",
         "ticker": "SHELL",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 98,
@@ -10201,7 +10516,7 @@
       "PORTALUSDT": {
         "symbol": "PORTALUSDT",
         "ticker": "PORTAL",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 98,
@@ -10214,7 +10529,7 @@
       "SUSHIUSDT": {
         "symbol": "SUSHIUSDT",
         "ticker": "SUSHI",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 49,
@@ -10225,7 +10540,7 @@
       "YGGUSDT": {
         "symbol": "YGGUSDT",
         "ticker": "YGG",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 52,
@@ -10236,7 +10551,7 @@
       "WLFIUSDT": {
         "symbol": "WLFIUSDT",
         "ticker": "WLFI",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 29,
@@ -10247,7 +10562,7 @@
       "PUMPUSDT": {
         "symbol": "PUMPUSDT",
         "ticker": "PUMP",
-        "hora": "00:00",
+        "hora": "S/H",
         "color": "ROJO",
         "es_oro": false,
         "ia_pct": 36,
