@@ -1,14 +1,5 @@
 [
   [
-    "JSTUSDT",
-    "ASRUSDT",
-    "LUNCUSDT",
-    "RPLUSDT",
-    "KITEUSDT",
-    "AIGENSYNUSDT",
-    "SHELLUSDT"
-  ],
-  [
     "LUNCUSDT",
     "ASRUSDT",
     "RPLUSDT",
@@ -16,5 +7,14 @@
     "SHELLUSDT",
     "SAHARAUSDT",
     "KITEUSDT"
+  ],
+  [
+    "LUNCUSDT",
+    "ASRUSDT",
+    "RPLUSDT",
+    "SAHARAUSDT",
+    "SHELLUSDT",
+    "KITEUSDT",
+    "ZILUSDT"
   ]
 ]
