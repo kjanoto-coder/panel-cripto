@@ -1,20 +1,20 @@
 [
   [
     "LUNCUSDT",
-    "AIGENSYNUSDT",
-    "KITEUSDT",
-    "DODOUSDT",
-    "SHELLUSDT",
-    "RPLUSDT",
-    "FFUSDT"
-  ],
-  [
-    "LUNCUSDT",
     "KITEUSDT",
     "INITUSDT",
     "SHELLUSDT",
     "DODOUSDT",
     "RPLUSDT",
     "ZILUSDT"
+  ],
+  [
+    "AIGENSYNUSDT",
+    "LUNCUSDT",
+    "INITUSDT",
+    "KITEUSDT",
+    "SHELLUSDT",
+    "DODOUSDT",
+    "RPLUSDT"
   ]
 ]
