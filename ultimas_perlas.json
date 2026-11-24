@@ -1,10 +1,10 @@
 [
   [
-    "DODOUSDT",
     "AIGENSYNUSDT",
+    "DODOUSDT",
     "SENTUSDT",
-    "MORPHOUSDT",
     "HUMAUSDT",
+    "MORPHOUSDT",
     "IOSTUSDT",
     "REUSDT"
   ],
@@ -14,7 +14,7 @@
     "SENTUSDT",
     "HUMAUSDT",
     "MORPHOUSDT",
-    "IOSTUSDT",
+    "ICPUSDT",
     "REUSDT"
   ]
 ]
