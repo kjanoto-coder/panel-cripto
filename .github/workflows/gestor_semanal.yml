@@ -39,7 +39,7 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
           TOPIC_ID_RESUMEN: ${{ secrets.TOPIC_ID_RESUMEN }}
-        run: python bot_resumen_semanal.py
+        run: sleep 4 && python bot_resumen_semanal.py
 
       - name: Guardar plan semanal y Excel sin conflictos
         run: |
