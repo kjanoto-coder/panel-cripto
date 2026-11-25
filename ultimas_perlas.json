@@ -1,14 +1,5 @@
 [
   [
-    "PROMUSDT",
-    "SENTUSDT",
-    "JSTUSDT",
-    "ACEUSDT",
-    "AIGENSYNUSDT",
-    "LUNCUSDT",
-    "WLFIUSDT"
-  ],
-  [
     "KERNELUSDT",
     "LAYERUSDT",
     "ERAUSDT",
@@ -16,5 +7,14 @@
     "SKYUSDT",
     "ALICEUSDT",
     "TUSDT"
+  ],
+  [
+    "SENTUSDT",
+    "PROMUSDT",
+    "JSTUSDT",
+    "LISTAUSDT",
+    "KERNELUSDT",
+    "AIGENSYNUSDT",
+    "ACEUSDT"
   ]
 ]
