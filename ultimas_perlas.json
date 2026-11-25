@@ -1,14 +1,5 @@
 [
   [
-    "PEPEUSDT",
-    "XPLUSDT",
-    "PROMUSDT",
-    "SENTUSDT",
-    "WLFIUSDT",
-    "JSTUSDT",
-    "LISTAUSDT"
-  ],
-  [
     "SKYUSDT",
     "ERAUSDT",
     "BABYUSDT",
@@ -16,5 +7,14 @@
     "KAVAUSDT",
     "INITUSDT",
     "WAXPUSDT"
+  ],
+  [
+    "PROMUSDT",
+    "WLFIUSDT",
+    "SENTUSDT",
+    "XPLUSDT",
+    "LISTAUSDT",
+    "JSTUSDT",
+    "ERAUSDT"
   ]
 ]
