@@ -15,6 +15,19 @@ CONFIG_TOPIC_FILE = "resumen_topic_config.json"
 META_DEFAULT_USD = 600.0
 
 
+def a_float(valor, default=0.0):
+    """Convierte celdas de Excel a float de forma segura aunque tengan $ o %."""
+    if valor is None:
+        return default
+    if isinstance(valor, (int, float)):
+        return float(valor)
+    txt = str(valor).replace("$", "").replace("%", "").replace(",", ".").strip()
+    try:
+        return float(txt)
+    except Exception:
+        return default
+
+
 def obtener_o_crear_topic_resumen():
     """Obtiene el ID del tema 'Resumen' desde Secret, archivo local o lo crea en Telegram."""
     if TOPIC_ID_RESUMEN_ENV.isdigit():
@@ -33,7 +46,6 @@ def obtener_o_crear_topic_resumen():
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         return None
 
-    # Intenta crear automáticamente el tema "Resumen" en el supergrupo
     url = f"{TELEGRAM_API_BASE}{TELEGRAM_BOT_TOKEN}/createForumTopic"
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
@@ -57,7 +69,7 @@ def obtener_o_crear_topic_resumen():
 
 
 def extraer_datos_excel():
-    """Lee el Excel semanal sin modificarlo y calcula ganancias, pérdidas y avance."""
+    """Lee el Excel semanal sincronizado con la semana ACTIVA sin modificarlo."""
     ahora = datetime.now(TZ_ART)
     iso_y, iso_w, iso_wd = ahora.isocalendar()  # iso_wd: 1=Lunes ... 7=Domingo
     semana_actual = f"{iso_y}-W{iso_w:02d}"
@@ -65,52 +77,75 @@ def extraer_datos_excel():
     meta_usd = META_DEFAULT_USD
     ganancia_cerrada_neta = 0.0
     ganancia_flotante_neta = 0.0
+    cumplimiento_excel_pct = None
 
     ganancia_positiva_usd = 0.0
     perdida_negativa_usd = 0.0
     ops_ganadoras = 0
     ops_perdedoras = 0
+    ops_activas = 0
     dias_con_ops = set()
 
     if os.path.exists(ARCHIVO_EXCEL):
         wb = openpyxl.load_workbook(ARCHIVO_EXCEL, data_only=True)
 
-        # 1. Leer resumen de cuota
+        # 1. Leer la fila de la semana ACTIVA en 4_RESUMEN_CUOTA
         if "4_RESUMEN_CUOTA" in wb.sheetnames:
             ws_res = wb["4_RESUMEN_CUOTA"]
             headers_res = [str(ws_res.cell(row=1, column=c).value or "").strip() for c in range(1, ws_res.max_column + 1)]
+            col_estado_sem = next((i + 1 for i, h in enumerate(headers_res) if "Estado" in h), ws_res.max_column)
+
+            fila_objetivo = None
             for r in range(2, ws_res.max_row + 1):
                 sem_val = str(ws_res.cell(row=r, column=1).value or "").strip()
                 if not sem_val:
                     continue
-                semana_actual = sem_val
+                fila_objetivo = r
+                est_sem = str(ws_res.cell(row=r, column=col_estado_sem).value or "").strip().upper()
+                if est_sem == "ACTIVA":
+                    break
+
+            if fila_objetivo:
+                semana_actual = str(ws_res.cell(row=fila_objetivo, column=1).value or semana_actual).strip()
                 for c_idx, h_name in enumerate(headers_res, start=1):
-                    val = ws_res.cell(row=r, column=c_idx).value
+                    val = ws_res.cell(row=fila_objetivo, column=c_idx).value
                     if val is None:
                         continue
                     if "Meta Semanal" in h_name:
-                        meta_usd = float(val)
+                        meta_usd = a_float(val, META_DEFAULT_USD)
                     elif "Ganancia Cerrada" in h_name:
-                        ganancia_cerrada_neta = float(val)
+                        ganancia_cerrada_neta = a_float(val, 0.0)
                     elif "Ganancia Flotante" in h_name:
-                        ganancia_flotante_neta = float(val)
+                        ganancia_flotante_neta = a_float(val, 0.0)
+                    elif "Cumplimiento" in h_name:
+                        cumplimiento_excel_pct = a_float(val, None)
 
-        # 2. Leer detalle de operaciones para separar ganancias vs pérdidas
+        # 2. Leer detalle de operaciones filtrando estrictamente por la semana activa
         if "1_CARTERA_Y_TRADER_IA" in wb.sheetnames:
             ws_ops = wb["1_CARTERA_Y_TRADER_IA"]
             headers_ops = [str(ws_ops.cell(row=1, column=c).value or "").strip() for c in range(1, ws_ops.max_column + 1)]
+            col_sem = next((i + 1 for i, h in enumerate(headers_ops) if "Semana" in h), 1)
             col_pnl = next((i + 1 for i, h in enumerate(headers_ops) if "PnL Neto" in h), None)
             col_fecha = next((i + 1 for i, h in enumerate(headers_ops) if "Fecha Entrada" in h), None)
+            col_estado = next((i + 1 for i, h in enumerate(headers_ops) if "Estado" in h), None)
 
             if col_pnl:
                 for r in range(2, ws_ops.max_row + 1):
-                    pnl_val = ws_ops.cell(row=r, column=col_pnl).value
-                    if pnl_val is None:
+                    sem_op = str(ws_ops.cell(row=r, column=col_sem).value or "").strip()
+                    if sem_op and sem_op != semana_actual:
                         continue
-                    try:
-                        pnl = float(pnl_val)
-                    except Exception:
+
+                    pnl_raw = ws_ops.cell(row=r, column=col_pnl).value
+                    if pnl_raw is None:
                         continue
+                    pnl = a_float(pnl_raw, None)
+                    if pnl is None:
+                        continue
+
+                    if col_estado:
+                        est_op = str(ws_ops.cell(row=r, column=col_estado).value or "").strip().upper()
+                        if est_op == "ACTIVA":
+                            ops_activas += 1
 
                     if col_fecha:
                         f_txt = str(ws_ops.cell(row=r, column=col_fecha).value or "").strip()
@@ -124,8 +159,8 @@ def extraer_datos_excel():
                         perdida_negativa_usd += pnl  # ya viene con signo negativo
                         ops_perdedoras += 1
 
-    # Fallback: si el Excel no está en el repo, busca en archivos JSON semanales
-    if ops_ganadoras == 0 and ops_perdedoras == 0 and ganancia_cerrada_neta == 0.0:
+    # Fallback: si el Excel no está en disco, busca en archivos JSON semanales
+    if ops_ganadoras == 0 and ops_perdedoras == 0 and ops_activas == 0 and ganancia_cerrada_neta == 0.0:
         ignorar = {"package.json", "historial_perlas.json", "historial_ganadoras.json", CONFIG_TOPIC_FILE}
         for fname in os.listdir("."):
             if not fname.endswith(".json") or fname in ignorar:
@@ -136,13 +171,16 @@ def extraer_datos_excel():
                 if not isinstance(data, dict):
                     continue
                 if "meta_semanal" in data:
-                    meta_usd = float(data["meta_semanal"])
+                    meta_usd = a_float(data["meta_semanal"], META_DEFAULT_USD)
+
                 cierres = data.get("historial_cierres") or data.get("cerradas") or []
+                activas = data.get("cartera") or data.get("posiciones") or []
+
                 if isinstance(cierres, list) and cierres:
                     for op in cierres:
                         if not isinstance(op, dict):
                             continue
-                        pnl = float(op.get("pnl_neto") or op.get("pnl") or 0.0)
+                        pnl = a_float(op.get("pnl_neto") or op.get("pnl"), 0.0)
                         f_op = str(op.get("fecha_entrada") or op.get("fecha") or "")
                         if len(f_op) >= 10:
                             dias_con_ops.add(f_op[:10])
@@ -153,6 +191,23 @@ def extraer_datos_excel():
                             perdida_negativa_usd += pnl
                             ops_perdedoras += 1
                     ganancia_cerrada_neta = round(ganancia_positiva_usd + perdida_negativa_usd, 2)
+
+                if isinstance(activas, list) and activas:
+                    for op in activas:
+                        if not isinstance(op, dict):
+                            continue
+                        ops_activas += 1
+                        pnl_f = a_float(op.get("pnl_neto") or op.get("pnl_flotante") or op.get("pnl"), 0.0)
+                        ganancia_flotante_neta += pnl_f
+                        if pnl_f > 0:
+                            ganancia_positiva_usd += pnl_f
+                            ops_ganadoras += 1
+                        elif pnl_f < 0:
+                            perdida_negativa_usd += pnl_f
+                            ops_perdedoras += 1
+                    ganancia_flotante_neta = round(ganancia_flotante_neta, 2)
+
+                if cierres or activas:
                     break
             except Exception:
                 continue
@@ -165,12 +220,14 @@ def extraer_datos_excel():
     dias_restantes = max(0, 7 - iso_wd)
     dias_operados = len(dias_con_ops)
 
-    # Cálculos porcentuales contra la meta ($600 USD)
-    pct_avance_neto = round((balance_neto / meta_usd) * 100.0, 1) if meta_usd > 0 else 0.0
+    # Cálculos porcentuales 100% alineados con 4_RESUMEN_CUOTA
+    pct_avance_neto = round(cumplimiento_excel_pct, 1) if cumplimiento_excel_pct is not None else (
+        round((balance_neto / meta_usd) * 100.0, 1) if meta_usd > 0 else 0.0
+    )
     usd_falta_neto = round(max(0.0, meta_usd - balance_neto), 2)
     pct_falta_neto = round((usd_falta_neto / meta_usd) * 100.0, 1) if meta_usd > 0 else 0.0
 
-    # Ganancia bruta/neta positiva
+    # Ganancia acumulada
     pct_ganancia_meta = round((ganancia_positiva_usd / meta_usd) * 100.0, 1) if meta_usd > 0 else 0.0
     usd_falta_desde_ganancia = round(max(0.0, meta_usd - ganancia_positiva_usd), 2)
     pct_falta_desde_ganancia = round((usd_falta_desde_ganancia / meta_usd) * 100.0, 1) if meta_usd > 0 else 0.0
@@ -198,6 +255,8 @@ def extraer_datos_excel():
         "perdida_neg_usd": round(perdida_negativa_usd, 2),
         "ops_perdedoras": ops_perdedoras,
         "pct_perdida_meta": pct_perdida_meta,
+        "ops_activas": ops_activas,
+        "ganancia_flotante": round(ganancia_flotante_neta, 2),
         "balance_neto": balance_neto,
         "ritmo_diario": ritmo_diario_necesario
     }
@@ -207,6 +266,12 @@ def enviar_mensaje_resumen(datos, topic_id):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         print("⚠️ Faltan credenciales de Telegram.")
         return
+
+    bloque_activas = (
+        f"⚡ <b>Posiciones abiertas:</b> <code>{datos['ops_activas']}</code> "
+        f"(Flotante neto: <b>${datos['ganancia_flotante']:+,.2f} USD</b>)\n"
+        if datos["ops_activas"] > 0 or datos["ganancia_flotante"] != 0.0 else ""
+    )
 
     texto = (
         f"📊 <b>RESUMEN SEMANAL • META Y RENDIMIENTO</b>\n"
@@ -223,9 +288,10 @@ def enviar_mensaje_resumen(datos, topic_id):
         f"🔴 <b>Pérdida actual ({datos['ops_perdedoras']} ops):</b> <b>${datos['perdida_neg_usd']:,.2f} USD</b>\n"
         f"   • Impacto sobre meta: <b>{datos['pct_perdida_meta']:.1f}%</b>\n"
         f"   • Total a remontar para llegar a meta: <b>${datos['usd_falta_neto']:,.2f} USD</b> (<b>{datos['pct_falta_neto']:.1f}%</b>)\n\n"
+        f"{bloque_activas}"
         f"⚖️ <b>Balance Neto Semanal:</b> <b>${datos['balance_neto']:+,.2f} USD</b> (<b>{datos['pct_avance_neto']:+.1f}%</b>)\n"
         f"⏱️ <b>Ritmo requerido días restantes:</b> <code>${datos['ritmo_diario']:,.2f} USD/día</code>\n"
-        f"<i>Actualizado: {datos['hora_art']}</i>"
+        f"<i>Sincronizado con AUDITORIA_SEMANAL_PRUEBA.xlsx • {datos['hora_art']}</i>"
     )
 
     url = f"{TELEGRAM_API_BASE}{TELEGRAM_BOT_TOKEN}/sendMessage"
