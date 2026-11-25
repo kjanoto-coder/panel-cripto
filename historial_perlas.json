@@ -4253,6 +4253,16 @@
       "origen": "CAZADOR_TACTICO_ROJO",
       "certificada_etapa1": true,
       "blindaje_etapa1": 82
+    },
+    "LISTAUSDT": {
+      "symbol": "LISTAUSDT",
+      "base": "LISTA",
+      "estrellas": 3,
+      "probabilidad_pct": 80,
+      "precio_ref": 0.0989,
+      "fecha_iso": "2026-11-25",
+      "fecha_corta": "25/11",
+      "origen": "SEGUNDA_OLA_GANADORAS"
     }
   },
   "verdes_hoy": [
