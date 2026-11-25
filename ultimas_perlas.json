@@ -1,20 +1,20 @@
 [
   [
-    "WLFIUSDT",
-    "MANTAUSDT",
-    "2ZUSDT",
-    "KERNELUSDT",
-    "ERAUSDT",
-    "ANIMEUSDT",
-    "USUALUSDT"
-  ],
-  [
     "JSTUSDT",
     "WLFIUSDT",
     "MMTUSDT",
     "AIGENSYNUSDT",
     "ALICEUSDT",
     "KERNELUSDT",
+    "2ZUSDT"
+  ],
+  [
+    "WLFIUSDT",
+    "JSTUSDT",
+    "MMTUSDT",
+    "AIGENSYNUSDT",
+    "ALICEUSDT",
+    "SKYUSDT",
     "2ZUSDT"
   ]
 ]
