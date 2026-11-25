@@ -1,14 +1,5 @@
 [
   [
-    "WLDUSDT",
-    "WLFIUSDT",
-    "XLMUSDT",
-    "XPLUSDT",
-    "ATUSDT",
-    "STRKUSDT",
-    "SENTUSDT"
-  ],
-  [
     "STXUSDT",
     "LISTAUSDT",
     "2ZUSDT",
@@ -16,5 +7,14 @@
     "INITUSDT",
     "TUSDT",
     "BABYUSDT"
+  ],
+  [
+    "PEPEUSDT",
+    "WLDUSDT",
+    "ASTERUSDT",
+    "XLMUSDT",
+    "WLFIUSDT",
+    "HBARUSDT",
+    "PUMPUSDT"
   ]
 ]
