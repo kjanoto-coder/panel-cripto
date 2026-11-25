@@ -26,22 +26,30 @@ EXCEL_GANADORAS_FILE = "AUDITORIA_VERDE_GANADORAS.xlsx"
 PLAN_SEMANAL_FILE = "plan_semanal.json"
 EXCEL_SEMANAL_FILE = "AUDITORIA_SEMANAL_PRUEBA.xlsx"
 
-# Parámetros operativos: Estructura Blindada 3 Niveles (Asistente -> Empleado Trader IA -> Jefe Supervisor)
+# Parámetros operativos: Estructura Blindada 3 Niveles + Gestión Institucional
 CAPITAL_INICIAL_PRUEBA = 3500.0
 META_SEMANAL_USD = 600.0
-MAX_MONEDAS_SEMANA = 4          # Cada cupo usa SIEMPRE 1/4 (25%) del capital disponible
-CUPOS_MODO_DEFENSIVO = 2        # Reduce de 4 a 2 cupos simultáneos cuando el mercado general está débil
+MAX_MONEDAS_SEMANA = 4              # Cada cupo usa SIEMPRE 1/4 (25%) del capital disponible
+CUPOS_MODO_DEFENSIVO = 2            # Reduce de 4 a 2 cupos simultáneos cuando el mercado general está débil
+MAX_ENTRADAS_POR_CORRIDA = 2        # Entrada escalonada: máximo 2 compras nuevas por ejecución
 TOP_ALTERNATIVAS_MOSTRAR = 8
-FACTIBILIDAD_MINIMA_JEFE = 75   # Puntaje mínimo exigido por el Jefe Supervisor para aprobar una entrada
+FACTIBILIDAD_MINIMA_JEFE = 75       # Puntaje mínimo exigido por el Jefe Supervisor para aprobar una entrada
 
-COMISION_SPOT_TOTAL_PCT = 0.20  # 0.10% compra + 0.10% venta en Binance Spot (PnL Neto Real)
-STOP_LOSS_FIJO_PCT = -2.20      # Margen técnico uniforme (-2.20% neto) para no ser barrido por ruido
-MAX_PERDIDA_USD = 20.0          # Tope duro máximo en dólares por cupo de 25%
-PREALERTA_PERDIDA_USD = 12.0    # Pre-alerta temprana
-TP1_ASEGURAR_PCT = 4.8          # Vende 50% al tocar +4.8% neto para asegurar ganancia real en caja
-TRAILING_DESDE_MAX_PCT = 2.2    # Trailing Stop para la 2ª mitad corredora
-HORAS_MAX_SIN_ARRANQUE = 8.0    # Rotación rápida (8h) si no arranca
-COOLDOWN_PANICO_BTC_MIN = 60    # Antispam de 60 minutos para alerta de pánico BTC 1H
+# Parámetros de Riesgo, Liquidez Real y Circuit Breaker Diario
+COMISION_SPOT_TOTAL_PCT = 0.20      # 0.10% compra + 0.10% venta en Binance Spot (PnL Neto Real)
+STOP_LOSS_FIJO_PCT = -2.20          # Margen técnico uniforme (-2.20% neto)
+MAX_PERDIDA_USD = 20.0              # Tope duro máximo en dólares por cupo de 25%
+PREALERTA_PERDIDA_USD = 12.0        # Pre-alerta temprana
+TP1_ASEGURAR_PCT = 4.8              # Vende 50% al tocar +4.8% neto para asegurar ganancia real en caja
+TRAILING_DESDE_MAX_PCT = 2.2        # Trailing Stop para la 2ª mitad corredora
+HORAS_MAX_SIN_ARRANQUE = 8.0        # Rotación rápida (8h) si no arranca
+COOLDOWN_PANICO_BTC_MIN = 60        # Antispam de 60 minutos para alerta de pánico BTC 1H
+
+MIN_LIQUIDEZ_TOP_ASK_USD = 2500.0   # Liquidez mínima en USD dentro del 0.15% del mejor Ask
+MAX_SLIPPAGE_EST_PCT = 0.25         # Deslizamiento máximo estimado para ejecutar un cupo real (~$875)
+MAX_PERDIDA_DIARIA_USD = 50.0       # Circuit Breaker diario: pérdida máxima realizada en un mismo día
+MAX_STOPS_SEGUIDOS_DIA = 3          # Circuit Breaker diario: máximo de cierres negativos seguidos en el día
+HORAS_CONGELAMIENTO_CB = 8          # Horas que el Jefe congela compras al activarse el Circuit Breaker
 
 MODELOS_GEMINI = ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-4-hydrogen", "gemini-2.5-flash"]
 
@@ -110,8 +118,19 @@ def cargar_json_seguro(ruta):
     except Exception:
         return {}
 
+def calcular_horas_entre(fecha_str, dt_ref=None):
+    if not fecha_str:
+        return 999.0
+    try:
+        dt_ref = dt_ref or ahora_art()
+        limpia = fecha_str.replace(" ART", "").strip()
+        dt_ev = datetime.strptime(limpia, "%Y-%m-%d %H:%M").replace(tzinfo=TZ_ART)
+        return max(0.0, (dt_ref - dt_ev).total_seconds() / 3600.0)
+    except Exception:
+        return 999.0
+
 # ==============================================================================
-# NIVEL 1: ASISTENTE DE INTELIGENCIA (RECOLECTA, CRUZA Y AUDITA TODOS LOS BOTS)
+# NIVEL 1: ASISTENTE DE INTELIGENCIA (ECOSISTEMA + AUTOPSIA POST-CIERRE 24H)
 # ==============================================================================
 
 def _asistente_leer_excel_ganadoras():
@@ -134,14 +153,86 @@ def _asistente_leer_excel_ganadoras():
         pass
     return aciertos_excel
 
-def ejecutar_asistente_inteligencia(mapa_mkt):
+def asistente_auditar_post_cierre(mapa_mkt, plan):
+    """
+    MEJORA 1 (AUTOPSIA POST-CIERRE 24H):
+    El Asistente sigue auditando durante 24 horas el precio de las monedas recién cerradas
+    para medir si los stops fueron prematuros o salvadores y retroalimentar al Jefe Supervisor.
+    """
+    ahora_dt = ahora_art()
+    cierres = plan.get("historial_cierres", [])
+    stops_prematuros_sem = 0
+    stops_salvadores_sem = 0
+    cosechas_optimas_sem = 0
+
+    for c in cierres:
+        sym = c.get("symbol", "")
+        horas_cierre = calcular_horas_entre(c.get("fecha_cierre", ""), ahora_dt)
+        p_cierre = float(c.get("precio_actual") or c.get("precio_entrada") or 0.0)
+        pnl_cierre = float(c.get("pnl_usd", 0.0))
+
+        if p_cierre <= 0:
+            continue
+
+        p_max_post = float(c.get("post_cierre_max", p_cierre))
+        p_min_post = float(c.get("post_cierre_min", p_cierre))
+
+        if sym in mapa_mkt and horas_cierre <= 24.0 and not c.get("autopsia_completada", False):
+            p_act = float(mapa_mkt[sym]["precio"])
+            p_max_post = max(p_max_post, p_act)
+            p_min_post = min(p_min_post, p_act)
+            c["post_cierre_max"] = p_max_post
+            c["post_cierre_min"] = p_min_post
+
+            var_max_post = round(((p_max_post - p_cierre) / p_cierre) * 100.0, 2)
+            var_min_post = round(((p_min_post - p_cierre) / p_cierre) * 100.0, 2)
+            c["var_max_post_pct"] = var_max_post
+            c["var_min_post_pct"] = var_min_post
+
+            if pnl_cierre < 0:
+                if var_max_post >= 8.0:
+                    c["veredicto_autopsia"] = f"⚠️ STOP_PREMATURO (Subió +{var_max_post:.1f}% tras cerrar)"
+                elif var_min_post <= -5.0:
+                    c["veredicto_autopsia"] = f"🛡️ STOP_SALVADOR (Siguió cayendo {var_min_post:.1f}%)"
+                else:
+                    c["veredicto_autopsia"] = f"⏳ EN AUDITORÍA 24H (Max {var_max_post:+.1f}% / Min {var_min_post:+.1f}%)"
+            else:
+                if var_max_post >= 10.0:
+                    c["veredicto_autopsia"] = f"📊 SALIDA_TEMPRANA (Siguió +{var_max_post:.1f}%)"
+                else:
+                    c["veredicto_autopsia"] = f"✅ COSECHA_OPTIMA (Post Max {var_max_post:+.1f}%)"
+
+            if horas_cierre >= 23.5:
+                c["autopsia_completada"] = True
+
+        if c.get("semana_id") == plan.get("semana_id"):
+            v_aut = str(c.get("veredicto_autopsia", ""))
+            if "STOP_PREMATURO" in v_aut:
+                stops_prematuros_sem += 1
+            elif "STOP_SALVADOR" in v_aut:
+                stops_salvadores_sem += 1
+            elif "COSECHA_OPTIMA" in v_aut:
+                cosechas_optimas_sem += 1
+
+    return {
+        "stops_prematuros_semana": stops_prematuros_sem,
+        "stops_salvadores_semana": stops_salvadores_sem,
+        "cosechas_optimas_semana": cosechas_optimas_sem,
+        "resumen_autopsia": (
+            f"Autopsia 24h semana: {stops_salvadores_sem} stops salvadores | "
+            f"{stops_prematuros_sem} stops prematuros | {cosechas_optimas_sem} cosechas óptimas"
+        )
+    }
+
+def ejecutar_asistente_inteligencia(mapa_mkt, plan):
     """
     NIVEL 1 (ASISTENTE): Escanea todos los JSON y Excel del ecosistema,
-    depura contradicciones, detecta listas negras y arma el Boletín de Inteligencia.
+    depura contradicciones, ejecuta la autopsia post-cierre 24h y arma el Boletín de Inteligencia.
     """
     perlas = cargar_json_seguro(HISTORIAL_PERLAS_FILE)
     ganadoras = cargar_json_seguro(HISTORIAL_GANADORAS_FILE)
     aciertos_excel_gan = _asistente_leer_excel_ganadoras()
+    stats_autopsia = asistente_auditar_post_cierre(mapa_mkt, plan)
 
     graduadas = perlas.get("graduadas_pre_explosion", {}) if isinstance(perlas, dict) else {}
     posta = perlas.get("posta", {}) if isinstance(perlas, dict) else {}
@@ -203,9 +294,10 @@ def ejecutar_asistente_inteligencia(mapa_mkt):
         "total_monedas_rastreadas": len(universo_total),
         "total_vetadas_perdedoras": len(vetadas_perdedoras),
         "alertas_macro": resumen_macro_bots[:4],
+        "autopsia_24h": stats_autopsia,
         "resumen_ejecutivo": (
-            f"Asistente auditó {len(fuentes_leidas)} fuentes ({len(universo_total)} monedas en radar, "
-            f"{len(vetadas_perdedoras)} bloqueadas por lista negra)."
+            f"Asistente auditó {len(fuentes_leidas)} fuentes ({len(universo_total)} monedas, "
+            f"{len(vetadas_perdedoras)} vetadas). {stats_autopsia['resumen_autopsia']}."
         )
     }
 
@@ -224,10 +316,7 @@ def ejecutar_asistente_inteligencia(mapa_mkt):
     return boletin_asistente, eco
 
 def asistente_construir_dossier(sym, p_actual, eco, plan=None):
-    """
-    El Asistente arma el Dossier individual de cada moneda cruzando todos los bots
-    y verificando si la moneda ya tuvo historial negativo en la semana actual.
-    """
+    """Arma el Dossier individual de cada moneda cruzando todos los bots y cierres de la semana."""
     grad = eco["graduadas"].get(sym, {})
     post = eco["posta"].get(sym, {})
     verd = eco["reg_verdes"].get(sym, {})
@@ -256,7 +345,6 @@ def asistente_construir_dossier(sym, p_actual, eco, plan=None):
     en_lista_perdedoras = (sym in eco["vetadas_perdedoras"]) or ("PERDEDORA" in estado_hist_verde) or ("STOP" in estado_hist_verde)
     en_ganadoras_activo = (bool(verd) or sub_excel_gan >= 5.0) and not en_lista_perdedoras
 
-    # Verificación de reincidencia negativa en la semana actual
     reincidente_stop_semana = False
     if plan:
         for c in plan.get("historial_cierres", []):
@@ -320,11 +408,15 @@ def asistente_construir_dossier(sym, p_actual, eco, plan=None):
     }
 
 # ==============================================================================
-# HERRAMIENTAS TÉCNICAS EN VIVO PARA EL EMPLEADO (TRADER IA)
+# HERRAMIENTAS TÉCNICAS Y LIQUIDEZ REAL PARA EL EMPLEADO (TRADER IA)
 # ==============================================================================
 
-def auditar_order_book_semanal(session, symbol):
-    """Profundidad institucional del Order Book (±2.5% + Detector de Muro Vendedor)."""
+def auditar_order_book_semanal(session, symbol, monto_orden_usd=875.0):
+    """
+    MEJORA 3 (AUDITORÍA DE SLIPPAGE Y LIQUIDEZ REAL):
+    Verifica profundidad ±2.5%, muros vendedores, dólares disponibles dentro del 0.15% del mejor Ask
+    y calcula el slippage VWAP estimado para ejecutar un cupo real en Spot.
+    """
     for base_url in BINANCE_API_BASES:
         try:
             r = session.get(f"{base_url}/api/v3/depth", params={"symbol": symbol, "limit": 20}, timeout=5)
@@ -343,6 +435,29 @@ def auditar_order_book_semanal(session, symbol):
                 va = sum(asks_cerca) if asks_cerca else sum(float(x[0]) * float(x[1]) for x in asks)
                 ratio = round(vb / va, 2) if va > 0 else 1.0
 
+                # Liquidez inmediata dentro del 0.15% del mejor Ask
+                liq_ask_015 = sum(float(x[0]) * float(x[1]) for x in asks if float(x[0]) <= a0 * 1.0015)
+
+                # Cálculo de slippage VWAP para comprar monto_orden_usd
+                restante_usd = monto_orden_usd
+                tokens_acum = 0.0
+                for px_s, qty_s in asks:
+                    px, qty = float(px_s), float(qty_s)
+                    nivel_usd = px * qty
+                    if nivel_usd >= restante_usd:
+                        tokens_acum += restante_usd / px
+                        restante_usd = 0.0
+                        break
+                    else:
+                        tokens_acum += qty
+                        restante_usd -= nivel_usd
+
+                if restante_usd > 0 or tokens_acum <= 0:
+                    slippage_est_pct = 0.99
+                else:
+                    precio_vwap = monto_orden_usd / tokens_acum
+                    slippage_est_pct = round(((precio_vwap - a0) / a0) * 100.0, 3)
+
                 asks_techo = [float(x[0]) * float(x[1]) for x in asks if float(x[0]) <= a0 * 1.035]
                 muro_vendedor = False
                 if len(asks_techo) >= 4:
@@ -350,17 +465,24 @@ def auditar_order_book_semanal(session, symbol):
                     if prom_ask > 0 and max(asks_techo) >= prom_ask * 4.2:
                         muro_vendedor = True
 
-                sano = (spread <= 0.40 and ratio >= 1.05 and not muro_vendedor)
+                liquidez_real_ok = (liq_ask_015 >= MIN_LIQUIDEZ_TOP_ASK_USD and slippage_est_pct <= MAX_SLIPPAGE_EST_PCT)
+                sano = (spread <= 0.40 and ratio >= 1.05 and not muro_vendedor and liquidez_real_ok)
                 return {
                     "ok": True,
                     "spread_pct": round(spread, 3),
                     "ratio_ba": ratio,
+                    "liq_ask_015_usd": round(liq_ask_015, 0),
+                    "slippage_est_pct": slippage_est_pct,
+                    "liquidez_real_ok": liquidez_real_ok,
                     "muro_vendedor": muro_vendedor,
                     "sano": sano
                 }
         except Exception:
             continue
-    return {"ok": False, "spread_pct": 0.1, "ratio_ba": 1.0, "muro_vendedor": False, "sano": False}
+    return {
+        "ok": False, "spread_pct": 0.1, "ratio_ba": 1.0, "liq_ask_015_usd": 0.0,
+        "slippage_est_pct": 0.99, "liquidez_real_ok": False, "muro_vendedor": False, "sano": False
+    }
 
 def analizar_velas_tf(session, symbol, interval="1h", limit=48):
     """Analiza RSI, Volumen, impulso en 3 velas, rachas, rechazo de mecha (>60%) y Fibonacci."""
@@ -500,12 +622,55 @@ def verificar_clima_y_regimen_mercado(session, mapa_mkt):
 
     return True, False, cupos_max, f"BTC estable (1h: {var_1h_btc:+.2f}%, 24h: {chg_24h:+.2f}%, RSI 1h: {rsi_btc}) | {regimen_txt}"
 
+def verificar_circuit_breaker_diario(plan, ahora_dt=None):
+    """
+    MEJORA 4 (CIRCUIT BREAKER DIARIO / ANTI-PICADORA DE CARNE):
+    Si en el mismo día se dan 3 cierres negativos seguidos o -$50 USD de pérdida realizada diaria,
+    congela compras nuevas durante 8 horas.
+    """
+    ahora_dt = ahora_dt or ahora_art()
+    cb_hasta_iso = plan.get("circuit_breaker_hasta_iso", "")
+    if cb_hasta_iso:
+        try:
+            dt_cb = datetime.fromisoformat(cb_hasta_iso)
+            if ahora_dt < dt_cb:
+                restante_h = round((dt_cb - ahora_dt).total_seconds() / 3600.0, 1)
+                return True, False, f"Circuit Breaker activo ({restante_h}h restantes hasta {dt_cb.strftime('%H:%M ART')})."
+            else:
+                plan["circuit_breaker_hasta_iso"] = ""
+        except Exception:
+            plan["circuit_breaker_hasta_iso"] = ""
+
+    hoy_str = ahora_dt.strftime("%Y-%m-%d")
+    cierres_hoy = [c for c in plan.get("historial_cierres", []) if str(c.get("fecha_cierre", "")).startswith(hoy_str)]
+    if not cierres_hoy:
+        return False, False, ""
+
+    pnl_hoy = round(sum(float(c.get("pnl_usd", 0.0)) for c in cierres_hoy), 2)
+    racha_roja = 0
+    for c in reversed(cierres_hoy):
+        if float(c.get("pnl_usd", 0.0)) < 0:
+            racha_roja += 1
+        else:
+            break
+
+    if pnl_hoy <= -MAX_PERDIDA_DIARIA_USD or racha_roja >= MAX_STOPS_SEGUIDOS_DIA:
+        dt_fin = ahora_dt + timedelta(hours=HORAS_CONGELAMIENTO_CB)
+        plan["circuit_breaker_hasta_iso"] = dt_fin.isoformat()
+        motivo = (
+            f"Pérdida diaria ${pnl_hoy:+.2f} USD | Racha {racha_roja} stops seguidos hoy. "
+            f"Jefe Supervisor congela compras por {HORAS_CONGELAMIENTO_CB}h (hasta {dt_fin.strftime('%H:%M ART')})."
+        )
+        return True, True, motivo
+
+    return False, False, ""
+
 def cargar_plan_semanal():
     sem = id_semana_actual()
     base = {
         "semana_id": sem,
         "fecha_inicio": ahora_art().strftime("%Y-%m-%d %H:%M"),
-        "modo": "BLINDADO_3_NIVELES_ASISTENTE_EMPLEADO_JEFE",
+        "modo": "BLINDADO_3_NIVELES_AUTOPSIA_LIQUIDEZ_CB",
         "capital_total_usd": CAPITAL_INICIAL_PRUEBA,
         "meta_semanal_usd": META_SEMANAL_USD,
         "ganancia_realizada_usd": 0.0,
@@ -513,6 +678,7 @@ def cargar_plan_semanal():
         "fecha_cierre_meta": "",
         "aviso_btc_enviado": False,
         "ultimo_panico_btc_iso": "",
+        "circuit_breaker_hasta_iso": "",
         "ultimo_reporte_hora": -1,
         "boletin_asistente": {},
         "auditoria_ia": {},
@@ -525,6 +691,7 @@ def cargar_plan_semanal():
     if data and data.get("semana_id") == sem:
         data.setdefault("aviso_btc_enviado", False)
         data.setdefault("ultimo_panico_btc_iso", "")
+        data.setdefault("circuit_breaker_hasta_iso", "")
         data.setdefault("ultimo_reporte_hora", -1)
         data.setdefault("boletin_asistente", {})
         data.setdefault("auditoria_ia", {})
@@ -610,7 +777,7 @@ def llamar_gemini_con_reintento(client, prompt):
     return None
 
 # ==============================================================================
-# NIVEL 2: EMPLEADO (TRADER IA — ANALIZA TÉCNICOS SOBRE DOSSIERS DEL ASISTENTE)
+# NIVEL 2: EMPLEADO (TRADER IA — FILTRO ANTI-FOMO 15M + LIQUIDEZ REAL + TÉCNICOS)
 # ==============================================================================
 
 def empleado_evaluar_palanca_emergencia(pos, v1m, v15, v1h, fib, ob, pnl_pct, max_pnl_pct, retroceso_desde_max, dossier_asistente):
@@ -657,8 +824,8 @@ def empleado_evaluar_palanca_emergencia(pos, v1m, v15, v1h, fib, ob, pnl_pct, ma
 
 def empleado_evaluar_candidatas(session, mapa_mkt, excluidas, eco, plan):
     """
-    NIVEL 2 (EMPLEADO TRADER IA): Recibe únicamente los Dossiers validados por el Asistente,
-    audita gráficos 1h/4h, Fibonacci y Order Book, y eleva propuestas de compra al Jefe Supervisor.
+    NIVEL 2 (EMPLEADO TRADER IA): Recibe los Dossiers validados por el Asistente,
+    aplica Filtro Anti-FOMO 15m, audita gráficos 1h/4h, Fibonacci, Liquidez Real (Slippage) y Order Book.
     """
     graduadas = eco["graduadas"]
     posta_dict = eco["posta"]
@@ -668,6 +835,8 @@ def empleado_evaluar_candidatas(session, mapa_mkt, excluidas, eco, plan):
     if not universo_syms:
         return []
 
+    cap_base_total = max(500.0, float(plan.get("capital_total_usd", CAPITAL_INICIAL_PRUEBA)) + float(plan.get("ganancia_realizada_usd", 0.0)))
+    cupo_est_usd = round(cap_base_total / MAX_MONEDAS_SEMANA, 2)
     candidatos = []
 
     for sym in universo_syms:
@@ -677,14 +846,22 @@ def empleado_evaluar_candidatas(session, mapa_mkt, excluidas, eco, plan):
         dossier = asistente_construir_dossier(sym, mkt["precio"], eco, plan)
         mom_1h = analizar_velas_tf(session, sym, "1h", 36)
         mom_4h = analizar_velas_tf(session, sym, "4h", 48)
+        mom_15m = analizar_velas_tf(session, sym, "15m", 24) if dossier["tiene_respaldo_bots"] else {"ok": False, "rsi": 50.0, "var_ultima": 0.0, "var_3velas": 0.0}
         fib_4h = mom_4h.get("fib", {})
-        ob = auditar_order_book_semanal(session, sym)
+        ob = auditar_order_book_semanal(session, sym, cupo_est_usd)
 
         var_radar = dossier["var_desde_deteccion_radar_pct"]
         prob = dossier["blindaje_pct"]
         cert_doble = dossier["doble_certificada"]
         etapa = dossier["etapa_cazador"]
         semaforo = dossier["semaforo_radar"]
+
+        # MEJORA 2: Filtro Anti-FOMO en 15m (evita comprar el pico de un velón vertical)
+        fomo_15m = bool(mom_15m.get("ok")) and (
+            float(mom_15m.get("rsi", 50.0)) > 75.0
+            or float(mom_15m.get("var_ultima", 0.0)) > 3.5
+            or float(mom_15m.get("var_3velas", 0.0)) > 5.5
+        )
 
         fib_sano = (not fib_4h.get("ok")) or (not fib_4h.get("en_soporte_profundo", False))
         impulso_verde = (
@@ -698,16 +875,17 @@ def empleado_evaluar_candidatas(session, mapa_mkt, excluidas, eco, plan):
         bono_cert = 22 if cert_doble else (14 if dossier["en_ganadoras_activo"] else (10 if (sym in graduadas) else -12))
         bono_confluencia = dossier["confluencia_multi_bot"] * 5
         bono_fib = 14 if fib_4h.get("en_zona_dorada") else (8 if fib_4h.get("en_tramo_alcista") else (-25 if not fib_sano else -4))
-        bono_ob = 12 if ob.get("ratio_ba", 0) >= 1.40 and not ob.get("muro_vendedor") else (6 if ob.get("sano") else -25)
+        bono_ob = 12 if ob.get("ratio_ba", 0) >= 1.40 and ob.get("sano") else (6 if ob.get("sano") else -25)
         bono_verde = 12 if impulso_verde else -18
+        bono_fomo = -20 if fomo_15m else 4
         bono_hist = -45 if (dossier["alertada_en_perdedoras"] or dossier["reincidente_stop_semana"]) else (14 if "GANADORA" in dossier["estado_historial_ganadoras"] else 0)
 
-        score = prob + bono_semaforo + bono_cert + bono_confluencia + bono_ob + bono_fib + bono_verde + bono_hist + (5 if mom_1h["vol_ratio"] >= 1.25 else 0)
+        score = prob + bono_semaforo + bono_cert + bono_confluencia + bono_ob + bono_fib + bono_verde + bono_fomo + bono_hist + (5 if mom_1h["vol_ratio"] >= 1.25 else 0)
 
-        # El Empleado SOLO puede proponer monedas cuyo Dossier haya sido aprobado por el Asistente
         propuesta_empleado = (
             dossier["tiene_respaldo_bots"]
             and impulso_verde
+            and not fomo_15m
             and var_radar <= 14.0
             and fib_sano
             and mom_1h["rsi"] <= 74.0
@@ -725,10 +903,12 @@ def empleado_evaluar_candidatas(session, mapa_mkt, excluidas, eco, plan):
             sello_txt = f"Cazador Etapa {etapa}"
 
         fib_tag = f" | {fib_4h.get('zona_txt', 'Fib N/D')}" if fib_4h.get("ok") else ""
-        muro_tag = " [⚠️MURO VENTA]" if ob.get("muro_vendedor") else ""
+        muro_tag = " [⚠️MURO]" if ob.get("muro_vendedor") else ""
+        liq_tag = f" | Liq0.15%: ${int(ob.get('liq_ask_015_usd', 0)):,}" if ob.get("ok") else ""
+        fomo_tag = f" | ⏳ Anti-FOMO 15m (RSI {mom_15m.get('rsi')}, {mom_15m.get('var_ultima'):+.1f}%)" if fomo_15m else ""
         motivo_tecnico = (
             f"{sello_txt} ({var_radar:+.1f}% radar | 1h: {mom_1h['var_3velas']:+.1f}%) | "
-            f"OB: {ob['ratio_ba']}x{muro_tag} | RSI 1h: {mom_1h['rsi']}{fib_tag}"
+            f"OB: {ob['ratio_ba']}x{muro_tag}{liq_tag} | RSI 1h: {mom_1h['rsi']}{fib_tag}{fomo_tag}"
         )
         candidatos.append({
             "symbol": sym,
@@ -740,12 +920,17 @@ def empleado_evaluar_candidatas(session, mapa_mkt, excluidas, eco, plan):
             "certificada_doble": cert_doble,
             "asistente_validado": dossier["tiene_respaldo_bots"],
             "asistente_dictamen": dossier["dictamen_asistente"],
+            "fomo_15m": fomo_15m,
             "propuesta_trader_ia": propuesta_empleado,
-            "en_zona": False,  # Solo pasa a True cuando el Jefe Supervisor la aprueba
+            "en_zona": False,
             "jefe_veredicto": (
                 dossier["dictamen_asistente"]
                 if not dossier["tiene_respaldo_bots"]
-                else ("⏳ Sin propuesta técnica del Empleado" if not propuesta_empleado else "⏳ Pendiente revisión del Jefe")
+                else (
+                    f"⏳ Empleado espera retroceso 15m (Anti-FOMO RSI {mom_15m.get('rsi')})"
+                    if fomo_15m
+                    else ("⏳ Sin propuesta técnica del Empleado" if not propuesta_empleado else "⏳ Pendiente revisión del Jefe")
+                )
             ),
             "jefe_factibilidad_pct": 0,
             "ya_en_cartera": sym in excluidas,
@@ -753,6 +938,7 @@ def empleado_evaluar_candidatas(session, mapa_mkt, excluidas, eco, plan):
             "expediente_previo": dossier,
             "ob": ob,
             "mom": mom_1h,
+            "mom_15m": mom_15m,
             "fib_4h": fib_4h
         })
 
@@ -866,7 +1052,7 @@ def ejecutar_empleado_trader_ia(session, mapa_mkt, plan, clima_btc_txt, lecturas
         "semaforo_meta": "🟢 EN CAMINO A META" if (real + flot) >= 0 else "🟡 EN CONSOLIDACIÓN",
         "factibilidad_pct": min(96, max(48, int(68 + (stats_emb["tasa_pct"] * 0.25) + ((real + flot) / 25.0)))),
         "diagnostico_24h": f"Blindado 3 Niveles (Asistente -> Empleado -> Jefe | Cupo 25%): {resumen_emb_txt}. {clima_btc_txt}. Avance: {progreso_pct}%.",
-        "recomendacion_auditor": f"Flujo estricto: Dossier Asistente + Propuesta Empleado + Aprobación Jefe (>= {FACTIBILIDAD_MINIMA_JEFE}%).",
+        "recomendacion_auditor": f"Flujo estricto: Dossier Asistente + Anti-FOMO 15m + Liq Real + Aprobación Jefe (>= {FACTIBILIDAD_MINIMA_JEFE}%).",
         "veredicto_final_semana": plan.get("auditoria_ia", {}).get("veredicto_final_semana", "En seguimiento activo...")
     }
 
@@ -907,14 +1093,14 @@ def ejecutar_empleado_trader_ia(session, mapa_mkt, plan, clima_btc_txt, lecturas
     return auditoria_res
 
 # ==============================================================================
-# NIVEL 3: JEFE SUPERVISOR IA (AUDITA TODO Y EMITE EL VEREDICTO FINAL)
+# NIVEL 3: JEFE SUPERVISOR IA (AUDITA TODO + AUTOPSIA 24H + VEREDICTO FINAL)
 # ==============================================================================
 
 def ejecutar_jefe_supervisor_ia(plan, alternativas, posiciones_revisar, boletin_asistente, clima_btc_txt):
     """
     NIVEL 3 (JEFE SUPERVISOR CON ACCESO TOTAL):
-    Revisa los Dossiers del Asistente, audita las propuestas del Empleado (Trader IA),
-    verifica por qué tomó cada decisión y si es realmente factible antes de ejecutar.
+    Revisa los Dossiers del Asistente, la Autopsia Post-Cierre 24h y las propuestas del Empleado,
+    verifica por qué tomó cada decisión y emite el veredicto final antes de ejecutar.
     """
     propuestas_compra = [a for a in alternativas if a.get("propuesta_trader_ia")]
     cierres_sem = [c for c in plan.get("historial_cierres", []) if c.get("semana_id") == plan["semana_id"]]
@@ -922,6 +1108,9 @@ def ejecutar_jefe_supervisor_ia(plan, alternativas, posiciones_revisar, boletin_
     flot = sum(float(p.get("pnl_usd", 0.0)) for p in plan.get("posiciones", []))
     balance_neto = round(real + flot, 2)
     meta = float(plan.get("meta_semanal_usd", META_SEMANAL_USD))
+
+    autopsia_info = boletin_asistente.get("autopsia_24h", {})
+    stops_prematuros_sem = int(autopsia_info.get("stops_prematuros_semana", 0))
 
     # 1. Filtro ejecutivo determinista del Jefe Supervisor
     for alt in propuestas_compra:
@@ -936,7 +1125,7 @@ def ejecutar_jefe_supervisor_ia(plan, alternativas, posiciones_revisar, boletin_
         elif dossier.get("en_ganadoras_activo") or "VERDE" in dossier.get("semaforo_radar", ""):
             fact += 12
         fact += int(dossier.get("confluencia_multi_bot", 0)) * 3
-        if float(ob.get("ratio_ba", 1.0)) >= 1.25 and not ob.get("muro_vendedor"):
+        if float(ob.get("ratio_ba", 1.0)) >= 1.25 and ob.get("liquidez_real_ok") and not ob.get("muro_vendedor"):
             fact += 8
         if fib.get("en_zona_dorada") or fib.get("en_tramo_alcista"):
             fact += 6
@@ -952,7 +1141,10 @@ def ejecutar_jefe_supervisor_ia(plan, alternativas, posiciones_revisar, boletin_
         alt["jefe_factibilidad_pct"] = fact
         alt["en_zona"] = aprob
         if aprob:
-            alt["jefe_veredicto"] = f"✅ APROBADA POR JEFE ({fact}% factible): Dossier Asistente + OB {ob.get('ratio_ba', 1.0)}x validados."
+            alt["jefe_veredicto"] = (
+                f"✅ APROBADA POR JEFE ({fact}% factible): Dossier + OB {ob.get('ratio_ba', 1.0)}x "
+                f"(Slip {ob.get('slippage_est_pct', 0.05)}%) validados."
+            )
         else:
             alt["jefe_veredicto"] = f"⛔ VETADA POR JEFE ({fact}% < {FACTIBILIDAD_MINIMA_JEFE}%): exige mayor confirmación con balance ${balance_neto:+.0f}."
 
@@ -961,10 +1153,15 @@ def ejecutar_jefe_supervisor_ia(plan, alternativas, posiciones_revisar, boletin_
         if item_pos.get("propuesta_cierre_palanca"):
             tesis_viva = item_pos.get("tesis_viva", True)
             pnl_p = float(pos.get("pnl_pct", 0.0))
-            if tesis_viva and pnl_p > -1.65:
+            # Si hubo >=2 stops prematuros en la semana, el Jefe es aún más estricto contra ventas en pánico
+            umbral_veto_jefe = -1.90 if stops_prematuros_sem >= 2 else -1.65
+            if tesis_viva and pnl_p > umbral_veto_jefe:
                 item_pos["cierre_aprobado_jefe"] = False
                 pos["jefe_orden"] = "🛡️ VETO JEFE: MANTENER TESIS"
-                pos["jefe_razon"] = f"Jefe veta salida anticipada en {pnl_p:+.2f}%: Dossier del Asistente intacto y lejos de stop {STOP_LOSS_FIJO_PCT}%."
+                pos["jefe_razon"] = (
+                    f"Jefe veta salida anticipada en {pnl_p:+.2f}% (Autopsia: {stops_prematuros_sem} stops prematuros sem): "
+                    f"tesis del Asistente intacta."
+                )
             else:
                 item_pos["cierre_aprobado_jefe"] = True
                 pos["jefe_orden"] = "✅ CIERRE APROBADO POR JEFE"
@@ -983,8 +1180,9 @@ def ejecutar_jefe_supervisor_ia(plan, alternativas, posiciones_revisar, boletin_
                     "score_empleado": a["score"],
                     "propuesta_tecnica_empleado": a["motivo_tecnico"],
                     "dossier_completo_asistente": a["expediente_previo"],
-                    "order_book": a["ob"],
-                    "velas_1h": a["mom"]
+                    "order_book_y_slippage": a["ob"],
+                    "velas_1h": a["mom"],
+                    "velas_15m": a["mom_15m"]
                 }
                 for a in propuestas_compra
             ]
@@ -1003,27 +1201,32 @@ def ejecutar_jefe_supervisor_ia(plan, alternativas, posiciones_revisar, boletin_
                 for it in posiciones_revisar
             ]
             ultimos_cierres = [
-                {"moneda": c.get("base"), "pnl_usd": c.get("pnl_usd"), "motivo": c.get("motivo_cierre", "")[:80]}
+                {
+                    "moneda": c.get("base"),
+                    "pnl_usd": c.get("pnl_usd"),
+                    "autopsia_24h": c.get("veredicto_autopsia", "Sin autopsia"),
+                    "motivo": c.get("motivo_cierre", "")[:70]
+                }
                 for c in cierres_sem[-8:]
             ]
 
             prompt_jefe = (
                 "Eres el JEFE SUPERVISOR DE INVERSIONES Y RIESGO en una estructura blindada de 3 niveles:\n"
-                "1) ASISTENTE: ya recolectó y cruzó toda la data de los demás bots en 'dossier_completo_asistente'.\n"
-                "2) EMPLEADO (Trader IA): analizó los gráficos en vivo y te eleva sus propuestas.\n"
-                "3) JEFE SUPERVISOR (TÚ): tienes acceso total a ambos reportes, al balance semanal y a los últimos cierres. "
-                "Debes AUDITAR por qué el Empleado decidió cada propuesta, verificar si es realmente FACTIBLE y emitir el VEREDICTO FINAL:\n"
+                "1) ASISTENTE: recolectó toda la data de los bots + ejecutó la AUTOPSIA POST-CIERRE 24H.\n"
+                "2) EMPLEADO (Trader IA): aplicó Anti-FOMO 15m + Liquidez/Slippage y te eleva sus propuestas.\n"
+                "3) JEFE SUPERVISOR (TÚ): tienes acceso total a ambos reportes, a la autopsia de 24h y al balance semanal. "
+                "Audita por qué el Empleado decidió cada propuesta, verifica su factibilidad y emite el VEREDICTO FINAL:\n"
                 "REGLAS:\n"
-                "- En COMPRAS: Aprueba ('aprobada': true, 'factibilidad_pct' >= 75) SOLO si el Dossier del Asistente y los técnicos del Empleado son sólidos y factibles con el clima actual. Si detectas debilidad, sobre-extensión o riesgo de repetir errores recientes, VÉTALA ('aprobada': false).\n"
-                "- En CARTERA ABIERTA: Si el Empleado pide cierre anticipado ('pide_cierre_anticipado': true), evalúa si es ruido menor de 1m (en cuyo caso VETA el cierre: 'aprobar_cierre': false para no regalar subidas posteriores) o si la tesis murió ('aprobar_cierre': true).\n\n"
-                f"BOLETÍN ASISTENTE: {json.dumps(boletin_asistente, ensure_ascii=False)}\n"
+                "- En COMPRAS: Aprueba ('aprobada': true, 'factibilidad_pct' >= 75) SOLO si el Dossier del Asistente, la liquidez real y los técnicos son sólidos.\n"
+                "- En CARTERA ABIERTA: Si el Empleado pide cierre anticipado ('pide_cierre_anticipado': true) y la autopsia muestra 'stops_prematuros_semana' >= 1, VETA salidas por ruido menor ('aprobar_cierre': false) salvo invalidación real de tesis.\n\n"
+                f"BOLETÍN Y AUTOPSIA ASISTENTE: {json.dumps(boletin_asistente, ensure_ascii=False)}\n"
                 f"ESTADO SEMANA {plan['semana_id']}: Balance Neto ${balance_neto:+.2f} / Meta ${meta:.0f} USD | {clima_btc_txt}\n"
-                f"ÚLTIMOS CIERRES SEMANA: {json.dumps(ultimos_cierres, ensure_ascii=False)}\n"
+                f"ÚLTIMOS CIERRES Y AUTOPSIA 24H: {json.dumps(ultimos_cierres, ensure_ascii=False)}\n"
                 f"PROPUESTAS DE COMPRA DEL EMPLEADO:\n{json.dumps(resumen_propuestas, ensure_ascii=False)}\n"
                 f"REVISIÓN CARTERA ACTIVA:\n{json.dumps(resumen_cartera, ensure_ascii=False)}\n\n"
                 "Responde ÚNICAMENTE en JSON válido sin bloques markdown:\n"
                 '{"compras":{"MONEDA":{"aprobada":true,"factibilidad_pct":84,"veredicto":"✅ APROBADA POR JEFE (84%): motivo concreto"}},'
-                '"cartera":{"MONEDA":{"aprobar_cierre":false,"orden_jefe":"🛡️ VETO JEFE: MANTENER | ✅ APROBADO POR JEFE","razon_jefe":"dictamen concreto del Jefe cruzando Asistente + Empleado"}}}'
+                '"cartera":{"MONEDA":{"aprobar_cierre":false,"orden_jefe":"🛡️ VETO JEFE: MANTENER | ✅ APROBADO POR JEFE","razon_jefe":"dictamen concreto del Jefe cruzando Asistente + Autopsia + Empleado"}}}'
             )
 
             raw_jefe = llamar_gemini_con_reintento(client, prompt_jefe)
@@ -1039,7 +1242,7 @@ def ejecutar_jefe_supervisor_ia(plan, alternativas, posiciones_revisar, boletin_
                         alt["en_zona"] = aprob_ia
                         prefijo = f"✅ APROBADA POR JEFE ({fact_ia}%)" if aprob_ia else f"⛔ VETADA POR JEFE ({fact_ia}%)"
                         txt_v = str(dec.get("veredicto", "")).strip()
-                        alt["jefe_veredicto"] = txt_v[:170] if txt_v else prefijo
+                        alt["jefe_veredicto"] = txt_v[:175] if txt_v else prefijo
 
                 cartera_j = j_json.get("cartera", {})
                 for it in posiciones_revisar:
@@ -1051,7 +1254,7 @@ def ejecutar_jefe_supervisor_ia(plan, alternativas, posiciones_revisar, boletin_
                         if dec_p.get("orden_jefe"):
                             pos["jefe_orden"] = str(dec_p["orden_jefe"])[:45]
                         if dec_p.get("razon_jefe"):
-                            pos["jefe_razon"] = str(dec_p["razon_jefe"])[:175]
+                            pos["jefe_razon"] = str(dec_p["razon_jefe"])[:180]
         except Exception as e:
             print(f"⚠️ Fallback Jefe Supervisor IA: {e}")
 
@@ -1064,7 +1267,7 @@ def generar_veredicto_final_ia(plan):
     meta_usd = float(plan.get("meta_semanal_usd", META_SEMANAL_USD))
 
     veredicto_base = (
-        f"✅ <b>VEREDICTO: META LOGRADA — ESTRUCTURA 3 NIVELES (ASISTENTE + EMPLEADO + JEFE) FACTIBLE</b>\n"
+        f"✅ <b>VEREDICTO: META LOGRADA — ESTRUCTURA 3 NIVELES + LIQUIDEZ REAL FACTIBLE</b>\n"
         f"• Se alcanzaron <b>${total_usd:,.2f} USD netos</b> (Meta: ${meta_usd:,.0f} USD) con <b>{win_rate}% de acierto</b> "
         f"({len(ganadoras)} ganadoras / {len(perdedoras)} cerradas en protección)."
     )
@@ -1073,7 +1276,7 @@ def generar_veredicto_final_ia(plan):
         try:
             client = genai.Client(api_key=GEMINI_API_KEY)
             prompt = (
-                "Eres el Jefe Supervisor de una mesa Spot en Binance operada con estructura de 3 niveles (Asistente -> Empleado -> Jefe). "
+                "Eres el Jefe Supervisor de una mesa Spot en Binance operada con estructura de 3 niveles (Asistente + Autopsia 24h -> Empleado Anti-FOMO/Liquidez -> Jefe). "
                 "Cumplimos la meta semanal neta. Da un VEREDICTO FINAL DE FACTIBILIDAD para pasar a dinero real en máximo 4 líneas en español.\n"
                 f"Capital Base: ${plan.get('capital_total_usd', 3500)} USD | Meta: ${meta_usd} USD | Ganancia Neta Lograda: ${total_usd} USD\n"
                 f"Operaciones cerradas: {json.dumps(cierres, ensure_ascii=False)}"
@@ -1143,7 +1346,7 @@ def generar_tablero_visual(plan, filename="tablero_semanal.png"):
             yv = b.get_height()
             ax2.text(b.get_x() + b.get_width() / 2.0, yv + (0.8 if yv >= 0 else -1.0), f"{v:+.2f}%\n(TP1 +{TP1_ASEGURAR_PCT}%)", ha="center", va="bottom" if yv >= 0 else "top", color="white", fontweight="bold", fontsize=7.8)
     else:
-        ax2.text(0.5, 0.5, "Sin posiciones abiertas\n(Esperando clima BTC estable o aprobación Jefe IA)", ha="center", va="center", color="#94a3b8", fontsize=10, transform=ax2.transAxes)
+        ax2.text(0.5, 0.5, "Sin posiciones abiertas\n(Esperando clima BTC / aprobación Jefe IA)", ha="center", va="center", color="#94a3b8", fontsize=10, transform=ax2.transAxes)
         ax2.tick_params(left=False, labelleft=False, bottom=False, labelbottom=False)
 
     aud = plan.get("auditoria_ia", {})
@@ -1226,6 +1429,8 @@ def actualizar_excel_semanal(plan):
             estado_alt = "🟢 APROBADA POR JEFE (En Reserva)"
         elif alt.get("propuesta_trader_ia"):
             estado_alt = "⛔ VETADA POR JEFE SUPERVISOR"
+        elif alt.get("fomo_15m"):
+            estado_alt = "⏳ ESPERANDO RETROCESO 15M (Anti-FOMO)"
         elif not alt.get("asistente_validado", True):
             estado_alt = "🚫 BLOQUEADA POR ASISTENTE"
         else:
@@ -1279,7 +1484,30 @@ def actualizar_excel_semanal(plan):
         round(meta, 2), round(real, 2), round(flot, 2), cump, plan.get("estado_semana", "ACTIVA")
     ])
 
-    for sheet in (ws, ws_alt, ws_aud, ws2):
+    # Pestaña 5: Autopsia Post-Cierre 24h
+    ws_aut = wb.create_sheet(title="5_AUTOPSIA_POST_CIERRE")
+    headers_aut = ["Semana", "Moneda", "Fecha Cierre", "PnL Cierre ($)", "Precio Cierre", "Máx 24h Post", "Mín 24h Post", "Var Máx Post (%)", "Dictamen Autopsia Asistente"]
+    ws_aut.append(headers_aut)
+    for col_idx in range(1, len(headers_aut) + 1):
+        c = ws_aut.cell(row=1, column=col_idx)
+        c.fill = fill_hdr
+        c.font = font_hdr
+        c.alignment = Alignment(horizontal="center")
+
+    for c in reversed(plan.get("historial_cierres", [])):
+        ws_aut.append([
+            c.get("semana_id", ""),
+            c.get("base", ""),
+            c.get("fecha_cierre", ""),
+            round(float(c.get("pnl_usd", 0.0)), 2),
+            float(c.get("precio_actual", 0.0)),
+            float(c.get("post_cierre_max", c.get("precio_actual", 0.0))),
+            float(c.get("post_cierre_min", c.get("precio_actual", 0.0))),
+            round(float(c.get("var_max_post_pct", 0.0)), 2),
+            c.get("veredicto_autopsia", "⏳ Pendiente")
+        ])
+
+    for sheet in (ws, ws_alt, ws_aud, ws2, ws_aut):
         for col in sheet.columns:
             max_len = max(len(str(c.value or "")) for c in col)
             sheet.column_dimensions[col[0].column_letter].width = min(max_len + 4, 52)
@@ -1346,14 +1574,6 @@ def enviar_excel_telegram(caption):
         print(f"⚠️ Error enviando Excel Semanal: {e}")
         return False
 
-def calcular_horas_abierta(fecha_entrada_str):
-    try:
-        limpia = fecha_entrada_str.replace(" ART", "").strip()
-        dt_ent = datetime.strptime(limpia, "%Y-%m-%d %H:%M").replace(tzinfo=TZ_ART)
-        return (ahora_art() - dt_ent).total_seconds() / 3600.0
-    except Exception:
-        return 0.0
-
 def cooldown_panico_cumplido(ultimo_iso):
     if not ultimo_iso:
         return True
@@ -1389,12 +1609,14 @@ def construir_bloque_1_alternativas(plan):
             marca = "🟢 <b>[APROBADA POR JEFE]</b>"
         elif a.get("propuesta_trader_ia"):
             marca = "⛔ <b>[VETADA POR JEFE]</b>"
+        elif a.get("fomo_15m"):
+            marca = "⏳ <i>[ANTI-FOMO 15M]</i>"
         elif not a.get("asistente_validado", True):
             marca = "🚫 <i>[BLOQUEADA ASISTENTE]</i>"
         else:
             marca = "⚪ <i>[FUERA FILTRO EMPLEADO]</i>"
 
-        linea_jefe = f"\n   └ 👔 <i>{html.escape(a.get('jefe_veredicto', ''))}</i>" if (a.get("propuesta_trader_ia") or not a.get("asistente_validado", True)) else ""
+        linea_jefe = f"\n   └ 👔 <i>{html.escape(a.get('jefe_veredicto', ''))}</i>" if (a.get("propuesta_trader_ia") or a.get("fomo_15m") or not a.get("asistente_validado", True)) else ""
         msg += (
             f"<b>{idx}. {a['base']}</b> (Score: <b>{a['score']}</b>) — {marca}\n"
             f"   • Precio: <code>{formatear_precio(a['precio_entrada'])}</code> | {html.escape(a['motivo_tecnico'])}{linea_jefe}\n"
@@ -1460,8 +1682,8 @@ def ejecutar_gestor_semanal():
 
     plan = cargar_plan_semanal()
 
-    # PASO 1 (NIVEL 1): EL ASISTENTE RECOLECTA Y CRUZA TODA LA DATA DE TODOS LOS BOTS
-    boletin_asistente, eco = ejecutar_asistente_inteligencia(mapa_mkt)
+    # PASO 1 (NIVEL 1): EL ASISTENTE RECOLECTA ECOSISTEMA + EJECUTA AUTOPSIA POST-CIERRE 24H
+    boletin_asistente, eco = ejecutar_asistente_inteligencia(mapa_mkt, plan)
     plan["boletin_asistente"] = boletin_asistente
 
     ahora_dt = ahora_art()
@@ -1511,7 +1733,7 @@ def ejecutar_gestor_semanal():
         max_pnl_pct = max_bruta_pct - COMISION_SPOT_TOTAL_PCT
         pnl_usd = cap * (pnl_pct / 100.0)
         retroceso_desde_max = ((p_act - p_max) / p_max) * 100 if p_max > 0 else 0.0
-        horas_abierta = calcular_horas_abierta(pos.get("fecha_entrada", ""))
+        horas_abierta = calcular_horas_entre(pos.get("fecha_entrada", ""), ahora_dt)
 
         prev_dd = float(pos.get("max_drawdown_pct", 0.0))
         max_dd_pct = round(min(prev_dd, pnl_pct), 2)
@@ -1521,7 +1743,7 @@ def ejecutar_gestor_semanal():
         v1h = analizar_velas_tf(s, sym, "1h", 36)
         v4h = analizar_velas_tf(s, sym, "4h", 48)
         fib = v4h.get("fib", {}) if v4h.get("fib", {}).get("ok") else v1h.get("fib", {})
-        ob = auditar_order_book_semanal(s, sym)
+        ob = auditar_order_book_semanal(s, sym, cap)
         dossier_asistente = asistente_construir_dossier(sym, p_act, eco, plan)
 
         lecturas_tecnicas[sym] = {
@@ -1590,17 +1812,17 @@ def ejecutar_gestor_semanal():
             "exp_previo": dossier_asistente
         })
 
-    # PASO 3 (NIVEL 2): EL EMPLEADO (TRADER IA) FORMULA PROPUESTAS SOBRE CARTERA Y RADAR
+    # PASO 3 (NIVEL 2): EL EMPLEADO FORMULA PROPUESTAS SOBRE CARTERA Y RADAR (ANTI-FOMO 15M + LIQUIDEZ REAL)
     aud_actual = ejecutar_empleado_trader_ia(s, mapa_mkt, plan, msg_btc, lecturas_tecnicas, boletin_asistente, eco)
 
     excluidas = {p["symbol"] for p in plan["posiciones"]} | {c["symbol"] for c in plan["historial_cierres"] if c.get("semana_id") == plan["semana_id"]}
     alternativas = empleado_evaluar_candidatas(s, mapa_mkt, excluidas, eco, plan)
 
-    # PASO 4 (NIVEL 3): EL JEFE SUPERVISOR AUDITA TODO Y DA EL VEREDICTO FINAL
+    # PASO 4 (NIVEL 3): EL JEFE SUPERVISOR AUDITA TODO (INCLUYENDO AUTOPSIA 24H) Y DA EL VEREDICTO FINAL
     ejecutar_jefe_supervisor_ia(plan, alternativas, [x for x in posiciones_evaluadas if not x.get("sin_datos")], boletin_asistente, msg_btc)
     plan["alternativas_evaluadas"] = alternativas
 
-    # PASO 5: EJECUCIÓN BLINDADA (SOLO SE EJECUTA LO VALIDADO POR EL JEFE + REGLAS DURAS)
+    # PASO 5: EJECUCIÓN BLINDADA
     ganancia_flotante_total = 0.0
     posiciones_siguen_activas = []
 
@@ -1635,6 +1857,9 @@ def ejecutar_gestor_semanal():
             pos["estado"] = "CERRADA"
             pos["fecha_cierre"] = ahora_str
             pos["motivo_cierre"] = motivo_cierre
+            pos["post_cierre_max"] = float(pos["precio_actual"])
+            pos["post_cierre_min"] = float(pos["precio_actual"])
+            pos["veredicto_autopsia"] = "⏳ Iniciando seguimiento 24h"
             plan["ganancia_realizada_usd"] = round(float(plan["ganancia_realizada_usd"]) + float(pos["pnl_usd"]), 2)
             plan["historial_cierres"].append(pos)
             alertas_venta.append(pos)
@@ -1663,14 +1888,23 @@ def ejecutar_gestor_semanal():
         plan["estado_semana"] = "META_CUMPLIDA"
         plan["fecha_cierre_meta"] = ahora_str
 
-    if plan["estado_semana"] == "ACTIVA" and len(plan["posiciones"]) < cupos_max_regimen:
+    # MEJORA 4: Circuit Breaker Diario + Entrada Escalonada (máx 2 por corrida)
+    cb_activo, cb_recien_activado, msg_cb = verificar_circuit_breaker_diario(plan, ahora_dt)
+    if cb_recien_activado:
+        enviar_telegram_texto(
+            f"🧊 <b>CIRCUIT BREAKER DIARIO ACTIVADO POR JEFE SUPERVISOR</b>\n"
+            f"📅 <code>{ahora_str}</code>\n\n"
+            f"⚠️ {html.escape(msg_cb)}"
+        )
+
+    if plan["estado_semana"] == "ACTIVA" and len(plan["posiciones"]) < cupos_max_regimen and not cb_activo:
         if not btc_ok:
             if not plan.get("aviso_btc_enviado", False):
                 enviar_telegram_texto(f"🛑 <b>FRENO DE MANO BTC ACTIVADO</b>\n📅 <code>{ahora_str}</code>\n\n⚠️ {html.escape(msg_btc)}")
                 plan["aviso_btc_enviado"] = True
         else:
             plan["aviso_btc_enviado"] = False
-            cupos = cupos_max_regimen - len(plan["posiciones"])
+            cupos = min(cupos_max_regimen - len(plan["posiciones"]), MAX_ENTRADAS_POR_CORRIDA)
             elegidas = [a for a in alternativas if a.get("en_zona")][:cupos]
 
             if elegidas:
@@ -1772,7 +2006,7 @@ def ejecutar_gestor_semanal():
 
         ok3 = enviar_excel_telegram(
             f"📎 <b>GESTOR Y RADAR SEMANAL • BLOQUE 3/3: PLANILLA EXCEL</b>\n"
-            f"📊 Registro completo en 4 pestañas con Estructura Blindada de 3 Niveles (Asistente + Empleado + Jefe), Cupo 25% y PnL Neto (<code>{EXCEL_SEMANAL_FILE}</code>)."
+            f"📊 Registro en 5 pestañas con Estructura Blindada de 3 Niveles, Autopsia 24h, Liquidez Real y PnL Neto (<code>{EXCEL_SEMANAL_FILE}</code>)."
         )
         if ok1 and ok2 and ok3:
             plan["ultimo_reporte_hora"] = ahora_dt.hour
@@ -1800,5 +2034,5 @@ def ejecutar_gestor_semanal():
     guardar_plan_semanal(plan)
 
 if __name__ == "__main__":
-    print(f"🧪 INICIANDO GESTOR SEMANAL BLINDADO 3 NIVELES (ASISTENTE -> EMPLEADO -> JEFE | CUPO 25% | STOP {STOP_LOSS_FIJO_PCT}%) ({ahora_art().strftime('%H:%M:%S')} ART)...")
+    print(f"🧪 INICIANDO GESTOR SEMANAL BLINDADO 3 NIVELES + AUTOPSIA + LIQUIDEZ REAL ({ahora_art().strftime('%H:%M:%S')} ART)...")
     ejecutar_gestor_semanal()
