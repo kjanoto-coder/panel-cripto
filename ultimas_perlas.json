@@ -1,14 +1,5 @@
 [
   [
-    "KERNELUSDT",
-    "2ZUSDT",
-    "LUNCUSDT",
-    "KAVAUSDT",
-    "PSGUSDT",
-    "AIGENSYNUSDT",
-    "ASRUSDT"
-  ],
-  [
     "JSTUSDT",
     "ERAUSDT",
     "USUALUSDT",
@@ -16,5 +7,14 @@
     "DODOUSDT",
     "KERNELUSDT",
     "2ZUSDT"
+  ],
+  [
+    "JSTUSDT",
+    "USUALUSDT",
+    "ERAUSDT",
+    "SKYUSDT",
+    "DODOUSDT",
+    "2ZUSDT",
+    "KERNELUSDT"
   ]
 ]
