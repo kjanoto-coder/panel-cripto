@@ -1,0 +1,39 @@
+name: Rellenar Noviembre Monedas Ganadoras
+
+on:
+  workflow_dispatch:
+
+jobs:
+  rellenar_mes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Clonar repositorio completo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: pip install requests openpyxl
+
+      - name: Generar noviembre completo (días 1 al 24)
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TOPIC_ID_GANADORAS: ${{ secrets.TOPIC_ID_GANADORAS }}
+          TOPIC_ID_SEMANAL: ${{ secrets.TOPIC_ID_SEMANAL }}
+        run: python rellenar_noviembre_ganadoras.py
+
+      - name: Guardar Excel actualizado en el repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add AUDITORIA_VERDE_GANADORAS.xlsx
+          git commit -m "Backfill noviembre 1-22 en AUDITORIA_VERDE_GANADORAS.xlsx" || exit 0
+          git push
