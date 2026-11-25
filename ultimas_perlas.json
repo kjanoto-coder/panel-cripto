@@ -1,14 +1,5 @@
 [
   [
-    "SENTUSDT",
-    "PROMUSDT",
-    "LISTAUSDT",
-    "AIGENSYNUSDT",
-    "KERNELUSDT",
-    "ACEUSDT",
-    "LAYERUSDT"
-  ],
-  [
     "PEPEUSDT",
     "XPLUSDT",
     "PROMUSDT",
@@ -16,5 +7,14 @@
     "WLFIUSDT",
     "JSTUSDT",
     "LISTAUSDT"
+  ],
+  [
+    "SKYUSDT",
+    "ERAUSDT",
+    "BABYUSDT",
+    "TUSDT",
+    "KAVAUSDT",
+    "INITUSDT",
+    "WAXPUSDT"
   ]
 ]
