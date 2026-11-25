@@ -1,20 +1,20 @@
 [
   [
     "JSTUSDT",
-    "KITEUSDT",
-    "SKYUSDT",
-    "BLURUSDT",
-    "AIGENSYNUSDT",
-    "ERAUSDT",
-    "SHELLUSDT"
-  ],
-  [
-    "JSTUSDT",
     "BLURUSDT",
     "KITEUSDT",
     "SKYUSDT",
     "ERAUSDT",
     "2ZUSDT",
     "DODOUSDT"
+  ],
+  [
+    "LUNCUSDT",
+    "KAVAUSDT",
+    "LISTAUSDT",
+    "KERNELUSDT",
+    "RPLUSDT",
+    "ASRUSDT",
+    "MMTUSDT"
   ]
 ]
