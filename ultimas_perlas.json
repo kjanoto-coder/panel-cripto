@@ -1,14 +1,5 @@
 [
   [
-    "PEPEUSDT",
-    "JSTUSDT",
-    "KITEUSDT",
-    "SKYUSDT",
-    "USUALUSDT",
-    "INITUSDT",
-    "2ZUSDT"
-  ],
-  [
     "STXUSDT",
     "NIGHTUSDT",
     "ONGUSDT",
@@ -16,5 +7,14 @@
     "MMTUSDT",
     "RPLUSDT",
     "PSGUSDT"
+  ],
+  [
+    "PEPEUSDT",
+    "JSTUSDT",
+    "SKYUSDT",
+    "KITEUSDT",
+    "INITUSDT",
+    "AIGENSYNUSDT",
+    "SHELLUSDT"
   ]
 ]
