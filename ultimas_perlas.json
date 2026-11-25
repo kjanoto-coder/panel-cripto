@@ -2,17 +2,17 @@
   [
     "WLFIUSDT",
     "JSTUSDT",
-    "MMTUSDT",
     "PROMUSDT",
+    "MMTUSDT",
+    "LUNCUSDT",
     "ALICEUSDT",
-    "AIGENSYNUSDT",
     "SKYUSDT"
   ],
   [
-    "WLFIUSDT",
     "JSTUSDT",
-    "PROMUSDT",
+    "WLFIUSDT",
     "MMTUSDT",
+    "PROMUSDT",
     "LUNCUSDT",
     "ALICEUSDT",
     "SKYUSDT"
