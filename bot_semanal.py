@@ -1,4 +1,4 @@
-import os, json, glob, time, random, html, requests
+import os, json, glob, time, random, html, hashlib, requests
 from datetime import datetime, timezone, timedelta
 import matplotlib.pyplot as plt
 import openpyxl
@@ -35,7 +35,7 @@ MAX_ENTRADAS_POR_CORRIDA = 2        # Entrada escalonada: máximo 2 compras nuev
 TOP_ALTERNATIVAS_MOSTRAR = 8
 FACTIBILIDAD_MINIMA_JEFE = 75       # Puntaje mínimo exigido por el Jefe Supervisor para aprobar una entrada
 
-# Parámetros de Riesgo, Cosecha Runner en 3 Tramos, Liquidez Real y Circuit Breaker
+# Parámetros de Riesgo, Cosecha Runner en 3 Tramos, Liquidez Real y Arranque
 COMISION_SPOT_TOTAL_PCT = 0.20      # 0.10% compra + 0.10% venta en Binance Spot (PnL Neto Real)
 STOP_LOSS_FIJO_PCT = -3.40          # Margen técnico de despegue (-3.40% neto) para sobrevivir mechazos previos
 MAX_PERDIDA_USD = 30.0              # Tope duro en dólares alineado con -3.40% sobre cupo de ~$875
@@ -50,9 +50,10 @@ COOLDOWN_PANICO_BTC_MIN = 60        # Antispam de 60 minutos para alerta de pán
 
 MIN_LIQUIDEZ_TOP_ASK_USD = 2500.0   # Liquidez mínima en USD dentro del 0.15% del mejor Ask
 MAX_SLIPPAGE_EST_PCT = 0.25         # Deslizamiento máximo estimado para ejecutar un cupo real (~$875)
-MAX_PERDIDA_DIARIA_USD = 65.0       # Circuit Breaker diario: pérdida máxima realizada en un mismo día
-MAX_STOPS_SEGUIDOS_DIA = 3          # Circuit Breaker diario: máximo de cierres negativos seguidos en el día
-HORAS_CONGELAMIENTO_CB = 8          # Horas que el Jefe congela compras al activarse el Circuit Breaker
+MAX_PERDIDA_DIARIA_USD = 65.0       # Referencia diaria histórica
+MAX_STOPS_SEGUIDOS_DIA = 3          # Referencia diaria histórica
+HORAS_CONGELAMIENTO_CB = 8          # Referencia histórica (reemplazada por Modo Continuo + Calibración 15m)
+MINUTOS_CALIBRACION_SISTEMA = 15    # Tiempo de arranque y calibración tras actualizar el código
 
 MODELOS_GEMINI = ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-4-hydrogen", "gemini-2.5-flash"]
 
@@ -649,41 +650,42 @@ def verificar_clima_y_regimen_mercado(session, mapa_mkt):
     return True, False, cupos_max, f"BTC estable (1h: {var_1h_btc:+.2f}%, 24h: {chg_24h:+.2f}%, RSI 1h: {rsi_btc}) | {regimen_txt}"
 
 def verificar_circuit_breaker_diario(plan, ahora_dt=None):
-    """Congela compras 8h si se acumulan 3 stops seguidos o -$65 USD de pérdida diaria realizada."""
+    """
+    Modo Encendido de Sistema (15 min tras cada cambio de código) + Operación Continua 24/7:
+    Limpia cualquier congelamiento previo y, al detectar una modificación en bot_semanal.py,
+    calibra variables y audita todo el ecosistema durante 15 minutos antes de habilitar compras.
+    """
     ahora_dt = ahora_dt or ahora_art()
-    cb_hasta_iso = plan.get("circuit_breaker_hasta_iso", "")
-    if cb_hasta_iso:
-        try:
-            dt_cb = datetime.fromisoformat(cb_hasta_iso)
-            if ahora_dt < dt_cb:
-                restante_h = round((dt_cb - ahora_dt).total_seconds() / 3600.0, 1)
-                return True, False, f"Circuit Breaker activo ({restante_h}h restantes hasta {dt_cb.strftime('%H:%M ART')})."
-            else:
-                plan["circuit_breaker_hasta_iso"] = ""
-        except Exception:
-            plan["circuit_breaker_hasta_iso"] = ""
+    plan["circuit_breaker_hasta_iso"] = ""
 
-    hoy_str = ahora_dt.strftime("%Y-%m-%d")
-    cierres_hoy = [c for c in plan.get("historial_cierres", []) if str(c.get("fecha_cierre", "")).startswith(hoy_str)]
-    if not cierres_hoy:
-        return False, False, ""
+    try:
+        with open(__file__, "rb") as f_self:
+            hash_actual = hashlib.md5(f_self.read()).hexdigest()
+    except Exception:
+        hash_actual = ""
 
-    pnl_hoy = round(sum(float(c.get("pnl_usd", 0.0)) for c in cierres_hoy), 2)
-    racha_roja = 0
-    for c in reversed(cierres_hoy):
-        if float(c.get("pnl_usd", 0.0)) < 0:
-            racha_roja += 1
-        else:
-            break
-
-    if pnl_hoy <= -MAX_PERDIDA_DIARIA_USD or racha_roja >= MAX_STOPS_SEGUIDOS_DIA:
-        dt_fin = ahora_dt + timedelta(hours=HORAS_CONGELAMIENTO_CB)
-        plan["circuit_breaker_hasta_iso"] = dt_fin.isoformat()
-        motivo = (
-            f"Pérdida diaria ${pnl_hoy:+.2f} USD | Racha {racha_roja} stops seguidos hoy. "
-            f"Jefe Supervisor congela compras por {HORAS_CONGELAMIENTO_CB}h (hasta {dt_fin.strftime('%H:%M ART')})."
+    if hash_actual and plan.get("codigo_hash") != hash_actual:
+        plan["codigo_hash"] = hash_actual
+        dt_listo = ahora_dt + timedelta(minutes=MINUTOS_CALIBRACION_SISTEMA)
+        plan["warmup_hasta_iso"] = dt_listo.isoformat()
+        return True, True, (
+            f"Cambio detectado en el sistema. Calibrando variables, leyendo todos los bots "
+            f"y auditando opciones durante {MINUTOS_CALIBRACION_SISTEMA} min (operativo para comprar desde las {dt_listo.strftime('%H:%M ART')})."
         )
-        return True, True, motivo
+
+    warmup_iso = plan.get("warmup_hasta_iso", "")
+    if warmup_iso:
+        try:
+            dt_warmup = datetime.fromisoformat(warmup_iso)
+            if dt_warmup.tzinfo is None:
+                dt_warmup = dt_warmup.replace(tzinfo=TZ_ART)
+            if ahora_dt < dt_warmup:
+                mins_rest = max(1, int(round((dt_warmup - ahora_dt).total_seconds() / 60.0)))
+                return True, False, f"Sistema en calibración inicial ({mins_rest} min restantes hasta las {dt_warmup.strftime('%H:%M ART')})."
+            else:
+                plan["warmup_hasta_iso"] = ""
+        except Exception:
+            plan["warmup_hasta_iso"] = ""
 
     return False, False, ""
 
@@ -701,6 +703,8 @@ def cargar_plan_semanal():
         "aviso_btc_enviado": False,
         "ultimo_panico_btc_iso": "",
         "circuit_breaker_hasta_iso": "",
+        "codigo_hash": "",
+        "warmup_hasta_iso": "",
         "ultimo_reporte_hora": -1,
         "boletin_asistente": {},
         "auditoria_ia": {},
@@ -714,6 +718,8 @@ def cargar_plan_semanal():
         data.setdefault("aviso_btc_enviado", False)
         data.setdefault("ultimo_panico_btc_iso", "")
         data.setdefault("circuit_breaker_hasta_iso", "")
+        data.setdefault("codigo_hash", "")
+        data.setdefault("warmup_hasta_iso", "")
         data.setdefault("ultimo_reporte_hora", -1)
         data.setdefault("boletin_asistente", {})
         data.setdefault("auditoria_ia", {})
@@ -2002,9 +2008,9 @@ def ejecutar_gestor_semanal():
     cb_activo, cb_recien_activado, msg_cb = verificar_circuit_breaker_diario(plan, ahora_dt)
     if cb_recien_activado:
         enviar_telegram_texto(
-            f"🧊 <b>CIRCUIT BREAKER DIARIO ACTIVADO POR JEFE SUPERVISOR</b>\n"
+            f"⚙️ <b>ARRANQUE Y CALIBRACIÓN DEL SISTEMA ({MINUTOS_CALIBRACION_SISTEMA} MIN)</b>\n"
             f"📅 <code>{ahora_str}</code>\n\n"
-            f"⚠️ {html.escape(msg_cb)}"
+            f"🖥️ {html.escape(msg_cb)}"
         )
 
     if plan["estado_semana"] == "ACTIVA" and len(plan["posiciones"]) < cupos_max_regimen and not cb_activo:
@@ -2092,7 +2098,7 @@ def ejecutar_gestor_semanal():
 
     es_ejecucion_manual = (os.getenv("GITHUB_EVENT_NAME") == "workflow_dispatch")
     es_corte_horario = (plan.get("ultimo_reporte_hora") != ahora_dt.hour)
-    hay_novedades = bool(nuevas_entradas or alertas_parciales or alertas_venta or plan["estado_semana"] == "META_CUMPLIDA")
+    hay_novedades = bool(nuevas_entradas or alertas_parciales or alertas_venta or plan["estado_semana"] == "META_CUMPLIDA" or cb_recien_activado)
 
     if hay_novedades or es_corte_horario or es_ejecucion_manual:
         plan.setdefault("historial_auditorias", []).append(dict(aud_actual))
@@ -2105,6 +2111,8 @@ def ejecutar_gestor_semanal():
         img = generar_tablero_visual(plan)
         if plan["estado_semana"] == "META_CUMPLIDA":
             titulo_ev = "🏆 <b>¡CUOTA SEMANAL CUMPLIDA — MODO PROTECCIÓN!</b>"
+        elif cb_recien_activado:
+            titulo_ev = f"⚙️ <b>ARRANQUE Y CALIBRACIÓN DEL SISTEMA ({MINUTOS_CALIBRACION_SISTEMA} MIN)</b>"
         elif alertas_venta and nuevas_entradas:
             titulo_ev = f"🔄 <b>ROTACIÓN CONSENSO 3/3 / STOP {STOP_LOSS_FIJO_PCT}%</b>"
         elif nuevas_entradas:
