@@ -1,14 +1,5 @@
 [
   [
-    "JSTUSDT",
-    "BABYUSDT",
-    "USUALUSDT",
-    "SKYUSDT",
-    "ERAUSDT",
-    "LUNCUSDT",
-    "INITUSDT"
-  ],
-  [
     "WLFIUSDT",
     "JSTUSDT",
     "AIGENSYNUSDT",
@@ -16,5 +7,14 @@
     "ERAUSDT",
     "BABYUSDT",
     "LUNCUSDT"
+  ],
+  [
+    "WLFIUSDT",
+    "JSTUSDT",
+    "ERAUSDT",
+    "SKYUSDT",
+    "2ZUSDT",
+    "LUNCUSDT",
+    "INITUSDT"
   ]
 ]
