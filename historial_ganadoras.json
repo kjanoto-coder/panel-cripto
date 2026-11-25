@@ -2365,6 +2365,21 @@
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
       "dias_esperando": 0
+    },
+    "JUVUSDT": {
+      "symbol": "JUVUSDT",
+      "ticker": "JUV",
+      "fecha_verde": "2026-11-25",
+      "ts_verde": "2026-11-25 12:41",
+      "precio_verde": 0.226,
+      "es_oro": false,
+      "origen": "CAZADOR_TACTICO_ROJO",
+      "estado": "PENDIENTE",
+      "fecha_ganadora": "",
+      "precio_ganadora": 0.0,
+      "subida_real_pct": 0.0,
+      "subida_24h_dia_pct": 0.0,
+      "dias_demora": null
     }
   }
 }
