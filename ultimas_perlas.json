@@ -1,14 +1,5 @@
 [
   [
-    "DOGEUSDT",
-    "UNIUSDT",
-    "ADAUSDT",
-    "PUMPUSDT",
-    "HBARUSDT",
-    "XLMUSDT",
-    "POLUSDT"
-  ],
-  [
     "XRPUSDT",
     "PEPEUSDT",
     "SUIUSDT",
@@ -16,5 +7,14 @@
     "GRAMUSDT",
     "WLFIUSDT",
     "FETUSDT"
+  ],
+  [
+    "NEARUSDT",
+    "WLDUSDT",
+    "BNCBUSDT",
+    "ICPUSDT",
+    "ARBUSDT",
+    "FILUSDT",
+    "TRUMPUSDT"
   ]
 ]
