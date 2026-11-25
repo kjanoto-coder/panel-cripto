@@ -1,14 +1,5 @@
 [
   [
-    "LISTAUSDT",
-    "HMSTRUSDT",
-    "2ZUSDT",
-    "KERNELUSDT",
-    "AIGENSYNUSDT",
-    "INITUSDT",
-    "ERAUSDT"
-  ],
-  [
     "JSTUSDT",
     "MMTUSDT",
     "PROMUSDT",
@@ -16,5 +7,14 @@
     "LUNCUSDT",
     "LISTAUSDT",
     "SKYUSDT"
+  ],
+  [
+    "JSTUSDT",
+    "PROMUSDT",
+    "LISTAUSDT",
+    "KERNELUSDT",
+    "SKYUSDT",
+    "HMSTRUSDT",
+    "INITUSDT"
   ]
 ]
