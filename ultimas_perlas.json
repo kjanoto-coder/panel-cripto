@@ -1,20 +1,20 @@
 [
   [
     "JSTUSDT",
-    "MMTUSDT",
-    "PROMUSDT",
-    "WLFIUSDT",
-    "LUNCUSDT",
-    "LISTAUSDT",
-    "SKYUSDT"
-  ],
-  [
-    "JSTUSDT",
     "PROMUSDT",
     "LISTAUSDT",
     "KERNELUSDT",
     "SKYUSDT",
     "HMSTRUSDT",
     "INITUSDT"
+  ],
+  [
+    "AIGENSYNUSDT",
+    "ERAUSDT",
+    "ALICEUSDT",
+    "BABYUSDT",
+    "WAXPUSDT",
+    "ANIMEUSDT",
+    "TUSDT"
   ]
 ]
