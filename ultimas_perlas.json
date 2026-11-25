@@ -1,14 +1,5 @@
 [
   [
-    "LAYERUSDT",
-    "BABYUSDT",
-    "ERAUSDT",
-    "SKYUSDT",
-    "TUSDT",
-    "KAVAUSDT",
-    "WAXPUSDT"
-  ],
-  [
     "SENTUSDT",
     "PROMUSDT",
     "LISTAUSDT",
@@ -16,5 +7,14 @@
     "KERNELUSDT",
     "ACEUSDT",
     "LAYERUSDT"
+  ],
+  [
+    "PEPEUSDT",
+    "XPLUSDT",
+    "PROMUSDT",
+    "SENTUSDT",
+    "WLFIUSDT",
+    "JSTUSDT",
+    "LISTAUSDT"
   ]
 ]
