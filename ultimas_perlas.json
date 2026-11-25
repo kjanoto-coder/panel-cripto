@@ -1,14 +1,5 @@
 [
   [
-    "ALICEUSDT",
-    "ANIMEUSDT",
-    "LISTAUSDT",
-    "USUALUSDT",
-    "WAXPUSDT",
-    "KAVAUSDT",
-    "PSGUSDT"
-  ],
-  [
     "WLFIUSDT",
     "AIGENSYNUSDT",
     "LUNCUSDT",
@@ -16,5 +7,14 @@
     "2ZUSDT",
     "ERAUSDT",
     "ALICEUSDT"
+  ],
+  [
+    "WLFIUSDT",
+    "JSTUSDT",
+    "AIGENSYNUSDT",
+    "SKYUSDT",
+    "LUNCUSDT",
+    "ERAUSDT",
+    "HMSTRUSDT"
   ]
 ]
