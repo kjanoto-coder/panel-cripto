@@ -1,7 +1,13 @@
 name: Etapa 4 - Gestor Semanal Prueba
 
 on:
+  schedule:
+    - cron: '*/15 * * * *'
   workflow_dispatch:
+
+concurrency:
+  group: etapa4-gestor-semanal
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -21,7 +27,7 @@ jobs:
       - name: Instalar dependencias
         run: pip install requests matplotlib openpyxl google-genai
 
-      - name: Ejecutar Gestor Semanal Unificado IA
+      - name: Ejecutar Gestor Semanal Blindado 3 Niveles
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
@@ -48,7 +54,7 @@ jobs:
           git add plan_semanal.json AUDITORIA_SEMANAL_PRUEBA.xlsx
           [ -f resumen_topic_config.json ] && git add resumen_topic_config.json || true
           if ! git diff --staged --quiet; then
-            git commit -m "Update plan semanal IA y auditoria"
+            git commit -m "Update plan semanal IA 3 niveles y autopsia"
             git pull --rebase origin main || true
             git push
           fi
