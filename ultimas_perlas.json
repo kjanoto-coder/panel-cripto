@@ -1,14 +1,5 @@
 [
   [
-    "WLFIUSDT",
-    "XLMUSDT",
-    "HBARUSDT",
-    "RAYUSDT",
-    "PUMPUSDT",
-    "TRUMPUSDT",
-    "JSTUSDT"
-  ],
-  [
     "XRPUSDT",
     "SUIUSDT",
     "PENGUUSDT",
@@ -16,5 +7,14 @@
     "STRKUSDT",
     "SENTUSDT",
     "STXUSDT"
+  ],
+  [
+    "NEARUSDT",
+    "ASTERUSDT",
+    "WLDUSDT",
+    "MARSCOINUSDT",
+    "CAKEUSDT",
+    "DOTUSDT",
+    "ORDIUSDT"
   ]
 ]
