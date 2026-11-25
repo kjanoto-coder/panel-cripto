@@ -1,14 +1,5 @@
 [
   [
-    "STXUSDT",
-    "LISTAUSDT",
-    "2ZUSDT",
-    "SKYUSDT",
-    "INITUSDT",
-    "TUSDT",
-    "BABYUSDT"
-  ],
-  [
     "PEPEUSDT",
     "WLDUSDT",
     "ASTERUSDT",
@@ -16,5 +7,14 @@
     "WLFIUSDT",
     "HBARUSDT",
     "PUMPUSDT"
+  ],
+  [
+    "RAYUSDT",
+    "XPLUSDT",
+    "TRUMPUSDT",
+    "JSTUSDT",
+    "SENTUSDT",
+    "ERAUSDT",
+    "ATUSDT"
   ]
 ]
