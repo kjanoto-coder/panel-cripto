@@ -4299,6 +4299,16 @@
       "certificada_ia": true,
       "blindaje_pct": 97,
       "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.40) | Libro Bids/Asks: 1.8x (Spread 0.299%)"
+    },
+    "SAHARAUSDT": {
+      "symbol": "SAHARAUSDT",
+      "base": "SAHARA",
+      "estrellas": 3,
+      "probabilidad_pct": 80,
+      "precio_ref": 0.00535,
+      "fecha_iso": "2026-11-24",
+      "fecha_corta": "24/11",
+      "origen": "SEGUNDA_OLA_GANADORAS"
     }
   },
   "verdes_hoy": [
