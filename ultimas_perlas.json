@@ -3,18 +3,18 @@
     "SENTUSDT",
     "PROMUSDT",
     "JSTUSDT",
-    "LISTAUSDT",
-    "KERNELUSDT",
-    "AIGENSYNUSDT",
-    "ACEUSDT"
-  ],
-  [
-    "SENTUSDT",
-    "PROMUSDT",
-    "JSTUSDT",
     "WLFIUSDT",
     "LISTAUSDT",
     "ACEUSDT",
     "KERNELUSDT"
+  ],
+  [
+    "LAYERUSDT",
+    "BABYUSDT",
+    "ERAUSDT",
+    "SKYUSDT",
+    "TUSDT",
+    "KAVAUSDT",
+    "WAXPUSDT"
   ]
 ]
