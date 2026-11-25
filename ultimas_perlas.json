@@ -1,20 +1,20 @@
 [
   [
-    "WLFIUSDT",
-    "JSTUSDT",
-    "LUNCUSDT",
-    "AIGENSYNUSDT",
-    "ALICEUSDT",
-    "SKYUSDT",
-    "ERAUSDT"
-  ],
-  [
     "JSTUSDT",
     "MMTUSDT",
     "AIGENSYNUSDT",
     "LUNCUSDT",
     "SKYUSDT",
     "ALICEUSDT",
+    "DODOUSDT"
+  ],
+  [
+    "MMTUSDT",
+    "JSTUSDT",
+    "AIGENSYNUSDT",
+    "LUNCUSDT",
+    "ALICEUSDT",
+    "SKYUSDT",
     "DODOUSDT"
   ]
 ]
