@@ -1,14 +1,5 @@
 [
   [
-    "JSTUSDT",
-    "PROMUSDT",
-    "LISTAUSDT",
-    "KERNELUSDT",
-    "SKYUSDT",
-    "HMSTRUSDT",
-    "INITUSDT"
-  ],
-  [
     "AIGENSYNUSDT",
     "ERAUSDT",
     "ALICEUSDT",
@@ -16,5 +7,14 @@
     "WAXPUSDT",
     "ANIMEUSDT",
     "TUSDT"
+  ],
+  [
+    "JSTUSDT",
+    "PROMUSDT",
+    "LUNCUSDT",
+    "SKYUSDT",
+    "AIGENSYNUSDT",
+    "LISTAUSDT",
+    "KERNELUSDT"
   ]
 ]
