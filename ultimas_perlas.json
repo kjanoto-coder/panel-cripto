@@ -1,14 +1,5 @@
 [
   [
-    "CKBUSDT",
-    "BABYUSDT",
-    "SKYUSDT",
-    "LAYERUSDT",
-    "TUSDT",
-    "WAXPUSDT",
-    "INITUSDT"
-  ],
-  [
     "XPLUSDT",
     "WLFIUSDT",
     "SENTUSDT",
@@ -16,5 +7,14 @@
     "ERAUSDT",
     "CKBUSDT",
     "KERNELUSDT"
+  ],
+  [
+    "WLDUSDT",
+    "WLFIUSDT",
+    "XLMUSDT",
+    "XPLUSDT",
+    "ATUSDT",
+    "STRKUSDT",
+    "SENTUSDT"
   ]
 ]
