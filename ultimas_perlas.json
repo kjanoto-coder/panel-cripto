@@ -1,19 +1,19 @@
 [
   [
-    "MMTUSDT",
-    "BABYUSDT",
-    "ERAUSDT",
-    "INITUSDT",
-    "ALICEUSDT",
-    "WAXPUSDT",
-    "KAVAUSDT"
-  ],
-  [
     "JSTUSDT",
     "PROMUSDT",
     "SENTUSDT",
     "AIGENSYNUSDT",
     "ENSOUSDT",
+    "LUNCUSDT",
+    "WLFIUSDT"
+  ],
+  [
+    "PROMUSDT",
+    "SENTUSDT",
+    "JSTUSDT",
+    "ACEUSDT",
+    "AIGENSYNUSDT",
     "LUNCUSDT",
     "WLFIUSDT"
   ]
