@@ -1,14 +1,5 @@
 [
   [
-    "JSTUSDT",
-    "PROMUSDT",
-    "ENSOUSDT",
-    "AIGENSYNUSDT",
-    "LUNCUSDT",
-    "LISTAUSDT",
-    "SENTUSDT"
-  ],
-  [
     "MMTUSDT",
     "BABYUSDT",
     "ERAUSDT",
@@ -16,5 +7,14 @@
     "ALICEUSDT",
     "WAXPUSDT",
     "KAVAUSDT"
+  ],
+  [
+    "JSTUSDT",
+    "PROMUSDT",
+    "SENTUSDT",
+    "AIGENSYNUSDT",
+    "ENSOUSDT",
+    "LUNCUSDT",
+    "WLFIUSDT"
   ]
 ]
