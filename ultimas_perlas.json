@@ -1,14 +1,5 @@
 [
   [
-    "RAYUSDT",
-    "XPLUSDT",
-    "TRUMPUSDT",
-    "JSTUSDT",
-    "SENTUSDT",
-    "ERAUSDT",
-    "ATUSDT"
-  ],
-  [
     "NEARUSDT",
     "WLDUSDT",
     "ASTERUSDT",
@@ -16,5 +7,14 @@
     "HBARUSDT",
     "PUMPUSDT",
     "WLFIUSDT"
+  ],
+  [
+    "WLFIUSDT",
+    "XLMUSDT",
+    "HBARUSDT",
+    "RAYUSDT",
+    "PUMPUSDT",
+    "TRUMPUSDT",
+    "JSTUSDT"
   ]
 ]
