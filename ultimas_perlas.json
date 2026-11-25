@@ -1,20 +1,20 @@
 [
   [
-    "STXUSDT",
-    "KERNELUSDT",
-    "USUALUSDT",
-    "ANIMEUSDT",
-    "INITUSDT",
-    "WAXPUSDT",
-    "KAVAUSDT"
-  ],
-  [
     "WLFIUSDT",
     "JSTUSDT",
     "AIGENSYNUSDT",
     "LUNCUSDT",
     "SSVUSDT",
     "2ZUSDT",
+    "SKYUSDT"
+  ],
+  [
+    "JSTUSDT",
+    "WLFIUSDT",
+    "AIGENSYNUSDT",
+    "LUNCUSDT",
+    "2ZUSDT",
+    "MANTAUSDT",
     "SKYUSDT"
   ]
 ]
