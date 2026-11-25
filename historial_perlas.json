@@ -2922,7 +2922,7 @@
       "fecha_corta": "24/11",
       "certificada_ia": true,
       "blindaje_pct": 78,
-      "motivo_certificacion": "Coincide Cazador+PreExplosión | Tramo Alcista Fib (0.17) | Libro Bids/Asks: 1.51x (Spread 0.172%)"
+      "motivo_certificacion": "Coincide Cazador+PreExplosión | Tramo Alcista Fib (0.18) | Libro Bids/Asks: 1.6x (Spread 0.114%)"
     },
     "GLMRUSDT": {
       "symbol": "GLMRUSDT",
@@ -3594,7 +3594,7 @@
       "fecha_corta": "23/11 11:46",
       "certificada_ia": true,
       "blindaje_pct": 93,
-      "motivo_certificacion": "Coincide Cazador+PreExplosión | Piso Profundo Fib (0.81) | Libro Bids/Asks: 1.24x (Spread 0.217%)"
+      "motivo_certificacion": "Coincide Cazador+PreExplosión | Piso Profundo Fib (0.81) | Libro Bids/Asks: 1.57x (Spread 0.217%)"
     },
     "XTZUSDT": {
       "symbol": "XTZUSDT",
@@ -4246,7 +4246,7 @@
       "fecha_corta": "24/11",
       "certificada_ia": true,
       "blindaje_pct": 98,
-      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.42) | Libro Bids/Asks: 1.7x (Spread 0.257%)"
+      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.46) | Libro Bids/Asks: 1.42x (Spread 0.135%)"
     },
     "KERNELUSDT": {
       "symbol": "KERNELUSDT",
