@@ -1,0 +1,28 @@
+name: Rescate Historial Octubre-Noviembre
+
+on:
+  workflow_dispatch:
+
+jobs:
+  rescatar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar historial completo desde octubre
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: pip install requests openpyxl
+
+      - name: Ejecutar rescate histórico y enviar Excel
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TOPIC_ID_SEMANAL: ${{ secrets.TOPIC_ID_SEMANAL }}
+        run: python exportar_historial_octubre.py
