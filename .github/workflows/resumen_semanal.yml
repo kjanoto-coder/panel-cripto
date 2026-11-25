@@ -1,0 +1,40 @@
+name: Bot Resumen Semanal
+
+on:
+  schedule:
+    - cron: "11 * * * *"
+  workflow_dispatch:
+
+jobs:
+  enviar_resumen:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: pip install requests openpyxl
+
+      - name: Generar y enviar resumen semanal
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TOPIC_ID_RESUMEN: ${{ secrets.TOPIC_ID_RESUMEN }}
+        run: python bot_resumen_semanal.py
+
+      - name: Guardar ID del tema si fue creado automáticamente
+        run: |
+          if [ -f resumen_topic_config.json ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add resumen_topic_config.json
+            git commit -m "Guardar ID tema Resumen Telegram" || exit 0
+            git push
+          fi
