@@ -1,14 +1,5 @@
 [
   [
-    "ERAUSDT",
-    "STXUSDT",
-    "NIGHTUSDT",
-    "LUNCUSDT",
-    "KAVAUSDT",
-    "ONGUSDT",
-    "RPLUSDT"
-  ],
-  [
     "JSTUSDT",
     "KITEUSDT",
     "SKYUSDT",
@@ -16,5 +7,14 @@
     "AIGENSYNUSDT",
     "SHELLUSDT",
     "DODOUSDT"
+  ],
+  [
+    "2ZUSDT",
+    "LISTAUSDT",
+    "KERNELUSDT",
+    "MMTUSDT",
+    "ASRUSDT",
+    "PSGUSDT",
+    "SAHARAUSDT"
   ]
 ]
