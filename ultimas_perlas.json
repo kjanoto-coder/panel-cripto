@@ -1,14 +1,5 @@
 [
   [
-    "XPLUSDT",
-    "WLFIUSDT",
-    "SENTUSDT",
-    "JSTUSDT",
-    "ERAUSDT",
-    "CKBUSDT",
-    "KERNELUSDT"
-  ],
-  [
     "WLDUSDT",
     "WLFIUSDT",
     "XLMUSDT",
@@ -16,5 +7,14 @@
     "ATUSDT",
     "STRKUSDT",
     "SENTUSDT"
+  ],
+  [
+    "STXUSDT",
+    "LISTAUSDT",
+    "2ZUSDT",
+    "SKYUSDT",
+    "INITUSDT",
+    "TUSDT",
+    "BABYUSDT"
   ]
 ]
