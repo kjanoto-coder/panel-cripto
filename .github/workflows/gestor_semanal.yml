@@ -32,11 +32,21 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python bot_semanal.py
 
+      - name: Actualizar tema Resumen al instante
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+          TOPIC_ID_RESUMEN: ${{ secrets.TOPIC_ID_RESUMEN }}
+        run: python bot_resumen_semanal.py
+
       - name: Guardar plan semanal y Excel sin conflictos
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add plan_semanal.json AUDITORIA_SEMANAL_PRUEBA.xlsx
+          [ -f resumen_topic_config.json ] && git add resumen_topic_config.json || true
           if ! git diff --staged --quiet; then
             git commit -m "Update plan semanal IA y auditoria"
             git pull --rebase origin main || true
