@@ -1,14 +1,5 @@
 [
   [
-    "XRPUSDT",
-    "SUIUSDT",
-    "ENAUSDT",
-    "GRAMUSDT",
-    "RAYUSDT",
-    "JSTUSDT",
-    "TIAUSDT"
-  ],
-  [
     "NEARUSDT",
     "WLDUSDT",
     "ARBUSDT",
@@ -16,5 +7,14 @@
     "WLFIUSDT",
     "FETUSDT",
     "PENGUUSDT"
+  ],
+  [
+    "DOGEUSDT",
+    "HBARUSDT",
+    "PUMPUSDT",
+    "XLMUSDT",
+    "BNCBUSDT",
+    "CAKEUSDT",
+    "SHIBUSDT"
   ]
 ]
