@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 62,
-  "ultima_actualizacion": "2026-11-26 20:01 ART",
+  "version_ciclo": 63,
+  "ultima_actualizacion": "2026-11-26 20:11 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.84,
     "min_ob_ratio": 1.27,
@@ -459,6 +459,13 @@
       "symbol": "牛来USDT",
       "ts_unix": 1795734110,
       "precio_veto": 0.04498,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "MOVEUSDT",
+      "ts_unix": 1795734679,
+      "precio_veto": 0.005831,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     }
