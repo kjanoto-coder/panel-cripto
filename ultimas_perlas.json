@@ -1,14 +1,5 @@
 [
   [
-    "DOGEUSDT",
-    "RENDERUSDT",
-    "SHIBUSDT",
-    "ONDOUSDT",
-    "USUALUSDT",
-    "POLUSDT",
-    "XLMUSDT"
-  ],
-  [
     "XRPUSDT",
     "SUIUSDT",
     "UNIUSDT",
@@ -16,5 +7,14 @@
     "BNCBUSDT",
     "ASTERUSDT",
     "FILUSDT"
+  ],
+  [
+    "PEPEUSDT",
+    "STXUSDT",
+    "CRVUSDT",
+    "ALGOUSDT",
+    "OPUSDT",
+    "AEROUSDT",
+    "ARBUSDT"
   ]
 ]
