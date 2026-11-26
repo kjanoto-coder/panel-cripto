@@ -1,0 +1,272 @@
+{
+  "version_ciclo": 2,
+  "ultima_actualizacion": "2026-11-26 10:19 ART",
+  "umbrales": {
+    "min_ratio_vol_1h": 1.8,
+    "min_ob_ratio": 1.25,
+    "max_concentracion_muro_pct": 32.0,
+    "min_taker_buy_pct": 55.0,
+    "min_whale_buy_pct": 54.0,
+    "min_trades_por_min": 12.0,
+    "min_pista_libre_pct": 16.0,
+    "max_distancia_ma7_15m_pct": 3.2,
+    "stop_base_pct": -3.4,
+    "tp1_pct": 6.5,
+    "tp2_pct": 15.0,
+    "objetivo_runner_pct": 20.0
+  },
+  "pesos_patrones": {
+    "CONFLUENCIA_E1_E3_MAS_PREEXPLOSION": {
+      "ops": 0,
+      "ganadas": 0,
+      "runners_20": 0,
+      "bonus": 22.0
+    },
+    "RUPTURA_DIRECTA_BINANCE_A5": {
+      "ops": 0,
+      "ganadas": 0,
+      "runners_20": 0,
+      "bonus": 15.0
+    },
+    "DISPARO_PRE_EXPLOSION_E2": {
+      "ops": 0,
+      "ganadas": 0,
+      "runners_20": 0,
+      "bonus": 18.0
+    },
+    "ACUMULACION_ASCENDENTE_CAZADOR_E1": {
+      "ops": 0,
+      "ganadas": 0,
+      "runners_20": 0,
+      "bonus": 14.0
+    },
+    "ESCALADA_GANADORAS_24H": {
+      "ops": 0,
+      "ganadas": 0,
+      "runners_20": 0,
+      "bonus": 12.0
+    }
+  },
+  "memoria_monedas": {},
+  "pendientes_sombra_24h": [
+    {
+      "symbol": "BLURUSDT",
+      "ts_unix": 1795699134,
+      "precio_veto": 0.00986,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "GRAMUSDT",
+      "ts_unix": 1795699134,
+      "precio_veto": 0.954,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "SKYUSDT",
+      "ts_unix": 1795699135,
+      "precio_veto": 0.04701,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "RAYUSDT",
+      "ts_unix": 1795699135,
+      "precio_veto": 1.3166,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "XPLUSDT",
+      "ts_unix": 1795699136,
+      "precio_veto": 0.04798,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "ASTERUSDT",
+      "ts_unix": 1795699137,
+      "precio_veto": 0.4976,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Mechas superiores de rechazo en 15m (latigazo)"
+    },
+    {
+      "symbol": "TRUMPUSDT",
+      "ts_unix": 1795699137,
+      "precio_veto": 0.873,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "MARSCOINUSDT",
+      "ts_unix": 1795699138,
+      "precio_veto": 0.0285,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "ONEUSDT",
+      "ts_unix": 1795699138,
+      "precio_veto": 0.001028,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "ENAUSDT",
+      "ts_unix": 1795699138,
+      "precio_veto": 0.1024,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "WLDUSDT",
+      "ts_unix": 1795699139,
+      "precio_veto": 0.2443,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "TIAUSDT",
+      "ts_unix": 1795699139,
+      "precio_veto": 0.3423,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "XLMUSDT",
+      "ts_unix": 1795699140,
+      "precio_veto": 0.1275,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "ARBUSDT",
+      "ts_unix": 1795699140,
+      "precio_veto": 0.1132,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "FILUSDT",
+      "ts_unix": 1795699141,
+      "precio_veto": 0.544,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "SEIUSDT",
+      "ts_unix": 1795699142,
+      "precio_veto": 0.03629,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "XRPUSDT",
+      "ts_unix": 1795699142,
+      "precio_veto": 0.9488,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "SUIUSDT",
+      "ts_unix": 1795699143,
+      "precio_veto": 0.6663,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "ADAUSDT",
+      "ts_unix": 1795699143,
+      "precio_veto": 0.1488,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "MSTRBUSDT",
+      "ts_unix": 1795699143,
+      "precio_veto": 82.44,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "PEPEUSDT",
+      "ts_unix": 1795699144,
+      "precio_veto": 3.53e-06,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "TAOUSDT",
+      "ts_unix": 1795699144,
+      "precio_veto": 183.4,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "NEARUSDT",
+      "ts_unix": 1795699145,
+      "precio_veto": 3.079,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "LINKUSDT",
+      "ts_unix": 1795699145,
+      "precio_veto": 9.255,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "DOGEUSDT",
+      "ts_unix": 1795699146,
+      "precio_veto": 0.05686,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "HYPEUSDT",
+      "ts_unix": 1795699146,
+      "precio_veto": 61.13,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "LTCUSDT",
+      "ts_unix": 1795699147,
+      "precio_veto": 43.63,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "AAVEUSDT",
+      "ts_unix": 1795699147,
+      "precio_veto": 95.38,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "SOLUSDT",
+      "ts_unix": 1795699147,
+      "precio_veto": 70.92,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "SPCXBUSDT",
+      "ts_unix": 1795699148,
+      "precio_veto": 129.98,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Mechas superiores de rechazo en 15m (latigazo)"
+    }
+  ],
+  "metricas_globales": {
+    "total_operadas": 0,
+    "total_ganadas": 0,
+    "runners_20_logrados": 0,
+    "stops_prematuros": 0,
+    "stops_salvadores": 0,
+    "vetos_acertados": 0,
+    "oportunidades_perdidas_20": 0
+  }
+}
