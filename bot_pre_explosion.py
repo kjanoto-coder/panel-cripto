@@ -21,6 +21,8 @@ for mod, pkg in [
         subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", pkg])
 
 import requests
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -44,6 +46,7 @@ HISTORIAL_GANADORAS_FILE = "historial_ganadoras.json"
 EXCEL_PRE_EXPLOSION_FILE = "AUDITORIA_PRE_EXPLOSION.xlsx"
 DIAS_GRADUADAS = 7
 DIAS_RETENCION_CALENDARIO = 90
+MODELOS_GEMINI_PRE = ["gemini-2.5-flash", "gemini-2.5-flash-lite"]
 
 MESES_ES = {
     1: "ENERO", 2: "FEBRERO", 3: "MARZO", 4: "ABRIL",
@@ -62,8 +65,10 @@ EXCL_BASE = {
     'BTC', 'ETH', 'SOL', 'ADA', 'XRP', 'DOGE', 'TRX', 'SHIB', 'AVAX', 'LINK', 'BNB', 'DOT', 'NEAR', 'SUI', 'PEPE'
 }
 
+
 def ahora_art():
     return datetime.now(TZ_ART)
+
 
 def cargar_historial():
     hoy = ahora_art().strftime('%Y-%m-%d')
@@ -105,7 +110,7 @@ def cargar_historial():
             grad_limpia = {}
             for sym, info in (data.get("graduadas_pre_explosion") or {}).items():
                 base_sym = sym[:-4] if sym.endswith("USDT") else sym
-                if base_sym in EXCL_BASE:
+                if not es_simbolo_valido(base_sym):
                     continue
                 try:
                     f_det = datetime.strptime(info.get("fecha_iso", hoy), '%Y-%m-%d').date()
@@ -131,12 +136,14 @@ def cargar_historial():
             pass
     return base
 
+
 def guardar_historial(historial):
     try:
         with open(HISTORIAL_FILE, 'w', encoding='utf-8') as f:
             json.dump(historial, f, ensure_ascii=False, indent=2)
     except Exception as e:
         print(f"⚠️ Error guardando historial: {e}")
+
 
 def crear_sesion_binance():
     session = requests.Session()
@@ -146,6 +153,7 @@ def crear_sesion_binance():
         "Cache-Control": "no-cache"
     })
     return session
+
 
 def obtener_simbolos_spot_activos(session):
     urls = [
@@ -170,6 +178,7 @@ def obtener_simbolos_spot_activos(session):
             print(f"⚠️ Error obteniendo exchangeInfo de {url}: {e}")
     return set()
 
+
 def obtener_datos_binance(session):
     urls = [
         "https://api.binance.com/api/v3/ticker/24hr",
@@ -185,6 +194,7 @@ def obtener_datos_binance(session):
         except Exception as e:
             print(f"⚠️ Error al conectar con {url}: {e}")
     return []
+
 
 def analizar_order_book_blindaje(session, symbol):
     """Audita el libro de órdenes real (20 niveles) para detectar muros vendedores o vacío de liquidez."""
@@ -217,6 +227,7 @@ def analizar_order_book_blindaje(session, symbol):
         except Exception:
             continue
     return {"ok": False, "spread_pct": 0.1, "ratio_bids_asks": 1.0, "libro_sano": True}
+
 
 def obtener_metricas_velas(session, symbol):
     """Obtiene cambio 1h, cambio 4h, volumen relativo 1h y niveles geométricos Fibonacci 4H."""
@@ -304,6 +315,7 @@ def obtener_metricas_velas(session, symbol):
 
     return cambio_1h, cambio_4h, vol_1h_rel, fib_info
 
+
 def formatear_precio(precio):
     if precio is None or precio <= 0:
         return "$0.00"
@@ -317,14 +329,18 @@ def formatear_precio(precio):
         return f"${precio:.6f}"
     return f"${precio:.8f}"
 
+
 def es_simbolo_valido(base):
     if not base or base in EXCL_BASE:
         return False
     if not re.match(r'^[A-Z0-9]+$', base):
         return False
+    if base.endswith('B'):
+        return False
     if any(x in base for x in ['UP', 'DOWN', 'BULL', 'BEAR']):
         return False
     return True
+
 
 def construir_item_desde_ticker(session, t, desde_posta=False, info_grad=None, info_posta=None):
     symbol = t.get('symbol', '')
@@ -398,6 +414,7 @@ def construir_item_desde_ticker(session, t, desde_posta=False, info_grad=None, i
         'ratio_bids_asks': 1.0,
         'spread_pct': 0.1
     }
+
 
 def certificar_confluencia_ia(session, seleccion_total, historial):
     """
@@ -475,7 +492,7 @@ def certificar_confluencia_ia(session, seleccion_total, historial):
                 "Responde ÚNICAMENTE en JSON válido:\n"
                 '{"MONEDA":{"certificada":true,"blindaje_pct":85,"nota":"motivo técnico corto de 1 línea"}}'
             )
-            for mod in ["gemini-2.5-flash", "gemini-1.5-flash"]:
+            for mod in MODELOS_GEMINI_PRE:
                 try:
                     res = client.models.generate_content(model=mod, contents=prompt)
                     if res and res.text:
@@ -514,6 +531,7 @@ def certificar_confluencia_ia(session, seleccion_total, historial):
             }
 
     historial["graduadas_pre_explosion"] = grad
+
 
 def motor_ia_seleccion_tactica(tickers, simbolos_activos, session, historial):
     hoy_str = ahora_art().strftime('%Y-%m-%d')
@@ -680,6 +698,7 @@ def motor_ia_seleccion_tactica(tickers, simbolos_activos, session, historial):
 
     return {"ROJO": top_rojas, "AMARILLO": top_amarillas, "VERDE": top_verdes}, total_analizadas, historial, mapa_tickers
 
+
 # ==============================================================================
 # AUDITORÍA HISTÓRICA + CRUCE CON MONEDAS GANADORAS + EXCEL DIARIO
 # ==============================================================================
@@ -690,6 +709,7 @@ def _normalizar_symbol(raw):
     if not s.endswith("USDT"):
         s = f"{s}USDT"
     return s
+
 
 def _normalizar_ts(ts_raw, fallback_fecha):
     """Devuelve (fecha_iso, ts_iso, tiene_hora_real)."""
@@ -712,6 +732,7 @@ def _normalizar_ts(ts_raw, fallback_fecha):
     f_base = fallback_fecha[:10] if len(fallback_fecha) >= 10 else ahora_art().strftime("%Y-%m-%d")
     return f_base, f"{f_base} 00:00", False
 
+
 def _formatear_demora(horas_totales, mismo_dia_sin_hora=False):
     if mismo_dia_sin_hora:
         return "Mismo día"
@@ -725,6 +746,7 @@ def _formatear_demora(horas_totales, mismo_dia_sin_hora=False):
     if dias > 0:
         return f"{dias}d {horas:02d}h"
     return f"{horas}h"
+
 
 def _calcular_velocidad_escalada(rec):
     """Mide el tiempo de aceleración entre colores del semáforo."""
@@ -753,11 +775,13 @@ def _calcular_velocidad_escalada(rec):
         return "Directo 🔴"
     return "-"
 
+
 def _etiqueta_semaforo(rec_o_item):
     col = str(rec_o_item.get("color_inicial") or rec_o_item.get("color") or "VERDE").upper()
     if col == "VERDE" and rec_o_item.get("es_oro"):
         return "🏆 TOP ORO"
     return {"VERDE": "🟢 VERDE", "AMARILLO": "🟡 AMARILLO", "ROJO": "🔴 ROJO"}.get(col, col)
+
 
 def _insertar_evento_historico(registro, por_dia, evento):
     sym = _normalizar_symbol(evento.get("symbol") or evento.get("ticker"))
@@ -823,7 +847,6 @@ def _insertar_evento_historico(registro, por_dia, evento):
             vistas.sort()
         rec["apariciones_count"] = max(len(vistas), int(rec.get("apariciones_count") or 1))
 
-        # Si encontramos una fecha anterior o completamos la hora real del mismo primer día
         f_prev = rec.get("fecha_primera", "9999-99-99")
         if fecha_det < f_prev or (fecha_det == f_prev and tiene_hora and not rec.get("tiene_hora_primera", False)):
             rec["fecha_primera"] = fecha_det
@@ -894,6 +917,7 @@ def _insertar_evento_historico(registro, por_dia, evento):
             db["precio"] = precio
         if ext_1618 > 0:
             db["ext_1618"] = ext_1618
+
 
 def migrar_historial_existente(historial, ganadoras, registro, por_dia):
     """Rescata todo el historial previo en historial_perlas.json e historial_ganadoras.json."""
@@ -974,6 +998,7 @@ def migrar_historial_existente(historial, ganadoras, registro, por_dia):
             "ts": hoy_str
         })
 
+
 def _generar_excel_pre_explosion(registro, por_dia, mapa_tickers):
     wb = openpyxl.Workbook()
     wb.remove(wb.active)
@@ -995,7 +1020,6 @@ def _generar_excel_pre_explosion(registro, por_dia, mapa_tickers):
     )
     color_fills = {"VERDE": fill_verde, "AMARILLO": fill_amarillo, "ROJO": fill_rojo}
 
-    # --- 1. HOJAS MENSUALES (CALENDARIO LUNES A DOMINGO DINÁMICO SIN RECORTES) ---
     meses = set()
     for f_str in por_dia.keys():
         try:
@@ -1035,7 +1059,6 @@ def _generar_excel_pre_explosion(registro, por_dia, mapa_tickers):
 
         fila_base = 3
         for lunes in sorted(semanas_map.keys()):
-            # Alto dinámico para que ningún día recorte alertas de Amarillo o Verde
             max_en_semana = max(
                 (len(por_dia.get((lunes + timedelta(days=w)).strftime("%Y-%m-%d"), {})) for w in range(7)),
                 default=25
@@ -1126,7 +1149,6 @@ def _generar_excel_pre_explosion(registro, por_dia, mapa_tickers):
             if b_idx < 6:
                 ws.column_dimensions[openpyxl.utils.get_column_letter(cs + 6)].width = 2.5
 
-    # --- 2. PESTAÑA CRUCE_TIEMPOS_GANADORA ---
     ws_cruce = wb.create_sheet("CRUCE_TIEMPOS_GANADORA")
     headers_cruce = [
         "MONEDA", "1ª APARICIÓN", "SEMÁFORO INICIAL", "SEMÁFORO MÁX",
@@ -1222,7 +1244,6 @@ def _generar_excel_pre_explosion(registro, por_dia, mapa_tickers):
     for i, w in enumerate(anchos_cruce, start=1):
         ws_cruce.column_dimensions[openpyxl.utils.get_column_letter(i)].width = w
 
-    # --- 3. PESTAÑA ANALISIS_PATRONES ---
     ws_pat = wb.create_sheet("ANALISIS_PATRONES")
     ws_pat["A1"] = "ANÁLISIS ESTADÍSTICO DE PATRONES • PRE-EXPLOSIÓN ➔ GANADORA"
     ws_pat["A1"].font = Font(name="Arial", size=12, bold=True, color="FFFFFF")
@@ -1316,7 +1337,6 @@ def _generar_excel_pre_explosion(registro, por_dia, mapa_tickers):
     for i, w in enumerate(anchos_pat, start=1):
         ws_pat.column_dimensions[openpyxl.utils.get_column_letter(i)].width = w
 
-    # --- 4. PESTAÑA DIAGNOSTICO_HISTORICO ---
     ws_diag = wb.create_sheet("DIAGNOSTICO_HISTORICO")
     ws_diag["A1"] = "DIAGNÓSTICO AUTOMÁTICO DE DATOS ACUMULADOS"
     ws_diag["A1"].font = Font(name="Arial", size=12, bold=True, color="FFFFFF")
@@ -1385,6 +1405,7 @@ def _generar_excel_pre_explosion(registro, por_dia, mapa_tickers):
         "prom_txt": _formatear_demora(prom_h) if prom_h is not None else "Mismo día"
     }
 
+
 def enviar_telegram_documento(doc_path, caption_text):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID or not os.path.exists(doc_path):
         return False
@@ -1403,6 +1424,7 @@ def enviar_telegram_documento(doc_path, caption_text):
     except Exception as e:
         print(f"❌ Error enviando Excel Pre-Explosión: {e}")
         return False
+
 
 def ejecutar_auditoria_y_excel_pre_explosion(historial, bloques, mapa_tickers):
     """Migra historial, cruza con Monedas Ganadoras, genera AUDITORIA_PRE_EXPLOSION.xlsx y lo envía al cierre."""
@@ -1424,10 +1446,8 @@ def ejecutar_auditoria_y_excel_pre_explosion(historial, bloques, mapa_tickers):
     registro = historial.setdefault("registro_cronologico", {})
     por_dia = historial.setdefault("apariciones_por_dia", {})
 
-    # 1. Migrar historia previa
     migrar_historial_existente(historial, ganadoras, registro, por_dia)
 
-    # 2. Registrar detecciones del ciclo actual
     for cat_key in ("ROJO", "AMARILLO", "VERDE"):
         for it in (bloques.get(cat_key) or []):
             fib = it.get("fib_info") or {}
@@ -1447,7 +1467,6 @@ def ejecutar_auditoria_y_excel_pre_explosion(historial, bloques, mapa_tickers):
                 "ts": ts_now_str
             })
 
-    # 3. Actualizar picos máximos y cruzar contra Monedas Ganadoras
     dias_win = ganadoras.get("dias", {})
     fechas_win_ord = sorted(dias_win.keys())
     ts_cierre_win_default = str(ganadoras.get("ultima_actualizacion", ""))[:16]
@@ -1476,7 +1495,6 @@ def ejecutar_auditoria_y_excel_pre_explosion(historial, bloques, mapa_tickers):
         p_live = float(mapa_tickers.get(sym, {}).get("lastPrice", 0) or 0.0)
         p_pico_actual = max(float(rec.get("precio_pico") or 0.0), p_ini, p_live)
 
-        # Revisar también el máximo diario registrado en Ganadoras en fechas >= f_ini
         for f_w, g_info in precios_hist_win.get(sym, {}).items():
             if f_w >= f_ini:
                 p_pico_actual = max(p_pico_actual, float(g_info.get("high") or g_info.get("precio") or 0.0))
@@ -1489,7 +1507,6 @@ def ejecutar_auditoria_y_excel_pre_explosion(historial, bloques, mapa_tickers):
         if dia_b and float(dia_b.get("precio") or 0.0) <= 0 and p_ini > 0:
             dia_b["precio"] = p_ini
 
-        # Recalcular o completar cruce con Ganadoras
         for f_win in fechas_win_ord:
             if f_win < f_ini:
                 continue
@@ -1535,10 +1552,8 @@ def ejecutar_auditoria_y_excel_pre_explosion(historial, bloques, mapa_tickers):
                 rec["alcanzo_fib_1618"] = bool(ext_target > 0 and max(p_win, p_pico_actual) >= ext_target)
                 break
 
-    # 4. Generar Excel completo
     stats = _generar_excel_pre_explosion(registro, por_dia, mapa_tickers)
 
-    # 5. Enviar Excel diario a Telegram
     ultimo_envio = historial.get("ultimo_envio_excel_pre", "")
     es_cierre = (ahora.hour == 23 and ahora.minute >= 30 and ultimo_envio != hoy_str)
     es_recupero = (ahora.hour <= 2 and ultimo_envio != ayer_str)
@@ -1558,6 +1573,7 @@ def ejecutar_auditoria_y_excel_pre_explosion(historial, bloques, mapa_tickers):
                 historial["ultimo_envio_excel_pre"] = fecha_lbl
 
     guardar_historial(historial)
+
 
 def generar_grafico_color(lista_items, titulo_graf, subtitulo_graf, filename):
     if not lista_items:
@@ -1603,6 +1619,7 @@ def generar_grafico_color(lista_items, titulo_graf, subtitulo_graf, filename):
     plt.close()
     return filename
 
+
 def generar_dictamen_color(cat_key, lista_items):
     if not lista_items:
         return ""
@@ -1619,7 +1636,7 @@ def generar_dictamen_color(cat_key, lista_items):
         f"Analista Spot Binance. Dá un dictamen breve (máximo 2 líneas) para el bloque {cat_key} de Pre-Explosión "
         f"destacando las monedas que recibieron el sello CERTIFICADA_IA para cartera semanal:\n{lista_texto}"
     )
-    for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
+    for mod in MODELOS_GEMINI_PRE:
         try:
             response = client.models.generate_content(model=mod, contents=prompt)
             if response and response.text:
@@ -1627,6 +1644,7 @@ def generar_dictamen_color(cat_key, lista_items):
         except Exception:
             continue
     return f"Lectura {cat_key}: foco en confluencia Cazador+PreExplosión, libro de órdenes y Fibonacci."
+
 
 def enviar_telegram_foto(image_path, caption_text):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
@@ -1646,6 +1664,7 @@ def enviar_telegram_foto(image_path, caption_text):
     except Exception as e:
         print(f"❌ Error enviando foto a Telegram: {e}")
 
+
 def enviar_texto_telegram(texto):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         return
@@ -1661,6 +1680,7 @@ def enviar_texto_telegram(texto):
             requests.post(url, json=payload, timeout=30)
     except Exception as e:
         print(f"⚠️ Error enviando texto: {e}")
+
 
 def enviar_mensaje_por_color(num_msg, cat_key, titulo_color, items, total_analizadas):
     fecha_str = ahora_art().strftime('%Y-%m-%d %H:%M ART')
@@ -1725,6 +1745,7 @@ def enviar_mensaje_por_color(num_msg, cat_key, titulo_color, items, total_analiz
         )
 
     enviar_texto_telegram(cuerpo)
+
 
 if __name__ == "__main__":
     print(f"🔥 EJECUTANDO PRE-EXPLOSIÓN V8 + CERTIFICADOR IA + EXCEL ({ahora_art().strftime('%Y-%m-%d %H:%M:%S')} ART)...")
