@@ -4582,6 +4582,16 @@
       "origen": "CAZADOR_TACTICO_ROJO",
       "certificada_etapa1": true,
       "blindaje_etapa1": 84
+    },
+    "PROMUSDT": {
+      "symbol": "PROMUSDT",
+      "base": "PROM",
+      "estrellas": 3,
+      "probabilidad_pct": 80,
+      "precio_ref": 4.877,
+      "fecha_iso": "2026-11-26",
+      "fecha_corta": "26/11",
+      "origen": "SEGUNDA_OLA_GANADORAS"
     }
   },
   "verdes_hoy": [
