@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 7,
-  "ultima_actualizacion": "2026-11-26 11:02 ART",
+  "version_ciclo": 8,
+  "ultima_actualizacion": "2026-11-26 11:11 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.8,
     "min_ob_ratio": 1.25,
@@ -291,6 +291,13 @@
       "symbol": "NIGHTUSDT",
       "ts_unix": 1795701072,
       "precio_veto": 0.04774,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "ICPUSDT",
+      "ts_unix": 1795702277,
+      "precio_veto": 2.008,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     }
