@@ -4606,6 +4606,16 @@
       "fecha_iso": "2026-11-26",
       "fecha_corta": "26/11",
       "origen": "SEGUNDA_OLA_GANADORAS"
+    },
+    "STOUSDT": {
+      "symbol": "STOUSDT",
+      "base": "STO",
+      "estrellas": 3,
+      "probabilidad_pct": 80,
+      "precio_ref": 0.0215,
+      "fecha_iso": "2026-11-26",
+      "fecha_corta": "26/11",
+      "origen": "SEGUNDA_OLA_GANADORAS"
     }
   },
   "verdes_hoy": [
