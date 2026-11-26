@@ -1,14 +1,5 @@
 [
   [
-    "POLUSDT",
-    "ASTERUSDT",
-    "DOTUSDT",
-    "GRAMUSDT",
-    "APTUSDT",
-    "SENTUSDT",
-    "PUMPUSDT"
-  ],
-  [
     "XRPUSDT",
     "DOGEUSDT",
     "ADAUSDT",
@@ -16,5 +7,14 @@
     "PEPEUSDT",
     "WLDUSDT",
     "HBARUSDT"
+  ],
+  [
+    "NEARUSDT",
+    "ICPUSDT",
+    "ONDOUSDT",
+    "RENDERUSDT",
+    "XPLUSDT",
+    "KAVAUSDT",
+    "ARBUSDT"
   ]
 ]
