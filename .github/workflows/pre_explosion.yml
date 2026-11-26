@@ -6,12 +6,12 @@ on:
     - cron: '9,24,39,54 * * * *'
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 concurrency:
   group: escritura-pre-explosion
   cancel-in-progress: false
+
+permissions:
+  contents: write
 
 jobs:
   run-pre-explosion:
@@ -29,7 +29,7 @@ jobs:
       - name: Instalar Dependencias
         run: |
           python -m pip install --upgrade pip
-          pip install requests ccxt pandas matplotlib openpyxl google-genai
+          pip install requests matplotlib openpyxl google-genai
 
       - name: Ejecutar Bot de Pre-Explosión
         env:
@@ -47,7 +47,8 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add -f historial_perlas.json datos_pre_explosion_ia.json AUDITORIA_PRE_EXPLOSION.xlsx || true
+          git add -f historial_perlas.json AUDITORIA_PRE_EXPLOSION.xlsx || true
+          [ -f datos_pre_explosion_ia.json ] && git add -f datos_pre_explosion_ia.json || true
           if ! git diff --staged --quiet; then
             git commit -m "Auto-update: Estado Pre-Explosión IA y Excel [skip ci]"
             for i in 1 2 3; do
@@ -58,5 +59,3 @@ jobs:
               sleep 5
             done
           fi
-
-# FIN WORKFLOW PRE EXPLOSION
