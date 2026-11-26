@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 3,
-  "ultima_actualizacion": "2026-11-26 10:21 ART",
+  "version_ciclo": 4,
+  "ultima_actualizacion": "2026-11-26 10:31 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.8,
     "min_ob_ratio": 1.25,
@@ -265,6 +265,27 @@
       "precio_veto": 0.00919,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "WBTCUSDT",
+      "ts_unix": 1795699904,
+      "precio_veto": 60946.44,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "BTCUSDT",
+      "ts_unix": 1795699909,
+      "precio_veto": 60844.26,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "ETHUSDT",
+      "ts_unix": 1795699910,
+      "precio_veto": 1704.98,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Mechas superiores de rechazo en 15m (latigazo)"
     }
   ],
   "metricas_globales": {
