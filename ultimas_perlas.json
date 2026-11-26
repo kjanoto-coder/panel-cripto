@@ -1,14 +1,5 @@
 [
   [
-    "WLDUSDT",
-    "ASTERUSDT",
-    "GRAMUSDT",
-    "CHIPUSDT",
-    "SEIUSDT",
-    "PENGUUSDT",
-    "OPUSDT"
-  ],
-  [
     "NEARUSDT",
     "DOGEUSDT",
     "ZROUSDT",
@@ -16,5 +7,14 @@
     "ORDIUSDT",
     "ONDOUSDT",
     "XLMUSDT"
+  ],
+  [
+    "XRPUSDT",
+    "PEPEUSDT",
+    "ADAUSDT",
+    "SUIUSDT",
+    "UNIUSDT",
+    "ENAUSDT",
+    "DOTUSDT"
   ]
 ]
