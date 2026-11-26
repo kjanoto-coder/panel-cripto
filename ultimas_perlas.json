@@ -1,14 +1,5 @@
 [
   [
-    "DOGEUSDT",
-    "HBARUSDT",
-    "KITEUSDT",
-    "INTWBUSDT",
-    "PENGUUSDT",
-    "BNCBUSDT",
-    "XLMUSDT"
-  ],
-  [
     "XRPUSDT",
     "NEARUSDT",
     "ADAUSDT",
@@ -16,5 +7,14 @@
     "UNIUSDT",
     "INITUSDT",
     "BONKUSDT"
+  ],
+  [
+    "PEPEUSDT",
+    "WLDUSDT",
+    "ENAUSDT",
+    "APTUSDT",
+    "ORDIUSDT",
+    "ALGOUSDT",
+    "DOTUSDT"
   ]
 ]
