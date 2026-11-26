@@ -1,12 +1,12 @@
 {
-  "version_ciclo": 13,
-  "ultima_actualizacion": "2026-11-26 11:51 ART",
+  "version_ciclo": 14,
+  "ultima_actualizacion": "2026-11-26 12:01 ART",
   "umbrales": {
-    "min_ratio_vol_1h": 1.8,
-    "min_ob_ratio": 1.25,
+    "min_ratio_vol_1h": 1.84,
+    "min_ob_ratio": 1.27,
     "max_concentracion_muro_pct": 32.0,
-    "min_taker_buy_pct": 55.0,
-    "min_whale_buy_pct": 54.0,
+    "min_taker_buy_pct": 55.4,
+    "min_whale_buy_pct": 54.4,
     "min_trades_por_min": 12.0,
     "min_pista_libre_pct": 16.0,
     "max_distancia_ma7_15m_pct": 3.2,
@@ -41,13 +41,20 @@
       "bonus": 14.0
     },
     "ESCALADA_GANADORAS_24H": {
-      "ops": 0,
+      "ops": 1,
       "ganadas": 0,
       "runners_20": 0,
-      "bonus": 12.0
+      "bonus": 10.0
     }
   },
-  "memoria_monedas": {},
+  "memoria_monedas": {
+    "AEROUSDT": {
+      "eventos": 1,
+      "positivos": 0,
+      "negativos": 1,
+      "ajuste_score": -5.0
+    }
+  },
   "pendientes_sombra_24h": [
     {
       "symbol": "BLURUSDT",
@@ -307,10 +314,17 @@
       "precio_veto": 552.84,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Mechas superiores de rechazo en 15m (latigazo)"
+    },
+    {
+      "symbol": "ANTBUSDT",
+      "ts_unix": 1795705307,
+      "precio_veto": 83.68,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin historial suficiente de velas 15m/1D"
     }
   ],
   "metricas_globales": {
-    "total_operadas": 0,
+    "total_operadas": 1,
     "total_ganadas": 0,
     "runners_20_logrados": 0,
     "stops_prematuros": 0,
