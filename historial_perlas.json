@@ -4646,6 +4646,16 @@
       "certificada_ia": true,
       "blindaje_pct": 79,
       "motivo_certificacion": "Pullback Sano Fib (0.36) | Libro Bids/Asks: 1.33x (Spread 0.08%)"
+    },
+    "CFGUSDT": {
+      "symbol": "CFGUSDT",
+      "base": "CFG",
+      "estrellas": 3,
+      "probabilidad_pct": 80,
+      "precio_ref": 0.0497,
+      "fecha_iso": "2026-11-26",
+      "fecha_corta": "26/11",
+      "origen": "SEGUNDA_OLA_GANADORAS"
     }
   },
   "verdes_hoy": [
