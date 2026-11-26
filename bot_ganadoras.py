@@ -21,6 +21,8 @@ for mod, pkg in [
         subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", pkg])
 
 import requests
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -43,6 +45,7 @@ HISTORIAL_GANADORAS_FILE = "historial_ganadoras.json"
 HISTORIAL_PERLAS_FILE = "historial_perlas.json"
 EXCEL_AUDITORIA_FILE = "AUDITORIA_VERDE_GANADORAS.xlsx"
 DIAS_RETENCION = 62
+MODELOS_GEMINI_GANADORAS = ["gemini-2.5-flash", "gemini-2.5-flash-lite"]
 
 MESES_ES = {
     1: "ENERO", 2: "FEBRERO", 3: "MARZO", 4: "ABRIL",
@@ -60,17 +63,22 @@ EXCL_BASE = {
     'BTC', 'ETH', 'SOL', 'ADA', 'XRP', 'DOGE', 'TRX', 'SHIB', 'AVAX', 'LINK', 'BNB', 'DOT', 'NEAR', 'SUI', 'PEPE'
 }
 
+
 def ahora_art():
     return datetime.now(TZ_ART)
+
 
 def es_simbolo_valido(base):
     if not base or base in EXCL_BASE:
         return False
     if not re.match(r'^[A-Z0-9]+$', base):
         return False
+    if base.endswith('B'):
+        return False
     if any(x in base for x in ['UP', 'DOWN', 'BULL', 'BEAR']):
         return False
     return True
+
 
 def formatear_precio(precio):
     if precio is None or precio <= 0:
@@ -85,6 +93,7 @@ def formatear_precio(precio):
         return f"${precio:.6f}"
     return f"${precio:.8f}"
 
+
 def calcular_precio_base_0(precio_actual, cambio_pct, precio_base_guardado=0.0):
     """Obtiene el precio base (0%) desde openPrice o lo reconstruye desde precio_actual y % subida."""
     p_base = float(precio_base_guardado or 0.0)
@@ -95,6 +104,7 @@ def calcular_precio_base_0(precio_actual, cambio_pct, precio_base_guardado=0.0):
     if p_act > 0 and factor > 0:
         return round(p_act / factor, 8)
     return p_act
+
 
 def cargar_historial_ganadoras():
     base = {
@@ -127,12 +137,14 @@ def cargar_historial_ganadoras():
             print(f"⚠️ Error cargando {HISTORIAL_GANADORAS_FILE}: {e}")
     return base
 
+
 def guardar_historial_ganadoras(historial):
     try:
         with open(HISTORIAL_GANADORAS_FILE, 'w', encoding='utf-8') as f:
             json.dump(historial, f, ensure_ascii=False, indent=2)
     except Exception as e:
         print(f"⚠️ Error guardando {HISTORIAL_GANADORAS_FILE}: {e}")
+
 
 def absorber_verdes_desde_pre_explosion(historial, mapa_actual):
     if not os.path.exists(HISTORIAL_PERLAS_FILE):
@@ -174,6 +186,7 @@ def absorber_verdes_desde_pre_explosion(historial, mapa_actual):
     except Exception as e:
         print(f"⚠️ Error leyendo {HISTORIAL_PERLAS_FILE}: {e}")
 
+
 def sincronizar_con_radar_pre_explosion(segunda_ola):
     if not os.path.exists(HISTORIAL_PERLAS_FILE):
         return
@@ -209,6 +222,7 @@ def sincronizar_con_radar_pre_explosion(segunda_ola):
     except Exception as e:
         print(f"⚠️ No se pudo sincronizar con {HISTORIAL_PERLAS_FILE}: {e}")
 
+
 def crear_sesion_binance():
     session = requests.Session()
     session.headers.update({
@@ -217,6 +231,7 @@ def crear_sesion_binance():
         "Cache-Control": "no-cache"
     })
     return session
+
 
 def obtener_simbolos_spot_activos(session):
     urls = [
@@ -241,6 +256,7 @@ def obtener_simbolos_spot_activos(session):
             print(f"⚠️ Error exchangeInfo {url}: {e}")
     return set()
 
+
 def obtener_datos_binance(session):
     urls = [
         "https://api.binance.com/api/v3/ticker/24hr",
@@ -256,6 +272,7 @@ def obtener_datos_binance(session):
         except Exception as e:
             print(f"⚠️ Error ticker 24hr {url}: {e}")
     return []
+
 
 # ==============================================================================
 # ETAPA 1: CAPTURA DIARIA DE MONEDAS GANADORAS (24H)
@@ -310,7 +327,6 @@ def ejecutar_etapa_1_diaria(tickers, simbolos_activos, historial):
     for idx, item in enumerate(top_20_dia, start=1):
         item["rank"] = idx
 
-    # Si el cron de cierre nocturno se atrasó pasando medianoche (00:00..02:59), respalda el cierre de ayer si faltaba
     if ahora_dt.hour <= 2 and ayer_str not in historial["dias"]:
         historial["dias"][ayer_str] = [dict(x) for x in top_20_dia]
 
@@ -319,6 +335,7 @@ def ejecutar_etapa_1_diaria(tickers, simbolos_activos, historial):
     guardar_historial_ganadoras(historial)
 
     return top_20_dia[:10], mapa_actual
+
 
 # ==============================================================================
 # ETAPA 2: CONSOLIDACIÓN SEMANAL + DETECTOR DE SEGUNDA OLA (7 DÍAS)
@@ -405,6 +422,7 @@ def ejecutar_etapa_2_semanal(historial, mapa_actual):
 
     return reinas_semanales[:10], segunda_ola[:5], len(fechas_7d)
 
+
 # ==============================================================================
 # ETAPA 3: AUDITORÍA REALIDAD (VERDE PRE-EXPLOSIÓN -> MONEDA GANADORA)
 # ==============================================================================
@@ -481,6 +499,7 @@ def ejecutar_etapa_3_auditoria_verde(historial, mapa_actual):
     generar_excel_auditoria(aciertos, pendientes, stats, mapa_actual, historial)
     return aciertos, pendientes, stats
 
+
 def construir_hoja_mensual_ganadoras(wb, anio, mes, dias_dict, reg_verdes):
     nombre_mes = MESES_ES[mes]
     ws = wb.create_sheet(f"{nombre_mes} {anio}")
@@ -500,7 +519,6 @@ def construir_hoja_mensual_ganadoras(wb, anio, mes, dias_dict, reg_verdes):
         bottom=Side(style='thin', color='CBD5E1')
     )
 
-    # 8 bloques x 6 columnas - 1 separador final = 47 columnas (A..AU)
     ws["A1"] = f"MONEDAS GANADORAS • {nombre_mes} {anio} (CIERRES DIARIOS: BASE 0% VS ACTUAL + RESUMEN SEMANAL)"
     ws["A1"].font = Font(name="Arial", size=12, bold=True, color="FFFFFF")
     ws["A1"].fill = fill_titulo
@@ -527,14 +545,12 @@ def construir_hoja_mensual_ganadoras(wb, anio, mes, dias_dict, reg_verdes):
     for lunes in sorted(semanas_map.keys()):
         max_filas_bloque = 20
 
-        # Dibujar los 7 días de la semana (Lunes=0 .. Domingo=6) lado a lado
         for w_idx in range(7):
-            col_ini = 1 + (w_idx * 6)  # 5 columnas de datos + 1 separadora
+            col_ini = 1 + (w_idx * 6)
             dia_dt = lunes + timedelta(days=w_idx)
             f_str = dia_dt.strftime('%Y-%m-%d')
             lista_dia = dias_dict.get(f_str, []) if dia_dt.month == mes else []
 
-            # Encabezado del día: [Día N°] [MES - DÍA SEMANA]
             ws.cell(fila_base, col_ini, dia_dt.day)
             ws.cell(fila_base, col_ini + 1, f"{MESES_ES[dia_dt.month]} - {DIAS_SEMANA_ES[w_idx]}")
             ws.merge_cells(start_row=fila_base, start_column=col_ini + 1, end_row=fila_base, end_column=col_ini + 4)
@@ -546,7 +562,6 @@ def construir_hoja_mensual_ganadoras(wb, anio, mes, dias_dict, reg_verdes):
                 cell_h.border = borde_suave
                 cell_h.alignment = Alignment(horizontal="center" if cc == col_ini else "left", vertical="center")
 
-            # Sub-encabezado: N° | NOMBRE | Base 0% | $ Actual | % subida
             for off, h_txt in enumerate(sub_hdrs):
                 ch = ws.cell(fila_base + 1, col_ini + off, h_txt)
                 ch.fill = fill_col_hdr
@@ -554,7 +569,6 @@ def construir_hoja_mensual_ganadoras(wb, anio, mes, dias_dict, reg_verdes):
                 ch.alignment = Alignment(horizontal="center", vertical="center")
                 ch.border = borde_suave
 
-            # Filas del día
             for r_off in range(max_filas_bloque):
                 fila_actual = fila_base + 2 + r_off
                 if r_off < len(lista_dia):
@@ -588,7 +602,6 @@ def construir_hoja_mensual_ganadoras(wb, anio, mes, dias_dict, reg_verdes):
                         ce = ws.cell(fila_actual, col_ini + off, "")
                         ce.border = borde_suave
 
-        # Bloque RESUMEN SEMANAL a la derecha del Domingo
         col_res = 1 + (7 * 6)
         ws.cell(fila_base, col_res, "RESUMEN SEMANAL")
         ws.merge_cells(start_row=fila_base, start_column=col_res, end_row=fila_base, end_column=col_res + 4)
@@ -606,7 +619,6 @@ def construir_hoja_mensual_ganadoras(wb, anio, mes, dias_dict, reg_verdes):
             ch.alignment = Alignment(horizontal="center", vertical="center")
             ch.border = borde_suave
 
-        # Consolidar todas las monedas ganadoras únicas de esa semana ordenadas por mayor % subida
         consolidado_sem = {}
         for w_idx in range(7):
             dia_dt = lunes + timedelta(days=w_idx)
@@ -660,7 +672,6 @@ def construir_hoja_mensual_ganadoras(wb, anio, mes, dias_dict, reg_verdes):
         ws.row_dimensions[fila_base + 1].height = 19
         fila_base += max_filas_bloque + 4
 
-    # Ajustar anchos de los 8 bloques (7 días + 1 resumen semanal)
     for b_idx in range(8):
         c_start = 1 + (b_idx * 6)
         ws.column_dimensions[openpyxl.utils.get_column_letter(c_start)].width = 4.5
@@ -670,6 +681,7 @@ def construir_hoja_mensual_ganadoras(wb, anio, mes, dias_dict, reg_verdes):
         ws.column_dimensions[openpyxl.utils.get_column_letter(c_start + 4)].width = 9.5
         if b_idx < 7:
             ws.column_dimensions[openpyxl.utils.get_column_letter(c_start + 5)].width = 2.5
+
 
 def generar_excel_auditoria(aciertos, pendientes, stats, mapa_actual, historial):
     wb = openpyxl.Workbook()
@@ -689,7 +701,6 @@ def generar_excel_auditoria(aciertos, pendientes, stats, mapa_actual, historial)
     dias_dict = historial.get("dias", {})
     reg_verdes = historial.get("registro_verdes", {})
 
-    # 1. Crear una pestaña por cada mes registrado con bloques Lunes..Domingo + Resumen Semanal
     meses_presentes = set()
     for f_str in dias_dict.keys():
         try:
@@ -705,7 +716,6 @@ def generar_excel_auditoria(aciertos, pendientes, stats, mapa_actual, historial)
     for anio, mes in sorted(meses_presentes):
         construir_hoja_mensual_ganadoras(wb, anio, mes, dias_dict, reg_verdes)
 
-    # 2. Pestaña PARAMETROS_RADAR (Auditoría de tiempos Verde -> Ganadora)
     ws_res = wb.create_sheet("PARAMETROS_RADAR")
     ws_res["A1"] = "AUDITORÍA REALIDAD: COMPRA EN VERDE (PRE-EXPLOSIÓN) -> MONEDA GANADORA"
     ws_res["A1"].font = Font(name="Arial", size=13, bold=True, color="FFFFFF")
@@ -742,7 +752,6 @@ def generar_excel_auditoria(aciertos, pendientes, stats, mapa_actual, historial)
     ws_res.column_dimensions["B"].width = 24
     ws_res.column_dimensions["C"].width = 50
 
-    # 3. Pestaña DETALLE_OPERACIONES (Seguimiento individual Verde -> Ganadora)
     ws_det = wb.create_sheet("DETALLE_OPERACIONES")
     headers_det = [
         "MONEDA", "CATEGORÍA", "FECHA VERDE", "PRECIO VERDE",
@@ -790,6 +799,7 @@ def generar_excel_auditoria(aciertos, pendientes, stats, mapa_actual, historial)
 
     wb.save(EXCEL_AUDITORIA_FILE)
 
+
 # ==============================================================================
 # VISUALIZACIÓN Y TELEGRAM
 # ==============================================================================
@@ -829,6 +839,7 @@ def generar_grafico_diario(top_10, fecha_str, filename="ganadoras_24h.png"):
     plt.savefig(filename, dpi=300, facecolor=fig.get_facecolor(), edgecolor='none')
     plt.close()
     return filename
+
 
 def generar_grafico_semanal(reinas, dias_count, filename="ganadoras_semanal.png"):
     if not reinas:
@@ -877,6 +888,7 @@ def generar_grafico_semanal(reinas, dias_count, filename="ganadoras_semanal.png"
     plt.close()
     return filename
 
+
 def generar_dictamen_ia(modo, lista_items):
     if not lista_items:
         return ""
@@ -893,7 +905,7 @@ def generar_dictamen_ia(modo, lista_items):
         resumen = "\n".join([f"- {x['ticker']}: {x['veces']} días ganando, pico +{x['gain_max']}%, retroceso actual {x['retroceso_pct']}%" for x in lista_items[:6]])
         prompt = f"Analista Spot Binance. Dá un dictamen breve (máximo 2 líneas) sobre las ganadoras recurrentes de la semana y oportunidades de rebote:\n{resumen}"
 
-    for mod in ['gemini-2.5-flash', 'gemini-3.5-flash-lite', 'gemini-1.5-flash']:
+    for mod in MODELOS_GEMINI_GANADORAS:
         try:
             resp = client.models.generate_content(model=mod, contents=prompt)
             if resp and resp.text:
@@ -901,6 +913,7 @@ def generar_dictamen_ia(modo, lista_items):
         except Exception:
             continue
     return "Lectura Spot: foco en continuidad de volumen y retrocesos ordenados hacia soportes."
+
 
 def enviar_telegram_foto(image_path, caption_text):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
@@ -918,6 +931,7 @@ def enviar_telegram_foto(image_path, caption_text):
                 requests.post(url, data=payload, files={"photo": photo}, timeout=45)
     except Exception as e:
         print(f"❌ Error enviando foto Telegram: {e}")
+
 
 def enviar_telegram_documento(doc_path, caption_text):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID or not os.path.exists(doc_path):
@@ -938,6 +952,7 @@ def enviar_telegram_documento(doc_path, caption_text):
         print(f"❌ Error enviando documento Telegram: {e}")
         return False
 
+
 def enviar_texto_telegram(texto):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         return
@@ -953,6 +968,7 @@ def enviar_texto_telegram(texto):
             requests.post(url, json=payload, timeout=30)
     except Exception as e:
         print(f"⚠️ Error enviando texto Telegram: {e}")
+
 
 def publicar_reporte_diario(top_10, total_dias_guardados):
     fecha_str = ahora_art().strftime('%Y-%m-%d %H:%M ART')
@@ -989,6 +1005,7 @@ def publicar_reporte_diario(top_10, total_dias_guardados):
 
     enviar_texto_telegram(cuerpo)
 
+
 def publicar_excel_diario(stats, fecha_cierre_str):
     """Envía diariamente la planilla Excel actualizada al cierre de cada jornada."""
     caption = (
@@ -996,6 +1013,7 @@ def publicar_excel_diario(stats, fecha_cierre_str):
         f"Bloques Diarios (Base 0% vs Actual) + Resumen Semanal + Auditoría Verde ➔ Ganadoras ({stats['total_aciertos']} aciertos)."
     )
     return enviar_telegram_documento(EXCEL_AUDITORIA_FILE, caption)
+
 
 def publicar_reporte_semanal_y_auditoria(reinas, segunda_ola, dias_count, aciertos, stats):
     fecha_str = ahora_art().strftime('%Y-%m-%d %H:%M ART')
@@ -1036,7 +1054,6 @@ def publicar_reporte_semanal_y_auditoria(reinas, segunda_ola, dias_count, aciert
         enviar_texto_telegram(cuerpo)
         time.sleep(1.5)
 
-    # --- ETAPA 3: AUDITORÍA DE REALIDAD (VERDE -> GANADORA) ---
     demora_txt = f"{stats['demora_prom_dias']} días (Mediana: {stats['demora_mediana_dias']}d)" if stats["demora_prom_dias"] is not None else "En acumulación de datos"
     msg_auditoria = (
         f"📐 <b>ETAPA 3 • AUDITORÍA REALIDAD (VERDE ➔ GANADORA)</b>\n"
@@ -1062,6 +1079,7 @@ def publicar_reporte_semanal_y_auditoria(reinas, segunda_ola, dias_count, aciert
         f"📊 <b>Planilla Excel Actualizada:</b> Bloques Diarios (Base 0% vs Actual) + Resumen Semanal + Auditoría Verde ➔ Ganadoras ({stats['total_aciertos']} aciertos)."
     )
 
+
 if __name__ == "__main__":
     print(f"🏆 EJECUTANDO BOT MONEDAS GANADORAS + AUDITORÍA VERDE (3 ETAPAS) - {ahora_art().strftime('%Y-%m-%d %H:%M:%S')} ART")
     session = crear_sesion_binance()
@@ -1071,15 +1089,12 @@ if __name__ == "__main__":
     if datos and simbolos_activos:
         historial = cargar_historial_ganadoras()
 
-        # ETAPA 1: Captura y guarda el cierre diario de 24h
         top_10_dia, mapa_actual = ejecutar_etapa_1_diaria(datos, simbolos_activos, historial)
         total_dias = len(historial.get("dias", {}))
         publicar_reporte_diario(top_10_dia, total_dias)
 
-        # ETAPA 3 (ejecución diaria): registra nuevas Verdes, cruza contra ganadoras y actualiza AUDITORIA_VERDE_GANADORAS.xlsx
         aciertos, pendientes, stats = ejecutar_etapa_3_auditoria_verde(historial, mapa_actual)
 
-        # ETAPA 2: Consolida los últimos 7 días y busca Segunda Ola
         hoy = ahora_art()
         hoy_str = hoy.strftime('%Y-%m-%d')
         ayer_str = (hoy - timedelta(days=1)).strftime('%Y-%m-%d')
@@ -1099,7 +1114,6 @@ if __name__ == "__main__":
             guardar_historial_ganadoras(historial)
             excel_ya_enviado_en_ciclo = True
 
-        # Envío diario garantizado del Excel al cierre del día (o post-medianoche si el cron se demoró)
         if not excel_ya_enviado_en_ciclo:
             ultimo_excel = historial.get("ultimo_envio_excel", "")
             es_cierre_diario = (hoy.hour == 23 and hoy.minute >= 30 and ultimo_excel != hoy_str)
