@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 40,
-  "ultima_actualizacion": "2026-11-26 16:21 ART",
+  "version_ciclo": 41,
+  "ultima_actualizacion": "2026-11-26 16:31 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.84,
     "min_ob_ratio": 1.27,
@@ -417,6 +417,13 @@
       "symbol": "NEARUSDT",
       "ts_unix": 1795720881,
       "precio_veto": 3.09,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "BABYUSDT",
+      "ts_unix": 1795721493,
+      "precio_veto": 0.00922,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     }
