@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 27,
-  "ultima_actualizacion": "2026-11-26 14:11 ART",
+  "version_ciclo": 28,
+  "ultima_actualizacion": "2026-11-26 14:21 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.84,
     "min_ob_ratio": 1.27,
@@ -361,6 +361,27 @@
       "symbol": "QNTUSDT",
       "ts_unix": 1795713076,
       "precio_veto": 150.15,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "BCHUSDT",
+      "ts_unix": 1795713675,
+      "precio_veto": 207.8,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Mechas superiores de rechazo en 15m (latigazo)"
+    },
+    {
+      "symbol": "CRCLBUSDT",
+      "ts_unix": 1795713677,
+      "precio_veto": 48.66,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "SNDKBUSDT",
+      "ts_unix": 1795713679,
+      "precio_veto": 75.0,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     }
