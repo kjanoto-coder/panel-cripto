@@ -68,7 +68,8 @@
     "ONEUSDT",
     "TIAUSDT",
     "APTUSDT",
-    "IRENBUSDT"
+    "IRENBUSDT",
+    "SAGAUSDT"
   ],
   "resumen_enviado_hoy": false,
   "posta": {
@@ -3403,7 +3404,7 @@
       "fecha_corta": "26/11",
       "certificada_ia": true,
       "blindaje_pct": 98,
-      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.57) | Libro Bids/Asks: 2.07x (Spread 0.198%)"
+      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.56) | Libro Bids/Asks: 1.97x (Spread 0.099%)"
     },
     "ZAMAUSDT": {
       "symbol": "ZAMAUSDT",
@@ -3583,7 +3584,7 @@
       "fecha_corta": "26/11",
       "certificada_ia": false,
       "blindaje_pct": 71,
-      "motivo_certificacion": "Coincide Cazador+PreExplosión | Extendida Fib (0.01) | Libro Bids/Asks: 0.77x (Spread 0.159%)"
+      "motivo_certificacion": "Coincide Cazador+PreExplosión | Extendida Fib (0.06) | Libro Bids/Asks: 1.34x (Spread 0.143%)"
     },
     "MITOUSDT": {
       "symbol": "MITOUSDT",
@@ -3631,7 +3632,7 @@
       "fecha_corta": "23/11 15:16",
       "certificada_ia": true,
       "blindaje_pct": 97,
-      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.44) | Libro Bids/Asks: 1.46x (Spread 0.076%)"
+      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.44) | Libro Bids/Asks: 1.47x (Spread 0.076%)"
     },
     "OPUSDT": {
       "symbol": "OPUSDT",
@@ -4087,7 +4088,7 @@
       "fecha_corta": "24/11",
       "certificada_ia": true,
       "blindaje_pct": 90,
-      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.59) | Libro Bids/Asks: 1.07x (Spread 0.03%)"
+      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.59) | Libro Bids/Asks: 1.17x (Spread 0.03%)"
     },
     "MUUBUSDT": {
       "symbol": "MUUBUSDT",
@@ -4210,14 +4211,14 @@
     "NVDABUSDT": {
       "symbol": "NVDABUSDT",
       "base": "NVDAB",
-      "estrellas": 3,
+      "estrellas": 2,
       "probabilidad_pct": 97,
       "precio_ref": 157.36,
       "fecha_iso": "2026-11-24",
       "fecha_corta": "24/11",
       "certificada_ia": true,
       "blindaje_pct": 97,
-      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.45) | Libro Bids/Asks: 1.08x (Spread 0.007%)"
+      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.45) | Libro Bids/Asks: 1.0x (Spread 0.007%)"
     },
     "IRENBUSDT": {
       "symbol": "IRENBUSDT",
@@ -4443,9 +4444,9 @@
       "precio_ref": 0.01451,
       "fecha_iso": "2026-11-26",
       "fecha_corta": "26/11",
-      "origen": "CAZADOR_TACTICO_ROJO",
-      "certificada_etapa1": true,
-      "blindaje_etapa1": 89
+      "certificada_ia": false,
+      "blindaje_pct": 71,
+      "motivo_certificacion": "Coincide Cazador+PreExplosión | Extendida Fib (0.04) | Libro Bids/Asks: 1.06x (Spread 0.068%)"
     },
     "SUNUSDT": {
       "symbol": "SUNUSDT",
