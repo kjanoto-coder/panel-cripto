@@ -1,14 +1,5 @@
 [
   [
-    "XRPUSDT",
-    "SUIUSDT",
-    "UNIUSDT",
-    "CAKEUSDT",
-    "BNCBUSDT",
-    "ASTERUSDT",
-    "FILUSDT"
-  ],
-  [
     "PEPEUSDT",
     "STXUSDT",
     "CRVUSDT",
@@ -16,5 +7,14 @@
     "OPUSDT",
     "AEROUSDT",
     "ARBUSDT"
+  ],
+  [
+    "DOGEUSDT",
+    "SHIBUSDT",
+    "MEGAUSDT",
+    "DOTUSDT",
+    "USUALUSDT",
+    "POLUSDT",
+    "XLMUSDT"
   ]
 ]
