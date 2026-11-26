@@ -4560,6 +4560,16 @@
       "certificada_ia": true,
       "blindaje_pct": 97,
       "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.63) | Libro Bids/Asks: 2.66x (Spread 0.415%)"
+    },
+    "ATUSDT": {
+      "symbol": "ATUSDT",
+      "base": "AT",
+      "estrellas": 3,
+      "probabilidad_pct": 80,
+      "precio_ref": 0.0556,
+      "fecha_iso": "2026-11-26",
+      "fecha_corta": "26/11",
+      "origen": "SEGUNDA_OLA_GANADORAS"
     }
   },
   "verdes_hoy": [
