@@ -1,5 +1,7 @@
 import os, re, json, time, random, html, requests
 from datetime import datetime, timezone, timedelta
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from google import genai
 
@@ -13,6 +15,7 @@ BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
 HISTORIAL_FILE = "historial_perlas.json"
 HISTORIAL_GANADORAS_FILE = "historial_ganadoras.json"
 DIAS_SEGUIMIENTO = 12
+MODELOS_GEMINI_TACTICO = ["gemini-2.5-flash", "gemini-2.5-flash-lite"]
 
 EXCL_RADAR = {
     'USDT', 'USDC', 'FDUSD', 'DAI', 'TUSD', 'USDP', 'EUR', 'BUSD', 'USD1', 'AEUR', 'EURI', 'USDE',
@@ -23,8 +26,10 @@ EXCL_RADAR = {
     'KAS', 'TAO', 'FET', 'WIF', 'BONK', 'FLOKI', 'ENA', 'WLD', 'ONDO', 'JUP', 'PYTH', 'STRK', 'ZK', 'EIGEN'
 }
 
+
 def ahora_art():
     return datetime.now(TZ_ART)
+
 
 def cargar_historial():
     hoy = ahora_art().strftime('%Y-%m-%d')
@@ -86,12 +91,14 @@ def cargar_historial():
             pass
     return base
 
+
 def guardar_historial(historial):
     try:
         with open(HISTORIAL_FILE, 'w', encoding='utf-8') as f:
             json.dump(historial, f, ensure_ascii=False, indent=2)
     except Exception as e:
         print(f"⚠️ Error guardando historial: {e}")
+
 
 def inyectar_rojo_en_auditoria_excel(sym, base, p_act, motivo):
     hoy_iso = ahora_art().strftime('%Y-%m-%d')
@@ -134,10 +141,12 @@ def inyectar_rojo_en_auditoria_excel(sym, base, p_act, motivo):
         except Exception as e:
             print(f"⚠️ Error inyectando en {HISTORIAL_GANADORAS_FILE}: {e}")
 
+
 def crear_sesion_binance():
     s = requests.Session()
     s.headers.update({"User-Agent": "Mozilla/5.0", "Accept": "application/json", "Cache-Control": "no-cache"})
     return s
+
 
 def obtener_datos_binance(session):
     activos, tickers = set(), []
@@ -163,6 +172,7 @@ def obtener_datos_binance(session):
             continue
     return activos, tickers
 
+
 def calcular_ema(vals, p):
     if not vals:
         return 0.0
@@ -171,6 +181,7 @@ def calcular_ema(vals, p):
     for v in vals[1:]:
         ema = (v * k) + (ema * (1 - k))
     return ema
+
 
 def calcular_rsi(cierres, p=14):
     if len(cierres) <= p:
@@ -183,6 +194,7 @@ def calcular_rsi(cierres, p=14):
         ag = (ag * (p - 1) + g[i]) / p
         ap = (ap * (p - 1) + per[i]) / p
     return 100.0 if ap == 0 else round(100.0 - (100.0 / (1.0 + (ag / ap))), 1)
+
 
 def auditar_order_book_tactico(session, symbol):
     """Verifica liquidez real en libro de órdenes (spread y proporción compra/venta)."""
@@ -203,6 +215,7 @@ def auditar_order_book_tactico(session, symbol):
         except Exception:
             continue
     return {"ok": False, "spread_pct": 0.1, "ratio_ba": 1.0, "sano": True}
+
 
 def analizar_historia_y_tecnico(session, symbol):
     for base_url in ["https://api.binance.com", "https://data-api.binance.vision"]:
@@ -304,6 +317,7 @@ def analizar_historia_y_tecnico(session, symbol):
             continue
     return {"ok": False, "probabilidad_pct": 0}
 
+
 def certificar_graduacion_ia(session, sym, base, tec, var_seq):
     """
     GESTOR CERTIFICADOR IA ETAPA 1:
@@ -329,7 +343,7 @@ def certificar_graduacion_ia(session, sym, base, tec, var_seq):
                 f"Vol 1h: x{tec['vol_surge']} | Order Book Bids/Asks: {ob['ratio_ba']}x (Spread {ob['spread_pct']}%)\n\n"
                 'Responde SOLO en JSON válido: {"aprobar":true,"blindaje_pct":84,"motivo":"resumen técnico corto de 1 línea"}'
             )
-            for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
+            for mod in MODELOS_GEMINI_TACTICO:
                 try:
                     res = client.models.generate_content(model=mod, contents=prompt)
                     if res and res.text:
@@ -349,6 +363,7 @@ def certificar_graduacion_ia(session, sym, base, tec, var_seq):
 
     return True, blindaje, nota_cert
 
+
 def formatear_precio(p):
     if p is None or p <= 0:
         return "$0.00"
@@ -361,6 +376,7 @@ def formatear_precio(p):
     if p >= 0.0001:
         return f"${p:.6f}"
     return f"${p:.8f}"
+
 
 def gemini_destacar_verdes(candidatos):
     if not candidatos:
@@ -388,7 +404,7 @@ def gemini_destacar_verdes(candidatos):
             f"Monedas verdes:\n{lineas}\n\n"
             'Responde SOLO JSON válido: {"destacadas_verde":[{"symbol":"S1","motivo":"..."}],"dictamen":"..."}'
         )
-        for mod in ['gemini-2.5-flash', 'gemini-1.5-flash']:
+        for mod in MODELOS_GEMINI_TACTICO:
             try:
                 res = client.models.generate_content(model=mod, contents=prompt)
                 if res and res.text:
@@ -411,6 +427,7 @@ def gemini_destacar_verdes(candidatos):
         print(f"⚠️ Fallback Gemini: {e}")
     return defecto, dictamen
 
+
 def pasa_filtro_amarillo(tec, var_seq):
     return (
         var_seq >= -3.0
@@ -423,6 +440,7 @@ def pasa_filtro_amarillo(tec, var_seq):
         )
     )
 
+
 def pasa_filtro_rojo(tec, var_seq):
     return (
         var_seq >= -1.0
@@ -430,6 +448,7 @@ def pasa_filtro_rojo(tec, var_seq):
         and tec["probabilidad_pct"] >= 68
         and (tec["vol_surge"] >= 1.15 or tec["vol_1d_ratio"] >= 1.15)
     )
+
 
 def ejecutar_posta_colores(session, tickers, activos, historial):
     menc = historial.get("mencionadas", {})
@@ -664,6 +683,7 @@ def ejecutar_posta_colores(session, tickers, activos, historial):
     guardar_historial(historial)
     return {"ROJO": rojas_fmt[:8], "AMARILLO": amarillas_fmt[:8], "VERDE": verdes_fmt}, historial, dictamen, alertas
 
+
 def generar_grafico_bloque(items, titulo_graf, subtitulo_graf, filename):
     if not items:
         return None
@@ -700,6 +720,7 @@ def generar_grafico_bloque(items, titulo_graf, subtitulo_graf, filename):
     plt.close()
     return filename
 
+
 def enviar_texto_telegram(texto):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         return
@@ -715,6 +736,7 @@ def enviar_texto_telegram(texto):
             requests.post(url, json=payload, timeout=15)
     except Exception as e:
         print(f"⚠️ Error Telegram: {e}")
+
 
 def enviar_alerta_posta(al):
     sim, mkt, tec, etapa = al['base'], al['mkt'], al['tec'], al['etapa']
@@ -736,6 +758,7 @@ def enviar_alerta_posta(al):
         f"└ <a href=\"{html.escape(u_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(u_tr)}\">🔶 Tradear</a>"
     )
     enviar_texto_telegram(msg)
+
 
 def enviar_bloque_posta(num_bloque, titulo_bloque, items, msg_vacio, dictamen=""):
     fecha_str = ahora_art().strftime('%Y-%m-%d %H:%M ART')
@@ -803,6 +826,7 @@ def enviar_bloque_posta(num_bloque, titulo_bloque, items, msg_vacio, dictamen=""
         except Exception as e:
             print(f"⚠️ Error bloque {num_bloque}: {e}")
         time.sleep(3)
+
 
 if __name__ == "__main__":
     print(f"🔥 INICIANDO ETAPA 1 • CAZADOR TÁCTICO + CERTIFICADOR IA ({ahora_art().strftime('%H:%M:%S')} ART)...")
