@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 9,
-  "ultima_actualizacion": "2026-11-26 11:18 ART",
+  "version_ciclo": 10,
+  "ultima_actualizacion": "2026-11-26 11:21 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.8,
     "min_ob_ratio": 1.25,
