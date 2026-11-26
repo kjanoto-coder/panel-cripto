@@ -1,14 +1,5 @@
 [
   [
-    "DOGEUSDT",
-    "PENGUUSDT",
-    "ONDOUSDT",
-    "SKYUSDT",
-    "CHIPUSDT",
-    "HBARUSDT",
-    "FETUSDT"
-  ],
-  [
     "XRPUSDT",
     "NEARUSDT",
     "ADAUSDT",
@@ -16,5 +7,14 @@
     "UNIUSDT",
     "BONKUSDT",
     "CAKEUSDT"
+  ],
+  [
+    "PEPEUSDT",
+    "WLDUSDT",
+    "ORDIUSDT",
+    "STXUSDT",
+    "DOTUSDT",
+    "CRVUSDT",
+    "ALGOUSDT"
   ]
 ]
