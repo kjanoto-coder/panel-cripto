@@ -2802,6 +2802,21 @@
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
       "dias_esperando": 0
+    },
+    "PENDLEUSDT": {
+      "symbol": "PENDLEUSDT",
+      "ticker": "PENDLE",
+      "fecha_verde": "2026-11-26",
+      "ts_verde": "2026-11-26 13:11",
+      "precio_verde": 1.222,
+      "es_oro": false,
+      "origen": "CAZADOR_TACTICO_ROJO",
+      "estado": "PENDIENTE",
+      "fecha_ganadora": "",
+      "precio_ganadora": 0.0,
+      "subida_real_pct": 0.0,
+      "subida_24h_dia_pct": 0.0,
+      "dias_demora": null
     }
   }
 }
