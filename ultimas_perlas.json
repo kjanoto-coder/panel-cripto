@@ -1,14 +1,5 @@
 [
   [
-    "NEARUSDT",
-    "DOGEUSDT",
-    "JSTUSDT",
-    "INTWBUSDT",
-    "PUMPUSDT",
-    "WLFIUSDT",
-    "XLMUSDT"
-  ],
-  [
     "XRPUSDT",
     "PEPEUSDT",
     "ADAUSDT",
@@ -16,5 +7,14 @@
     "UNIUSDT",
     "ENAUSDT",
     "RENDERUSDT"
+  ],
+  [
+    "WLDUSDT",
+    "GRAMUSDT",
+    "ASTERUSDT",
+    "BNCBUSDT",
+    "CHIPUSDT",
+    "FETUSDT",
+    "BONKUSDT"
   ]
 ]
