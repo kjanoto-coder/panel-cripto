@@ -1,4 +1,4 @@
-name: Perdedoras Silencioso IA
+name: Perdedoras En Vivo IA
 
 on:
   schedule:
@@ -7,15 +7,13 @@ on:
 
 permissions:
   contents: write
-  id-token: write
-  issues: write
 
 concurrency:
   group: escritura-perdedoras-silencioso
   cancel-in-progress: false
 
 jobs:
-  run-perdedoras-silencioso:
+  run-perdedoras-vivo:
     runs-on: ubuntu-latest
 
     steps:
@@ -33,7 +31,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests matplotlib
 
-      - name: Ejecutar detector silencioso
+      - name: Ejecutar detector en vivo en caídas
         env:
           PYTHONUNBUFFERED: "1"
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -42,24 +40,31 @@ jobs:
           CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           TOPIC_ID_PERDEDORAS: ${{ secrets.TOPIC_ID_PERDEDORAS }}
           STATE_FILE: "perdedoras_silenciosas.json"
-          ALERT_ON_RECHAZO: "true"
-          COOLDOWN_MINUTES: "180"
-        run: python bot_perdedoras_silencioso.py
+          CAPITAL_REFERENCIA_USD: "2000"
+          ALERT_ON_RECHAZO: "false"
+          COOLDOWN_MINUTES: "15"
+          LIVE_STEP_DROP_PCT: "1.0"
+          LIVE_TICK_DROP_PCT: "0.7"
+        run: python bot_perdedoras.py
 
       - name: Guardar memoria de caídas sin conflictos
         run: |
+          STATE_PATH="${STATE_FILE:-perdedoras_silenciosas.json}"
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add -f perdedoras_silenciosas.json || true
+          git add -f "$STATE_PATH" || true
           if ! git diff --staged --quiet; then
-            git commit -m "Auto-update: Memoria Perdedoras Silencioso [skip ci]"
+            git commit -m "Auto-update: Memoria Perdedoras En Vivo [skip ci]"
             for i in 1 2 3; do
-              if git pull --rebase origin main && git push origin main; then
-                break
+              if git pull --rebase -X ours origin main; then
+                if git push origin main; then
+                  break
+                fi
+              else
+                git checkout --ours "$STATE_PATH" || true
+                git add -f "$STATE_PATH" || true
+                git rebase --continue || git rebase --abort || true
               fi
-              git rebase --abort || true
               sleep 5
             done
           fi
-
-# FIN WORKFLOW PERDEDORAS SILENCIOSO
