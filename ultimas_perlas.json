@@ -1,14 +1,5 @@
 [
   [
-    "SHIBUSDT",
-    "POLUSDT",
-    "XLMUSDT",
-    "MEGAUSDT",
-    "ARBUSDT",
-    "AEROUSDT",
-    "GRAMUSDT"
-  ],
-  [
     "XRPUSDT",
     "NEARUSDT",
     "ADAUSDT",
@@ -16,5 +7,14 @@
     "WLDUSDT",
     "SUIUSDT",
     "ENAUSDT"
+  ],
+  [
+    "KAVAUSDT",
+    "RENDERUSDT",
+    "CAKEUSDT",
+    "ONDOUSDT",
+    "DOTUSDT",
+    "WLFIUSDT",
+    "ALGOUSDT"
   ]
 ]
