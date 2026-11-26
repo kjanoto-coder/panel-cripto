@@ -4578,6 +4578,16 @@
       "origen": "CAZADOR_TACTICO_ROJO",
       "certificada_etapa1": true,
       "blindaje_etapa1": 80
+    },
+    "SOXSBUSDT": {
+      "symbol": "SOXSBUSDT",
+      "base": "SOXSB",
+      "estrellas": 3,
+      "probabilidad_pct": 80,
+      "precio_ref": 61.57,
+      "fecha_iso": "2026-11-25",
+      "fecha_corta": "25/11",
+      "origen": "SEGUNDA_OLA_GANADORAS"
     }
   },
   "verdes_hoy": [
