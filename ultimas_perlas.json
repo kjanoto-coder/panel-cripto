@@ -1,14 +1,5 @@
 [
   [
-    "NEARUSDT",
-    "DOGEUSDT",
-    "NIGHTUSDT",
-    "PENGUUSDT",
-    "ONDOUSDT",
-    "BNCBUSDT",
-    "INTWBUSDT"
-  ],
-  [
     "XRPUSDT",
     "ADAUSDT",
     "SUIUSDT",
@@ -16,5 +7,14 @@
     "ENAUSDT",
     "CAKEUSDT",
     "BONKUSDT"
+  ],
+  [
+    "ASTERUSDT",
+    "WLDUSDT",
+    "GRAMUSDT",
+    "SKYUSDT",
+    "ZROUSDT",
+    "APTUSDT",
+    "ARBUSDT"
   ]
 ]
