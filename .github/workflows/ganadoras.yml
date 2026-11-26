@@ -2,15 +2,20 @@ name: Bot Monedas Ganadoras
 
 on:
   schedule:
-    - cron: '*/15 * * * *' # Se ejecuta cada 15 minutos de forma automática
-  workflow_dispatch:      # Permite la ejecución manual cuando lo requieras
+    - cron: '4,19,34,49 * * * *' # Se ejecuta cada 15 minutos desplazado para evitar colisiones
+  workflow_dispatch:            # Permite la ejecución manual cuando lo requieras
 
 permissions:
   contents: write
 
+concurrency:
+  group: escritura-ganadoras
+  cancel-in-progress: false
+
 jobs:
   run-bot:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout del repositorio
         uses: actions/checkout@v4
@@ -18,7 +23,7 @@ jobs:
       - name: Configurar Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
 
       - name: Instalar dependencias
         run: |
@@ -27,27 +32,30 @@ jobs:
 
       - name: Ejecutar Bot Ganadoras
         env:
+          PYTHONUNBUFFERED: "1"
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           TOPIC_ID_GANADORAS: ${{ secrets.TOPIC_ID_GANADORAS }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: |
-          python bot_ganadoras.py
+        run: python bot_ganadoras.py
 
       - name: Guardar historial y Excel sin conflictos
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add historial_ganadoras.json historial_perlas.json AUDITORIA_VERDE_GANADORAS.xlsx || true
+          git add -f historial_ganadoras.json historial_perlas.json AUDITORIA_VERDE_GANADORAS.xlsx || true
           if ! git diff --staged --quiet; then
-            git commit -m "chore: actualizar historial ganadoras y excel diario"
+            git commit -m "chore: actualizar historial ganadoras y excel diario [skip ci]"
             for i in 1 2 3; do
-              git pull --rebase -X ours origin main || {
-                git checkout --ours AUDITORIA_VERDE_GANADORAS.xlsx || true
-                git add AUDITORIA_VERDE_GANADORAS.xlsx || true
-                git rebase --continue || git rebase --abort
-              }
-              git push origin main && break
-              sleep 2
+              if git pull --rebase -X ours origin main; then
+                if git push origin main; then
+                  break
+                fi
+              else
+                git checkout --ours historial_ganadoras.json historial_perlas.json AUDITORIA_VERDE_GANADORAS.xlsx || true
+                git add -f historial_ganadoras.json historial_perlas.json AUDITORIA_VERDE_GANADORAS.xlsx || true
+                git rebase --continue || git rebase --abort || true
+              fi
+              sleep 3
             done
           fi
