@@ -1,14 +1,5 @@
 [
   [
-    "DOTUSDT",
-    "ASTERUSDT",
-    "POLUSDT",
-    "SENTUSDT",
-    "APTUSDT",
-    "SAGAUSDT",
-    "ARBUSDT"
-  ],
-  [
     "ASTERUSDT",
     "RENDERUSDT",
     "GRAMUSDT",
@@ -16,5 +7,14 @@
     "HBARUSDT",
     "DOTUSDT",
     "POLUSDT"
+  ],
+  [
+    "ADAUSDT",
+    "ASTERUSDT",
+    "RENDERUSDT",
+    "HBARUSDT",
+    "DOTUSDT",
+    "SENTUSDT",
+    "KAVAUSDT"
   ]
 ]
