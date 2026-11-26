@@ -1,14 +1,5 @@
 [
   [
-    "NEARUSDT",
-    "ONDOUSDT",
-    "ENAUSDT",
-    "RENDERUSDT",
-    "SAGAUSDT",
-    "AEROUSDT",
-    "KAVAUSDT"
-  ],
-  [
     "POLUSDT",
     "ASTERUSDT",
     "DOTUSDT",
@@ -16,5 +7,14 @@
     "APTUSDT",
     "SENTUSDT",
     "PUMPUSDT"
+  ],
+  [
+    "XRPUSDT",
+    "DOGEUSDT",
+    "ADAUSDT",
+    "SUIUSDT",
+    "PEPEUSDT",
+    "WLDUSDT",
+    "HBARUSDT"
   ]
 ]
