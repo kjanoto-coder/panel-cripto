@@ -1,5 +1,5 @@
 {
-  "ultima_actualizacion": "2026-11-25 23:51:58 ART",
+  "ultima_actualizacion": "2026-11-26 00:01:45 ART",
   "dias": {
     "2026-11-23": [
       {
@@ -646,6 +646,248 @@
         "pos_rango": 91.4,
         "rank": 20
       }
+    ],
+    "2026-11-26": [
+      {
+        "symbol": "MANTRAUSDT",
+        "ticker": "MANTRA",
+        "precio_base": 0.00173,
+        "precio": 0.00263,
+        "cambio_24h": 52.02,
+        "vol_usdt": 19100635.29,
+        "high": 0.00372,
+        "low": 0.00171,
+        "pos_rango": 45.8,
+        "rank": 1
+      },
+      {
+        "symbol": "SSVUSDT",
+        "ticker": "SSV",
+        "precio_base": 1.57,
+        "precio": 2.348,
+        "cambio_24h": 49.55,
+        "vol_usdt": 6748936.16,
+        "high": 2.49,
+        "low": 1.563,
+        "pos_rango": 84.7,
+        "rank": 2
+      },
+      {
+        "symbol": "MOVEUSDT",
+        "ticker": "MOVE",
+        "precio_base": 0.004458,
+        "precio": 0.006638,
+        "cambio_24h": 48.9,
+        "vol_usdt": 4772318.65,
+        "high": 0.00777,
+        "low": 0.004457,
+        "pos_rango": 65.8,
+        "rank": 3
+      },
+      {
+        "symbol": "MMTUSDT",
+        "ticker": "MMT",
+        "precio_base": 0.2209,
+        "precio": 0.3094,
+        "cambio_24h": 40.06,
+        "vol_usdt": 24326734.56,
+        "high": 0.3281,
+        "low": 0.2154,
+        "pos_rango": 83.4,
+        "rank": 4
+      },
+      {
+        "symbol": "BIGTIMEUSDT",
+        "ticker": "BIGTIME",
+        "precio_base": 0.00446,
+        "precio": 0.00618,
+        "cambio_24h": 38.56,
+        "vol_usdt": 13885071.09,
+        "high": 0.01056,
+        "low": 0.0044,
+        "pos_rango": 28.9,
+        "rank": 5
+      },
+      {
+        "symbol": "BLURUSDT",
+        "ticker": "BLUR",
+        "precio_base": 0.00906,
+        "precio": 0.01105,
+        "cambio_24h": 21.96,
+        "vol_usdt": 6539999.4,
+        "high": 0.01133,
+        "low": 0.00839,
+        "pos_rango": 90.5,
+        "rank": 6
+      },
+      {
+        "symbol": "LAYERUSDT",
+        "ticker": "LAYER",
+        "precio_base": 0.0412,
+        "precio": 0.0493,
+        "cambio_24h": 19.66,
+        "vol_usdt": 4571711.2,
+        "high": 0.0516,
+        "low": 0.0411,
+        "pos_rango": 78.1,
+        "rank": 7
+      },
+      {
+        "symbol": "ATUSDT",
+        "ticker": "AT",
+        "precio_base": 0.0522,
+        "precio": 0.0611,
+        "cambio_24h": 17.05,
+        "vol_usdt": 5163766.49,
+        "high": 0.0665,
+        "low": 0.0479,
+        "pos_rango": 71.0,
+        "rank": 8
+      },
+      {
+        "symbol": "MEUSDT",
+        "ticker": "ME",
+        "precio_base": 0.03516,
+        "precio": 0.04051,
+        "cambio_24h": 15.22,
+        "vol_usdt": 2025068.04,
+        "high": 0.04475,
+        "low": 0.03468,
+        "pos_rango": 57.9,
+        "rank": 9
+      },
+      {
+        "symbol": "STOUSDT",
+        "ticker": "STO",
+        "precio_base": 0.0198,
+        "precio": 0.0226,
+        "cambio_24h": 14.14,
+        "vol_usdt": 2170237.47,
+        "high": 0.0238,
+        "low": 0.0196,
+        "pos_rango": 71.4,
+        "rank": 10
+      },
+      {
+        "symbol": "CFGUSDT",
+        "ticker": "CFG",
+        "precio_base": 0.0456,
+        "precio": 0.0518,
+        "cambio_24h": 13.6,
+        "vol_usdt": 3285269.8,
+        "high": 0.06,
+        "low": 0.0443,
+        "pos_rango": 47.8,
+        "rank": 11
+      },
+      {
+        "symbol": "PROMUSDT",
+        "ticker": "PROM",
+        "precio_base": 4.508,
+        "precio": 5.102,
+        "cambio_24h": 13.18,
+        "vol_usdt": 6871371.48,
+        "high": 5.313,
+        "low": 4.504,
+        "pos_rango": 73.9,
+        "rank": 12
+      },
+      {
+        "symbol": "CKBUSDT",
+        "ticker": "CKB",
+        "precio_base": 0.000744,
+        "precio": 0.00084,
+        "cambio_24h": 12.9,
+        "vol_usdt": 1555956.14,
+        "high": 0.000873,
+        "low": 0.000743,
+        "pos_rango": 74.6,
+        "rank": 13
+      },
+      {
+        "symbol": "TIAUSDT",
+        "ticker": "TIA",
+        "precio_base": 0.3179,
+        "precio": 0.3512,
+        "cambio_24h": 10.47,
+        "vol_usdt": 3318459.27,
+        "high": 0.3599,
+        "low": 0.306,
+        "pos_rango": 83.9,
+        "rank": 14
+      },
+      {
+        "symbol": "RAYUSDT",
+        "ticker": "RAY",
+        "precio_base": 1.2175,
+        "precio": 1.3441,
+        "cambio_24h": 10.4,
+        "vol_usdt": 2520402.47,
+        "high": 1.3727,
+        "low": 1.1688,
+        "pos_rango": 86.0,
+        "rank": 15
+      },
+      {
+        "symbol": "SOXLBUSDT",
+        "ticker": "SOXLB",
+        "precio_base": 30.04,
+        "precio": 32.87,
+        "cambio_24h": 9.42,
+        "vol_usdt": 107006365.54,
+        "high": 33.9,
+        "low": 24.65,
+        "pos_rango": 88.9,
+        "rank": 16
+      },
+      {
+        "symbol": "MARSCOINUSDT",
+        "ticker": "MARSCOIN",
+        "precio_base": 0.0267,
+        "precio": 0.0291,
+        "cambio_24h": 8.99,
+        "vol_usdt": 2068217.45,
+        "high": 0.0293,
+        "low": 0.0258,
+        "pos_rango": 94.3,
+        "rank": 17
+      },
+      {
+        "symbol": "TUSDT",
+        "ticker": "T",
+        "precio_base": 0.00362,
+        "precio": 0.00394,
+        "cambio_24h": 8.84,
+        "vol_usdt": 1160423.86,
+        "high": 0.00403,
+        "low": 0.00362,
+        "pos_rango": 78.0,
+        "rank": 18
+      },
+      {
+        "symbol": "PUMPUSDT",
+        "ticker": "PUMP",
+        "precio_base": 0.002405,
+        "precio": 0.002615,
+        "cambio_24h": 8.73,
+        "vol_usdt": 9596370.17,
+        "high": 0.002657,
+        "low": 0.002285,
+        "pos_rango": 88.7,
+        "rank": 19
+      },
+      {
+        "symbol": "TRUMPUSDT",
+        "ticker": "TRUMP",
+        "precio_base": 0.83,
+        "precio": 0.9,
+        "cambio_24h": 8.43,
+        "vol_usdt": 5940751.16,
+        "high": 0.912,
+        "low": 0.79,
+        "pos_rango": 90.2,
+        "rank": 20
+      }
     ]
   },
   "ultimo_reporte_semanal": "",
@@ -697,7 +939,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 3
+      "dias_esperando": 4
     },
     "GRAMUSDT": {
       "symbol": "GRAMUSDT",
@@ -713,7 +955,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 3
+      "dias_esperando": 4
     },
     "SKYUSDT": {
       "symbol": "SKYUSDT",
@@ -745,7 +987,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 3
+      "dias_esperando": 4
     },
     "ANIMEUSDT": {
       "symbol": "ANIMEUSDT",
@@ -777,7 +1019,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 3
+      "dias_esperando": 4
     },
     "BMTUSDT": {
       "symbol": "BMTUSDT",
@@ -793,7 +1035,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 3
+      "dias_esperando": 4
     },
     "AIGENSYNUSDT": {
       "symbol": "AIGENSYNUSDT",
@@ -825,7 +1067,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 3
+      "dias_esperando": 4
     },
     "HMSTRUSDT": {
       "symbol": "HMSTRUSDT",
@@ -857,7 +1099,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 3
+      "dias_esperando": 4
     },
     "YGGUSDT": {
       "symbol": "YGGUSDT",
@@ -873,7 +1115,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 3
+      "dias_esperando": 4
     },
     "RAREUSDT": {
       "symbol": "RAREUSDT",
@@ -889,7 +1131,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 3
+      "dias_esperando": 4
     },
     "POLUSDT": {
       "symbol": "POLUSDT",
@@ -905,7 +1147,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 3
+      "dias_esperando": 4
     },
     "MMTUSDT": {
       "symbol": "MMTUSDT",
@@ -937,7 +1179,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 3
+      "dias_esperando": 4
     },
     "RAYUSDT": {
       "symbol": "RAYUSDT",
@@ -969,7 +1211,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 3
+      "dias_esperando": 4
     },
     "BARDUSDT": {
       "symbol": "BARDUSDT",
@@ -985,7 +1227,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 3
+      "dias_esperando": 4
     },
     "ZENUSDT": {
       "symbol": "ZENUSDT",
@@ -1001,7 +1243,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 3
+      "dias_esperando": 4
     },
     "PLUMEUSDT": {
       "symbol": "PLUMEUSDT",
@@ -1049,7 +1291,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 3
+      "dias_esperando": 4
     },
     "JSTUSDT": {
       "symbol": "JSTUSDT",
@@ -1065,7 +1307,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 3
+      "dias_esperando": 4
     },
     "ORCAUSDT": {
       "symbol": "ORCAUSDT",
@@ -1081,7 +1323,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 3
+      "dias_esperando": 4
     },
     "USUALUSDT": {
       "symbol": "USUALUSDT",
@@ -1113,7 +1355,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 3
+      "dias_esperando": 4
     },
     "ZROUSDT": {
       "symbol": "ZROUSDT",
@@ -1129,7 +1371,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 3
+      "dias_esperando": 4
     },
     "CRVUSDT": {
       "symbol": "CRVUSDT",
@@ -1145,7 +1387,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 3
+      "dias_esperando": 4
     },
     "LUNCUSDT": {
       "symbol": "LUNCUSDT",
@@ -1177,7 +1419,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 3
+      "dias_esperando": 4
     },
     "ARUSDT": {
       "symbol": "ARUSDT",
@@ -1193,7 +1435,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 2
+      "dias_esperando": 3
     },
     "DODOUSDT": {
       "symbol": "DODOUSDT",
@@ -1241,7 +1483,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 2
+      "dias_esperando": 3
     },
     "VIRTUALUSDT": {
       "symbol": "VIRTUALUSDT",
@@ -1257,7 +1499,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 2
+      "dias_esperando": 3
     },
     "PENGUUSDT": {
       "symbol": "PENGUUSDT",
@@ -1273,7 +1515,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 2
+      "dias_esperando": 3
     },
     "SENTUSDT": {
       "symbol": "SENTUSDT",
@@ -1321,7 +1563,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 2
+      "dias_esperando": 3
     },
     "ETHFIUSDT": {
       "symbol": "ETHFIUSDT",
@@ -1337,7 +1579,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 2
+      "dias_esperando": 3
     },
     "MARSCOINUSDT": {
       "symbol": "MARSCOINUSDT",
@@ -1400,7 +1642,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 2
+      "dias_esperando": 3
     },
     "HUMAUSDT": {
       "symbol": "HUMAUSDT",
@@ -1432,7 +1674,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 2
+      "dias_esperando": 3
     },
     "SUSDT": {
       "symbol": "SUSDT",
@@ -1448,7 +1690,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 2
+      "dias_esperando": 3
     },
     "CVXUSDT": {
       "symbol": "CVXUSDT",
@@ -1464,7 +1706,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 2
+      "dias_esperando": 3
     },
     "ALLOUSDT": {
       "symbol": "ALLOUSDT",
@@ -1496,7 +1738,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 2
+      "dias_esperando": 3
     },
     "PUMPUSDT": {
       "symbol": "PUMPUSDT",
@@ -1528,7 +1770,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 2
+      "dias_esperando": 3
     },
     "ZKPUSDT": {
       "symbol": "ZKPUSDT",
@@ -1544,7 +1786,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 2
+      "dias_esperando": 3
     },
     "HOTUSDT": {
       "symbol": "HOTUSDT",
@@ -1560,7 +1802,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 2
+      "dias_esperando": 3
     },
     "INITUSDT": {
       "symbol": "INITUSDT",
@@ -1608,7 +1850,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 2
+      "dias_esperando": 3
     },
     "BERAUSDT": {
       "symbol": "BERAUSDT",
@@ -1624,7 +1866,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 2
+      "dias_esperando": 3
     },
     "BREVUSDT": {
       "symbol": "BREVUSDT",
@@ -1640,7 +1882,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 2
+      "dias_esperando": 3
     },
     "ACEUSDT": {
       "symbol": "ACEUSDT",
@@ -1670,7 +1912,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 1
+      "dias_esperando": 2
     },
     "ATMUSDT": {
       "symbol": "ATMUSDT",
@@ -1700,7 +1942,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 1
+      "dias_esperando": 2
     },
     "WIFUSDT": {
       "symbol": "WIFUSDT",
@@ -1715,7 +1957,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 1
+      "dias_esperando": 2
     },
     "RUNEUSDT": {
       "symbol": "RUNEUSDT",
@@ -1730,7 +1972,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 1
+      "dias_esperando": 2
     },
     "ETCUSDT": {
       "symbol": "ETCUSDT",
@@ -1745,7 +1987,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 1
+      "dias_esperando": 2
     },
     "DEXEUSDT": {
       "symbol": "DEXEUSDT",
@@ -1760,7 +2002,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 1
+      "dias_esperando": 2
     },
     "NILUSDT": {
       "symbol": "NILUSDT",
@@ -1775,7 +2017,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 1
+      "dias_esperando": 2
     },
     "SAPIENUSDT": {
       "symbol": "SAPIENUSDT",
@@ -1790,7 +2032,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 1
+      "dias_esperando": 2
     },
     "SEIUSDT": {
       "symbol": "SEIUSDT",
@@ -1805,7 +2047,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 1
+      "dias_esperando": 2
     },
     "FETUSDT": {
       "symbol": "FETUSDT",
@@ -1820,7 +2062,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 1
+      "dias_esperando": 2
     },
     "ALGOUSDT": {
       "symbol": "ALGOUSDT",
@@ -1835,7 +2077,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 1
+      "dias_esperando": 2
     },
     "EIGENUSDT": {
       "symbol": "EIGENUSDT",
@@ -1850,7 +2092,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 1
+      "dias_esperando": 2
     },
     "BLURUSDT": {
       "symbol": "BLURUSDT",
@@ -1881,7 +2123,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 1
+      "dias_esperando": 2
     },
     "YBUSDT": {
       "symbol": "YBUSDT",
@@ -1896,7 +2138,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 1
+      "dias_esperando": 2
     },
     "BONKUSDT": {
       "symbol": "BONKUSDT",
@@ -1911,7 +2153,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 1
+      "dias_esperando": 2
     },
     "CYBERUSDT": {
       "symbol": "CYBERUSDT",
@@ -1941,7 +2183,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 1
+      "dias_esperando": 2
     },
     "ONGUSDT": {
       "symbol": "ONGUSDT",
@@ -1971,7 +2213,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 1
+      "dias_esperando": 2
     },
     "REUSDT": {
       "symbol": "REUSDT",
@@ -2001,7 +2243,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 1
+      "dias_esperando": 2
     },
     "KERNELUSDT": {
       "symbol": "KERNELUSDT",
@@ -2046,7 +2288,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 1
+      "dias_esperando": 2
     },
     "CHZUSDT": {
       "symbol": "CHZUSDT",
@@ -2061,7 +2303,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 1
+      "dias_esperando": 2
     },
     "BIGTIMEUSDT": {
       "symbol": "BIGTIMEUSDT",
@@ -2105,7 +2347,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 1
+      "dias_esperando": 2
     },
     "KATUSDT": {
       "symbol": "KATUSDT",
@@ -2121,7 +2363,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 1
+      "dias_esperando": 2
     },
     "LAZIOUSDT": {
       "symbol": "LAZIOUSDT",
@@ -2137,7 +2379,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 1
+      "dias_esperando": 2
     },
     "2ZUSDT": {
       "symbol": "2ZUSDT",
@@ -2169,7 +2411,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 1
+      "dias_esperando": 2
     },
     "BABYUSDT": {
       "symbol": "BABYUSDT",
@@ -2201,7 +2443,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 1
+      "dias_esperando": 2
     },
     "VANAUSDT": {
       "symbol": "VANAUSDT",
@@ -2247,7 +2489,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 1
+      "dias_esperando": 2
     },
     "PSGUSDT": {
       "symbol": "PSGUSDT",
@@ -2263,7 +2505,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 0
+      "dias_esperando": 1
     },
     "LINEAUSDT": {
       "symbol": "LINEAUSDT",
@@ -2279,7 +2521,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 0
+      "dias_esperando": 1
     },
     "SAGAUSDT": {
       "symbol": "SAGAUSDT",
@@ -2295,7 +2537,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 0
+      "dias_esperando": 1
     },
     "SUNUSDT": {
       "symbol": "SUNUSDT",
@@ -2311,7 +2553,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 0
+      "dias_esperando": 1
     },
     "LISTAUSDT": {
       "symbol": "LISTAUSDT",
@@ -2388,7 +2630,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 0
+      "dias_esperando": 1
     },
     "JUVUSDT": {
       "symbol": "JUVUSDT",
@@ -2404,7 +2646,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 0
+      "dias_esperando": 1
     },
     "CFXUSDT": {
       "symbol": "CFXUSDT",
@@ -2420,7 +2662,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 0
+      "dias_esperando": 1
     },
     "AXSUSDT": {
       "symbol": "AXSUSDT",
@@ -2436,7 +2678,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 0
+      "dias_esperando": 1
     },
     "LAYERUSDT": {
       "symbol": "LAYERUSDT",
@@ -2466,7 +2708,7 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
-      "dias_esperando": 0
+      "dias_esperando": 1
     }
   }
 }
