@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 117,
-  "ultima_actualizacion": "2026-11-27 05:02 ART",
+  "version_ciclo": 118,
+  "ultima_actualizacion": "2026-11-27 05:11 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.92,
     "min_ob_ratio": 1.31,
@@ -709,6 +709,27 @@
       "symbol": "SOPHUSDT",
       "ts_unix": 1795765878,
       "precio_veto": 0.00093,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "BIGTIMEUSDT",
+      "ts_unix": 1795767075,
+      "precio_veto": 0.00633,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "SSVUSDT",
+      "ts_unix": 1795767076,
+      "precio_veto": 2.555,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "MEUSDT",
+      "ts_unix": 1795767076,
+      "precio_veto": 0.04082,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     }
