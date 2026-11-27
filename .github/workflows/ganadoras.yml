@@ -39,21 +39,22 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python bot_ganadoras.py
 
-      - name: Guardar historial y Excel sin conflictos
+      - name: Guardar historial, reporte IA y Excel sin conflictos
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add -f historial_ganadoras.json historial_perlas.json AUDITORIA_VERDE_GANADORAS.xlsx || true
+          ARCHIVOS="historial_ganadoras.json historial_perlas.json AUDITORIA_VERDE_GANADORAS.xlsx reporte_ia_ganadoras.json"
+          git add -f $ARCHIVOS || true
           if ! git diff --staged --quiet; then
-            git commit -m "chore: actualizar historial ganadoras y excel diario [skip ci]"
+            git commit -m "chore: actualizar historial ganadoras, reporte IA y excel [skip ci]"
             for i in 1 2 3; do
               if git pull --rebase -X ours origin main; then
                 if git push origin main; then
                   break
                 fi
               else
-                git checkout --ours historial_ganadoras.json historial_perlas.json AUDITORIA_VERDE_GANADORAS.xlsx || true
-                git add -f historial_ganadoras.json historial_perlas.json AUDITORIA_VERDE_GANADORAS.xlsx || true
+                git checkout --ours $ARCHIVOS || true
+                git add -f $ARCHIVOS || true
                 git rebase --continue || git rebase --abort || true
               fi
               sleep 3
