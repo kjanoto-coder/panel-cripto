@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 206,
-  "ultima_actualizacion": "2026-11-27 19:31 ART",
+  "version_ciclo": 207,
+  "ultima_actualizacion": "2026-11-27 19:41 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.91,
     "min_ob_ratio": 1.27,
@@ -104,20 +104,6 @@
     }
   },
   "pendientes_sombra_24h": [
-    {
-      "symbol": "TQQQBUSDT",
-      "ts_unix": 1795797091,
-      "precio_veto": 47.79,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
-    },
-    {
-      "symbol": "HEIUSDT",
-      "ts_unix": 1795797091,
-      "precio_veto": 0.0883,
-      "paso_fallido": "A5-Binance",
-      "detalle": "A5 VETA: Muro vendedor en Ask (56% del libro)"
-    },
     {
       "symbol": "NIGHTUSDT",
       "ts_unix": 1795798276,
@@ -264,6 +250,20 @@
       "precio_veto": 0.00795,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "RENDERUSDT",
+      "ts_unix": 1795818687,
+      "precio_veto": 1.396,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "HEIUSDT",
+      "ts_unix": 1795797091,
+      "precio_veto": 0.0883,
+      "paso_fallido": "A5-Binance",
+      "detalle": "A5 VETA: Muro vendedor en Ask (56% del libro)"
     },
     {
       "symbol": "RENDERUSDT",
@@ -469,11 +469,18 @@
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     },
     {
-      "symbol": "RENDERUSDT",
-      "ts_unix": 1795818687,
-      "precio_veto": 1.396,
+      "symbol": "TQQQBUSDT",
+      "ts_unix": 1795819271,
+      "precio_veto": 48.5,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "HEIUSDT",
+      "ts_unix": 1795819271,
+      "precio_veto": 0.0817,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     }
   ],
   "metricas_globales": {
@@ -482,8 +489,8 @@
     "runners_20_logrados": 0,
     "stops_prematuros": 0,
     "stops_salvadores": 0,
-    "vetos_acertados": 63,
+    "vetos_acertados": 64,
     "oportunidades_perdidas_20": 7,
-    "ajustes_autocritica_ciclo": 56
+    "ajustes_autocritica_ciclo": 57
   }
 }
