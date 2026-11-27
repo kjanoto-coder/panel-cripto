@@ -1,5 +1,5 @@
 import os, json, glob, time, random, html, hashlib, requests
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone, timedelta
 import matplotlib
 matplotlib.use("Agg")
@@ -171,7 +171,7 @@ def filtrar_diccionario_cripto(dicc: dict) -> dict:
 
 def crear_sesion_binance():
     s = requests.Session()
-    adapter = requests.adapters.HTTPAdapter(pool_connections=16, pool_maxsize=16, max_retries=1)
+    adapter = requests.adapters.HTTPAdapter(pool_connections=32, pool_maxsize=32, max_retries=1)
     s.mount("https://", adapter)
     s.headers.update({"User-Agent": "Mozilla/5.0", "Accept": "application/json", "Cache-Control": "no-cache"})
     return s
@@ -355,7 +355,7 @@ class CerebroEvolutivo:
             return it, ant_h, max_p, min_p
 
         if a_consultar:
-            with ThreadPoolExecutor(max_workers=8) as ex:
+            with ThreadPoolExecutor(max_workers=6) as ex:
                 resultados_sombra = list(ex.map(_fetch_sombra_rango, a_consultar))
         else:
             resultados_sombra = []
@@ -1007,7 +1007,7 @@ def asistente_2_confluencia_velocidad(mkt: dict, dossier_a1: dict) -> dict:
 
 
 def _calcular_rsi_wilder(cierres: list, periodo: int = 14) -> float:
-    """RSI de Wilder suavizado hasta la última vela (corrige el bug de tomar solo las primeras 14 velas)."""
+    """RSI de Wilder suavizado hasta la última vela."""
     if len(cierres) <= periodo:
         return 50.0
     deltas = [cierres[i] - cierres[i - 1] for i in range(1, len(cierres))]
@@ -1373,8 +1373,8 @@ def empleado_evaluar_palanca_emergencia(pos, v1m, v15, v1h, fib, pnl_pct, dossie
 
 def _evaluar_una_candidata_worker(args):
     """Worker paralelo para evaluar los 6 Asistentes y métricas de Trader de una moneda."""
-    sym, mkt, es_iny_a5, excluidas, eco, plan, umbrales, cupo_est_usd = args
-    s_loc = crear_sesion_binance()
+    sym, mkt, es_iny_a5, excluidas, eco, plan, umbrales, cupo_est_usd, session = args
+    s_loc = session or crear_sesion_binance()
     precio = float(mkt["precio"])
 
     dossier_a1 = asistente_1_forense_cazador_preexplosion(sym, precio, eco, plan, es_inyeccion_binance=es_iny_a5)
@@ -1385,12 +1385,10 @@ def _evaluar_una_candidata_worker(args):
     check_a2 = bool(res_a2["ok"])
 
     if check_a1 and check_a2:
-        with ThreadPoolExecutor(max_workers=4) as sub_ex:
-            f15 = sub_ex.submit(analizar_velas_tf, s_loc, sym, "15m", 105)
-            f1d = sub_ex.submit(analizar_velas_tf, s_loc, sym, "1d", 105)
-            f1h = sub_ex.submit(analizar_velas_tf, s_loc, sym, "1h", 36)
-            f4h = sub_ex.submit(analizar_velas_tf, s_loc, sym, "4h", 48)
-            v15, v1d, v1h, v4h = f15.result(), f1d.result(), f1h.result(), f4h.result()
+        v15 = analizar_velas_tf(s_loc, sym, "15m", 105)
+        v1d = analizar_velas_tf(s_loc, sym, "1d", 105)
+        v1h = analizar_velas_tf(s_loc, sym, "1h", 36)
+        v4h = analizar_velas_tf(s_loc, sym, "4h", 48)
         res_a3 = asistente_3_estructura_limpia(v15, v1d, v4h, dossier_a1)
     else:
         v15 = {"ok": False, "rsi": 50.0, "var_ultima": 0.0, "var_3velas": 0.0, "vol_ratio": 1.0, "ma7": precio, "ma25": precio}
@@ -1407,11 +1405,8 @@ def _evaluar_una_candidata_worker(args):
     check_a4 = bool(res_a4["ok"])
 
     if check_a1 and check_a2 and check_a3 and check_a4:
-        with ThreadPoolExecutor(max_workers=2) as ob_ex:
-            f_ob = ob_ex.submit(asistente_5_auditar_order_book, s_loc, sym, cupo_est_usd, umbrales)
-            f_ct = ob_ex.submit(asistente_6_cinta_y_ballenas_binance, s_loc, sym, umbrales)
-            ob_a5 = f_ob.result()
-            cinta_a6 = f_ct.result() if ob_a5.get("sano", False) else {"ok": False, "taker_buy_pct": 0.0, "whale_buy_pct": 0.0, "motivo": ob_a5["motivo"]}
+        ob_a5 = asistente_5_auditar_order_book(s_loc, sym, cupo_est_usd, umbrales)
+        cinta_a6 = asistente_6_cinta_y_ballenas_binance(s_loc, sym, umbrales) if ob_a5.get("sano", False) else {"ok": False, "taker_buy_pct": 0.0, "whale_buy_pct": 0.0, "motivo": ob_a5["motivo"]}
     else:
         ob_a5 = {"ok": False, "ratio_ba": 0.0, "liq_ask_015_usd": 0.0, "muro_vendedor": False, "sano": False, "motivo": res_a4["motivo"]}
         cinta_a6 = {"ok": False, "taker_buy_pct": 0.0, "whale_buy_pct": 0.0, "motivo": ob_a5["motivo"]}
@@ -1479,7 +1474,7 @@ def mesa_asistentes_y_traders_evaluar_candidatas(session, mapa_mkt, excluidas, e
     cupo_est_usd = round(cap_base_total / MAX_TRADERS_SEMANA, 2)
 
     tareas = [
-        (sym, mapa_mkt[sym], (sym in inyectadas_binance_a5), excluidas, eco, plan, umbrales, cupo_est_usd)
+        (sym, mapa_mkt[sym], (sym in inyectadas_binance_a5), excluidas, eco, plan, umbrales, cupo_est_usd, session)
         for sym in universo_syms
     ]
     with ThreadPoolExecutor(max_workers=8) as ex:
@@ -2197,13 +2192,15 @@ def limpiar_json_ia(raw_text):
 
 
 def llamar_gemini_con_reintento(client, prompt):
-    for mod in MODELOS_GEMINI:
+    for idx_m, mod in enumerate(MODELOS_GEMINI):
         try:
             res = client.models.generate_content(model=mod, contents=prompt)
             if res and res.text:
                 return res.text
         except Exception as e_mod:
             print(f"⚠️ Modelo {mod} sin respuesta: {e_mod}")
+            if idx_m < len(MODELOS_GEMINI) - 1:
+                time.sleep(0.6)
             continue
     return None
 
@@ -2869,25 +2866,27 @@ def ejecutar_gestor_semanal():
         mkt_p = mapa_mkt.get(sym_p)
         if not mkt_p:
             return sym_p, None
-        s_p = crear_sesion_binance()
-        p_act_p = mkt_p["precio"]
+        p_act_p = float(mkt_p["precio"])
         p_ent_p = float(pos_item["precio_entrada"])
         var_bruta_p = ((p_act_p - p_ent_p) / p_ent_p) * 100 if p_ent_p > 0 else 0.0
         pnl_p = var_bruta_p - COMISION_SPOT_TOTAL_PCT
 
-        with ThreadPoolExecutor(max_workers=5) as ex_p:
-            f1m = ex_p.submit(analizar_velas_tf, s_p, sym_p, "1m", 30)
-            f15 = ex_p.submit(analizar_velas_tf, s_p, sym_p, "15m", 35)
-            f1h = ex_p.submit(analizar_velas_tf, s_p, sym_p, "1h", 36)
-            f4h = ex_p.submit(analizar_velas_tf, s_p, sym_p, "4h", 48)
-            fc6 = ex_p.submit(asistente_6_cinta_y_ballenas_binance, s_p, sym_p, cerebro.umbrales) if pnl_p <= -1.8 else None
-            return sym_p, {
-                "v1m": f1m.result(),
-                "v15": f15.result(),
-                "v1h": f1h.result(),
-                "v4h": f4h.result(),
-                "cinta_a6": fc6.result() if fc6 else {"ok": True}
-            }
+        v1m = analizar_velas_tf(s, sym_p, "1m", 30)
+        v15 = analizar_velas_tf(s, sym_p, "15m", 35)
+        v1h = analizar_velas_tf(s, sym_p, "1h", 36)
+        v4h = analizar_velas_tf(s, sym_p, "4h", 48)
+        cinta_a6 = asistente_6_cinta_y_ballenas_binance(s, sym_p, cerebro.umbrales) if pnl_p <= -1.8 else {"ok": True}
+        dossier_a1 = asistente_1_forense_cazador_preexplosion(
+            sym_p, p_act_p, eco, plan, es_inyeccion_binance=bool(pos_item.get("es_inyeccion_binance", False))
+        )
+        return sym_p, {
+            "v1m": v1m,
+            "v15": v15,
+            "v1h": v1h,
+            "v4h": v4h,
+            "cinta_a6": cinta_a6,
+            "dossier_a1": dossier_a1
+        }
 
     tec_pos_map = {}
     if plan["posiciones"]:
@@ -2903,7 +2902,7 @@ def ejecutar_gestor_semanal():
             posiciones_evaluadas.append({"pos": pos, "sin_datos": True})
             continue
 
-        p_act = mkt["precio"]
+        p_act = float(mkt["precio"])
         p_ent = float(pos["precio_entrada"])
         cap = float(pos["capital_usd"])
         cap_inicial = float(pos.setdefault("capital_inicial_usd", cap))
@@ -2923,9 +2922,7 @@ def ejecutar_gestor_semanal():
         v1m, v15, v1h, v4h = tec_p["v1m"], tec_p["v15"], tec_p["v1h"], tec_p["v4h"]
         cinta_a6 = tec_p["cinta_a6"]
         fib = v4h.get("fib", {}) if v4h.get("fib", {}).get("ok") else v1h.get("fib", {})
-        dossier_a1 = asistente_1_forense_cazador_preexplosion(
-            sym, p_act, eco, plan, es_inyeccion_binance=bool(pos.get("es_inyeccion_binance", False))
-        )
+        dossier_a1 = tec_p["dossier_a1"]
 
         lecturas_tecnicas[sym] = {
             "v1m": v1m, "v15": v15, "v1h": v1h, "fib": fib,
@@ -2935,7 +2932,6 @@ def ejecutar_gestor_semanal():
         stop_pos_inicial = float(pos.get("stop_inicial_pct", stop_base_cerebro))
         stop_dinamico_pct = stop_pos_inicial
         if pos.get("tp2_ejecutado", False):
-            # Stop trailing dinámico: sube con el máximo alcanzado sin retroceder nunca
             trail_runner_nivel = round(max(8.0, max_pnl_pct - TRAILING_RUNNER_PCT), 2)
             stop_dinamico_pct = max(float(pos.get("stop_actual_pct", 8.0)), trail_runner_nivel)
         elif pos.get("tp1_ejecutado", False):
@@ -3150,10 +3146,12 @@ def ejecutar_gestor_semanal():
                 meta_por_cupo = meta_restante / MAX_TRADERS_SEMANA
                 subida_nec_pct = round((meta_por_cupo / cap_por_cupo) * 100.0, 2)
 
-                for idx_el, el in enumerate(elegidas):
-                    trader_asignado = el.get("trader_propuesto") if el.get("trader_propuesto") in traders_disponibles_ahora else traders_disponibles_ahora[idx_el]
-                    if trader_asignado in traders_disponibles_ahora:
-                        traders_disponibles_ahora.remove(trader_asignado)
+                for el in elegidas:
+                    if not traders_disponibles_ahora:
+                        break
+                    prop = el.get("trader_propuesto")
+                    trader_asignado = prop if prop in traders_disponibles_ahora else traders_disponibles_ahora[0]
+                    traders_disponibles_ahora.remove(trader_asignado)
 
                     p_ent = float(el["precio_entrada"])
                     p_obj = p_ent * (1.0 + (subida_nec_pct / 100.0))
