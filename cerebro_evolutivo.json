@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 174,
-  "ultima_actualizacion": "2026-11-27 13:51 ART",
+  "version_ciclo": 175,
+  "ultima_actualizacion": "2026-11-27 14:01 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.96,
     "min_ob_ratio": 1.3,
@@ -98,27 +98,6 @@
     }
   },
   "pendientes_sombra_24h": [
-    {
-      "symbol": "CFGUSDT",
-      "ts_unix": 1795776689,
-      "precio_veto": 0.0597,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
-    },
-    {
-      "symbol": "SUIUSDT",
-      "ts_unix": 1795776692,
-      "precio_veto": 0.6915,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
-    },
-    {
-      "symbol": "ANTBUSDT",
-      "ts_unix": 1795776700,
-      "precio_veto": 86.65,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin historial suficiente de velas 15m/1D"
-    },
     {
       "symbol": "GRAMUSDT",
       "ts_unix": 1795777876,
@@ -365,6 +344,27 @@
       "detalle": "A5 VETA: Muro vendedor en Ask (56% del libro)"
     },
     {
+      "symbol": "NIGHTUSDT",
+      "ts_unix": 1795798276,
+      "precio_veto": 0.04974,
+      "paso_fallido": "A6-Binance",
+      "detalle": "A6 VETA: Ballenas vendiendo (53.1% < 55.6%)"
+    },
+    {
+      "symbol": "CFGUSDT",
+      "ts_unix": 1795776689,
+      "precio_veto": 0.0597,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "ANTBUSDT",
+      "ts_unix": 1795776700,
+      "precio_veto": 86.65,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin historial suficiente de velas 15m/1D"
+    },
+    {
       "symbol": "HYPEUSDT",
       "ts_unix": 1795768308,
       "precio_veto": 65.59,
@@ -519,11 +519,18 @@
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     },
     {
-      "symbol": "NIGHTUSDT",
-      "ts_unix": 1795798276,
-      "precio_veto": 0.04974,
-      "paso_fallido": "A6-Binance",
-      "detalle": "A6 VETA: Ballenas vendiendo (53.1% < 55.6%)"
+      "symbol": "CFGUSDT",
+      "ts_unix": 1795798909,
+      "precio_veto": 0.0564,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "ANTBUSDT",
+      "ts_unix": 1795798909,
+      "precio_veto": 91.81,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin historial suficiente de velas 15m/1D"
     }
   ],
   "metricas_globales": {
@@ -532,8 +539,8 @@
     "runners_20_logrados": 0,
     "stops_prematuros": 0,
     "stops_salvadores": 0,
-    "vetos_acertados": 45,
+    "vetos_acertados": 46,
     "oportunidades_perdidas_20": 5,
-    "ajustes_autocritica_ciclo": 24
+    "ajustes_autocritica_ciclo": 25
   }
 }
