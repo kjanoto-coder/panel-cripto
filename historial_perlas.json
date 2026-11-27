@@ -18,7 +18,9 @@
     "MARSCOINUSDT",
     "ENAUSDT",
     "CHIPUSDT",
-    "ACEUSDT"
+    "ACEUSDT",
+    "BLURUSDT",
+    "BABYUSDT"
   ],
   "resumen_enviado_hoy": false,
   "ultimo_envio_excel": "",
@@ -3558,13 +3560,13 @@
       "symbol": "ONEUSDT",
       "base": "ONE",
       "estrellas": 3,
-      "probabilidad_pct": 39,
+      "probabilidad_pct": 86,
       "precio_ref": 0.00109,
       "fecha_iso": "2026-11-26",
       "fecha_corta": "26/11",
-      "certificada_ia": false,
-      "blindaje_pct": 39,
-      "motivo_certificacion": "Coincide Cazador+PreExplosión | Extendida Fib (0.01) | Libro Bids/Asks: 0.51x (Spread 0.175%)"
+      "certificada_ia": true,
+      "blindaje_pct": 86,
+      "motivo_certificacion": "Coincide Cazador+PreExplosión | Tramo Alcista Fib (0.09) | Libro Bids/Asks: 2.67x (Spread 0.176%)"
     },
     "ZAMAUSDT": {
       "symbol": "ZAMAUSDT",
@@ -3744,7 +3746,7 @@
       "fecha_corta": "26/11",
       "certificada_ia": false,
       "blindaje_pct": 54,
-      "motivo_certificacion": "Coincide Cazador+PreExplosión | Tramo Alcista Fib (0.20) | Libro Bids/Asks: 0.47x (Spread 0.175%)"
+      "motivo_certificacion": "Coincide Cazador+PreExplosión | Tramo Alcista Fib (0.20) | Libro Bids/Asks: 0.42x (Spread 0.066%)"
     },
     "MITOUSDT": {
       "symbol": "MITOUSDT",
@@ -3941,14 +3943,14 @@
     "UNIUSDT": {
       "symbol": "UNIUSDT",
       "base": "UNI",
-      "estrellas": 3,
+      "estrellas": 2,
       "probabilidad_pct": 97,
       "precio_ref": 4.817,
       "fecha_iso": "2026-11-23",
       "fecha_corta": "23/11 20:16",
       "certificada_ia": true,
       "blindaje_pct": 97,
-      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.42) | Libro Bids/Asks: 1.78x (Spread 0.021%)"
+      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.41) | Libro Bids/Asks: 1.79x (Spread 0.021%)"
     },
     "XLMUSDT": {
       "symbol": "XLMUSDT",
@@ -4241,14 +4243,14 @@
     "BIGTIMEUSDT": {
       "symbol": "BIGTIMEUSDT",
       "base": "BIGTIME",
-      "estrellas": 3,
+      "estrellas": 2,
       "probabilidad_pct": 90,
       "precio_ref": 0.00424,
       "fecha_iso": "2026-11-24",
       "fecha_corta": "24/11",
       "certificada_ia": true,
       "blindaje_pct": 90,
-      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.52) | Libro Bids/Asks: 5.3x (Spread 0.287%)"
+      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.57) | Libro Bids/Asks: 6.29x (Spread 0.148%)"
     },
     "KERNELUSDT": {
       "symbol": "KERNELUSDT",
@@ -4284,7 +4286,7 @@
       "fecha_corta": "26/11",
       "certificada_ia": true,
       "blindaje_pct": 97,
-      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.40) | Libro Bids/Asks: 1.31x (Spread 0.107%)"
+      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.36) | Libro Bids/Asks: 1.49x (Spread 0.106%)"
     },
     "LAZIOUSDT": {
       "symbol": "LAZIOUSDT",
