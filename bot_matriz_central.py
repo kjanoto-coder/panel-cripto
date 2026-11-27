@@ -225,6 +225,57 @@ def desdoblar_calendario_mensual(ruta_xlsx, nombre_hoja, tipo="E2"):
     return registros
 
 
+def diagnosticar_evolucion_y_mejoras(mapa_mkt, todos_syms, pos_map, ordenes_cerebro, rows_aut, traders_libres):
+    """
+    Audita oportunidades reales de 24h en Binance vs detección del ecosistema,
+    evalúa la tasa de STOP_PREMATURO en autopsias y genera recomendaciones accionables.
+    """
+    mejoras = []
+
+    # 1. Auditoría de Top Ganadoras 24h en Binance (> +12% y Vol > $1.5M)
+    top_runners_mkt = []
+    for sym, info in mapa_mkt.items():
+        if info.get("cambio_24h", 0.0) >= 12.0 and info.get("vol_24h", 0.0) >= 1_500_000:
+            top_runners_mkt.append((sym, info["cambio_24h"]))
+    top_runners_mkt.sort(key=lambda x: x[1], reverse=True)
+
+    detectadas_en_radar = [s for s, _ in top_runners_mkt if s in todos_syms]
+    operadas_en_cartera = [s for s, _ in top_runners_mkt if s in pos_map]
+    no_detectadas = [s[:-4] for s, _ in top_runners_mkt if s not in todos_syms][:4]
+
+    if top_runners_mkt:
+        cobertura_pct = round(len(detectadas_en_radar) / len(top_runners_mkt) * 100.0, 1)
+        mejoras.append(
+            f"Radar 24h: detectó {len(detectadas_en_radar)}/{len(top_runners_mkt)} subidas >=+12% ({cobertura_pct}%), "
+            f"pero solo {len(operadas_en_cartera)} entraron a cartera."
+        )
+        if no_detectadas:
+            mejoras.append(f"Fuera de radar temprano: {', '.join(no_detectadas)} (revisar filtro de volumen inicial E1/E2).")
+
+    # 2. Detección de cuello de botella en Traders libres
+    if traders_libres > 0 and ordenes_cerebro:
+        mejoras.append(
+            f"Cuello de botella: {traders_libres} Trader(s) libre(s) con {len(ordenes_cerebro)} orden(es) listas "
+            f"({', '.join(o['moneda'] for o in ordenes_cerebro[:3])}). Activar despacho directo en bot_semanal.py."
+        )
+    elif traders_libres > 0 and not ordenes_cerebro:
+        mejoras.append(
+            f"Filtro estricto: {traders_libres} Trader(s) sin tickets 2/3 IA; evaluar bajar umbral de blindaje E1 a 80%."
+        )
+
+    # 3. Calibración de Stop según Autopsia Post-Cierre
+    prematuros = sum(1 for r in rows_aut if any("STOP_PREMATURO" in str(c or "") for c in r))
+    salvadores = sum(1 for r in rows_aut if any("STOP_SALVADOR" in str(c or "") for c in r))
+    ajuste_stop_global = -3.5
+    if prematuros > salvadores and prematuros >= 2:
+        ajuste_stop_global = -4.1
+        mejoras.append(
+            f"Autopsia ({prematuros} STOP_PREMATURO vs {salvadores} STOP_SALVADOR): ampliar stop sugerido a {ajuste_stop_global}%."
+        )
+
+    return mejoras, ajuste_stop_global
+
+
 def construir_matriz_cerebro():
     ahora_dt = ahora_art()
     ahora_str = ahora_dt.strftime("%Y-%m-%d %H:%M ART")
@@ -501,11 +552,12 @@ def construir_matriz_cerebro():
     lista_e3.sort(key=lambda x: (x["fecha"], x["subida_dia_gan_pct"]), reverse=True)
 
     # 4. GESTOR 3 TRADERS, MESA, AUTOPSIA Y CEREBRO
-    h_tr, rows_tr = leer_hoja_tabular("AUDITORIA_SEMANAL_PRUEBA.xlsx", "1_CARTERA_3_TRADERS")
-    h_mesa, rows_mesa = leer_hoja_tabular("AUDITORIA_SEMANAL_PRUEBA.xlsx", "2_MESA_6_ASISTENTES")
-    h_aud24, rows_aud24 = leer_hoja_tabular("AUDITORIA_SEMANAL_PRUEBA.xlsx", "3_AUDITORIA_IA_24H")
-    h_aut, rows_aut = leer_hoja_tabular("AUDITORIA_SEMANAL_PRUEBA.xlsx", "5_AUTOPSIA_POST_CIERRE")
-    h_cer, rows_cer = leer_hoja_tabular("AUDITORIA_SEMANAL_PRUEBA.xlsx", "6_EVOLUCION_CEREBRO_IA")
+    archivo_sem = "AUDITORIA_SEMANAL_PRUEBA.xlsx"
+    h_tr, rows_tr = leer_hoja_tabular(archivo_sem, "1_CARTERA_3_TRADERS")
+    h_mesa, rows_mesa = leer_hoja_tabular(archivo_sem, "2_MESA_6_ASISTENTES")
+    h_aud24, rows_aud24 = leer_hoja_tabular(archivo_sem, "3_AUDITORIA_IA_24H")
+    h_aut, rows_aut = leer_hoja_tabular(archivo_sem, "5_AUTOPSIA_POST_CIERRE")
+    h_cer, rows_cer = leer_hoja_tabular(archivo_sem, "6_EVOLUCION_CEREBRO_IA")
 
     posiciones = plan_sem.get("posiciones", []) if isinstance(plan_sem, dict) else []
     cierres = plan_sem.get("historial_cierres", []) if isinstance(plan_sem, dict) else []
@@ -610,7 +662,7 @@ def construir_matriz_cerebro():
         x["chg_24h"]
     ), reverse=True)
 
-    # 6. MÉTRICAS REALES PARA EL TABLERO EJECUTIVO + AUTOCRÍTICA DE FLUJO
+    # 6. MÉTRICAS REALES + AUTODIAGNÓSTICO EVOLUTIVO
     def _stats_etapa(lista, campo_pct):
         c_hoy, c_24h = 0, 0
         vals = []
@@ -641,6 +693,10 @@ def construir_matriz_cerebro():
     traders_libres = max(0, 3 - len(posiciones))
     pnl_sem_neto = round(float(plan_sem.get("ganancia_realizada_usd", 0.0)) + sum(float(p.get("pnl_usd", 0.0)) for p in posiciones), 2)
 
+    mejoras_ia, stop_calibrado = diagnosticar_evolucion_y_mejoras(
+        mapa_mkt, set(todos_syms), pos_map, ordenes_activas_cerebro, rows_aut, traders_libres
+    )
+
     alerta_flujo = (
         f"⚠️ {traders_libres}/3 Traders libres con {len(ordenes_activas_cerebro)} candidatas aprobadas por Consenso IA."
         if traders_libres > 0 and ordenes_activas_cerebro
@@ -655,7 +711,7 @@ def construir_matriz_cerebro():
             "hoy": e1_hoy,
             "h24": e1_24h,
             "total": len(lista_e1),
-            "metrica": f"Máx Rebote Prom: {e1_prom:+.2f}% | Stop Óptimo: -3.5%",
+            "metrica": f"Máx Rebote Prom: {e1_prom:+.2f}% | Stop Calibrado: {stop_calibrado}%",
             "diag_ia": f"Base auditada de {len(lista_e1)} señales tácticas ({e1_hoy} hoy)."
         },
         {
@@ -681,7 +737,7 @@ def construir_matriz_cerebro():
         {
             "emoji": "🏆",
             "etapa": f"Etapa 4 • Gestor 3 Traders (Cerebro v{version_cerebro})",
-            "fuente": "AUDITORIA_SEMANAL_PRUEBA.xlsx",
+            "fuente": archivo_sem,
             "hoy": e4_hoy,
             "h24": e4_24h,
             "total": len(rows_tr),
@@ -690,13 +746,15 @@ def construir_matriz_cerebro():
         }
     ]
 
-    # Guardar feed JSON para que el Gestor de 3 Traders lo consuma directo
+    # Guardar feed JSON para que bot_semanal.py lo consuma directo
     guardar_json_seguro(CEREBRO_FEED_JSON, {
         "actualizado": ahora_str,
         "version_cerebro": version_cerebro,
         "traders_libres": traders_libres,
+        "stop_calibrado_pct": stop_calibrado,
         "ordenes_ejecutar": ordenes_activas_cerebro[:6],
-        "diagnostico_flujo": alerta_flujo
+        "diagnostico_flujo": alerta_flujo,
+        "mejoras_detectadas": mejoras_ia
     })
 
     # 7. GENERAR EXCEL MAESTRO ORDENADO (10 PESTAÑAS)
@@ -731,6 +789,14 @@ def construir_matriz_cerebro():
             hoy_iso, rb["etapa"], rb["fuente"], rb["hoy"],
             rb["h24"], rb["total"], rb["metrica"], rb["diag_ia"]
         ])
+
+    if mejoras_ia:
+        ws0.append([])
+        ws0.append(["=== AUTODIAGNÓSTICO DE EVOLUCIÓN Y MEJORAS DETECTADAS POR LA IA ==="])
+        ws0[ws0.max_row][0].fill = fill_sub
+        ws0[ws0.max_row][0].font = font_hdr
+        for m_txt in mejoras_ia:
+            ws0.append([hoy_iso, "🧬 MEJORA SUGERIDA IA", "CEREBRO_CENTRAL", "-", "-", "-", f"Stop Ref: {stop_calibrado}%", m_txt])
 
     ws1 = wb.create_sheet(title="1_MATRIZ_MAESTRA_CRUZADA")
     _preparar_hoja(ws1, [
@@ -853,7 +919,7 @@ def construir_matriz_cerebro():
             sheet.column_dimensions[col[0].column_letter].width = min(max_len + 4, 48)
 
     wb.save(EXCEL_MATRIZ_CENTRAL_FILE)
-    return ahora_str, hoy_iso, resumen_bots, filas_matriz, ordenes_activas_cerebro, version_cerebro, plan_sem, len(wb.sheetnames)
+    return ahora_str, hoy_iso, resumen_bots, filas_matriz, ordenes_activas_cerebro, mejoras_ia, version_cerebro, plan_sem, len(wb.sheetnames)
 
 
 def tg_post(metodo, payload=None, files=None):
@@ -889,7 +955,7 @@ def asegurar_topic_matriz(cfg):
     return None
 
 
-def actualizar_tema_matriz_telegram(ahora_str, hoy_iso, resumen_bots, filas_matriz, ordenes_cerebro, version_cerebro, plan_sem, total_pestanas):
+def actualizar_tema_matriz_telegram(ahora_str, hoy_iso, resumen_bots, filas_matriz, ordenes_cerebro, mejoras_ia, version_cerebro, plan_sem, total_pestanas):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         return
 
@@ -930,8 +996,13 @@ def actualizar_tema_matriz_telegram(ahora_str, hoy_iso, resumen_bots, filas_matr
         for ec in en_cartera:
             msg += f"• <b>{ec['moneda']}</b>: {html.escape(ec['estado_tr'])}\n"
 
+    if mejoras_ia:
+        msg += "\n🧬 <b>DIAGNÓSTICO DE MEJORA Y EVOLUCIÓN IA</b>\n"
+        for mj in mejoras_ia[:3]:
+            msg += f"• <i>{html.escape(mj)}</i>\n"
+
     msg += (
-        f"\n🧬 <i>Cerebro v{version_cerebro} • Universo único: {len(filas_matriz)} monedas</i>\n"
+        f"\n⚙️ <i>Cerebro v{version_cerebro} • Universo único: {len(filas_matriz)} monedas</i>\n"
         f"<i>Sincronizado • {ahora_str}</i>"
     )
 
@@ -1002,5 +1073,5 @@ def actualizar_tema_matriz_telegram(ahora_str, hoy_iso, resumen_bots, filas_matr
 
 if __name__ == "__main__":
     print(f"🧠 ACTUALIZANDO CEREBRO CENTRAL ({ahora_art().strftime('%H:%M:%S')} ART)...")
-    ahora_s, hoy_s, res_bots, f_mat, ord_cer, v_cer, pl, tot_p = construir_matriz_cerebro()
-    actualizar_tema_matriz_telegram(ahora_s, hoy_s, res_bots, f_mat, ord_cer, v_cer, pl, tot_p)
+    ahora_s, hoy_s, res_bots, f_mat, ord_cer, mej_ia, v_cer, pl, tot_p = construir_matriz_cerebro()
+    actualizar_tema_matriz_telegram(ahora_s, hoy_s, res_bots, f_mat, ord_cer, mej_ia, v_cer, pl, tot_p)
