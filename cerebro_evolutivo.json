@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 191,
-  "ultima_actualizacion": "2026-11-27 17:01 ART",
+  "version_ciclo": 192,
+  "ultima_actualizacion": "2026-11-27 17:11 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.96,
     "min_ob_ratio": 1.3,
@@ -98,20 +98,6 @@
     }
   },
   "pendientes_sombra_24h": [
-    {
-      "symbol": "ONEUSDT",
-      "ts_unix": 1795788107,
-      "precio_veto": 0.001027,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 0.07x < 1.25x"
-    },
-    {
-      "symbol": "SOPHUSDT",
-      "ts_unix": 1795788107,
-      "precio_veto": 0.00102,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 0.38x < 1.25x"
-    },
     {
       "symbol": "BIGTIMEUSDT",
       "ts_unix": 1795789269,
@@ -462,8 +448,8 @@
     "runners_20_logrados": 0,
     "stops_prematuros": 0,
     "stops_salvadores": 0,
-    "vetos_acertados": 59,
+    "vetos_acertados": 61,
     "oportunidades_perdidas_20": 5,
-    "ajustes_autocritica_ciclo": 41
+    "ajustes_autocritica_ciclo": 42
   }
 }
