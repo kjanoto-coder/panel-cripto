@@ -1,14 +1,14 @@
 {
-  "version_ciclo": 204,
-  "ultima_actualizacion": "2026-11-27 19:11 ART",
+  "version_ciclo": 205,
+  "ultima_actualizacion": "2026-11-27 19:21 ART",
   "umbrales": {
-    "min_ratio_vol_1h": 1.96,
+    "min_ratio_vol_1h": 1.91,
     "min_ob_ratio": 1.27,
     "max_concentracion_muro_pct": 34.0,
     "min_taker_buy_pct": 56.6,
     "min_whale_buy_pct": 55.6,
     "min_trades_por_min": 12.0,
-    "min_pista_libre_pct": 16.0,
+    "min_pista_libre_pct": 15.5,
     "max_distancia_ma7_15m_pct": 3.2,
     "stop_base_pct": -3.4,
     "tp1_pct": 6.5,
@@ -95,6 +95,12 @@
       "positivos": 0,
       "negativos": 1,
       "ajuste_score": -5.0
+    },
+    "SKYUSDT": {
+      "eventos": 1,
+      "positivos": 1,
+      "negativos": 0,
+      "ajuste_score": 4.0
     }
   },
   "pendientes_sombra_24h": [
@@ -260,6 +266,13 @@
       "detalle": "A4 VETA: Vol 1h 0.09x < 1.96x"
     },
     {
+      "symbol": "COOKIEUSDT",
+      "ts_unix": 1795817465,
+      "precio_veto": 0.00795,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
       "symbol": "LUNCUSDT",
       "ts_unix": 1795794675,
       "precio_veto": 4.603e-05,
@@ -272,13 +285,6 @@
       "precio_veto": 0.0575,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
-    },
-    {
-      "symbol": "SKYUSDT",
-      "ts_unix": 1795794070,
-      "precio_veto": 0.04609,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 0.56x < 1.25x"
     },
     {
       "symbol": "WUSDT",
@@ -461,13 +467,6 @@
       "precio_veto": 133.93,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
-    },
-    {
-      "symbol": "COOKIEUSDT",
-      "ts_unix": 1795817465,
-      "precio_veto": 0.00795,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     }
   ],
   "metricas_globales": {
@@ -477,7 +476,7 @@
     "stops_prematuros": 0,
     "stops_salvadores": 0,
     "vetos_acertados": 63,
-    "oportunidades_perdidas_20": 6,
-    "ajustes_autocritica_ciclo": 54
+    "oportunidades_perdidas_20": 7,
+    "ajustes_autocritica_ciclo": 55
   }
 }
