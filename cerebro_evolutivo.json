@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 81,
-  "ultima_actualizacion": "2026-11-26 23:01 ART",
+  "version_ciclo": 82,
+  "ultima_actualizacion": "2026-11-26 23:11 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.92,
     "min_ob_ratio": 1.31,
@@ -506,6 +506,20 @@
       "symbol": "2ZUSDT",
       "ts_unix": 1795744294,
       "precio_veto": 0.01752,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "BIGTIMEUSDT",
+      "ts_unix": 1795745470,
+      "precio_veto": 0.0067,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Techo MA99 1D cerca (+2.2% < +16.0%)"
+    },
+    {
+      "symbol": "SSVUSDT",
+      "ts_unix": 1795745472,
+      "precio_veto": 2.704,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     }
