@@ -1,14 +1,5 @@
 [
   [
-    "ADAUSDT",
-    "ASTERUSDT",
-    "KAVAUSDT",
-    "DOTUSDT",
-    "SENTUSDT",
-    "RENDERUSDT",
-    "HBARUSDT"
-  ],
-  [
     "ICPUSDT",
     "POLUSDT",
     "ONDOUSDT",
@@ -16,5 +7,14 @@
     "APTUSDT",
     "SAGAUSDT",
     "WIFUSDT"
+  ],
+  [
+    "ADAUSDT",
+    "KAVAUSDT",
+    "ASTERUSDT",
+    "DOTUSDT",
+    "POLUSDT",
+    "SENTUSDT",
+    "HBARUSDT"
   ]
 ]
