@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 141,
-  "ultima_actualizacion": "2026-11-27 09:01 ART",
+  "version_ciclo": 142,
+  "ultima_actualizacion": "2026-11-27 09:11 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.92,
     "min_ob_ratio": 1.28,
@@ -840,6 +840,20 @@
       "symbol": "ZECUSDT",
       "ts_unix": 1795779686,
       "precio_veto": 759.71,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "ENAUSDT",
+      "ts_unix": 1795781479,
+      "precio_veto": 0.1083,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "KAVAUSDT",
+      "ts_unix": 1795781482,
+      "precio_veto": 0.02689,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     }
