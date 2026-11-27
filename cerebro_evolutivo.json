@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 125,
-  "ultima_actualizacion": "2026-11-27 06:21 ART",
+  "version_ciclo": 126,
+  "ultima_actualizacion": "2026-11-27 06:31 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.92,
     "min_ob_ratio": 1.31,
@@ -65,6 +65,12 @@
       "positivos": 0,
       "negativos": 1,
       "ajuste_score": -5.0
+    },
+    "CFGUSDT": {
+      "eventos": 1,
+      "positivos": 1,
+      "negativos": 0,
+      "ajuste_score": 4.0
     }
   },
   "pendientes_sombra_24h": [
@@ -373,13 +379,6 @@
       "symbol": "MEUSDT",
       "ts_unix": 1795714869,
       "precio_veto": 0.04193,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
-    },
-    {
-      "symbol": "CFGUSDT",
-      "ts_unix": 1795715479,
-      "precio_veto": 0.05,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     },
@@ -781,6 +780,34 @@
       "precio_veto": 92.85,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "WLDUSDT",
+      "ts_unix": 1795771895,
+      "precio_veto": 0.2534,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Mechas superiores de rechazo en 15m (latigazo)"
+    },
+    {
+      "symbol": "SOLUSDT",
+      "ts_unix": 1795771900,
+      "precio_veto": 73.71,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Mechas superiores de rechazo en 15m (latigazo)"
+    },
+    {
+      "symbol": "SKHYBUSDT",
+      "ts_unix": 1795771901,
+      "precio_veto": 119.66,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "MUBUSDT",
+      "ts_unix": 1795771903,
+      "precio_veto": 648.48,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     }
   ],
   "metricas_globales": {
@@ -790,6 +817,6 @@
     "stops_prematuros": 0,
     "stops_salvadores": 0,
     "vetos_acertados": 7,
-    "oportunidades_perdidas_20": 0
+    "oportunidades_perdidas_20": 1
   }
 }
