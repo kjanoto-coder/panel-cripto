@@ -1,14 +1,5 @@
 [
   [
-    "SUIUSDT",
-    "ATOMUSDT",
-    "WIFUSDT",
-    "POLUSDT",
-    "PENGUUSDT",
-    "STRKUSDT",
-    "HUMAUSDT"
-  ],
-  [
     "UNIUSDT",
     "GRAMUSDT",
     "RENDERUSDT",
@@ -16,5 +7,14 @@
     "SENTUSDT",
     "WIFUSDT",
     "HUMAUSDT"
+  ],
+  [
+    "UNIUSDT",
+    "DOGEUSDT",
+    "SUIUSDT",
+    "NIGHTUSDT",
+    "RENDERUSDT",
+    "GRAMUSDT",
+    "WIFUSDT"
   ]
 ]
