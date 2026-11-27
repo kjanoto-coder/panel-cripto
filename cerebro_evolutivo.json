@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 182,
-  "ultima_actualizacion": "2026-11-27 15:11 ART",
+  "version_ciclo": 183,
+  "ultima_actualizacion": "2026-11-27 15:21 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.96,
     "min_ob_ratio": 1.3,
@@ -98,27 +98,6 @@
     }
   },
   "pendientes_sombra_24h": [
-    {
-      "symbol": "ENAUSDT",
-      "ts_unix": 1795781479,
-      "precio_veto": 0.1083,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
-    },
-    {
-      "symbol": "KAVAUSDT",
-      "ts_unix": 1795781482,
-      "precio_veto": 0.02689,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
-    },
-    {
-      "symbol": "ARBUSDT",
-      "ts_unix": 1795781896,
-      "precio_veto": 0.1187,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
-    },
     {
       "symbol": "ICPUSDT",
       "ts_unix": 1795783793,
@@ -365,6 +344,20 @@
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     },
     {
+      "symbol": "NBISBUSDT",
+      "ts_unix": 1795803069,
+      "precio_veto": 90.74,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "KAVAUSDT",
+      "ts_unix": 1795781482,
+      "precio_veto": 0.02689,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
       "symbol": "GRAMUSDT",
       "ts_unix": 1795777876,
       "precio_veto": 0.991,
@@ -389,13 +382,6 @@
       "symbol": "SOPHUSDT",
       "ts_unix": 1795765878,
       "precio_veto": 0.00093,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
-    },
-    {
-      "symbol": "STOUSDT",
-      "ts_unix": 1795716672,
-      "precio_veto": 0.0217,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     },
@@ -498,11 +484,11 @@
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     },
     {
-      "symbol": "NBISBUSDT",
-      "ts_unix": 1795803069,
-      "precio_veto": 90.74,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+      "symbol": "KAVAUSDT",
+      "ts_unix": 1795803666,
+      "precio_veto": 0.0264,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.17x < 1.25x"
     }
   ],
   "metricas_globales": {
@@ -511,8 +497,8 @@
     "runners_20_logrados": 0,
     "stops_prematuros": 0,
     "stops_salvadores": 0,
-    "vetos_acertados": 48,
+    "vetos_acertados": 50,
     "oportunidades_perdidas_20": 5,
-    "ajustes_autocritica_ciclo": 32
+    "ajustes_autocritica_ciclo": 33
   }
 }
