@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 181,
-  "ultima_actualizacion": "2026-11-27 15:01 ART",
+  "version_ciclo": 182,
+  "ultima_actualizacion": "2026-11-27 15:11 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.96,
     "min_ob_ratio": 1.3,
@@ -496,6 +496,13 @@
       "precio_veto": 133.93,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "NBISBUSDT",
+      "ts_unix": 1795803069,
+      "precio_veto": 90.74,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     }
   ],
   "metricas_globales": {
@@ -506,6 +513,6 @@
     "stops_salvadores": 0,
     "vetos_acertados": 48,
     "oportunidades_perdidas_20": 5,
-    "ajustes_autocritica_ciclo": 31
+    "ajustes_autocritica_ciclo": 32
   }
 }
