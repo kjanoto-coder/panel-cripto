@@ -6963,6 +6963,21 @@
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 3.91,
       "dias_demora": 0
+    },
+    "GALAUSDT": {
+      "symbol": "GALAUSDT",
+      "ticker": "GALA",
+      "fecha_verde": "2026-11-27",
+      "ts_verde": "2026-11-27 12:31",
+      "precio_verde": 0.001363,
+      "es_oro": false,
+      "origen": "CAZADOR_TACTICO_ROJO",
+      "estado": "PENDIENTE",
+      "fecha_ganadora": "",
+      "precio_ganadora": 0.0,
+      "subida_real_pct": 0.0,
+      "subida_24h_dia_pct": 0.0,
+      "dias_demora": null
     }
   }
 }
