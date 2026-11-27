@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 203,
-  "ultima_actualizacion": "2026-11-27 19:01 ART",
+  "version_ciclo": 204,
+  "ultima_actualizacion": "2026-11-27 19:11 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.96,
     "min_ob_ratio": 1.27,
@@ -246,6 +246,20 @@
       "detalle": "A5 VETA: Liquidez Ask 0.15% baja ($2,284) o slippage 0.009%"
     },
     {
+      "symbol": "UNIUSDT",
+      "ts_unix": 1795816911,
+      "precio_veto": 4.846,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "YBUSDT",
+      "ts_unix": 1795816911,
+      "precio_veto": 0.0575,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.09x < 1.96x"
+    },
+    {
       "symbol": "LUNCUSDT",
       "ts_unix": 1795794675,
       "precio_veto": 4.603e-05,
@@ -449,18 +463,11 @@
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     },
     {
-      "symbol": "UNIUSDT",
-      "ts_unix": 1795816911,
-      "precio_veto": 4.846,
+      "symbol": "COOKIEUSDT",
+      "ts_unix": 1795817465,
+      "precio_veto": 0.00795,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
-    },
-    {
-      "symbol": "YBUSDT",
-      "ts_unix": 1795816911,
-      "precio_veto": 0.0575,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 0.09x < 1.96x"
     }
   ],
   "metricas_globales": {
@@ -471,6 +478,6 @@
     "stops_salvadores": 0,
     "vetos_acertados": 63,
     "oportunidades_perdidas_20": 6,
-    "ajustes_autocritica_ciclo": 53
+    "ajustes_autocritica_ciclo": 54
   }
 }
