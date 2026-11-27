@@ -1,14 +1,5 @@
 [
   [
-    "UNIUSDT",
-    "DOGEUSDT",
-    "JSTUSDT",
-    "RENDERUSDT",
-    "ENAUSDT",
-    "NIGHTUSDT",
-    "SENTUSDT"
-  ],
-  [
     "GRAMUSDT",
     "FETUSDT",
     "NOMUSDT",
@@ -16,5 +7,14 @@
     "ATOMUSDT",
     "PENGUUSDT",
     "ZAMAUSDT"
+  ],
+  [
+    "UNIUSDT",
+    "JSTUSDT",
+    "NIGHTUSDT",
+    "RENDERUSDT",
+    "GRAMUSDT",
+    "WIFUSDT",
+    "SKYUSDT"
   ]
 ]
