@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 159,
-  "ultima_actualizacion": "2026-11-27 11:21 ART",
+  "version_ciclo": 160,
+  "ultima_actualizacion": "2026-11-27 11:31 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.92,
     "min_ob_ratio": 1.28,
@@ -92,13 +92,6 @@
     }
   },
   "pendientes_sombra_24h": [
-    {
-      "symbol": "ADAUSDT",
-      "ts_unix": 1795767684,
-      "precio_veto": 0.1538,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Mechas superiores de rechazo en 15m (latigazo)"
-    },
     {
       "symbol": "HYPEUSDT",
       "ts_unix": 1795768308,
@@ -331,6 +324,27 @@
       "detalle": "A4 VETA: Vol 1h 0.38x < 1.25x"
     },
     {
+      "symbol": "BIGTIMEUSDT",
+      "ts_unix": 1795789269,
+      "precio_veto": 0.00607,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.18x < 1.25x"
+    },
+    {
+      "symbol": "SSVUSDT",
+      "ts_unix": 1795789269,
+      "precio_veto": 2.802,
+      "paso_fallido": "A5-Binance",
+      "detalle": "A5 VETA: Libro vendedor (OB 0.81x < 1.28x)"
+    },
+    {
+      "symbol": "ADAUSDT",
+      "ts_unix": 1795767684,
+      "precio_veto": 0.1538,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Mechas superiores de rechazo en 15m (latigazo)"
+    },
+    {
       "symbol": "MEUSDT",
       "ts_unix": 1795767076,
       "precio_veto": 0.04082,
@@ -534,13 +548,6 @@
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     },
     {
-      "symbol": "BCHUSDT",
-      "ts_unix": 1795746696,
-      "precio_veto": 218.0,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
-    },
-    {
       "symbol": "LINKUSDT",
       "ts_unix": 1795747290,
       "precio_veto": 9.55,
@@ -551,13 +558,6 @@
       "symbol": "INJUSDT",
       "ts_unix": 1795748504,
       "precio_veto": 6.364,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
-    },
-    {
-      "symbol": "NBISBUSDT",
-      "ts_unix": 1795749071,
-      "precio_veto": 91.8,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     },
@@ -660,18 +660,11 @@
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     },
     {
-      "symbol": "BIGTIMEUSDT",
-      "ts_unix": 1795789269,
-      "precio_veto": 0.00607,
+      "symbol": "ASTERUSDT",
+      "ts_unix": 1795789886,
+      "precio_veto": 0.5065,
       "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 0.18x < 1.25x"
-    },
-    {
-      "symbol": "SSVUSDT",
-      "ts_unix": 1795789269,
-      "precio_veto": 2.802,
-      "paso_fallido": "A5-Binance",
-      "detalle": "A5 VETA: Libro vendedor (OB 0.81x < 1.28x)"
+      "detalle": "A4 VETA: Vol 1h 0.80x < 1.25x"
     }
   ],
   "metricas_globales": {
@@ -680,7 +673,7 @@
     "runners_20_logrados": 0,
     "stops_prematuros": 0,
     "stops_salvadores": 0,
-    "vetos_acertados": 12,
+    "vetos_acertados": 14,
     "oportunidades_perdidas_20": 5,
     "ajustes_autocritica_ciclo": 13
   }
