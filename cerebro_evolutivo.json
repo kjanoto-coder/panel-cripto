@@ -1,12 +1,12 @@
 {
-  "version_ciclo": 69,
-  "ultima_actualizacion": "2026-11-26 21:01 ART",
+  "version_ciclo": 70,
+  "ultima_actualizacion": "2026-11-26 21:11 ART",
   "umbrales": {
-    "min_ratio_vol_1h": 1.84,
-    "min_ob_ratio": 1.27,
+    "min_ratio_vol_1h": 1.88,
+    "min_ob_ratio": 1.29,
     "max_concentracion_muro_pct": 32.0,
-    "min_taker_buy_pct": 55.4,
-    "min_whale_buy_pct": 54.4,
+    "min_taker_buy_pct": 55.8,
+    "min_whale_buy_pct": 54.8,
     "min_trades_por_min": 12.0,
     "min_pista_libre_pct": 16.0,
     "max_distancia_ma7_15m_pct": 3.2,
@@ -41,14 +41,20 @@
       "bonus": 14.0
     },
     "ESCALADA_GANADORAS_24H": {
-      "ops": 1,
+      "ops": 2,
       "ganadas": 0,
       "runners_20": 0,
-      "bonus": 10.0
+      "bonus": 8.0
     }
   },
   "memoria_monedas": {
     "AEROUSDT": {
+      "eventos": 1,
+      "positivos": 0,
+      "negativos": 1,
+      "ajuste_score": -5.0
+    },
+    "WLFIUSDT": {
       "eventos": 1,
       "positivos": 0,
       "negativos": 1,
@@ -478,7 +484,7 @@
     }
   ],
   "metricas_globales": {
-    "total_operadas": 1,
+    "total_operadas": 2,
     "total_ganadas": 0,
     "runners_20_logrados": 0,
     "stops_prematuros": 0,
