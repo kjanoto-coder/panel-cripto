@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 110,
-  "ultima_actualizacion": "2026-11-27 03:51 ART",
+  "version_ciclo": 111,
+  "ultima_actualizacion": "2026-11-27 04:02 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.92,
     "min_ob_ratio": 1.31,
@@ -681,6 +681,13 @@
       "symbol": "PEPEUSDT",
       "ts_unix": 1795762296,
       "precio_veto": 3.62e-06,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "牛来USDT",
+      "ts_unix": 1795762922,
+      "precio_veto": 0.04722,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     }
