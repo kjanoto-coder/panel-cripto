@@ -130,6 +130,24 @@
       "dictamen_ia": "🛡️ Certificada IA (97%): Certificada Etapa 1 (Fib (0.81) | OB 1.34x)"
     },
     {
+      "symbol": "USUALUSDT",
+      "ticker": "USUAL",
+      "etapa_actual": "ROJO",
+      "estrellas": 3,
+      "blindaje_pct": 96,
+      "precio_inicio": 0.01097,
+      "precio_actual": 0.01149,
+      "var_seq_pct": 4.74,
+      "estructura_1d": "Recuperación 1d",
+      "fib_tag": "Zona Dorada Fib (0.45)",
+      "rsi_1h": 54.0,
+      "vol_surge": 4.64,
+      "stop_sugerido_pct": -3.5,
+      "horizonte_horas": 48,
+      "accion_matriz": "APTA_ENTRADA_ESCALONADA",
+      "dictamen_ia": "Confirmada Rojo (3⭐⭐⭐) -> Pasa a Verde en Pre-Explosión (+0.5% vs base, prob 68%)."
+    },
+    {
       "symbol": "ACEUSDT",
       "ticker": "ACE",
       "etapa_actual": "ROJO",
@@ -308,6 +326,24 @@
       "horizonte_horas": 72,
       "accion_matriz": "EN_OBSERVACION_PRE_ROJO",
       "dictamen_ia": "Pasó filtro Amarillo (2⭐⭐): +0.4% vs base, Vol 1h x0.45 | Fib (0.71)."
+    },
+    {
+      "symbol": "ENSOUSDT",
+      "ticker": "ENSO",
+      "etapa_actual": "AMARILLO",
+      "estrellas": 2,
+      "blindaje_pct": 42,
+      "precio_inicio": 0.408,
+      "precio_actual": 0.4,
+      "var_seq_pct": -1.96,
+      "estructura_1d": "Suelo / Base 1d",
+      "fib_tag": "Fib (0.89)",
+      "rsi_1h": 40.3,
+      "vol_surge": 0.99,
+      "stop_sugerido_pct": -3.5,
+      "horizonte_horas": 72,
+      "accion_matriz": "EN_OBSERVACION_PRE_ROJO",
+      "dictamen_ia": "Pasó filtro Amarillo (2⭐⭐): -0.5% vs base, Vol 1h x0.42 | Fib (0.85)."
     },
     {
       "symbol": "HUMAUSDT",
