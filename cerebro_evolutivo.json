@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 146,
-  "ultima_actualizacion": "2026-11-27 09:41 ART",
+  "version_ciclo": 147,
+  "ultima_actualizacion": "2026-11-27 09:50 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.92,
     "min_ob_ratio": 1.28,
@@ -45,6 +45,12 @@
       "ganadas": 0,
       "runners_20": 0,
       "bonus": 6.0
+    },
+    "REBOTE_EXPLOSION_CORROBORADO_ETAPA": {
+      "ops": 0,
+      "ganadas": 0,
+      "runners_20": 0,
+      "bonus": 20.0
     }
   },
   "memoria_monedas": {
@@ -863,6 +869,27 @@
       "precio_veto": 0.1187,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "ICPUSDT",
+      "ts_unix": 1795783793,
+      "precio_veto": 2.048,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.81x < 1.25x"
+    },
+    {
+      "symbol": "2ZUSDT",
+      "ts_unix": 1795783794,
+      "precio_veto": 0.01763,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.67x < 1.25x"
+    },
+    {
+      "symbol": "LISTAUSDT",
+      "ts_unix": 1795783795,
+      "precio_veto": 0.1024,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.46x < 1.25x"
     }
   ],
   "metricas_globales": {
@@ -872,6 +899,7 @@
     "stops_prematuros": 0,
     "stops_salvadores": 0,
     "vetos_acertados": 9,
-    "oportunidades_perdidas_20": 2
+    "oportunidades_perdidas_20": 2,
+    "ajustes_autocritica_ciclo": 1
   }
 }
