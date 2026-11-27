@@ -1,10 +1,10 @@
 {
-  "version_ciclo": 129,
-  "ultima_actualizacion": "2026-11-27 07:02 ART",
+  "version_ciclo": 130,
+  "ultima_actualizacion": "2026-11-27 07:11 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.92,
-    "min_ob_ratio": 1.31,
-    "max_concentracion_muro_pct": 32.0,
+    "min_ob_ratio": 1.28,
+    "max_concentracion_muro_pct": 33.0,
     "min_taker_buy_pct": 56.2,
     "min_whale_buy_pct": 55.2,
     "min_trades_por_min": 12.0,
@@ -67,6 +67,12 @@
       "ajuste_score": -5.0
     },
     "CFGUSDT": {
+      "eventos": 1,
+      "positivos": 1,
+      "negativos": 0,
+      "ajuste_score": 4.0
+    },
+    "HAEDALUSDT": {
       "eventos": 1,
       "positivos": 1,
       "negativos": 0,
@@ -600,13 +606,6 @@
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     },
     {
-      "symbol": "HAEDALUSDT",
-      "ts_unix": 1795752108,
-      "precio_veto": 0.02323,
-      "paso_fallido": "A5-Binance",
-      "detalle": "A5 VETA: Liquidez Ask 0.15% baja ($77) o slippage 0.33%"
-    },
-    {
       "symbol": "ONEUSDT",
       "ts_unix": 1795756874,
       "precio_veto": 0.001121,
@@ -817,6 +816,6 @@
     "stops_prematuros": 0,
     "stops_salvadores": 0,
     "vetos_acertados": 8,
-    "oportunidades_perdidas_20": 1
+    "oportunidades_perdidas_20": 2
   }
 }
