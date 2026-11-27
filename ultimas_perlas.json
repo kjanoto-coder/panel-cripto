@@ -1,14 +1,5 @@
 [
   [
-    "JSTUSDT",
-    "RENDERUSDT",
-    "TRUMPUSDT",
-    "VIRTUALUSDT",
-    "POLUSDT",
-    "ASTERUSDT",
-    "STRKUSDT"
-  ],
-  [
     "UNIUSDT",
     "SUIUSDT",
     "PEPEUSDT",
@@ -16,5 +7,14 @@
     "LUNCUSDT",
     "MARSCOINUSDT",
     "ARBUSDT"
+  ],
+  [
+    "UNIUSDT",
+    "JSTUSDT",
+    "RENDERUSDT",
+    "ATUSDT",
+    "GRAMUSDT",
+    "SENTUSDT",
+    "VIRTUALUSDT"
   ]
 ]
