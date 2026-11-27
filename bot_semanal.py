@@ -54,6 +54,7 @@ FACTIBILIDAD_MINIMA_JEFE = 75       # Puntaje mínimo exigido por el Jefe Superv
 # Parámetros base de Riesgo y Cosecha Runner en 3 Tramos (auto-calibrables por el Cerebro Evolutivo)
 COMISION_SPOT_TOTAL_PCT = 0.20      # 0.10% compra + 0.10% venta en Binance Spot (PnL Neto Real)
 STOP_LOSS_FIJO_PCT = -3.40          # Stop base de despegue (-3.40% neto)
+STOP_REBOTE_CORROBORADO_PCT = -3.50 # Stop directo cuando >=2 Asistentes de Etapa corroboran rebote/explosión
 TP1_ASEGURAR_PCT = 6.5              # Tramo 1: vende 35% al tocar +6.5% neto y mueve stop a +0.50% BE
 TP2_ASEGURAR_PCT = 15.0             # Tramo 2: vende otro 35% al tocar +15.0% neto y mueve stop a +8.0%
 TRAILING_RUNNER_PCT = 4.5           # Tramo 3 (30% Runner): trailing holgado de 4.5% desde el máximo para cazar +20% a +70%
@@ -91,6 +92,7 @@ PARAMETROS_CEREBRO_DEFAULT = {
     },
     "pesos_patrones": {
         "CONFLUENCIA_E1_E3_MAS_PREEXPLOSION": {"ops": 0, "ganadas": 0, "runners_20": 0, "bonus": 22.0},
+        "REBOTE_EXPLOSION_CORROBORADO_ETAPA": {"ops": 0, "ganadas": 0, "runners_20": 0, "bonus": 20.0},
         "RUPTURA_DIRECTA_BINANCE_A5": {"ops": 0, "ganadas": 0, "runners_20": 0, "bonus": 15.0},
         "DISPARO_PRE_EXPLOSION_E2": {"ops": 0, "ganadas": 0, "runners_20": 0, "bonus": 18.0},
         "ACUMULACION_ASCENDENTE_CAZADOR_E1": {"ops": 0, "ganadas": 0, "runners_20": 0, "bonus": 14.0},
@@ -105,7 +107,8 @@ PARAMETROS_CEREBRO_DEFAULT = {
         "stops_prematuros": 0,
         "stops_salvadores": 0,
         "vetos_acertados": 0,
-        "oportunidades_perdidas_20": 0
+        "oportunidades_perdidas_20": 0,
+        "ajustes_autocritica_ciclo": 0
     }
 }
 
@@ -324,13 +327,13 @@ class CerebroEvolutivo:
             if sub_max >= 18.0:
                 m["oportunidades_perdidas_20"] += 1
                 if "A4" in paso:
-                    u["min_ratio_vol_1h"] = round(max(1.35, u["min_ratio_vol_1h"] - 0.05), 2)
-                    u["min_pista_libre_pct"] = round(max(11.0, u["min_pista_libre_pct"] - 0.5), 1)
+                    u["min_ratio_vol_1h"] = round(max(1.30, u["min_ratio_vol_1h"] - 0.05), 2)
+                    u["min_pista_libre_pct"] = round(max(10.0, u["min_pista_libre_pct"] - 0.5), 1)
                 elif "A5" in paso:
                     u["min_ob_ratio"] = round(max(1.05, u["min_ob_ratio"] - 0.03), 2)
-                    u["max_concentracion_muro_pct"] = round(min(42.0, u["max_concentracion_muro_pct"] + 1.0), 1)
+                    u["max_concentracion_muro_pct"] = round(min(44.0, u["max_concentracion_muro_pct"] + 1.0), 1)
                 elif "A6" in paso:
-                    u["min_taker_buy_pct"] = round(max(51.5, u["min_taker_buy_pct"] - 0.5), 1)
+                    u["min_taker_buy_pct"] = round(max(51.0, u["min_taker_buy_pct"] - 0.5), 1)
                     u["min_whale_buy_pct"] = round(max(50.0, u["min_whale_buy_pct"] - 0.5), 1)
                 self._actualizar_moneda(sym, exito=True, var_pct=sub_max)
                 self.log_bitacora("APRENDIZAJE_FALSO_NEGATIVO_20", {
@@ -345,6 +348,48 @@ class CerebroEvolutivo:
                 restantes.append(item)
 
         self.data["pendientes_sombra_24h"] = restantes[-140:]
+
+    def calibrar_embudo_ciclo(self, conteo_cuellos: dict) -> str:
+        """
+        Autocrítica inmediata por ciclo: si los Asistentes de Etapa aprobaron >=3 monedas
+        pero 0 pasaron a los Traders, detecta el filtro que más bloqueó y lo relaja suavemente.
+        """
+        if not conteo_cuellos:
+            return "Sin cuellos de botella críticos en este ciclo."
+
+        filtro_top, cant_top = max(conteo_cuellos.items(), key=lambda x: x[1])
+        u = self.umbrales
+        m = self.data["metricas_globales"]
+        ajuste_txt = ""
+
+        if filtro_top == "A4_Vol_Pista" and u["min_ratio_vol_1h"] > 1.30:
+            u["min_ratio_vol_1h"] = round(max(1.30, u["min_ratio_vol_1h"] - 0.08), 2)
+            u["min_pista_libre_pct"] = round(max(10.0, u["min_pista_libre_pct"] - 1.0), 1)
+            ajuste_txt = f"Relajado A4 -> Vol1h>={u['min_ratio_vol_1h']}x y Pista>={u['min_pista_libre_pct']}%"
+        elif filtro_top == "A5_Libro_Muros" and u["min_ob_ratio"] > 1.05:
+            u["min_ob_ratio"] = round(max(1.05, u["min_ob_ratio"] - 0.05), 2)
+            u["max_concentracion_muro_pct"] = round(min(44.0, u["max_concentracion_muro_pct"] + 2.0), 1)
+            ajuste_txt = f"Relajado A5 -> OB>={u['min_ob_ratio']}x y MuroMax<={u['max_concentracion_muro_pct']}%"
+        elif filtro_top == "A6_Cinta_Ballenas" and u["min_taker_buy_pct"] > 51.0:
+            u["min_taker_buy_pct"] = round(max(51.0, u["min_taker_buy_pct"] - 0.8), 1)
+            u["min_whale_buy_pct"] = round(max(50.0, u["min_whale_buy_pct"] - 0.8), 1)
+            ajuste_txt = f"Relajado A6 -> Taker>={u['min_taker_buy_pct']}% y Ballenas>={u['min_whale_buy_pct']}%"
+        elif filtro_top == "FOMO_15m" and u["max_distancia_ma7_15m_pct"] < 4.80:
+            u["max_distancia_ma7_15m_pct"] = round(min(4.80, u["max_distancia_ma7_15m_pct"] + 0.30), 2)
+            ajuste_txt = f"Relajado Timing 15m -> DistMA7<={u['max_distancia_ma7_15m_pct']}%"
+        elif filtro_top == "A3_Medias_1D":
+            ajuste_txt = "Bypass A3 activo para monedas con >=2 Asistentes de Etapa; solo 1 Asistente sigue exigiendo A3."
+        else:
+            ajuste_txt = f"Umbrales en piso seguro; {filtro_top} protegió de señales débiles ({cant_top} vetos)."
+
+        m["ajustes_autocritica_ciclo"] = int(m.get("ajustes_autocritica_ciclo", 0)) + 1
+        self.log_bitacora("AUTOCRITICA_EMBUDO_CICLO", {
+            "cuello_principal": filtro_top,
+            "vetos_en_cuello": cant_top,
+            "accion": ajuste_txt,
+            "umbrales_actuales": u
+        })
+        return f"Cuello principal: {filtro_top} ({cant_top} frenadas) ➔ {ajuste_txt}"
 
     def _actualizar_moneda(self, symbol: str, exito: bool, var_pct: float):
         mem = self.data["memoria_monedas"].setdefault(symbol, {
@@ -573,7 +618,6 @@ def ejecutar_asistente_inteligencia(mapa_mkt, plan, cerebro: CerebroEvolutivo):
     res_ia_tac, ia_tac_map = _extraer_diagnosticos_reporte_ia(REPORTE_IA_TACTICO_FILE)
     res_ia_pre, ia_pre_map = _extraer_diagnosticos_reporte_ia(REPORTE_IA_PRE_EXPLOSION_FILE)
 
-    # Sincronizar stop calibrado si el Cerebro Central detectó stops prematuros
     if isinstance(cerebro_central, dict) and cerebro_central.get("stop_calibrado_pct"):
         try:
             stop_cc = float(cerebro_central["stop_calibrado_pct"])
@@ -691,6 +735,7 @@ def ejecutar_asistente_inteligencia(mapa_mkt, plan, cerebro: CerebroEvolutivo):
         },
         "autopsia_24h": stats_autopsia,
         "cerebro_resumen": cerebro.resumen_corto(),
+        "autocritica_ciclo": "Pendiente auditoría de embudo",
         "resumen_ejecutivo": (
             f"Mesa 6 Asistentes integró {len(fuentes_leidas)} fuentes ({len(ordenes_central_map)} órdenes Cerebro Central + "
             f"{len(universo_bots)} señales + ~400 pares Binance). {stats_autopsia['resumen_autopsia']}."
@@ -721,11 +766,9 @@ def ejecutar_asistente_inteligencia(mapa_mkt, plan, cerebro: CerebroEvolutivo):
 def asistente_1_forense_cazador_preexplosion(sym, p_actual, eco, plan=None, es_inyeccion_binance=False):
     """
     ASISTENTE 1 (EQUIPO EMPRESA):
-    Audita en profundidad la tríada principal + Consenso IA del Cerebro Central:
-    - Cazador Táctico (Etapa 1 + reporte_ia_tactico.json)
-    - Pre-Explosión (Etapa 2 + reporte_ia_pre_explosion.json)
-    - Monedas Ganadoras (24h + reporte_ia_ganadoras.json + Excel Verdes)
-    - Consenso IA de Matriz Central (cerebro_matriz_central.json)
+    Audita la tríada principal + Consenso IA del Cerebro Central:
+    - Si >= 2 Asistentes de Etapa corroboran la moneda (ej. E1 APTA_ENTRADA_ESCALONADA >=85% + E2 COMPRA_CONFIRMADA_MADURACION),
+      la marca como Setup de Rebote/Explosión Corroborado con Bypass de Medias Diarias (A3) y Stop Sugerido de Etapa (-3.5%).
     """
     grad = eco["graduadas"].get(sym, {})
     post = eco["posta"].get(sym, {})
@@ -759,7 +802,7 @@ def asistente_1_forense_cazador_preexplosion(sym, p_actual, eco, plan=None, es_i
     if orden_cc:
         tesis_textos.append(f"Cerebro Central IA {orden_cc.get('votos_ia', 2)}/3 ({orden_cc.get('orden', '')})")
     for fuente in (ia_p, ia_t, ia_g, grad, post, verd):
-        for clave in ("diagnostico_ia", "veredicto_ia", "razon_ia", "analisis_ia", "motivo", "razon", "patron", "detalle"):
+        for clave in ("diagnostico_ia", "veredicto_ia", "razon_ia", "analisis_ia", "motivo", "razon", "patron", "detalle", "estado"):
             val = fuente.get(clave)
             if isinstance(val, str) and val.strip() and val.strip() not in tesis_textos:
                 tesis_textos.append(val.strip())
@@ -767,6 +810,13 @@ def asistente_1_forense_cazador_preexplosion(sym, p_actual, eco, plan=None, es_i
         for n_x in eco["notas_extra"][sym]:
             if n_x not in tesis_textos:
                 tesis_textos.append(n_x)
+
+    blob_estados = " ".join(tesis_textos).upper()
+    tiene_etiqueta_corroborada = (
+        ("APTA_ENTRADA_ESCALONADA" in blob_estados)
+        or ("COMPRA_CONFIRMADA_MADURACION" in blob_estados)
+        or ("EJECUTAR" in blob_estados)
+    )
 
     estado_hist_verde = str(ia_g.get("estado") or verd.get("estado") or "SIN_REGISTRO").upper()
     max_hist_verde = max(float(verd.get("max_ganancia_pct", verd.get("ganancia_pct", 0.0))), sub_excel_gan)
@@ -781,6 +831,14 @@ def asistente_1_forense_cazador_preexplosion(sym, p_actual, eco, plan=None, es_i
     bloqueada_por_reincidencia = (stops_previos_semana > MAX_REENTRADAS_SEMANA)
     es_reentrada_habilitada = (1 <= stops_previos_semana <= MAX_REENTRADAS_SEMANA)
 
+    votos_etapa_detectados = max(
+        int(orden_cc.get("votos_ia", 0) or 0),
+        sum([
+            1 if (bool(post) or bool(ia_t)) else 0,
+            1 if confirmada_pre_explosion else 0,
+            1 if en_ganadoras_activo else 0
+        ])
+    )
     confluencia_multi_bot = sum([
         1 if (bool(post) or bool(ia_t)) else 0,
         1 if confirmada_pre_explosion else 0,
@@ -788,65 +846,80 @@ def asistente_1_forense_cazador_preexplosion(sym, p_actual, eco, plan=None, es_i
         1 if (bool(ia_p) or bool(ia_t) or bool(ia_g) or bool(orden_cc)) else 0
     ])
 
+    corroborada_etapa_2plus = (
+        (votos_etapa_detectados >= 2)
+        or (tiene_etiqueta_corroborada and blindaje >= 85)
+    )
+
+    stop_sugerido_etapa = float(
+        orden_cc.get("stop_sugerido_pct")
+        or grad.get("stop_sugerido_pct")
+        or post.get("stop_sugerido_pct")
+        or STOP_REBOTE_CORROBORADO_PCT
+    )
+    if not (-4.8 <= stop_sugerido_etapa <= -2.0):
+        stop_sugerido_etapa = STOP_REBOTE_CORROBORADO_PCT
+
     if bloqueada_por_reincidencia:
         ok_a1 = False
         patron = "VETADA_REINCIDENCIA"
         dictamen = f"⛔ A1 VETA: Agotó re-entrada semanal ({stops_previos_semana} stops)."
-    elif "ROJO" in semaforo and not es_inyeccion_binance and not orden_cc:
+    elif "ROJO" in semaforo and not es_inyeccion_binance and not corroborada_etapa_2plus:
         ok_a1 = False
         patron = "VETADA_SEMAFORO_ROJO"
         dictamen = f"⛔ A1 VETA: Semáforo ROJO en Cazador/Pre-Explosión ({var_desde_radar:+.1f}%)."
-    elif (cazador_en_verde or confirmada_pre_explosion) and var_desde_radar < -2.8 and not es_inyeccion_binance and not orden_cc:
+    elif (cazador_en_verde or confirmada_pre_explosion) and var_desde_radar < -2.8 and not es_inyeccion_binance and not corroborada_etapa_2plus:
         ok_a1 = False
         patron = "VETADA_ESTANCADA_BAJA"
         dictamen = f"⛔ A1 VETA: Señal E1/E2 retrocediendo ({var_desde_radar:+.1f}% desde radar)."
-    elif orden_cc:
+    elif corroborada_etapa_2plus:
         ok_a1 = True
-        patron = "CONFLUENCIA_E1_E3_MAS_PREEXPLOSION"
-        dictamen = f"✅ A1 OK [Consenso IA Central {orden_cc.get('votos_ia', 2)}/3] | {orden_cc.get('orden', 'EJECUTAR')} | Radar:{var_desde_radar:+.1f}%"
-    elif cazador_en_verde and confirmada_pre_explosion:
-        ok_a1 = True
-        patron = "CONFLUENCIA_E1_E3_MAS_PREEXPLOSION"
-        dictamen = f"✅ A1 OK [Cazador E{etapa} + Pre-Explosión] | Radar:{var_desde_radar:+.1f}% | HistVerdes:{max_hist_verde:+.1f}%"
+        patron = "REBOTE_EXPLOSION_CORROBORADO_ETAPA"
+        dictamen = (
+            f"✅ A1 CORROBORADA ({votos_etapa_detectados} Asist. Etapa | Blindaje {blindaje}%) "
+            f"➔ Setup Rebote/Explosión (Bypass A3 + Stop {stop_sugerido_etapa:.1f}%)"
+        )
     elif confirmada_pre_explosion:
         ok_a1 = True
         patron = "DISPARO_PRE_EXPLOSION_E2"
-        dictamen = f"✅ A1 OK [Pre-Explosión E2] | Radar:{var_desde_radar:+.1f}% | Blindaje:{blindaje}%"
+        dictamen = f"✅ A1 OK [1 Asist. Etapa: Pre-Explosión E2] | Blindaje:{blindaje}% | Pasa a filtro A3..A6"
     elif cazador_en_verde and (var_desde_radar >= 1.2 or en_ganadoras_activo):
         ok_a1 = True
         patron = "ACUMULACION_ASCENDENTE_CAZADOR_E1"
-        dictamen = f"✅ A1 OK [Cazador E{etapa} Ascendente] | Radar:{var_desde_radar:+.1f}% | HistVerdes:{max_hist_verde:+.1f}%"
+        dictamen = f"✅ A1 OK [1 Asist. Etapa: Cazador E{etapa}] | Radar:{var_desde_radar:+.1f}% | Pasa a filtro A3..A6"
     elif es_inyeccion_binance:
         ok_a1 = True
         patron = "RUPTURA_DIRECTA_BINANCE_A5"
-        dictamen = "✅ A1 OK [Ruptura Directa Binance A5] | Registrando patrón en Cerebro Evolutivo"
+        dictamen = "✅ A1 OK [Ruptura Directa Binance A5] | Pasa a filtro A3..A6"
     elif en_ganadoras_activo:
         ok_a1 = True
         patron = "ESCALADA_GANADORAS_24H"
-        dictamen = f"✅ A1 OK [Escalada Ganadoras 24h] | HistVerdes:{max_hist_verde:+.1f}%"
+        dictamen = f"✅ A1 OK [1 Asist. Etapa: Ganadoras 24h] | HistVerdes:{max_hist_verde:+.1f}% | Pasa a filtro A3..A6"
     else:
         ok_a1 = False
         patron = "INCOMPLETA_E1_E2"
         dictamen = f"⏳ A1 ESPERA: Señal E{etapa} sin despegue ni confirmación Pre-Explosión ({var_desde_radar:+.1f}%)."
 
-    carril_vip = ok_a1 and (-2.5 <= var_desde_radar <= 13.0) and (confirmada_pre_explosion or es_inyeccion_binance or bool(orden_cc))
+    carril_vip = ok_a1 and (-3.0 <= var_desde_radar <= 13.0) and (corroborada_etapa_2plus or confirmada_pre_explosion or es_inyeccion_binance)
     resumen_corto = (
-        f"Patrón:{patron} | E1:{'SÍ' if (post or ia_t) else 'NO'} | E2:{'SÍ' if confirmada_pre_explosion else 'NO'} | "
-        f"Gan24h:{'SÍ' if en_ganadoras_activo else 'NO'} | Radar:{var_desde_radar:+.1f}%"
+        f"Patrón:{patron} | VotosEtapa:{votos_etapa_detectados} | "
+        f"BypassA3:{'SÍ' if corroborada_etapa_2plus else 'NO'} | Radar:{var_desde_radar:+.1f}%"
     )
 
     return {
         "check_a1": ok_a1,
         "patron_detectado": patron,
+        "corroborada_etapa_2plus": corroborada_etapa_2plus,
+        "votos_etapa": votos_etapa_detectados,
+        "stop_sugerido_etapa": stop_sugerido_etapa,
         "cazador_en_verde": cazador_en_verde,
         "confirmada_pre_explosion": confirmada_pre_explosion,
         "es_inyeccion_binance": es_inyeccion_binance,
         "es_orden_cerebro_central": bool(orden_cc),
-        "stop_sugerido_central": float(orden_cc.get("stop_sugerido_pct", STOP_LOSS_FIJO_PCT)) if orden_cc else None,
         "semaforo_radar": semaforo,
         "etapa_cazador": etapa,
         "blindaje_pct": blindaje,
-        "doble_certificada": (cert_e1 and cert_e2) or bool(orden_cc),
+        "doble_certificada": corroborada_etapa_2plus or (cert_e1 and cert_e2),
         "en_ganadoras_activo": en_ganadoras_activo,
         "carril_vip_radar": carril_vip,
         "es_reentrada_habilitada": es_reentrada_habilitada,
@@ -868,12 +941,13 @@ def asistente_1_forense_cazador_preexplosion(sym, p_actual, eco, plan=None, es_i
 def asistente_2_confluencia_velocidad(mkt: dict, dossier_a1: dict) -> dict:
     """
     ASISTENTE 2 (EQUIPO EMPRESA):
-    Audita velocidad diaria (+3.0% a +28%, o +1.5% si trae orden directa de Cerebro Central),
-    liquidez base 24h (>= $3.0M) y confluencia entre los bots.
+    Audita velocidad diaria (+0.8% si viene corroborada >=2 Asistentes Etapa para atrapar rebotes tempranos,
+    +3.0% si es señal simple) y liquidez base 24h (>= $3.0M).
     """
     cambio_24h = float(mkt.get("cambio_24h", 0.0))
     vol_24h = float(mkt.get("vol_24h", 0.0))
-    min_chg = 1.5 if dossier_a1.get("es_orden_cerebro_central") else 3.0
+    corroborada_2plus = bool(dossier_a1.get("corroborada_etapa_2plus", False))
+    min_chg = 0.8 if corroborada_2plus else 3.0
 
     if vol_24h < 3_000_000:
         return {"ok": False, "motivo": f"A2 VETA: Liquidez 24h baja (${vol_24h/1e6:.1f}M < $3.0M)"}
@@ -882,11 +956,11 @@ def asistente_2_confluencia_velocidad(mkt: dict, dossier_a1: dict) -> dict:
     if cambio_24h > 28.0:
         return {"ok": False, "motivo": f"A2 VETA: Movimiento extendido (+{cambio_24h:.1f}% > +28%)"}
 
-    conf = int(dossier_a1.get("confluencia_multi_bot", 0))
+    conf = int(dossier_a1.get("votos_etapa", dossier_a1.get("confluencia_multi_bot", 1)))
     return {
         "ok": True,
         "confluencia": conf,
-        "motivo": f"A2 OK: +24h {cambio_24h:+.1f}% | Vol ${vol_24h/1e6:.1f}M | Confluencia {conf}/4"
+        "motivo": f"A2 OK: +24h {cambio_24h:+.1f}% | Vol ${vol_24h/1e6:.1f}M | Etapa {conf}/3"
     }
 
 
@@ -984,38 +1058,48 @@ def analizar_velas_tf(session, symbol, interval="1h", limit=105):
     }
 
 
-def asistente_3_estructura_limpia(v15: dict, v1d: dict, v4h: dict) -> dict:
+def asistente_3_estructura_limpia(v15: dict, v1d: dict, v4h: dict, dossier_a1: dict) -> dict:
     """
     ASISTENTE 3 (EQUIPO EMPRESA):
-    Exige subida limpia:
-    - Escalera MA(7) > MA(25) > MA(99) en 15m sin mechas superiores de rechazo.
-    - Ruptura confirmada de MA(7) y MA(25) en gráfico diario (1D).
+    - Si >= 2 Asistentes de Etapa corroboraron la moneda: BYPASS automático de medias diarias (A3)
+      porque se opera como setup de rebote/explosión corroborado.
+    - Si solo 1 Asistente de Etapa la recomienda: exige escalera MA7>MA25>MA99 en 15m + ruptura MA7/MA25 diaria.
     """
+    if dossier_a1.get("corroborada_etapa_2plus"):
+        return {
+            "ok": True,
+            "bypass_a3": True,
+            "motivo": f"A3 BYPASS: Rebote/Explosión corroborado ({dossier_a1.get('votos_etapa', 2)} Asist. Etapa)"
+        }
+
     if not v15.get("ok") or not v1d.get("ok"):
-        return {"ok": False, "motivo": "A3 VETA: Sin historial suficiente de velas 15m/1D"}
+        return {"ok": False, "bypass_a3": False, "motivo": "A3 VETA: Sin historial suficiente de velas 15m/1D"}
     if not v15.get("escalera_ma"):
-        return {"ok": False, "motivo": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"}
+        return {"ok": False, "bypass_a3": False, "motivo": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"}
     if v15.get("rechazo_techo"):
-        return {"ok": False, "motivo": "A3 VETA: Mechas superiores de rechazo en 15m (latigazo)"}
+        return {"ok": False, "bypass_a3": False, "motivo": "A3 VETA: Mechas superiores de rechazo en 15m (latigazo)"}
     if not v1d.get("ruptura_ma7_25"):
-        return {"ok": False, "motivo": "A3 VETA: Aplastada bajo MA7/MA25 diaria"}
+        return {"ok": False, "bypass_a3": False, "motivo": "A3 VETA: Aplastada bajo MA7/MA25 diaria"}
 
     fib_4h = v4h.get("fib", {})
     if fib_4h.get("ok") and fib_4h.get("en_soporte_profundo"):
-        return {"ok": False, "motivo": "A3 VETA: Estructura 4H en retroceso profundo (>0.62 Fib)"}
+        return {"ok": False, "bypass_a3": False, "motivo": "A3 VETA: Estructura 4H en retroceso profundo (>0.62 Fib)"}
 
     return {
         "ok": True,
+        "bypass_a3": False,
         "motivo": "A3 OK: Escalera limpia 15m + ruptura MA7/MA25 diaria"
     }
 
 
-def asistente_4_combustible_pista(precio: float, v1h: dict, v1d: dict, umbrales: dict) -> dict:
+def asistente_4_combustible_pista(precio: float, v1h: dict, v1d: dict, umbrales: dict, dossier_a1: dict) -> dict:
     """
     ASISTENTE 4 (EQUIPO EMPRESA):
-    Verifica combustible de volumen horario (>= min_ratio_vol_1h) y pista libre hacia MA(99) diario (>= min_pista_libre_pct).
+    Verifica combustible de volumen horario. Si viene corroborada >=2 Asistentes de Etapa,
+    no bloquea por techo MA99 1D (setup de rebote) y exige volumen horario mínimo de arranque (>= 1.25x).
     """
-    min_vol = float(umbrales.get("min_ratio_vol_1h", 1.80))
+    corroborada_2plus = bool(dossier_a1.get("corroborada_etapa_2plus", False))
+    min_vol = 1.25 if corroborada_2plus else float(umbrales.get("min_ratio_vol_1h", 1.80))
     min_pista = float(umbrales.get("min_pista_libre_pct", 16.0))
 
     vol_1h = float(v1h.get("vol_ratio", 0.0))
@@ -1024,13 +1108,14 @@ def asistente_4_combustible_pista(precio: float, v1h: dict, v1d: dict, umbrales:
 
     if vol_1h < min_vol:
         return {"ok": False, "pista_libre_pct": pista_libre_pct, "motivo": f"A4 VETA: Vol 1h {vol_1h:.2f}x < {min_vol:.2f}x"}
-    if pista_libre_pct < min_pista:
+    if not corroborada_2plus and pista_libre_pct < min_pista:
         return {"ok": False, "pista_libre_pct": pista_libre_pct, "motivo": f"A4 VETA: Techo MA99 1D cerca (+{pista_libre_pct:.1f}% < +{min_pista:.1f}%)"}
 
+    tag_pista = "Rebote Corroborado" if corroborada_2plus else f"Pista +{pista_libre_pct:.1f}%"
     return {
         "ok": True,
         "pista_libre_pct": pista_libre_pct,
-        "motivo": f"A4 OK: Vol 1h {vol_1h:.2f}x | Pista libre +{pista_libre_pct:.1f}%"
+        "motivo": f"A4 OK: Vol 1h {vol_1h:.2f}x | {tag_pista}"
     }
 
 
@@ -1039,10 +1124,6 @@ def asistente_4_combustible_pista(precio: float, v1h: dict, v1d: dict, umbrales:
 # ==============================================================================
 
 def asistente_5_barrido_global_binance(mapa_mkt: dict, simbolos_bots: set) -> list:
-    """
-    ASISTENTE 5 (PARTE 1 — ENLACE BINANCE):
-    Barre todos los pares Spot USDT en vivo e inyecta rupturas tempranas que se les pasaron a E1/E2.
-    """
     candidatas_vivas = []
     for sym, mkt in mapa_mkt.items():
         if sym in simbolos_bots:
@@ -1056,10 +1137,6 @@ def asistente_5_barrido_global_binance(mapa_mkt: dict, simbolos_bots: set) -> li
 
 
 def asistente_5_auditar_order_book(session, symbol: str, monto_orden_usd: float, umbrales: dict) -> dict:
-    """
-    ASISTENTE 5 (PARTE 2 — ENLACE BINANCE):
-    Audita profundidad de libro (25 niveles), muros vendedores, liquidez en 0.15% Ask y slippage VWAP.
-    """
     min_ob = float(umbrales.get("min_ob_ratio", 1.25))
     max_muro_pct = float(umbrales.get("max_concentracion_muro_pct", 32.0))
 
@@ -1135,12 +1212,6 @@ def asistente_5_auditar_order_book(session, symbol: str, monto_orden_usd: float,
 
 
 def asistente_6_cinta_y_ballenas_binance(session, symbol: str, umbrales: dict) -> dict:
-    """
-    ASISTENTE 6 (ENLACE BINANCE):
-    Analiza las últimas 500 operaciones en cinta (/aggTrades) partidas en 250 previas vs 250 actuales:
-    - Porcentaje de compra agresiva al Ask (Taker Buy).
-    - Aceleración entre tramos y flujo de órdenes grandes (ballenas).
-    """
     min_taker = float(umbrales.get("min_taker_buy_pct", 55.0))
     min_whale = float(umbrales.get("min_whale_buy_pct", 54.0))
     min_tpm = float(umbrales.get("min_trades_por_min", 12.0))
@@ -1210,7 +1281,6 @@ def asistente_6_cinta_y_ballenas_binance(session, symbol: str, umbrales: dict) -
 # ==============================================================================
 
 def asignar_traders_a_cartera(posiciones: list) -> dict:
-    """Garantiza que cada posición abierta tenga su Trader exclusivo (TRADER_1, TRADER_2 o TRADER_3)."""
     escritorios = {tid: None for tid in NOMBRES_TRADERS}
     sin_asignar = []
 
@@ -1232,7 +1302,6 @@ def asignar_traders_a_cartera(posiciones: list) -> dict:
 
 
 def empleado_evaluar_palanca_emergencia(pos, v1m, v15, v1h, fib, pnl_pct, dossier_asistente, cinta_a6=None):
-    """El Trader asignado evalúa en vivo cuándo pedir salida preventiva por invalidación técnica."""
     trader_id = pos.get("trader_asignado", "TRADER")
     p_act = float(pos.get("precio_actual", 0))
     perdio_fib_618 = False
@@ -1258,8 +1327,8 @@ def empleado_evaluar_palanca_emergencia(pos, v1m, v15, v1h, fib, pnl_pct, dossie
 
 def mesa_asistentes_y_traders_evaluar_candidatas(session, mapa_mkt, excluidas, eco, plan, cerebro: CerebroEvolutivo):
     """
-    Ejecuta la Mesa completa de 6 Asistentes (4 Empresa + 2 Binance en vivo)
-    priorizando las órdenes ya aprobadas por los 3 Asistentes IA en cerebro_matriz_central.json.
+    Evalúa candidatas en la Mesa de 6 Asistentes y devuelve:
+    (lista_top_alternativas, estadisticas_embudo_ciclo)
     """
     umbrales = cerebro.umbrales
     graduadas = eco["graduadas"]
@@ -1291,8 +1360,16 @@ def mesa_asistentes_y_traders_evaluar_candidatas(session, mapa_mkt, excluidas, e
         + list(ia_gan_map.keys())
         + list(inyectadas_binance_a5)
     ))
+
+    stats_embudo = {
+        "aprobadas_etapa_a1": 0,
+        "corroboradas_2plus": 0,
+        "aprobadas_mesa_6": 0,
+        "listas_trader": 0,
+        "cuellos_botella": {}
+    }
     if not universo_syms:
-        return []
+        return [], stats_embudo
 
     cap_base_total = max(500.0, float(plan.get("capital_total_usd", CAPITAL_INICIAL_PRUEBA)) + float(plan.get("ganancia_realizada_usd", 0.0)))
     cupo_est_usd = round(cap_base_total / MAX_TRADERS_SEMANA, 2)
@@ -1305,44 +1382,50 @@ def mesa_asistentes_y_traders_evaluar_candidatas(session, mapa_mkt, excluidas, e
         precio = float(mkt["precio"])
         es_iny_a5 = (sym in inyectadas_binance_a5)
 
-        # --- CÉLULA 1: ASISTENTE 1 (Cazador E1 + Pre-Explosión E2 + Ganadoras 24h + Cerebro Central) ---
+        # --- ASISTENTE 1 (Etapa E1/E2/Ganadoras/Cerebro Central) ---
         dossier_a1 = asistente_1_forense_cazador_preexplosion(sym, precio, eco, plan, es_inyeccion_binance=es_iny_a5)
         check_a1 = bool(dossier_a1["check_a1"])
+        corroborada_2plus = bool(dossier_a1.get("corroborada_etapa_2plus", False))
 
-        # --- CÉLULA 1: ASISTENTE 2 (Velocidad 24h & Confluencia) ---
+        if check_a1 and sym not in excluidas:
+            stats_embudo["aprobadas_etapa_a1"] += 1
+            if corroborada_2plus:
+                stats_embudo["corroboradas_2plus"] += 1
+
+        # --- ASISTENTE 2 (Velocidad 24h & Confluencia) ---
         res_a2 = asistente_2_confluencia_velocidad(mkt, dossier_a1) if check_a1 else {"ok": False, "motivo": dossier_a1["dictamen_asistente"]}
         check_a2 = bool(res_a2["ok"])
 
-        # --- CÉLULA 1: ASISTENTE 3 (Subida Limpia 15m + 1D + Fib 4H) ---
+        # --- ASISTENTE 3 (Medias Diarias 1D / 15m — con Bypass si >=2 Asistentes de Etapa) ---
         if check_a1 and check_a2:
             v15 = analizar_velas_tf(session, sym, "15m", 105)
             v1d = analizar_velas_tf(session, sym, "1d", 105)
             v1h = analizar_velas_tf(session, sym, "1h", 36)
             v4h = analizar_velas_tf(session, sym, "4h", 48)
-            res_a3 = asistente_3_estructura_limpia(v15, v1d, v4h)
+            res_a3 = asistente_3_estructura_limpia(v15, v1d, v4h, dossier_a1)
         else:
             v15 = {"ok": False, "rsi": 50.0, "var_ultima": 0.0, "var_3velas": 0.0, "vol_ratio": 1.0, "ma7": precio, "ma25": precio}
             v1d = {"ok": False, "ma99": 0.0}
             v1h = {"ok": False, "rsi": 50.0, "vol_ratio": 1.0, "var_ultima": 0.0, "var_3velas": 0.0}
             v4h = {"ok": False, "fib": {"ok": False}}
-            res_a3 = {"ok": False, "motivo": res_a2["motivo"]}
+            res_a3 = {"ok": False, "bypass_a3": False, "motivo": res_a2["motivo"]}
         check_a3 = bool(res_a3["ok"])
 
-        # --- CÉLULA 1: ASISTENTE 4 (Combustible 1H & Pista Libre +20%) ---
+        # --- ASISTENTE 4 (Combustible 1H & Pista) ---
         if check_a1 and check_a2 and check_a3:
-            res_a4 = asistente_4_combustible_pista(precio, v1h, v1d, umbrales)
+            res_a4 = asistente_4_combustible_pista(precio, v1h, v1d, umbrales, dossier_a1)
         else:
             res_a4 = {"ok": False, "pista_libre_pct": 0.0, "motivo": res_a3["motivo"]}
         check_a4 = bool(res_a4["ok"])
 
-        # --- CÉLULA 2: ASISTENTE 5 (Libro en Vivo Binance & Muros) ---
+        # --- ASISTENTE 5 (Libro en Vivo Binance & Muros) ---
         if check_a1 and check_a2 and check_a3 and check_a4:
             ob_a5 = asistente_5_auditar_order_book(session, sym, cupo_est_usd, umbrales)
         else:
             ob_a5 = {"ok": False, "ratio_ba": 0.0, "liq_ask_015_usd": 0.0, "muro_vendedor": False, "sano": False, "motivo": res_a4["motivo"]}
         check_a5 = bool(ob_a5.get("sano", False))
 
-        # --- CÉLULA 2: ASISTENTE 6 (Cinta 500 aggTrades & Ballenas en Vivo) ---
+        # --- ASISTENTE 6 (Cinta 500 aggTrades & Ballenas en Vivo) ---
         if check_a1 and check_a2 and check_a3 and check_a4 and check_a5:
             cinta_a6 = asistente_6_cinta_y_ballenas_binance(session, sym, umbrales)
         else:
@@ -1352,31 +1435,40 @@ def mesa_asistentes_y_traders_evaluar_candidatas(session, mapa_mkt, excluidas, e
         asistentes_aprobados = sum([check_a1, check_a2, check_a3, check_a4, check_a5, check_a6])
         mesa_6_de_6_ok = (asistentes_aprobados == 6)
 
+        if mesa_6_de_6_ok and sym not in excluidas:
+            stats_embudo["aprobadas_mesa_6"] += 1
+
         if not mesa_6_de_6_ok and sym not in excluidas:
             if not check_a1:
-                paso_veto, det_veto = "A1-Empresa", dossier_a1["dictamen_asistente"]
+                paso_veto, det_veto, clave_cuello = "A1-Empresa", dossier_a1["dictamen_asistente"], "A1_Etapa"
             elif not check_a2:
-                paso_veto, det_veto = "A2-Empresa", res_a2["motivo"]
+                paso_veto, det_veto, clave_cuello = "A2-Empresa", res_a2["motivo"], "A2_Velocidad"
             elif not check_a3:
-                paso_veto, det_veto = "A3-Empresa", res_a3["motivo"]
+                paso_veto, det_veto, clave_cuello = "A3-Empresa", res_a3["motivo"], "A3_Medias_1D"
             elif not check_a4:
-                paso_veto, det_veto = "A4-Empresa", res_a4["motivo"]
+                paso_veto, det_veto, clave_cuello = "A4-Empresa", res_a4["motivo"], "A4_Vol_Pista"
             elif not check_a5:
-                paso_veto, det_veto = "A5-Binance", ob_a5["motivo"]
+                paso_veto, det_veto, clave_cuello = "A5-Binance", ob_a5["motivo"], "A5_Libro_Muros"
             else:
-                paso_veto, det_veto = "A6-Binance", cinta_a6["motivo"]
+                paso_veto, det_veto, clave_cuello = "A6-Binance", cinta_a6["motivo"], "A6_Cinta_Ballenas"
+
+            if check_a1:
+                stats_embudo["cuellos_botella"][clave_cuello] = stats_embudo["cuellos_botella"].get(clave_cuello, 0) + 1
             if check_a1 and check_a2:
                 cerebro.registrar_veto_sombra(sym, precio, paso_veto, det_veto)
 
-        # --- NIVEL 2: TRADER DEDICADO (TIMING DE ENTRADA EN 15M Y STOP ESTRUCTURAL) ---
+        # --- NIVEL 2: TRADER DEDICADO (TIMING DE ENTRADA EN 15M Y STOP ESTRUCTURAL / ETAPA) ---
         ma7_15 = float(v15.get("ma7") or precio)
         ma25_15 = float(v15.get("ma25") or precio)
         dist_ma7_pct = round(((precio - ma7_15) / ma7_15) * 100.0, 2) if ma7_15 > 0 else 0.0
-        max_dist_ma7 = float(umbrales.get("max_distancia_ma7_15m_pct", 3.20))
+        max_dist_ma7 = 4.20 if corroborada_2plus else float(umbrales.get("max_distancia_ma7_15m_pct", 3.20))
 
         es_reentrada = dossier_a1["es_reentrada_habilitada"]
         reentrada_ok = (not es_reentrada) or (float(v1h.get("vol_ratio", 1.0)) >= 2.0)
-        fomo_15m = (dist_ma7_pct > max_dist_ma7) or (float(v15.get("rsi", 50.0)) > 82.0)
+        fomo_15m = (dist_ma7_pct > max_dist_ma7) or (float(v15.get("rsi", 50.0)) > 83.0)
+
+        if mesa_6_de_6_ok and fomo_15m and sym not in excluidas:
+            stats_embudo["cuellos_botella"]["FOMO_15m"] = stats_embudo["cuellos_botella"].get("FOMO_15m", 0) + 1
 
         check_2_trader = (
             mesa_6_de_6_ok
@@ -1384,9 +1476,11 @@ def mesa_asistentes_y_traders_evaluar_candidatas(session, mapa_mkt, excluidas, e
             and reentrada_ok
             and (sym not in excluidas)
         )
+        if check_2_trader:
+            stats_embudo["listas_trader"] += 1
 
         bono_evol = cerebro.bono_evolutivo(sym, dossier_a1["patron_detectado"])
-        bono_cc = 8.0 if dossier_a1.get("es_orden_cerebro_central") else 0.0
+        bono_cc = 10.0 if corroborada_2plus else (6.0 if dossier_a1.get("es_orden_cerebro_central") else 0.0)
         fib_4h = v4h.get("fib", {})
         bono_fib = 10.0 if fib_4h.get("en_zona_dorada") else (6.0 if fib_4h.get("en_tramo_alcista") else 0.0)
         score = round(
@@ -1400,14 +1494,16 @@ def mesa_asistentes_y_traders_evaluar_candidatas(session, mapa_mkt, excluidas, e
             1
         )
 
-        stop_base = float(dossier_a1.get("stop_sugerido_central") or umbrales.get("stop_base_pct", STOP_LOSS_FIJO_PCT))
-        stop_ma25 = ((ma25_15 * 0.994 - precio) / precio) * 100.0 if precio > 0 else stop_base
-        stop_trader_pct = round(max(stop_base, min(-1.90, stop_ma25)), 2)
+        # Si >=2 Asistentes de Etapa corroboraron rebote/explosión, usa directo el Stop Sugerido de Etapa (-3.5%)
+        if corroborada_2plus:
+            stop_trader_pct = round(float(dossier_a1.get("stop_sugerido_etapa", STOP_REBOTE_CORROBORADO_PCT)), 2)
+        else:
+            stop_base = float(umbrales.get("stop_base_pct", STOP_LOSS_FIJO_PCT))
+            stop_ma25 = ((ma25_15 * 0.994 - precio) / precio) * 100.0 if precio > 0 else stop_base
+            stop_trader_pct = round(max(stop_base, min(-1.90, stop_ma25)), 2)
 
-        if dossier_a1.get("es_orden_cerebro_central"):
-            sello_txt = "🧠 CONSENSO IA CENTRAL (2/3+)"
-        elif dossier_a1["cazador_en_verde"] and dossier_a1["confirmada_pre_explosion"]:
-            sello_txt = "🟢⚡ CAZADOR E1 + PRE-EXPLOSIÓN E2"
+        if corroborada_2plus:
+            sello_txt = f"⚡🛡️ REBOTE/EXPLOSIÓN CORROBORADO ({dossier_a1.get('votos_etapa', 2)} Asist. Etapa)"
         elif es_iny_a5:
             sello_txt = "🛰️ INYECCIÓN EN VIVO BINANCE (A5)"
         elif dossier_a1["confirmada_pre_explosion"]:
@@ -1419,7 +1515,7 @@ def mesa_asistentes_y_traders_evaluar_candidatas(session, mapa_mkt, excluidas, e
 
         motivo_6_asistentes = (
             f"{sello_txt} | Mesa {asistentes_aprobados}/6 | "
-            f"{res_a4.get('motivo', '')} | {ob_a5.get('motivo', '')} | {cinta_a6.get('motivo', '')}"
+            f"{res_a3.get('motivo', '')} | {res_a4.get('motivo', '')} | {ob_a5.get('motivo', '')} | {cinta_a6.get('motivo', '')}"
         )
         plan_trader_txt = (
             f"Entrada {formatear_precio(precio)} (MA7 +{dist_ma7_pct:.1f}%) | "
@@ -1455,6 +1551,8 @@ def mesa_asistentes_y_traders_evaluar_candidatas(session, mapa_mkt, excluidas, e
             "precio_entrada": precio,
             "origen": sello_txt,
             "patron_detectado": dossier_a1["patron_detectado"],
+            "corroborada_etapa_2plus": corroborada_2plus,
+            "bypass_a3": bool(res_a3.get("bypass_a3", False)),
             "es_inyeccion_binance": es_iny_a5,
             "probabilidad": dossier_a1["blindaje_pct"],
             "score": score,
@@ -1491,16 +1589,11 @@ def mesa_asistentes_y_traders_evaluar_candidatas(session, mapa_mkt, excluidas, e
             "fib_4h": fib_4h
         })
 
-    candidatos.sort(key=lambda x: (x["check_2_trader"], x["asistentes_aprobados"], x["score"]), reverse=True)
-    return candidatos[:TOP_ALTERNATIVAS_MOSTRAR]
+    candidatos.sort(key=lambda x: (x["check_2_trader"], x["corroborada_etapa_2plus"], x["asistentes_aprobados"], x["score"]), reverse=True)
+    return candidatos[:TOP_ALTERNATIVAS_MOSTRAR], stats_embudo
 
 
 def ejecutar_empleados_3_traders_ia(session, mapa_mkt, plan, clima_btc_txt, lecturas_tecnicas, boletin_asistente, eco):
-    """
-    NIVEL 2 (3 TRADERS DEDICADOS):
-    Cada Trader gestiona exclusivamente su moneda asignada en Modo Runner 3 Tramos
-    y entrega su diagnóstico individual al Jefe Supervisor.
-    """
     posiciones = plan.get("posiciones", [])
     datos_posiciones = []
 
@@ -1593,10 +1686,11 @@ def ejecutar_empleados_3_traders_ia(session, mapa_mkt, plan, clima_btc_txt, lect
         "semaforo_meta": "🟢 EN CAMINO A META" if (real + flot) >= 0 else "🟡 EN CONSOLIDACIÓN",
         "factibilidad_pct": min(96, max(50, int(70 + (stats_emb["tasa_pct"] * 0.22) + ((real + flot) / 25.0)))),
         "diagnostico_24h": (
-            f"Mesa 6 Asistentes (3 Reportes IA) + 3 Traders ({len(posiciones)}/3 activos) -> Jefe. "
+            f"Mesa 6 Asistentes (Bypass A3 >=2 Etapa) + 3 Traders ({len(posiciones)}/3 activos) -> Jefe. "
             f"{clima_btc_txt}. Avance: {progreso_pct}%."
         ),
         "recomendacion_auditor": f"Cada Trader opera 1 moneda exclusiva tras consenso 6/6 Asistentes + Jefe (>= {FACTIBILIDAD_MINIMA_JEFE}%).",
+        "autocritica_ciclo": boletin_asistente.get("autocritica_ciclo", ""),
         "veredicto_final_semana": plan.get("auditoria_ia", {}).get("veredicto_final_semana", "En seguimiento activo...")
     }
 
@@ -1607,7 +1701,7 @@ def ejecutar_empleados_3_traders_ia(session, mapa_mkt, plan, clima_btc_txt, lect
                 "Eres el COORDINADOR DE LOS 3 TRADERS INDEPENDIENTES (TRADER_1, TRADER_2, TRADER_3; 1 moneda por Trader) en Binance Spot.\n"
                 "Cada Trader busca llevar su moneda hacia +20% en Modo Runner 3 Tramos (TP1 +6.5% 35%, TP2 +15% 35%, Runner 30% trail 4.5%).\n"
                 f"BOLETÍN MESA 6 ASISTENTES: {boletin_asistente.get('resumen_ejecutivo', '')}\n"
-                f"REPORTES IA MOTORES (Ganadoras / Táctico / Pre-Explosión): {json.dumps(boletin_asistente.get('reportes_ia_motores', {}), ensure_ascii=False)}\n"
+                f"REPORTES IA MOTORES: {json.dumps(boletin_asistente.get('reportes_ia_motores', {}), ensure_ascii=False)}\n"
                 f"CEREBRO EVOLUTIVO: {boletin_asistente.get('cerebro_resumen', '')}\n"
                 f"CLIMA MERCADO: {clima_btc_txt} | AVANCE SEMANA: ${real + flot:+.2f} / ${meta:.0f} USD ({progreso_pct}%)\n"
                 f"ESCRITORIOS ACTIVOS (1 MONEDA POR TRADER):\n{json.dumps(datos_posiciones, ensure_ascii=False)}\n\n"
@@ -1639,15 +1733,41 @@ def ejecutar_empleados_3_traders_ia(session, mapa_mkt, plan, clima_btc_txt, lect
 
 
 # ==============================================================================
-# NIVEL 3: JEFE SUPERVISOR (AUDITA 6 ASISTENTES + 3 TRADERS + CEREBRO EVOLUTIVO)
+# NIVEL 3: JEFE SUPERVISOR (AUDITA 6 ASISTENTES + 3 TRADERS + AUTOCRÍTICA CICLO)
 # ==============================================================================
 
-def ejecutar_jefe_supervisor_ia(plan, alternativas, posiciones_revisar, boletin_asistente, clima_btc_txt, traders_libres: list):
+def ejecutar_jefe_supervisor_ia(plan, alternativas, posiciones_revisar, boletin_asistente, clima_btc_txt, traders_libres: list, stats_embudo: dict, cerebro: CerebroEvolutivo):
     """
     NIVEL 3 (JEFE SUPERVISOR):
-    Asigna cada propuesta aprobada 6/6 a un Trader libre (1 moneda por Trader)
-    y exige consenso completo (6 Asistentes + Trader Dedicado + Jefe >= 75%) para aprobar la entrada.
+    1) Audita en cada corrida cuántas monedas aprobaron los Asistentes de Etapa vs. cuántas llegaron a los Traders
+       y ajusta automáticamente el umbral cuello de botella si el embudo quedó en 0 entradas.
+    2) Asigna cada propuesta aprobada a un Trader libre (1 moneda por Trader) y firma la entrada (>= 75%).
     """
+    aprob_etapa = int(stats_embudo.get("aprobadas_etapa_a1", 0))
+    corrob_2p = int(stats_embudo.get("corroboradas_2plus", 0))
+    listas_tr = int(stats_embudo.get("listas_trader", 0))
+    cuellos = stats_embudo.get("cuellos_botella", {})
+
+    if aprob_etapa >= 3 and listas_tr == 0 and cuellos:
+        diag_auto = cerebro.calibrar_embudo_ciclo(cuellos)
+        resumen_autocritica = (
+            f"🔄 Autocrítica Ciclo: Asist. Etapa aprobaron {aprob_etapa} ({corrob_2p} corroboradas >=2) "
+            f"pero 0 llegaron a Traders ➔ {diag_auto}"
+        )
+    elif listas_tr > 0:
+        resumen_autocritica = (
+            f"✅ Autocrítica Ciclo: Embudo sano ({aprob_etapa} aprobadas Etapa | {corrob_2p} corroboradas >=2 | "
+            f"{listas_tr} listas para Traders libres)."
+        )
+    else:
+        resumen_autocritica = (
+            f"📡 Autocrítica Ciclo: {aprob_etapa} señales Etapa en evaluación ({corrob_2p} corroboradas >=2); sin cuellos anómalos."
+        )
+
+    boletin_asistente["autocritica_ciclo"] = resumen_autocritica
+    if "auditoria_ia" in plan:
+        plan["auditoria_ia"]["autocritica_ciclo"] = resumen_autocritica
+
     propuestas_compra = [a for a in alternativas if a.get("check_1_asistente") and a.get("check_2_trader")]
 
     for idx_p, alt in enumerate(propuestas_compra):
@@ -1671,23 +1791,21 @@ def ejecutar_jefe_supervisor_ia(plan, alternativas, posiciones_revisar, boletin_
         mom = alt.get("mom", {})
         fib = alt.get("fib_4h", {})
 
-        fact = 68
-        if dossier.get("es_orden_cerebro_central"):
-            fact += 11
-        elif dossier.get("cazador_en_verde") and dossier.get("confirmada_pre_explosion"):
-            fact += 10
+        fact = 69
+        if dossier.get("corroborada_etapa_2plus"):
+            fact += 12
         elif dossier.get("es_inyeccion_binance"):
             fact += 7
-        if float(ob.get("ratio_ba", 1.0)) >= 1.40 and ob.get("liquidez_real_ok") and not ob.get("muro_vendedor"):
+        if float(ob.get("ratio_ba", 1.0)) >= 1.35 and ob.get("liquidez_real_ok") and not ob.get("muro_vendedor"):
             fact += 6
-        if float(cinta.get("taker_buy_pct", 0.0)) >= 58.0:
+        if float(cinta.get("taker_buy_pct", 0.0)) >= 56.0:
             fact += 5
         if fib.get("en_zona_dorada") or fib.get("en_tramo_alcista"):
             fact += 4
-        if float(mom.get("vol_ratio", 1.0)) >= 2.0:
+        if float(mom.get("vol_ratio", 1.0)) >= 1.8:
             fact += 4
         if balance_neto < -250.0 and not dossier.get("carril_vip_radar"):
-            fact -= 14
+            fact -= 12
 
         fact = max(40, min(97, fact))
         tiene_trader = alt.get("trader_propuesto") in NOMBRES_TRADERS
@@ -1699,10 +1817,11 @@ def ejecutar_jefe_supervisor_ia(plan, alternativas, posiciones_revisar, boletin_
         alt["consenso_3_de_3"] = consenso_total
         alt["en_zona"] = consenso_total
 
+        tag_bypass = " [Bypass A3 Rebote]" if alt.get("bypass_a3") else ""
         if consenso_total:
             alt["jefe_veredicto"] = (
-                f"✅ CONSENSO TOTAL ({fact}%) ➔ Asignada a {alt['trader_propuesto']} "
-                f"(6/6 Asistentes + OB {ob.get('ratio_ba', 1.0)}x + Cinta {cinta.get('taker_buy_pct', 0)}%)"
+                f"✅ CONSENSO TOTAL ({fact}%){tag_bypass} ➔ Asignada a {alt['trader_propuesto']} "
+                f"(Stop {alt.get('stop_trader_pct')}% | OB {ob.get('ratio_ba', 1.0)}x | Cinta {cinta.get('taker_buy_pct', 0)}%)"
             )
         elif not tiene_trader:
             alt["jefe_veredicto"] = f"⏳ EN ESPERA ({fact}%): Los 3 Traders tienen su moneda asignada."
@@ -1737,9 +1856,11 @@ def ejecutar_jefe_supervisor_ia(plan, alternativas, posiciones_revisar, boletin_
                 {
                     "moneda": a["base"],
                     "trader_asignado": a["trader_propuesto"],
+                    "corroborada_etapa_2plus": a["corroborada_etapa_2plus"],
+                    "bypass_a3": a["bypass_a3"],
+                    "stop_sugerido": a["stop_trader_pct"],
                     "score_evolutivo": a["score"],
-                    "asistente_1_e1_e2_gan": a["expediente_previo"]["dictamen_asistente"],
-                    "tesis_reportes_ia": a["expediente_previo"].get("tesis_previa_bots", ""),
+                    "asistente_1_etapa": a["expediente_previo"]["dictamen_asistente"],
                     "order_book_a5": a["ob"].get("motivo", ""),
                     "cinta_ballenas_a6": a["cinta_a6"].get("motivo", ""),
                     "plan_trader": a["plan_trader_entrada"]
@@ -1764,12 +1885,12 @@ def ejecutar_jefe_supervisor_ia(plan, alternativas, posiciones_revisar, boletin_
 
             prompt_jefe = (
                 "Eres el JEFE SUPERVISOR DE INVERSIONES de una mesa Spot con:\n"
-                "• MESA DE 6 ASISTENTES (4 Empresa: Cazador E1/PreExplosión E2/Ganadoras 24h + 3 Reportes IA, Velocidad 24h, Subida Limpia 15m/1D, Vol 1h+Pista 20% + 2 Binance en vivo: Libro/Muros A5 y Cinta 500 trades/Ballenas A6).\n"
+                "• CORROBORACIÓN CRUZADA: Si >=2 Asistentes de Etapa corroboran una moneda, se hace Bypass de medias diarias A3 y se usa el Stop Sugerido de Etapa (-3.5%).\n"
                 "• 3 TRADERS INDEPENDIENTES (TRADER_1, TRADER_2, TRADER_3): cada Trader opera 1 sola moneda exclusiva.\n"
-                "• JEFE SUPERVISOR (TÚ): revisas todo y das la firma final ('aprobada': true, 'factibilidad_pct' >= 75) solo si todo coincide sin contradicciones.\n"
-                f"BOLETÍN, REPORTES IA Y CEREBRO EVOLUTIVO: {json.dumps(boletin_asistente, ensure_ascii=False)}\n"
+                "• JEFE SUPERVISOR (TÚ): das la firma final ('aprobada': true, 'factibilidad_pct' >= 75) cuando todo coincide.\n"
+                f"AUTOCRÍTICA DEL CICLO: {resumen_autocritica}\n"
                 f"ESTADO SEMANA {plan['semana_id']}: Balance Neto ${balance_neto:+.2f} / Meta ${meta:.0f} USD | {clima_btc_txt}\n"
-                f"CANDIDATAS 6/6 PARA TRADERS LIBRES:\n{json.dumps(resumen_propuestas, ensure_ascii=False)}\n"
+                f"CANDIDATAS LISTAS PARA TRADERS LIBRES:\n{json.dumps(resumen_propuestas, ensure_ascii=False)}\n"
                 f"CARTERA ACTUAL (1 MONEDA POR TRADER):\n{json.dumps(resumen_cartera, ensure_ascii=False)}\n\n"
                 "Responde ÚNICAMENTE en JSON válido sin bloques markdown:\n"
                 '{"compras":{"MONEDA":{"aprobada":true,"factibilidad_pct":88,"veredicto":"✅ CONSENSO TOTAL (88%) ➔ TRADER_X: motivo"}},'
@@ -1853,7 +1974,7 @@ def verificar_circuit_breaker_diario(plan, ahora_dt=None):
         dt_listo = ahora_dt + timedelta(minutes=MINUTOS_CALIBRACION_SISTEMA)
         plan["warmup_hasta_iso"] = dt_listo.isoformat()
         return True, True, (
-            f"Actualización detectada (Cerebro Central 3 Motores IA + Mesa 6 Asistentes + 3 Traders). "
+            f"Actualización detectada (Corroboración Cruzada Bypass A3 + Autocrítica Ciclo). "
             f"Calibrando variables durante {MINUTOS_CALIBRACION_SISTEMA} min (compras habilitadas desde las {dt_listo.strftime('%H:%M ART')})."
         )
 
@@ -1878,7 +1999,7 @@ def cargar_plan_semanal():
     base = {
         "semana_id": sem,
         "fecha_inicio": ahora_art().strftime("%Y-%m-%d %H:%M"),
-        "modo": "MESA_6_ASISTENTES_3_TRADERS_JEFE_CEREBRO_CENTRAL",
+        "modo": "MESA_6_ASISTENTES_3_TRADERS_JEFE_BYPASS_A3",
         "capital_total_usd": CAPITAL_INICIAL_PRUEBA,
         "meta_semanal_usd": META_SEMANAL_USD,
         "ganancia_realizada_usd": 0.0,
@@ -2002,7 +2123,7 @@ def generar_veredicto_final_ia(plan, cerebro: CerebroEvolutivo):
         try:
             client = genai.Client(api_key=GEMINI_API_KEY)
             prompt = (
-                "Eres el Jefe Supervisor de una mesa Spot en Binance (Cerebro Central 3 Motores IA + 6 Asistentes -> 3 Traders Dedicados -> Jefe + Cerebro Evolutivo). "
+                "Eres el Jefe Supervisor de una mesa Spot en Binance (Corroboración Cruzada Etapa + 6 Asistentes -> 3 Traders Dedicados -> Jefe). "
                 "Cumplimos la meta semanal neta. Da un VEREDICTO FINAL DE FACTIBILIDAD para dinero real en máximo 4 líneas en español.\n"
                 f"Capital Base: ${plan.get('capital_total_usd', 3500)} USD | Meta: ${meta_usd} USD | Ganancia Neta Lograda: ${total_usd} USD\n"
                 f"Cerebro Evolutivo: {cerebro.resumen_corto()}\n"
@@ -2137,6 +2258,8 @@ def _poblar_hoja_matriz_central(ws, plan, eco, mapa_mkt, fill_hdr, font_hdr, fil
 
         alt_info = alts_map.get(sym)
         mesa_txt = f"{alt_info.get('asistentes_aprobados', 0)}/6" if alt_info else "En Radar"
+        if alt_info and alt_info.get("bypass_a3"):
+            mesa_txt += " (Bypass A3)"
 
         if sym in pos_map:
             p_obj = pos_map[sym]
@@ -2232,7 +2355,7 @@ def actualizar_excel_semanal(plan, cerebro: CerebroEvolutivo, eco=None, mapa_mkt
     # Pestaña 2: Mesa de 6 Asistentes + Consenso Total
     ws_alt = wb.create_sheet(title="2_MESA_6_ASISTENTES")
     headers_alt = [
-        "Ranking", "Moneda", "A1 E1/E2/Gan", "A2 Vel/Conf", "A3 15m/1D", "A4 Vol/Pista",
+        "Ranking", "Moneda", "A1 E1/E2/Gan", "A2 Vel/Conf", "A3 Medias 1D", "A4 Vol/Pista",
         "A5 Binance Libro", "A6 Binance Cinta", "Trader Asignado", "Jefe Supervisor",
         "Factibilidad (%)", "Precio Actual", "Decisión Final", "Detalle Técnico Completo"
     ]
@@ -2248,7 +2371,7 @@ def actualizar_excel_semanal(plan, cerebro: CerebroEvolutivo, eco=None, mapa_mkt
         ch = alt.get("checks_6_asistentes", {})
         c1 = "✅" if ch.get("A1_Cazador_PreExp") else "❌"
         c2 = "✅" if ch.get("A2_Velocidad_Conf") else "❌"
-        c3 = "✅" if ch.get("A3_Limpia_15m_1D") else "❌"
+        c3 = "⚡BYPASS" if alt.get("bypass_a3") else ("✅" if ch.get("A3_Limpia_15m_1D") else "❌")
         c4 = "✅" if ch.get("A4_Vol_Pista20") else "❌"
         c5 = "✅" if ch.get("A5_Binance_Libro") else "❌"
         c6 = "✅" if ch.get("A6_Binance_Cinta") else "❌"
@@ -2274,9 +2397,9 @@ def actualizar_excel_semanal(plan, cerebro: CerebroEvolutivo, eco=None, mapa_mkt
             alt.get("jefe_factibilidad_pct", 0), float(alt.get("precio_entrada", 0)), estado_alt, detalle_alt
         ])
 
-    # Pestaña 3: Auditoría IA 24h
+    # Pestaña 3: Auditoría IA 24h + Autocrítica de Ciclo
     ws_aud = wb.create_sheet(title="3_AUDITORIA_IA_24H")
-    headers_aud = ["Fecha Auditoría", "Semana", "Semáforo Meta", "Factibilidad (%)", "Diagnóstico Mesa + 3 Traders", "Recomendación Jefe Supervisor", "Veredicto Final Semana"]
+    headers_aud = ["Fecha Auditoría", "Semana", "Semáforo Meta", "Factibilidad (%)", "Diagnóstico Mesa + 3 Traders", "Autocrítica Embudo Ciclo", "Veredicto Final Semana"]
     ws_aud.append(headers_aud)
     for col_idx in range(1, len(headers_aud) + 1):
         c = ws_aud.cell(row=1, column=col_idx)
@@ -2295,7 +2418,7 @@ def actualizar_excel_semanal(plan, cerebro: CerebroEvolutivo, eco=None, mapa_mkt
             reg.get("semaforo_meta", "🟢 EN CAMINO"),
             reg.get("factibilidad_pct", 82),
             reg.get("diagnostico_24h", ""),
-            reg.get("recomendacion_auditor", ""),
+            reg.get("autocritica_ciclo") or reg.get("recomendacion_auditor", ""),
             reg.get("veredicto_final_semana", "En seguimiento activo...")
         ])
 
@@ -2364,13 +2487,13 @@ def actualizar_excel_semanal(plan, cerebro: CerebroEvolutivo, eco=None, mapa_mkt
     mg = cerebro.data.get("metricas_globales", {})
     ws_evo.append(["METRICA_GLOBAL", "TOTAL_OPERADAS_VS_GANADAS", f"Ciclo v{cerebro.data.get('version_ciclo', 1)}", mg.get("total_operadas", 0), mg.get("total_ganadas", 0), mg.get("runners_20_logrados", 0)])
     ws_evo.append(["METRICA_SOMBRA", "VETOS_ACERTADOS_VS_PERDIDAS_20", "-", "-", mg.get("vetos_acertados", 0), mg.get("oportunidades_perdidas_20", 0)])
+    ws_evo.append(["METRICA_AUTOCRITICA", "AJUSTES_EMBUDO_CICLO", "-", mg.get("ajustes_autocritica_ciclo", 0), "-", "-"])
 
     for sheet in (ws_mc, ws, ws_alt, ws_aud, ws2, ws_aut, ws_evo):
         for col in sheet.columns:
             max_len = max(len(str(c.value or "")) for c in col)
             sheet.column_dimensions[col[0].column_letter].width = min(max_len + 4, 54)
 
-    # Guarda únicamente AUDITORIA_SEMANAL_PRUEBA.xlsx para no sobrescribir MATRIZ_CENTRAL_ECOSISTEMA.xlsx
     wb.save(EXCEL_SEMANAL_FILE)
 
 
@@ -2454,11 +2577,13 @@ def construir_bloque_1_alternativas(plan):
     bol = plan.get("boletin_asistente", {})
 
     msg = (
-        f"🔍 <b>MESA 6 ASISTENTES + CEREBRO CENTRAL • BLOQUE 1/3</b>\n"
+        f"🔍 <b>MESA 6 ASISTENTES + CORROBORACIÓN CRUZADA • BLOQUE 1/3</b>\n"
         f"📅 <code>{ahora_str}</code> | Semana <code>{plan['semana_id']}</code>\n"
     )
     if bol.get("cerebro_resumen"):
-        msg += f"<i>{html.escape(bol['cerebro_resumen'])}</i>\n\n"
+        msg += f"<i>{html.escape(bol['cerebro_resumen'])}</i>\n"
+    if bol.get("autocritica_ciclo"):
+        msg += f"<i>{html.escape(bol['autocritica_ciclo'])}</i>\n\n"
     else:
         msg += "\n"
 
@@ -2470,7 +2595,7 @@ def construir_bloque_1_alternativas(plan):
         ch = a.get("checks_6_asistentes", {})
         c1 = "✅" if ch.get("A1_Cazador_PreExp") else "❌"
         c2 = "✅" if ch.get("A2_Velocidad_Conf") else "❌"
-        c3 = "✅" if ch.get("A3_Limpia_15m_1D") else "❌"
+        c3 = "⚡" if a.get("bypass_a3") else ("✅" if ch.get("A3_Limpia_15m_1D") else "❌")
         c4 = "✅" if ch.get("A4_Vol_Pista20") else "❌"
         c5 = "✅" if ch.get("A5_Binance_Libro") else "❌"
         c6 = "✅" if ch.get("A6_Binance_Cinta") else "❌"
@@ -2518,8 +2643,12 @@ def construir_bloque_2_cartera(plan, evento_titulo):
     if aud:
         msg += (
             f"👔 <b>Auditoría Jefe IA:</b> <b>{html.escape(aud.get('semaforo_meta', ''))}</b> ({aud.get('factibilidad_pct', 82)}% factibilidad)\n"
-            f"└ <i>{html.escape(aud.get('diagnostico_24h', ''))}</i>\n\n"
+            f"└ <i>{html.escape(aud.get('diagnostico_24h', ''))}</i>\n"
         )
+        if aud.get("autocritica_ciclo"):
+            msg += f"└ <i>{html.escape(aud.get('autocritica_ciclo', ''))}</i>\n\n"
+        else:
+            msg += "\n"
     else:
         msg += "\n"
 
@@ -2577,7 +2706,6 @@ def ejecutar_gestor_semanal():
     plan = cargar_plan_semanal()
     asignar_traders_a_cartera(plan.get("posiciones", []))
 
-    # Auditoría en sombra de rechazos previos (6h-24h) para auto-calibrar filtros si alguno subió >= +18%
     cerebro.auditar_sombra_y_calibrar(s, mapa_mkt)
 
     # PASO 1: MESA DE 6 ASISTENTES + 3 REPORTES IA + CEREBRO CENTRAL + AUTOPSIA 24H
@@ -2755,15 +2883,15 @@ def ejecutar_gestor_semanal():
     excluidas = {p["symbol"] for p in plan["posiciones"]} | {
         sym_c for sym_c, cnt in cerradas_conteo.items() if cnt > MAX_REENTRADAS_SEMANA
     }
-    alternativas = mesa_asistentes_y_traders_evaluar_candidatas(s, mapa_mkt, excluidas, eco, plan, cerebro)
+    alternativas, stats_embudo = mesa_asistentes_y_traders_evaluar_candidatas(s, mapa_mkt, excluidas, eco, plan, cerebro)
 
     escritorios_actuales = asignar_traders_a_cartera(plan["posiciones"])
     traders_libres = [tid for tid in NOMBRES_TRADERS if escritorios_actuales.get(tid) is None]
 
-    # PASO 4: EL JEFE SUPERVISOR REVISA TODO Y ASIGNA CANDIDATAS A TRADERS LIBRES
+    # PASO 4: EL JEFE SUPERVISOR REVISA TODO, AUDITA AUTOCRÍTICA Y ASIGNA TRADERS LIBRES
     ejecutar_jefe_supervisor_ia(
         plan, alternativas, [x for x in posiciones_evaluadas if not x.get("sin_datos")],
-        boletin_asistente, msg_btc, traders_libres
+        boletin_asistente, msg_btc, traders_libres, stats_embudo, cerebro
     )
     plan["alternativas_evaluadas"] = alternativas
 
@@ -2971,11 +3099,11 @@ def ejecutar_gestor_semanal():
         elif alertas_venta and nuevas_entradas:
             titulo_ev = "🔄 <b>ROTACIÓN DE ESCRITORIO / REASIGNACIÓN DE TRADER</b>"
         elif nuevas_entradas:
-            titulo_ev = "🚀 <b>NUEVA COMPRA APROBADA (MESA 6/6 + TRADER DEDICADO + JEFE)</b>"
+            titulo_ev = "🚀 <b>NUEVA COMPRA APROBADA (CORROBORACIÓN ETAPA + TRADER + JEFE)</b>"
         elif alertas_venta or alertas_parciales:
             titulo_ev = "💰 <b>COSECHA RUNNER 3 TRAMOS / CIERRE</b>"
         else:
-            titulo_ev = "📡 <b>RADAR CONTINUO • MESA 6 ASISTENTES ➔ 3 TRADERS ➔ JEFE</b>"
+            titulo_ev = "📡 <b>RADAR CONTINUO • CORROBORACIÓN ETAPA ➔ 3 TRADERS ➔ JEFE</b>"
 
         caption = construir_bloque_2_cartera(plan, titulo_ev)
         ok2 = enviar_foto_telegram(img, caption)
@@ -2983,7 +3111,7 @@ def ejecutar_gestor_semanal():
 
         ok3 = enviar_excel_telegram(
             f"📎 <b>AUDITORÍA SEMANAL 3 TRADERS • BLOQUE 3/3 (7 PESTAÑAS)</b>\n"
-            f"📊 Cartera activa, Mesa 6 Asistentes, Autopsia 24h y Cerebro Evolutivo (<code>{EXCEL_SEMANAL_FILE}</code>)."
+            f"📊 Cartera activa, Bypass A3 Corroborado, Autocrítica Ciclo y Cerebro Evolutivo (<code>{EXCEL_SEMANAL_FILE}</code>)."
         )
         if ok1 and ok2 and ok3:
             plan["ultimo_reporte_hora"] = ahora_dt.hour
@@ -3012,5 +3140,5 @@ def ejecutar_gestor_semanal():
 
 
 if __name__ == "__main__":
-    print(f"🧪 INICIANDO GESTOR SEMANAL EVOLUTIVO + CEREBRO CENTRAL IA ({ahora_art().strftime('%H:%M:%S')} ART)...")
+    print(f"🧪 INICIANDO GESTOR SEMANAL EVOLUTIVO + CORROBORACIÓN CRUZADA ({ahora_art().strftime('%H:%M:%S')} ART)...")
     ejecutar_gestor_semanal()
