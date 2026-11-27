@@ -1,14 +1,5 @@
 [
   [
-    "DOGEUSDT",
-    "WLDUSDT",
-    "KITEUSDT",
-    "SENTUSDT",
-    "HBARUSDT",
-    "KAVAUSDT",
-    "NIGHTUSDT"
-  ],
-  [
     "ENAUSDT",
     "ETHFIUSDT",
     "APTUSDT",
@@ -16,5 +7,14 @@
     "ARBUSDT",
     "SAGAUSDT",
     "WIFUSDT"
+  ],
+  [
+    "XRPUSDT",
+    "NEARUSDT",
+    "ADAUSDT",
+    "SUIUSDT",
+    "UNIUSDT",
+    "PUMPUSDT",
+    "ICPUSDT"
   ]
 ]
