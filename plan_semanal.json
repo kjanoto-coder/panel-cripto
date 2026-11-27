@@ -1062,6 +1062,16 @@
       "recomendacion_auditor": "Cada Trader opera 1 moneda exclusiva tras consenso 6/6 Asistentes + Jefe (>= 75%).",
       "autocritica_ciclo": "🔄 Autocrítica Ciclo: Asist. Etapa aprobaron 144 (121 corroboradas >=2) pero 0 llegaron a Traders ➔ Cuello principal: A2_Velocidad (128 frenadas) ➔ Umbrales en piso seguro; A2_Velocidad protegió de señales débiles (128 vetos).",
       "veredicto_final_semana": "En seguimiento activo..."
+    },
+    {
+      "fecha": "2026-11-27 12:11 ART",
+      "semana_id": "2026-W48",
+      "semaforo_meta": "🟡 EN CONSOLIDACIÓN",
+      "factibilidad_pct": 70,
+      "diagnostico_24h": "Mesa 6 Asistentes (Bypass A3 >=2 Etapa) + 3 Traders (2/3 activos) -> Jefe. BTC en alerta (1h: +0.35%, 24h: -1.45%, RSI 1h: 29.7) | Amplitud Verde: 62.8% (máx 3/3 Traders activos). Compras pausadas.. Avance: -89.5%.",
+      "recomendacion_auditor": "Cada Trader opera 1 moneda exclusiva tras consenso 6/6 Asistentes + Jefe (>= 75%).",
+      "autocritica_ciclo": "✅ Autocrítica Ciclo: Embudo sano (146 aprobadas Etapa | 121 corroboradas >=2 | 1 listas para Traders libres).",
+      "veredicto_final_semana": "En seguimiento activo..."
     }
   ],
   "alternativas_evaluadas": [
@@ -1780,7 +1790,7 @@
     {
       "symbol": "GRAMUSDT",
       "base": "GRAM",
-      "precio_entrada": 0.979,
+      "precio_entrada": 0.978,
       "origen": "⚡🛡️ REBOTE/EXPLOSIÓN CORROBORADO (3 Asist. Etapa)",
       "patron_detectado": "REBOTE_EXPLOSION_CORROBORADO_ETAPA",
       "corroborada_etapa_2plus": true,
@@ -1806,7 +1816,7 @@
       "trader_propuesto": "",
       "stop_trader_pct": -3.5,
       "asistente_dictamen": "[4/6] ✅ A1 CORROBORADA (3 Asist. Etapa | Blindaje 77%) ➔ Setup Rebote/Explosión (Bypass A3 + Stop -3.5%)",
-      "plan_trader_entrada": "Espera apoyo MA7 15m (actual +-1.4%)",
+      "plan_trader_entrada": "Espera apoyo MA7 15m (actual +-1.5%)",
       "fomo_15m": false,
       "en_zona": false,
       "jefe_veredicto": "⛔ Mesa 4/6 (Falta A5-Book,A6-Cinta): A5 VETA: Libro vendedor (OB 1.13x < 1.30x)",
@@ -1835,13 +1845,13 @@
         "reincidente_stop_semana": false,
         "tiene_respaldo_bots": true,
         "precio_referencia_radar": 0.975,
-        "var_desde_deteccion_radar_pct": 0.41,
+        "var_desde_deteccion_radar_pct": 0.31,
         "estado_historial_ganadoras": "ACIERTO",
         "max_ganancia_historica_pct": 0.0,
         "alertada_en_perdedoras": false,
         "tesis_previa_bots": "🛡️ Certificada IA (77%): Certificada Etapa 1 (Zona Dorada Fib (0.54) | OB 1.21x) | ACIERTO",
         "dictamen_asistente": "✅ A1 CORROBORADA (3 Asist. Etapa | Blindaje 77%) ➔ Setup Rebote/Explosión (Bypass A3 + Stop -3.5%)",
-        "resumen_corto": "Patrón:REBOTE_EXPLOSION_CORROBORADO_ETAPA | VotosEtapa:3 | BypassA3:SÍ | Radar:+0.4%"
+        "resumen_corto": "Patrón:REBOTE_EXPLOSION_CORROBORADO_ETAPA | VotosEtapa:3 | BypassA3:SÍ | Radar:+0.3%"
       },
       "ob": {
         "ok": true,
@@ -2064,7 +2074,7 @@
     {
       "symbol": "LISTAUSDT",
       "base": "LISTA",
-      "precio_entrada": 0.0921,
+      "precio_entrada": 0.0917,
       "origen": "⚡🛡️ REBOTE/EXPLOSIÓN CORROBORADO (2 Asist. Etapa)",
       "patron_detectado": "REBOTE_EXPLOSION_CORROBORADO_ETAPA",
       "corroborada_etapa_2plus": true,
@@ -2090,7 +2100,7 @@
       "trader_propuesto": "",
       "stop_trader_pct": -3.5,
       "asistente_dictamen": "[3/6] ✅ A1 CORROBORADA (2 Asist. Etapa | Blindaje 98%) ➔ Setup Rebote/Explosión (Bypass A3 + Stop -3.5%)",
-      "plan_trader_entrada": "Espera apoyo MA7 15m (actual +-3.9%)",
+      "plan_trader_entrada": "Espera apoyo MA7 15m (actual +-4.3%)",
       "fomo_15m": false,
       "en_zona": false,
       "jefe_veredicto": "⛔ Mesa 3/6 (Falta A4,A5-Book,A6-Cinta): A4 VETA: Vol 1h 0.71x < 1.25x",
@@ -2119,13 +2129,13 @@
         "reincidente_stop_semana": false,
         "tiene_respaldo_bots": true,
         "precio_referencia_radar": 0.112,
-        "var_desde_deteccion_radar_pct": -17.77,
+        "var_desde_deteccion_radar_pct": -18.12,
         "estado_historial_ganadoras": "ACIERTO",
         "max_ganancia_historica_pct": 0.0,
         "alertada_en_perdedoras": false,
         "tesis_previa_bots": "ACIERTO",
         "dictamen_asistente": "✅ A1 CORROBORADA (2 Asist. Etapa | Blindaje 98%) ➔ Setup Rebote/Explosión (Bypass A3 + Stop -3.5%)",
-        "resumen_corto": "Patrón:REBOTE_EXPLOSION_CORROBORADO_ETAPA | VotosEtapa:2 | BypassA3:SÍ | Radar:-17.8%"
+        "resumen_corto": "Patrón:REBOTE_EXPLOSION_CORROBORADO_ETAPA | VotosEtapa:2 | BypassA3:SÍ | Radar:-18.1%"
       },
       "ob": {
         "ok": false,
@@ -2143,10 +2153,10 @@
       },
       "mom": {
         "ok": true,
-        "precio": 0.0921,
-        "ma7": 0.09698571428571427,
-        "ma25": 0.08811999999999999,
-        "ma99": 0.08945277777777777,
+        "precio": 0.092,
+        "ma7": 0.09697142857142857,
+        "ma25": 0.088116,
+        "ma99": 0.08944999999999999,
         "escalera_ma": false,
         "ruptura_ma7_25": false,
         "rsi": 47.5,
@@ -2156,8 +2166,8 @@
         "rechazo_techo": false,
         "fib": {
           "ok": true,
-          "ratio": 0.511,
-          "zona_txt": "Zona Dorada Fib (0.51)",
+          "ratio": 0.515,
+          "zona_txt": "Zona Dorada Fib (0.52)",
           "en_zona_dorada": true,
           "en_tramo_alcista": false,
           "en_soporte_profundo": false,
@@ -2167,10 +2177,10 @@
       },
       "mom_15m": {
         "ok": true,
-        "precio": 0.0921,
-        "ma7": 0.09585714285714285,
-        "ma25": 0.09768800000000001,
-        "ma99": 0.08767171717171718,
+        "precio": 0.092,
+        "ma7": 0.09584285714285713,
+        "ma25": 0.09768400000000002,
+        "ma99": 0.08767070707070708,
         "escalera_ma": false,
         "ruptura_ma7_25": false,
         "rsi": 40.2,
@@ -2180,7 +2190,7 @@
         "rechazo_techo": false,
         "fib": {
           "ok": true,
-          "ratio": 0.49,
+          "ratio": 0.494,
           "zona_txt": "Zona Dorada Fib (0.49)",
           "en_zona_dorada": true,
           "en_tramo_alcista": false,
@@ -2191,7 +2201,7 @@
       },
       "fib_4h": {
         "ok": true,
-        "ratio": 0.517,
+        "ratio": 0.519,
         "zona_txt": "Zona Dorada Fib (0.52)",
         "en_zona_dorada": true,
         "en_tramo_alcista": false,
@@ -3002,5 +3012,5 @@
   "circuit_breaker_hasta_iso": "",
   "codigo_hash": "c7328991469cf1a937e6ad02c5d9f4fb",
   "warmup_hasta_iso": "2026-11-27T12:19:29.106607-03:00",
-  "ultimo_reporte_iso": "2026-11-27T12:04:29.106607-03:00"
+  "ultimo_reporte_iso": "2026-11-27T12:11:35.397649-03:00"
 }

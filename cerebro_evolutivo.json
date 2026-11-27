@@ -99,13 +99,6 @@
   },
   "pendientes_sombra_24h": [
     {
-      "symbol": "NBISBUSDT",
-      "ts_unix": 1795770685,
-      "precio_veto": 92.85,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
-    },
-    {
       "symbol": "WLDUSDT",
       "ts_unix": 1795771895,
       "precio_veto": 0.2534,
