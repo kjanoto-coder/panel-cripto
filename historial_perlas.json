@@ -4768,6 +4768,16 @@
       "certificada_ia": true,
       "blindaje_pct": 79,
       "motivo_certificacion": "Pullback Sano Fib (0.60) | Libro Bids/Asks: 0.91x (Spread 0.175%)"
+    },
+    "SSVUSDT": {
+      "symbol": "SSVUSDT",
+      "base": "SSV",
+      "estrellas": 3,
+      "probabilidad_pct": 80,
+      "precio_ref": 2.552,
+      "fecha_iso": "2026-11-27",
+      "fecha_corta": "27/11",
+      "origen": "SEGUNDA_OLA_GANADORAS"
     }
   },
   "verdes_hoy": [
