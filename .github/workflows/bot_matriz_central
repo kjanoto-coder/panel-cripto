@@ -1,0 +1,49 @@
+name: Matriz Central - Excel Unificado y Resumen Diario
+
+on:
+  schedule:
+    - cron: '3,18,33,48 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: matriz-central-unificada
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  run-matriz-central:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias
+        run: pip install requests openpyxl
+
+      - name: Ejecutar Matriz Central Unificada
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+          TOPIC_ID_MATRIZ: ${{ secrets.TOPIC_ID_MATRIZ }}
+        run: python bot_matriz_central.py
+
+      - name: Guardar Excel Matriz y configuracion de tema
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          [ -f MATRIZ_CENTRAL_ECOSISTEMA.xlsx ] && git add MATRIZ_CENTRAL_ECOSISTEMA.xlsx || true
+          [ -f matriz_topic_config.json ] && git add matriz_topic_config.json || true
+          if ! git diff --staged --quiet; then
+            git commit -m "Update Matriz Central Excel Unificado y Resumen Diario"
+            git pull --rebase -X ours origin main || true
+            git push
+          fi
