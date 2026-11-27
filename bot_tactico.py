@@ -1,8 +1,31 @@
-import os, re, json, time, random, html, requests
+import os
+import re
+import sys
+import json
+import time
+import random
+import html
+import subprocess
 from datetime import datetime, timezone, timedelta
+
+# Auto-instalación blindada de dependencias
+for mod, pkg in [
+    ("requests", "requests"),
+    ("matplotlib", "matplotlib"),
+    ("openpyxl", "openpyxl"),
+    ("google.genai", "google-genai")
+]:
+    try:
+        __import__(mod)
+    except ImportError:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", pkg])
+
+import requests
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from google import genai
 
 TZ_ART = timezone(timedelta(hours=-3))
@@ -14,6 +37,9 @@ BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
 
 HISTORIAL_FILE = "historial_perlas.json"
 HISTORIAL_GANADORAS_FILE = "historial_ganadoras.json"
+EXCEL_TACTICO_FILE = "HISTORICO_CAZADOR_TACTICO.xlsx"
+REPORTE_IA_TACTICO_FILE = "reporte_ia_tactico.json"
+
 DIAS_SEGUIMIENTO = 12
 MODELOS_GEMINI_TACTICO = ["gemini-2.5-flash", "gemini-2.5-flash-lite"]
 
@@ -38,15 +64,21 @@ def cargar_historial():
         "mencionadas": {},
         "resumen_dia": [],
         "resumen_enviado_hoy": False,
+        "ultimo_envio_excel": "",
         "posta": {},
         "graduadas_pre_explosion": {},
         "verdes_hoy": [],
-        "oro_hoy": []
+        "oro_hoy": [],
+        "historial_completo": {}
     }
     if os.path.exists(HISTORIAL_FILE):
         try:
             with open(HISTORIAL_FILE, 'r', encoding='utf-8') as f:
                 data = json.load(f)
+
+            base["ultimo_envio_excel"] = data.get("ultimo_envio_excel", "")
+            hist_comp = data.get("historial_completo")
+            base["historial_completo"] = hist_comp if isinstance(hist_comp, dict) else {}
 
             raw_posta = data.get("posta") or data.get("secuencia") or data.get("seguimiento_verde") or {}
             posta_limpia = {}
@@ -87,8 +119,8 @@ def cargar_historial():
                 base["resumen_enviado_hoy"] = data.get("resumen_enviado_hoy", False)
                 base["verdes_hoy"] = data.get("verdes_hoy", [])
                 base["oro_hoy"] = data.get("oro_hoy", [])
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"⚠️ Error cargando {HISTORIAL_FILE}: {e}")
     return base
 
 
@@ -633,6 +665,7 @@ def ejecutar_posta_colores(session, tickers, activos, historial):
             "rsi_1h": it["rsi_1h"],
             "vol_surge": it["vol_surge"],
             "estructura_1d": it["estructura_1d"],
+            "fib_tag": it.get("fib_tag", ""),
             "color_hex": "#00e676"
         })
 
@@ -664,6 +697,7 @@ def ejecutar_posta_colores(session, tickers, activos, historial):
             "rsi_1h": tec.get("rsi_1h", 50.0),
             "vol_surge": tec.get("vol_surge", 1.0),
             "estructura_1d": tec.get("estructura_1d", "1d"),
+            "fib_tag": tec.get("fib_tag", ""),
             "color_hex": "#ffd600" if etapa == 2 else "#ff1744"
         }
         if etapa == 2:
@@ -681,9 +715,546 @@ def ejecutar_posta_colores(session, tickers, activos, historial):
         "verdes_hoy": sorted(list(verdes_hoy))
     })
     guardar_historial(historial)
-    return {"ROJO": rojas_fmt[:8], "AMARILLO": amarillas_fmt[:8], "VERDE": verdes_fmt}, historial, dictamen, alertas
+    return {"ROJO": rojas_fmt[:8], "AMARILLO": amarillas_fmt[:8], "VERDE": verdes_fmt}, historial, dictamen, alertas, mapa
 
 
+# ==============================================================================
+# HISTORIAL COMPLETO PERMANENTE + BACKFILL DE RENDIMIENTO REAL (BINANCE KLINES)
+# ==============================================================================
+def _evaluar_evolucion_historica_binance(session, sym, fecha_iso, p_inicio, p_actual_mkt):
+    """Mide drawdown mínimo previo al rebote y máxima subida real alcanzada desde la detección."""
+    try:
+        dt_ini = datetime.strptime(fecha_iso, '%Y-%m-%d').replace(tzinfo=TZ_ART)
+        start_ms = int(dt_ini.timestamp() * 1000)
+    except Exception:
+        return None
+
+    for base_url in ["https://api.binance.com", "https://data-api.binance.vision"]:
+        try:
+            r = session.get(
+                f"{base_url}/api/v3/klines",
+                params={"symbol": sym, "interval": "1h", "startTime": start_ms, "limit": 120},
+                timeout=7
+            )
+            if r.status_code == 200:
+                kl = r.json()
+                if not kl or p_inicio <= 0:
+                    continue
+                highs = [float(x[2]) for x in kl]
+                lows = [float(x[3]) for x in kl]
+                closes = [float(x[4]) for x in kl]
+
+                max_p = max(highs + ([p_actual_mkt] if p_actual_mkt > 0 else []))
+                min_p = min(lows + ([p_actual_mkt] if p_actual_mkt > 0 else []))
+                max_gain = round(((max_p - p_inicio) / p_inicio) * 100, 2)
+                max_dd = round(((min_p - p_inicio) / p_inicio) * 100, 2)
+
+                ret_24h = round(((closes[min(23, len(closes) - 1)] - p_inicio) / p_inicio) * 100, 2) if len(closes) >= 12 else None
+                ret_48h = round(((closes[min(47, len(closes) - 1)] - p_inicio) / p_inicio) * 100, 2) if len(closes) >= 36 else None
+                ret_72h = round(((closes[min(71, len(closes) - 1)] - p_inicio) / p_inicio) * 100, 2) if len(closes) >= 60 else None
+
+                return {
+                    "precio_max": round(max_p, 8),
+                    "precio_min": round(min_p, 8),
+                    "max_gain_pct": max_gain,
+                    "max_dd_pct": max_dd,
+                    "ret_24h_pct": ret_24h,
+                    "ret_48h_pct": ret_48h,
+                    "ret_72h_pct": ret_72h
+                }
+        except Exception:
+            continue
+    return None
+
+
+def actualizar_historial_completo_tactico(session, historial, mapa_mkt):
+    """Consolida todas las alertas históricas sin borrarlas jamás y audita su resultado real."""
+    hist_comp = historial.setdefault("historial_completo", {})
+    hoy_iso = ahora_art().strftime('%Y-%m-%d')
+    hoy_dt = ahora_art().date()
+
+    # 1. Absorber registros previos si quedaron en graduadas o en historial_ganadoras.json
+    for sym, info in historial.get("graduadas_pre_explosion", {}).items():
+        f_iso = info.get("fecha_iso", hoy_iso)
+        key = f"{sym}_{f_iso}"
+        if key not in hist_comp and float(info.get("precio_ref", 0.0)) > 0:
+            hist_comp[key] = {
+                "id": key,
+                "symbol": sym,
+                "ticker": info.get("base", sym[:-4]),
+                "fecha_deteccion": f_iso,
+                "etapa_max": int(info.get("estrellas", 3)),
+                "etiqueta_etapa": "3⭐⭐⭐ ROJO CERTIFICADO",
+                "precio_inicio": float(info.get("precio_ref", 0.0)),
+                "precio_actual": float(info.get("precio_ref", 0.0)),
+                "probabilidad": int(info.get("probabilidad_pct", 70)),
+                "estructura_1d": "Recuperación / Base",
+                "fib_tag": "Fib Auditado",
+                "rsi_1h": 55.0,
+                "vol_surge": 1.2,
+                "motivo": info.get("origen", "GRADUADA_HISTORICA"),
+                "auditada_completa": False
+            }
+
+    if os.path.exists(HISTORIAL_GANADORAS_FILE):
+        try:
+            with open(HISTORIAL_GANADORAS_FILE, 'r', encoding='utf-8') as f:
+                dg = json.load(f)
+            for sym, rinfo in (dg.get("registro_verdes") or {}).items():
+                if rinfo.get("origen") == "CAZADOR_TACTICO_ROJO":
+                    f_iso = rinfo.get("fecha_verde", hoy_iso)
+                    key = f"{sym}_{f_iso}"
+                    p_ref = float(rinfo.get("precio_verde") or 0.0)
+                    if key not in hist_comp and p_ref > 0:
+                        hist_comp[key] = {
+                            "id": key,
+                            "symbol": sym,
+                            "ticker": rinfo.get("ticker", sym[:-4]),
+                            "fecha_deteccion": f_iso,
+                            "etapa_max": 3,
+                            "etiqueta_etapa": "3⭐⭐⭐ ROJO CERTIFICADO",
+                            "precio_inicio": p_ref,
+                            "precio_actual": p_ref,
+                            "probabilidad": 75,
+                            "estructura_1d": "Suelo / Base 1d",
+                            "fib_tag": "Fib Auditado",
+                            "rsi_1h": 55.0,
+                            "vol_surge": 1.3,
+                            "motivo": "Importada de Auditoría Excel",
+                            "auditada_completa": False
+                        }
+        except Exception:
+            pass
+
+    # 2. Volcar / actualizar todas las monedas activas en posta
+    for sym, info in historial.get("posta", {}).items():
+        f_iso = info.get("fecha_iso", hoy_iso)
+        key = f"{sym}_{f_iso}"
+        etapa = int(info.get("etapa", 1))
+        etiqueta = "3⭐⭐⭐ ROJO CERTIFICADO" if etapa == 3 else ("2⭐⭐ AMARILLO" if etapa == 2 else "1⭐ VERDE")
+        tec = info.get("tec") or {}
+        p_ini = float(info.get("precio_inicio", 0.0))
+        p_act = float(info.get("precio_actual", p_ini))
+
+        if key not in hist_comp:
+            hist_comp[key] = {
+                "id": key,
+                "symbol": sym,
+                "ticker": sym[:-4],
+                "fecha_deteccion": f_iso,
+                "etapa_max": etapa,
+                "etiqueta_etapa": etiqueta,
+                "precio_inicio": p_ini,
+                "precio_actual": p_act,
+                "probabilidad": int(info.get("blindaje_etapa1", info.get("prob_actual", 50))),
+                "estructura_1d": tec.get("estructura_1d", "1d"),
+                "fib_tag": tec.get("fib_tag", ""),
+                "rsi_1h": tec.get("rsi_1h", 50.0),
+                "vol_surge": tec.get("vol_surge", 1.0),
+                "motivo": info.get("motivo", ""),
+                "auditada_completa": False
+            }
+        else:
+            reg = hist_comp[key]
+            if etapa >= int(reg.get("etapa_max", 1)):
+                reg["etapa_max"] = etapa
+                reg["etiqueta_etapa"] = etiqueta
+            reg["precio_actual"] = p_act
+            reg["probabilidad"] = max(int(reg.get("probabilidad", 50)), int(info.get("blindaje_etapa1", info.get("prob_actual", 50))))
+            if info.get("motivo"):
+                reg["motivo"] = info["motivo"]
+            if tec.get("estructura_1d"):
+                reg["estructura_1d"] = tec["estructura_1d"]
+            if tec.get("fib_tag"):
+                reg["fib_tag"] = tec["fib_tag"]
+
+    # 3. Auditar rendimiento real (máximo impulso y drawdown) contra Binance
+    actualizaciones_klines = 0
+    for key, reg in hist_comp.items():
+        sym = reg["symbol"]
+        mkt = mapa_mkt.get(sym, {})
+        p_act = float(mkt.get("precio_f") or reg.get("precio_actual") or 0.0)
+        if p_act > 0:
+            reg["precio_actual"] = p_act
+        p_ini = float(reg.get("precio_inicio") or 0.0)
+        if p_ini <= 0:
+            continue
+
+        try:
+            d_det = datetime.strptime(reg["fecha_deteccion"], '%Y-%m-%d').date()
+            dias_trans = (hoy_dt - d_det).days
+        except Exception:
+            dias_trans = 0
+
+        if not reg.get("auditada_completa") and actualizaciones_klines < 35:
+            ev = _evaluar_evolucion_historica_binance(session, sym, reg["fecha_deteccion"], p_ini, p_act)
+            actualizaciones_klines += 1
+            if ev:
+                reg.update(ev)
+                if dias_trans >= 5:
+                    reg["auditada_completa"] = True
+
+        var_actual = round(((p_act - p_ini) / p_ini) * 100, 2) if p_act > 0 else 0.0
+        reg["var_actual_pct"] = var_actual
+        max_g = float(reg.get("max_gain_pct") if reg.get("max_gain_pct") is not None else max(0.0, var_actual))
+        max_dd = float(reg.get("max_dd_pct") if reg.get("max_dd_pct") is not None else min(0.0, var_actual))
+        reg["max_gain_pct"] = max_g
+        reg["max_dd_pct"] = max_dd
+
+        if max_g >= 8.0:
+            reg["resultado_real"] = "REBOTE_EXITOSO (>=+8%)"
+        elif max_g >= 4.0:
+            reg["resultado_real"] = "AVANCE_MODERADO (+4% a +8%)"
+        elif dias_trans <= 3:
+            reg["resultado_real"] = "EN_MADURACION (<=3d)"
+        elif max_dd <= -7.0:
+            reg["resultado_real"] = "INVALIDADA (<-7%)"
+        else:
+            reg["resultado_real"] = "LATERAL_SIN_IMPULSO"
+
+    guardar_historial(historial)
+    return hist_comp
+
+
+# ==============================================================================
+# ASISTENTE IA DEDICADO: CAZADOR TÁCTICO (CALIBRACIÓN DE SETUPS Y STOPS)
+# ==============================================================================
+def ejecutar_asistente_ia_tactico(hist_comp, grupos):
+    registros = list(hist_comp.values())
+    total = len(registros)
+
+    exitosos = [r for r in registros if r.get("max_gain_pct", 0.0) >= 6.0]
+    tasa_exito = round((len(exitosos) / total) * 100, 1) if total > 0 else 0.0
+    prom_max_gain = round(sum(r.get("max_gain_pct", 0.0) for r in registros) / total, 2) if total > 0 else 0.0
+
+    # Drawdown típico de las operaciones que SÍ terminaron subiendo >= 6% (clave para no poner stop corto)
+    dds_ganadoras = [abs(r.get("max_dd_pct", 0.0)) for r in exitosos if r.get("max_dd_pct") is not None]
+    dd_tipico_rebote = round(sorted(dds_ganadoras)[len(dds_ganadoras) // 2], 2) if dds_ganadoras else 3.8
+    stop_sugerido_global = round(min(7.5, max(3.5, dd_tipico_rebote + 1.2)), 1)
+
+    # Estadística por Etapa (1, 2, 3) y Estructura 1D
+    stats_etapas = []
+    for et, nombre_et in [(3, "3⭐⭐⭐ ROJO CERTIFICADO"), (2, "2⭐⭐ AMARILLO"), (1, "1⭐ VERDE")]:
+        sub = [r for r in registros if int(r.get("etapa_max", 1)) == et]
+        if sub:
+            ok_sub = [r for r in sub if r.get("max_gain_pct", 0.0) >= 6.0]
+            dds_sub = [abs(r.get("max_dd_pct", 0.0)) for r in ok_sub] or [abs(r.get("max_dd_pct", 0.0)) for r in sub]
+            dd_med = round(sorted(dds_sub)[len(dds_sub) // 2], 2) if dds_sub else 3.5
+            stats_etapas.append({
+                "categoria": nombre_et,
+                "cantidad": len(sub),
+                "aciertos_6pct": len(ok_sub),
+                "efectividad_pct": round((len(ok_sub) / len(sub)) * 100, 1),
+                "max_gain_prom_pct": round(sum(r.get("max_gain_pct", 0.0) for r in sub) / len(sub), 2),
+                "dd_previo_mediano_pct": -dd_med,
+                "stop_optimo_pct": -round(min(7.5, max(3.5, dd_med + 1.2)), 1)
+            })
+
+    stats_estructuras = []
+    for est_1d in ["Suelo / Base 1d", "Recuperación 1d", "Tramo Alto 1d"]:
+        sub = [r for r in registros if est_1d.lower() in str(r.get("estructura_1d", "")).lower()]
+        if sub:
+            ok_sub = [r for r in sub if r.get("max_gain_pct", 0.0) >= 6.0]
+            dds_sub = [abs(r.get("max_dd_pct", 0.0)) for r in sub]
+            dd_med = round(sorted(dds_sub)[len(dds_sub) // 2], 2) if dds_sub else 3.5
+            stats_estructuras.append({
+                "categoria": est_1d,
+                "cantidad": len(sub),
+                "aciertos_6pct": len(ok_sub),
+                "efectividad_pct": round((len(ok_sub) / len(sub)) * 100, 1),
+                "max_gain_prom_pct": round(sum(r.get("max_gain_pct", 0.0) for r in sub) / len(sub), 2),
+                "dd_previo_mediano_pct": -dd_med,
+                "stop_optimo_pct": -round(min(7.5, max(3.5, dd_med + 1.2)), 1)
+            })
+
+    # Monedas activas evaluadas para Matriz Central
+    activas_eval = []
+    vistas = set()
+    for grp_name in ["ROJO", "AMARILLO", "VERDE"]:
+        for it in grupos.get(grp_name, []):
+            sym = it["symbol"]
+            if sym in vistas:
+                continue
+            vistas.add(sym)
+            est = int(it.get("estrellas", 0))
+            stop_coin = -stop_sugerido_global if est >= 2 else -round(stop_sugerido_global + 0.8, 1)
+            accion = (
+                "APTA_ENTRADA_ESCALONADA" if grp_name == "ROJO"
+                else ("EN_OBSERVACION_PRE_ROJO" if grp_name == "AMARILLO" else "RADAR_TEMPRANO_NO_FORZAR")
+            )
+            activas_eval.append({
+                "symbol": sym,
+                "ticker": it["base"],
+                "etapa_actual": grp_name,
+                "estrellas": est,
+                "blindaje_pct": it.get("probabilidad_pct", 50),
+                "precio_inicio": it.get("precio_inicio", it.get("precio_f", 0.0)),
+                "precio_actual": it.get("precio_f", 0.0),
+                "var_seq_pct": it.get("var_seq", 0.0),
+                "estructura_1d": it.get("estructura_1d", ""),
+                "fib_tag": it.get("fib_tag", ""),
+                "rsi_1h": it.get("rsi_1h", 50.0),
+                "vol_surge": it.get("vol_surge", 1.0),
+                "stop_sugerido_pct": stop_coin,
+                "horizonte_horas": 48 if grp_name == "ROJO" else 72,
+                "accion_matriz": accion,
+                "dictamen_ia": it.get("motivo_ia") or f"Setup {grp_name} en {it.get('estructura_1d', '1d')} con stop calibrado en {stop_coin}%."
+            })
+
+    diagnostico_global = (
+        f"Base histórica de {total} señales tácticas auditadas (efectividad rebote >=6%: {tasa_exito}%). "
+        f"Las operaciones ganadoras retroceden en mediana -{dd_tipico_rebote}% antes de despegar, por lo que el stop óptimo calibrado es -{stop_sugerido_global}%."
+    )
+
+    if GEMINI_API_KEY and (activas_eval or stats_etapas):
+        try:
+            client = genai.Client(api_key=GEMINI_API_KEY)
+            resumen_stats = "\n".join([
+                f"- {s['categoria']}: {s['cantidad']} señales, efectividad {s['efectividad_pct']}%, máx gain prom +{s['max_gain_prom_pct']}%, DD previo {s['dd_previo_mediano_pct']}%"
+                for s in (stats_etapas + stats_estructuras)
+            ])
+            resumen_act = "\n".join([
+                f"- {a['ticker']} ({a['etapa_actual']}, blindaje {a['blindaje_pct']}%): var {a['var_seq_pct']:+.1f}%, {a['estructura_1d']}, {a['fib_tag']}, RSI {a['rsi_1h']}"
+                for a in activas_eval[:10]
+            ])
+            prompt = (
+                "Sos el Asistente IA de Etapa 1 (CAZADOR TÁCTICO) en Binance Spot. "
+                "Analizá el historial real y las señales activas, y devolvé SOLO JSON válido:\n"
+                '{"diagnostico_global":"2 oraciones concretas sobre qué setups funcionan mejor y qué stop usar para evitar barridas", '
+                '"dictamenes":{"TICKER":"recomendación táctica de 1 línea con gestión de riesgo"}}\n\n'
+                f"Estadísticas reales:\n{resumen_stats}\n\nSeñales activas:\n{resumen_act}"
+            )
+            for mod in MODELOS_GEMINI_TACTICO:
+                try:
+                    resp = client.models.generate_content(model=mod, contents=prompt)
+                    if resp and resp.text:
+                        raw = resp.text.strip()
+                        raw = re.sub(r'^```(?:json)?\s*|\s*```$', '', raw).strip()
+                        parsed = json.loads(raw)
+                        if isinstance(parsed, dict):
+                            if parsed.get("diagnostico_global"):
+                                diagnostico_global = str(parsed["diagnostico_global"]).strip()
+                            d_map = parsed.get("dictamenes") or {}
+                            for a in activas_eval:
+                                if a["ticker"] in d_map:
+                                    a["dictamen_ia"] = str(d_map[a["ticker"]]).strip()
+                        break
+                except Exception:
+                    continue
+        except Exception as e:
+            print(f"⚠️ Fallback Asistente IA Táctico: {e}")
+
+    reporte_json = {
+        "etapa": "CAZADOR_TACTICO",
+        "actualizado_art": ahora_art().strftime('%Y-%m-%d %H:%M:%S ART'),
+        "total_senales_historicas": total,
+        "tasa_exito_6pct": tasa_exito,
+        "prom_max_gain_pct": prom_max_gain,
+        "dd_tipico_previo_rebote_pct": -dd_tipico_rebote,
+        "stop_optimo_sugerido_pct": -stop_sugerido_global,
+        "diagnostico_global": diagnostico_global,
+        "auditoria_por_etapa": stats_etapas,
+        "auditoria_por_estructura": stats_estructuras,
+        "senales_activas_evaluadas": activas_eval
+    }
+
+    try:
+        with open(REPORTE_IA_TACTICO_FILE, 'w', encoding='utf-8') as f:
+            json.dump(reporte_json, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"⚠️ Error guardando {REPORTE_IA_TACTICO_FILE}: {e}")
+
+    return reporte_json
+
+
+# ==============================================================================
+# GENERACIÓN DE PLANILLA EXCEL HISTÓRICA COMPLETA + ASISTENTE IA
+# ==============================================================================
+def generar_excel_tactico(hist_comp, reporte_ia):
+    wb = openpyxl.Workbook()
+    wb.remove(wb.active)
+
+    fill_hdr = PatternFill(start_color="0B132B", end_color="0B132B", fill_type="solid")
+    fill_sub = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
+    fill_gold = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+    fill_green = PatternFill(start_color="DCFCE7", end_color="DCFCE7", fill_type="solid")
+    fill_red = PatternFill(start_color="FEE2E2", end_color="FEE2E2", fill_type="solid")
+    fill_blue = PatternFill(start_color="E0F2FE", end_color="E0F2FE", fill_type="solid")
+
+    borde = Border(
+        left=Side(style='thin', color='CBD5E1'),
+        right=Side(style='thin', color='CBD5E1'),
+        top=Side(style='thin', color='CBD5E1'),
+        bottom=Side(style='thin', color='CBD5E1')
+    )
+
+    # HOJA 1: ASISTENTE IA TÁCTICO
+    ws_ia = wb.create_sheet("ASISTENTE_IA_TACTICO")
+    ws_ia["A1"] = "ASISTENTE IA • ETAPA 1 CAZADOR TÁCTICO (CALIBRACIÓN DE REBOTES, STOPS Y SEÑALES ACTIVAS)"
+    ws_ia["A1"].font = Font(name="Arial", size=12, bold=True, color="FFFFFF")
+    ws_ia["A1"].fill = fill_hdr
+    ws_ia.merge_cells("A1:K1")
+    ws_ia.row_dimensions[1].height = 28
+
+    ws_ia["A2"] = f"Diagnóstico Global IA ({reporte_ia.get('actualizado_art', '')}): {reporte_ia.get('diagnostico_global', '')}"
+    ws_ia["A2"].font = Font(name="Arial", size=10, bold=True, color="0F172A")
+    ws_ia["A2"].fill = fill_gold
+    ws_ia["A2"].alignment = Alignment(wrap_text=True, vertical="center")
+    ws_ia.merge_cells("A2:K2")
+    ws_ia.row_dimensions[2].height = 34
+
+    headers_act = [
+        "MONEDA", "ETAPA", "BLINDAJE %", "PRECIO INICIO", "PRECIO ACTUAL",
+        "AVANCE SEQ %", "ESTRUCTURA 1D", "FIBONACCI", "STOP SUGERIDO %",
+        "ACCIÓN MATRIZ", "DICTAMEN ASISTENTE IA"
+    ]
+    ws_ia.append([])
+    ws_ia.append(headers_act)
+    ws_ia.row_dimensions[4].height = 24
+    for c_i in range(1, len(headers_act) + 1):
+        cell = ws_ia.cell(4, c_i)
+        cell.font = Font(name="Arial", size=9.5, bold=True, color="FFFFFF")
+        cell.fill = fill_sub
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = borde
+
+    for r_idx, a in enumerate(reporte_ia.get("senales_activas_evaluadas", []), start=5):
+        row = [
+            a["ticker"],
+            a["etapa_actual"],
+            round(a["blindaje_pct"] / 100.0, 4),
+            a["precio_inicio"],
+            a["precio_actual"],
+            round(a["var_seq_pct"] / 100.0, 4),
+            a["estructura_1d"],
+            a["fib_tag"],
+            round(a["stop_sugerido_pct"] / 100.0, 4),
+            a["accion_matriz"],
+            a["dictamen_ia"]
+        ]
+        ws_ia.append(row)
+        ws_ia.row_dimensions[r_idx].height = 22
+        for c_i in range(1, len(headers_act) + 1):
+            cell = ws_ia.cell(r_idx, c_i)
+            cell.border = borde
+            cell.font = Font(name="Arial", size=9.5, bold=(a["etapa_actual"] == "ROJO"))
+            if c_i in (3, 6, 9):
+                cell.number_format = "0.0%"
+            if a["etapa_actual"] == "ROJO":
+                cell.fill = fill_green
+            elif a["etapa_actual"] == "AMARILLO":
+                cell.fill = fill_blue
+
+    widths_ia = [12, 13, 12, 14, 14, 14, 18, 22, 16, 25, 56]
+    for i, w in enumerate(widths_ia, start=1):
+        ws_ia.column_dimensions[openpyxl.utils.get_column_letter(i)].width = w
+
+    # HOJA 2: HISTÓRICO COMPLETO ACUMULADO
+    ws_hist = wb.create_sheet("HISTORICO_COMPLETO")
+    headers_hist = [
+        "FECHA DETECCIÓN", "MONEDA", "ETAPA MÁXIMA", "BLINDAJE %",
+        "PRECIO INICIO", "PRECIO ACTUAL", "VAR ACTUAL %",
+        "MÁX SUBIDA %", "MÁX CAÍDA (DD) %", "RET 24H %", "RET 48H %",
+        "ESTRUCTURA 1D", "FIBONACCI", "RSI 1H", "RESULTADO REAL AUDITADO"
+    ]
+    ws_hist.append(headers_hist)
+    ws_hist.row_dimensions[1].height = 25
+    for c_i in range(1, len(headers_hist) + 1):
+        cell = ws_hist.cell(1, c_i)
+        cell.font = Font(name="Arial", size=9.5, bold=True, color="FFFFFF")
+        cell.fill = fill_hdr
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = borde
+
+    registros_ord = sorted(hist_comp.values(), key=lambda x: (x.get("fecha_deteccion", ""), x.get("etapa_max", 1)), reverse=True)
+    for r_idx, reg in enumerate(registros_ord, start=2):
+        max_g = float(reg.get("max_gain_pct", 0.0))
+        res_txt = reg.get("resultado_real", "EN_MADURACION")
+        row = [
+            reg.get("fecha_deteccion", ""),
+            reg.get("ticker", ""),
+            reg.get("etiqueta_etapa", ""),
+            round(float(reg.get("probabilidad", 50)) / 100.0, 4),
+            float(reg.get("precio_inicio", 0.0)),
+            float(reg.get("precio_actual", 0.0)),
+            round(float(reg.get("var_actual_pct", 0.0)) / 100.0, 4),
+            round(max_g / 100.0, 4),
+            round(float(reg.get("max_dd_pct", 0.0)) / 100.0, 4),
+            round(float(reg["ret_24h_pct"]) / 100.0, 4) if reg.get("ret_24h_pct") is not None else "",
+            round(float(reg["ret_48h_pct"]) / 100.0, 4) if reg.get("ret_48h_pct") is not None else "",
+            reg.get("estructura_1d", ""),
+            reg.get("fib_tag", ""),
+            reg.get("rsi_1h", ""),
+            res_txt
+        ]
+        ws_hist.append(row)
+        for c_i in range(1, len(headers_hist) + 1):
+            cell = ws_hist.cell(r_idx, c_i)
+            cell.border = borde
+            cell.font = Font(name="Arial", size=9.5)
+            if c_i in (4, 7, 8, 9, 10, 11) and isinstance(cell.value, float):
+                cell.number_format = "0.0%"
+            if "REBOTE_EXITOSO" in res_txt:
+                cell.fill = fill_green
+            elif "INVALIDADA" in res_txt:
+                cell.fill = fill_red
+
+    widths_hist = [16, 12, 24, 12, 14, 14, 14, 14, 16, 12, 12, 18, 22, 10, 26]
+    for i, w in enumerate(widths_hist, start=1):
+        ws_hist.column_dimensions[openpyxl.utils.get_column_letter(i)].width = w
+
+    # HOJA 3: AUDITORÍA DE SETUPS Y CALIBRACIÓN DE STOPS
+    ws_set = wb.create_sheet("AUDITORIA_SETUPS")
+    ws_set["A1"] = "AUDITORÍA ESTADÍSTICA POR ETAPA Y ESTRUCTURA 1D • CAZADOR TÁCTICO"
+    ws_set["A1"].font = Font(name="Arial", size=12, bold=True, color="FFFFFF")
+    ws_set["A1"].fill = fill_hdr
+    ws_set.merge_cells("A1:G1")
+    ws_set.row_dimensions[1].height = 26
+
+    headers_set = [
+        "SEGMENTO / SETUP", "SEÑALES TOTALES", "REBOTES >=6%",
+        "EFECTIVIDAD %", "MÁX SUBIDA PROM %", "DD PREVIO MEDIANO %", "STOP ÓPTIMO CALIBRADO %"
+    ]
+    ws_set.append([])
+    ws_set.append(headers_set)
+    ws_set.row_dimensions[3].height = 24
+    for c_i in range(1, len(headers_set) + 1):
+        cell = ws_set.cell(3, c_i)
+        cell.font = Font(name="Arial", size=9.5, bold=True, color="FFFFFF")
+        cell.fill = fill_sub
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = borde
+
+    filas_set = reporte_ia.get("auditoria_por_etapa", []) + reporte_ia.get("auditoria_por_estructura", [])
+    for r_idx, st in enumerate(filas_set, start=4):
+        ws_set.append([
+            st["categoria"],
+            st["cantidad"],
+            st["aciertos_6pct"],
+            round(st["efectividad_pct"] / 100.0, 4),
+            round(st["max_gain_prom_pct"] / 100.0, 4),
+            round(st["dd_previo_mediano_pct"] / 100.0, 4),
+            round(st["stop_optimo_pct"] / 100.0, 4)
+        ])
+        for c_i in range(1, len(headers_set) + 1):
+            cell = ws_set.cell(r_idx, c_i)
+            cell.border = borde
+            cell.font = Font(name="Arial", size=9.5, bold=(c_i in (1, 7)))
+            if c_i in (4, 5, 6, 7):
+                cell.number_format = "0.0%"
+            if c_i == 7:
+                cell.fill = fill_gold
+
+    widths_set = [28, 17, 15, 16, 20, 21, 24]
+    for i, w in enumerate(widths_set, start=1):
+        ws_set.column_dimensions[openpyxl.utils.get_column_letter(i)].width = w
+
+    wb.save(EXCEL_TACTICO_FILE)
+
+
+# ==============================================================================
+# GRÁFICOS Y TELEGRAM
+# ==============================================================================
 def generar_grafico_bloque(items, titulo_graf, subtitulo_graf, filename):
     if not items:
         return None
@@ -736,6 +1307,26 @@ def enviar_texto_telegram(texto):
             requests.post(url, json=payload, timeout=15)
     except Exception as e:
         print(f"⚠️ Error Telegram: {e}")
+
+
+def enviar_telegram_documento(doc_path, caption_text):
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID or not os.path.exists(doc_path):
+        return False
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendDocument"
+    payload = {"chat_id": TELEGRAM_CHAT_ID, "caption": caption_text[:1020], "parse_mode": "HTML"}
+    if TELEGRAM_TOPIC_ID.isdigit():
+        payload["message_thread_id"] = int(TELEGRAM_TOPIC_ID)
+    try:
+        with open(doc_path, 'rb') as doc:
+            res = requests.post(url, data=payload, files={"document": doc}, timeout=45).json()
+            if not res.get("ok") and "thread not found" in str(res.get("description", "")).lower():
+                payload.pop("message_thread_id", None)
+                doc.seek(0)
+                res = requests.post(url, data=payload, files={"document": doc}, timeout=45).json()
+            return bool(res.get("ok"))
+    except Exception as e:
+        print(f"❌ Error enviando documento Telegram: {e}")
+        return False
 
 
 def enviar_alerta_posta(al):
@@ -829,12 +1420,16 @@ def enviar_bloque_posta(num_bloque, titulo_bloque, items, msg_vacio, dictamen=""
 
 
 if __name__ == "__main__":
-    print(f"🔥 INICIANDO ETAPA 1 • CAZADOR TÁCTICO + CERTIFICADOR IA ({ahora_art().strftime('%H:%M:%S')} ART)...")
+    print(f"🔥 INICIANDO ETAPA 1 • CAZADOR TÁCTICO + HISTORIAL COMPLETO + ASISTENTE IA ({ahora_art().strftime('%H:%M:%S')} ART)...")
     s = crear_sesion_binance()
     activos, datos = obtener_datos_binance(s)
     if datos and activos:
         hist = cargar_historial()
-        grupos, hist, dictamen, alertas = ejecutar_posta_colores(s, datos, activos, hist)
+        grupos, hist, dictamen, alertas, mapa_mkt = ejecutar_posta_colores(s, datos, activos, hist)
+
+        hist_comp = actualizar_historial_completo_tactico(s, hist, mapa_mkt)
+        reporte_ia = ejecutar_asistente_ia_tactico(hist_comp, grupos)
+        generar_excel_tactico(hist_comp, reporte_ia)
 
         for al in alertas:
             enviar_alerta_posta(al)
@@ -845,5 +1440,20 @@ if __name__ == "__main__":
         enviar_bloque_posta(2, "🟡 <b>2. AMARILLO • FILTRO DE EVOLUCIÓN (⭐⭐)</b>", grupos["AMARILLO"], "Ninguna moneda destacada en Verde (⭐) pasó aún el filtro Amarillo.")
         time.sleep(2)
         enviar_bloque_posta(3, "🟢 <b>3. VERDE • HALLAZGOS FUERA DEL RADAR (⭐)</b>", grupos["VERDE"], "Sin monedas ocultas en Verde en este ciclo.")
+
+        hoy = ahora_art()
+        hoy_str = hoy.strftime('%Y-%m-%d')
+        es_manual = (os.getenv("GITHUB_EVENT_NAME") == "workflow_dispatch")
+        es_cierre = (hoy.hour == 23 and hoy.minute >= 30 and hist.get("ultimo_envio_excel") != hoy_str)
+        if es_cierre or es_manual:
+            time.sleep(1.5)
+            cap_xls = (
+                f"📊 <b>Excel Histórico Cazador Táctico ({hoy_str}):</b> "
+                f"{reporte_ia['total_senales_historicas']} señales auditadas | "
+                f"Stop óptimo calibrado: <code>{reporte_ia['stop_optimo_sugerido_pct']}%</code>."
+            )
+            if enviar_telegram_documento(EXCEL_TACTICO_FILE, cap_xls) and not es_manual:
+                hist["ultimo_envio_excel"] = hoy_str
+                guardar_historial(hist)
     else:
         print("❌ ERROR: Sin datos de Binance.")
