@@ -1,14 +1,5 @@
 [
   [
-    "ADAUSDT",
-    "ICPUSDT",
-    "ASTERUSDT",
-    "KAVAUSDT",
-    "DOTUSDT",
-    "HBARUSDT",
-    "POLUSDT"
-  ],
-  [
     "ETHFIUSDT",
     "RENDERUSDT",
     "ONDOUSDT",
@@ -16,5 +7,14 @@
     "OPGUSDT",
     "APTUSDT",
     "PUMPUSDT"
+  ],
+  [
+    "DOGEUSDT",
+    "WLDUSDT",
+    "ENAUSDT",
+    "SENTUSDT",
+    "NIGHTUSDT",
+    "XPLUSDT",
+    "KITEUSDT"
   ]
 ]
