@@ -51,6 +51,9 @@ MAX_ENTRADAS_POR_CORRIDA = 2        # Entrada escalonada: máximo 2 compras nuev
 TOP_ALTERNATIVAS_MOSTRAR = 8
 FACTIBILIDAD_MINIMA_JEFE = 75       # Puntaje mínimo exigido por el Jefe Supervisor para aprobar una entrada
 
+# Frecuencia de reporte continuo (cada 10 minutos envía los 3 bloques completos + Excel actualizado)
+REPORTE_COMPLETO_CADA_CICLO = True
+
 # Parámetros base de Riesgo y Cosecha Runner en 3 Tramos (auto-calibrables por el Cerebro Evolutivo)
 COMISION_SPOT_TOTAL_PCT = 0.20      # 0.10% compra + 0.10% venta en Binance Spot (PnL Neto Real)
 STOP_LOSS_FIJO_PCT = -3.40          # Stop base de despegue (-3.40% neto)
@@ -67,8 +70,11 @@ MIN_LIQUIDEZ_TOP_ASK_USD = 2500.0   # Liquidez mínima en USD dentro del 0.15% d
 MAX_SLIPPAGE_EST_PCT = 0.25         # Deslizamiento máximo estimado para ejecutar un cupo real (~$1,166)
 MINUTOS_CALIBRACION_SISTEMA = 15    # Tiempo de arranque y calibración tras actualizar el código
 
-# Exclusión de tokens apalancados y sintéticos de acciones/ETFs en Binance Spot
-TOKENS_NO_CRIPTO_EXACTOS = {"SOXLB", "SOXSB", "FLNCB", "ASTSB", "TSLAB", "NVDAB", "AAPLB", "COINB"}
+# Exclusión definitiva de tokens apalancados y sintéticos de acciones/ETFs en Binance Spot
+TOKENS_NO_CRIPTO_EXACTOS = {
+    "SOXLB", "SOXSB", "FLNCB", "ASTSB", "TSLAB", "NVDAB", "AAPLB", "COINB",
+    "KORUB", "SKHYB", "SNXXB"
+}
 SUFIJOS_APALANCADOS = ("UP", "DOWN", "BULL", "BEAR")
 
 MODELOS_GEMINI = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"]
@@ -139,11 +145,22 @@ def formatear_precio(p):
 
 def es_cripto_spot_valida(base_asset: str) -> bool:
     b = str(base_asset or "").upper().strip()
+    if b.endswith("USDT"):
+        b = b[:-4]
     if not b or b in TOKENS_NO_CRIPTO_EXACTOS:
         return False
     if b.endswith(SUFIJOS_APALANCADOS):
         return False
     return True
+
+
+def filtrar_diccionario_cripto(dicc: dict) -> dict:
+    if not isinstance(dicc, dict):
+        return {}
+    return {
+        k: v for k, v in dicc.items()
+        if isinstance(k, str) and k.endswith("USDT") and es_cripto_spot_valida(k[:-4])
+    }
 
 
 def crear_sesion_binance():
@@ -231,6 +248,11 @@ class CerebroEvolutivo:
                 elif isinstance(v, dict):
                     for sub_k, sub_v in v.items():
                         raw[k].setdefault(sub_k, sub_v)
+            raw["memoria_monedas"] = filtrar_diccionario_cripto(raw.get("memoria_monedas", {}))
+            raw["pendientes_sombra_24h"] = [
+                x for x in raw.get("pendientes_sombra_24h", [])
+                if es_cripto_spot_valida(x.get("symbol", ""))
+            ]
             return raw
         return json.loads(json.dumps(PARAMETROS_CEREBRO_DEFAULT))
 
@@ -268,7 +290,7 @@ class CerebroEvolutivo:
         return round(b_patron + b_coin, 1)
 
     def registrar_veto_sombra(self, symbol: str, precio: float, paso_fallido: str, detalle: str):
-        if precio <= 0:
+        if precio <= 0 or not es_cripto_spot_valida(symbol):
             return
         self.log_bitacora("VETO_MESA_6_ASISTENTES", {
             "symbol": symbol,
@@ -301,7 +323,7 @@ class CerebroEvolutivo:
             ant_h = (ahora_ts - item.get("ts_unix", ahora_ts)) / 3600.0
             sym = item.get("symbol", "")
             p_veto = float(item.get("precio_veto", 0))
-            if not sym or p_veto <= 0:
+            if not sym or p_veto <= 0 or not es_cripto_spot_valida(sym):
                 continue
 
             if ant_h < 6.0:
@@ -392,6 +414,8 @@ class CerebroEvolutivo:
         return f"Cuello principal: {filtro_top} ({cant_top} frenadas) ➔ {ajuste_txt}"
 
     def _actualizar_moneda(self, symbol: str, exito: bool, var_pct: float):
+        if not es_cripto_spot_valida(symbol):
+            return
         mem = self.data["memoria_monedas"].setdefault(symbol, {
             "eventos": 0, "positivos": 0, "negativos": 0, "ajuste_score": 0.0
         })
@@ -487,6 +511,8 @@ def _asistente_leer_excel_ganadoras():
                     if not mon:
                         continue
                     sym = mon if mon.endswith("USDT") else f"{mon}USDT"
+                    if not es_cripto_spot_valida(sym):
+                        continue
                     col_val = 7 if sheet_name == "DETALLE_OPERACIONES" else 8
                     sub_max = float(ws.cell(row=r, column=col_val).value or 0.0)
                     if sym not in aciertos_excel or sub_max > aciertos_excel[sym]:
@@ -511,11 +537,11 @@ def _extraer_diagnosticos_reporte_ia(ruta_json: str) -> tuple:
 
     por_moneda = {}
     for k, v in data.items():
-        if isinstance(k, str) and k.endswith("USDT") and isinstance(v, dict):
+        if isinstance(k, str) and k.endswith("USDT") and isinstance(v, dict) and es_cripto_spot_valida(k):
             por_moneda[k] = v
         elif isinstance(v, dict):
             for sub_k, sub_v in v.items():
-                if isinstance(sub_k, str) and sub_k.endswith("USDT") and isinstance(sub_v, dict):
+                if isinstance(sub_k, str) and sub_k.endswith("USDT") and isinstance(sub_v, dict) and es_cripto_spot_valida(sub_k):
                     por_moneda[sub_k] = sub_v
         elif isinstance(v, list):
             for item in v:
@@ -523,7 +549,8 @@ def _extraer_diagnosticos_reporte_ia(ruta_json: str) -> tuple:
                     s_item = str(item.get("symbol") or item.get("par") or item.get("moneda") or "").upper().strip()
                     if s_item:
                         sym_norm = s_item if s_item.endswith("USDT") else f"{s_item}USDT"
-                        por_moneda[sym_norm] = item
+                        if es_cripto_spot_valida(sym_norm):
+                            por_moneda[sym_norm] = item
 
     return resumen, por_moneda
 
@@ -601,7 +628,7 @@ def asistente_auditar_post_cierre(mapa_mkt, plan, cerebro: CerebroEvolutivo):
 
 def ejecutar_asistente_inteligencia(mapa_mkt, plan, cerebro: CerebroEvolutivo):
     """
-    Recopila toda la inteligencia interna del ecosistema:
+    Recopila toda la inteligencia interna del ecosistema (100% sincronizado en vivo):
     1) Cazador Táctico (E1 + reporte_ia_tactico.json)
     2) Pre-Explosión (E2 + reporte_ia_pre_explosion.json)
     3) Monedas Ganadoras (24h + reporte_ia_ganadoras.json + Excel Verdes)
@@ -630,21 +657,22 @@ def ejecutar_asistente_inteligencia(mapa_mkt, plan, cerebro: CerebroEvolutivo):
     if isinstance(cerebro_central, dict):
         for oc in cerebro_central.get("ordenes_ejecutar", []):
             sym_oc = str(oc.get("symbol", "")).upper().strip()
-            if sym_oc:
+            if sym_oc and es_cripto_spot_valida(sym_oc):
                 ordenes_central_map[sym_oc] = oc
 
-    graduadas = dict(perlas.get("graduadas_pre_explosion", {})) if isinstance(perlas, dict) else {}
+    graduadas_raw = dict(perlas.get("graduadas_pre_explosion", {})) if isinstance(perlas, dict) else {}
     if isinstance(pre_exp_extra, dict):
         for k, v in pre_exp_extra.items():
             if isinstance(k, str) and k.endswith("USDT") and isinstance(v, dict):
-                graduadas.setdefault(k, v)
+                graduadas_raw.setdefault(k, v)
             elif isinstance(v, dict):
                 for sub_k, sub_v in v.items():
                     if isinstance(sub_k, str) and sub_k.endswith("USDT") and isinstance(sub_v, dict):
-                        graduadas.setdefault(sub_k, sub_v)
+                        graduadas_raw.setdefault(sub_k, sub_v)
 
-    posta = perlas.get("posta", {}) if isinstance(perlas, dict) else {}
-    reg_verdes = ganadoras.get("registro_verdes", {}) if isinstance(ganadoras, dict) else {}
+    graduadas = filtrar_diccionario_cripto(graduadas_raw)
+    posta = filtrar_diccionario_cripto(perlas.get("posta", {}) if isinstance(perlas, dict) else {})
+    reg_verdes = filtrar_diccionario_cripto(ganadoras.get("registro_verdes", {}) if isinstance(ganadoras, dict) else {})
 
     resumen_macro_bots = []
     notas_extra_monedas = {}
@@ -681,6 +709,8 @@ def ejecutar_asistente_inteligencia(mapa_mkt, plan, cerebro: CerebroEvolutivo):
         ("IA Pre-Explosión", ia_pre_map),
     ]:
         for sym_k, info_k in mapa_ia.items():
+            if not es_cripto_spot_valida(sym_k):
+                continue
             txt_k = (
                 info_k.get("diagnostico_ia")
                 or info_k.get("veredicto_ia")
@@ -717,7 +747,7 @@ def ejecutar_asistente_inteligencia(mapa_mkt, plan, cerebro: CerebroEvolutivo):
                     break
 
         for k, v in data.items():
-            if isinstance(k, str) and k.endswith("USDT") and isinstance(v, dict):
+            if isinstance(k, str) and k.endswith("USDT") and isinstance(v, dict) and es_cripto_spot_valida(k):
                 txt_nota = v.get("razon") or v.get("analisis") or v.get("motivo") or v.get("diagnostico") or ""
                 if isinstance(txt_nota, str) and txt_nota.strip():
                     notas_extra_monedas.setdefault(k, []).append(f"{ruta}: {txt_nota.strip()[:110]}")
@@ -770,6 +800,20 @@ def asistente_1_forense_cazador_preexplosion(sym, p_actual, eco, plan=None, es_i
     - Si >= 2 Asistentes de Etapa corroboran la moneda (ej. E1 APTA_ENTRADA_ESCALONADA >=85% + E2 COMPRA_CONFIRMADA_MADURACION),
       la marca como Setup de Rebote/Explosión Corroborado con Bypass de Medias Diarias (A3) y Stop Sugerido de Etapa (-3.5%).
     """
+    if not es_cripto_spot_valida(sym):
+        return {
+            "check_a1": False, "patron_detectado": "VETADA_SINTETICO", "corroborada_etapa_2plus": False,
+            "votos_etapa": 0, "stop_sugerido_etapa": STOP_LOSS_FIJO_PCT, "cazador_en_verde": False,
+            "confirmada_pre_explosion": False, "es_inyeccion_binance": False, "es_orden_cerebro_central": False,
+            "semaforo_radar": "VETADO", "etapa_cazador": 0, "blindaje_pct": 0, "doble_certificada": False,
+            "en_ganadoras_activo": False, "carril_vip_radar": False, "es_reentrada_habilitada": False,
+            "stops_previos_semana": 0, "confluencia_multi_bot": 0, "reincidente_stop_semana": False,
+            "tiene_respaldo_bots": False, "precio_referencia_radar": p_actual, "var_desde_deteccion_radar_pct": 0.0,
+            "estado_historial_ganadoras": "VETADO", "max_ganancia_historica_pct": 0.0, "alertada_en_perdedoras": False,
+            "tesis_previa_bots": "Token sintético excluido", "dictamen_asistente": "⛔ A1 VETA: Token sintético/apalancado.",
+            "resumen_corto": "Vetado (sintético)"
+        }
+
     grad = eco["graduadas"].get(sym, {})
     post = eco["posta"].get(sym, {})
     verd = eco["reg_verdes"].get(sym, {})
@@ -1126,7 +1170,7 @@ def asistente_4_combustible_pista(precio: float, v1h: dict, v1d: dict, umbrales:
 def asistente_5_barrido_global_binance(mapa_mkt: dict, simbolos_bots: set) -> list:
     candidatas_vivas = []
     for sym, mkt in mapa_mkt.items():
-        if sym in simbolos_bots:
+        if sym in simbolos_bots or not es_cripto_spot_valida(sym):
             continue
         chg = float(mkt.get("cambio_24h", 0.0))
         vol = float(mkt.get("vol_24h", 0.0))
@@ -1350,16 +1394,19 @@ def mesa_asistentes_y_traders_evaluar_candidatas(session, mapa_mkt, excluidas, e
     )
     inyectadas_binance_a5 = set(asistente_5_barrido_global_binance(mapa_mkt, simbolos_bots))
 
-    universo_syms = list(dict.fromkeys(
-        list(ordenes_central_map.keys())
-        + list(graduadas.keys())
-        + list(posta_dict.keys())
-        + list(reg_verdes.keys())
-        + list(ia_pre_map.keys())
-        + list(ia_tac_map.keys())
-        + list(ia_gan_map.keys())
-        + list(inyectadas_binance_a5)
-    ))
+    universo_syms = [
+        sym for sym in dict.fromkeys(
+            list(ordenes_central_map.keys())
+            + list(graduadas.keys())
+            + list(posta_dict.keys())
+            + list(reg_verdes.keys())
+            + list(ia_pre_map.keys())
+            + list(ia_tac_map.keys())
+            + list(ia_gan_map.keys())
+            + list(inyectadas_binance_a5)
+        )
+        if es_cripto_spot_valida(sym)
+    ]
 
     stats_embudo = {
         "aprobadas_etapa_a1": 0,
@@ -1974,7 +2021,7 @@ def verificar_circuit_breaker_diario(plan, ahora_dt=None):
         dt_listo = ahora_dt + timedelta(minutes=MINUTOS_CALIBRACION_SISTEMA)
         plan["warmup_hasta_iso"] = dt_listo.isoformat()
         return True, True, (
-            f"Actualización detectada (Corroboración Cruzada Bypass A3 + Autocrítica Ciclo). "
+            f"Actualización detectada (Sync 10m + Filtro Sintéticos + Corroboración Cruzada). "
             f"Calibrando variables durante {MINUTOS_CALIBRACION_SISTEMA} min (compras habilitadas desde las {dt_listo.strftime('%H:%M ART')})."
         )
 
@@ -1999,7 +2046,7 @@ def cargar_plan_semanal():
     base = {
         "semana_id": sem,
         "fecha_inicio": ahora_art().strftime("%Y-%m-%d %H:%M"),
-        "modo": "MESA_6_ASISTENTES_3_TRADERS_JEFE_BYPASS_A3",
+        "modo": "MESA_6_ASISTENTES_3_TRADERS_JEFE_BYPASS_A3_10M",
         "capital_total_usd": CAPITAL_INICIAL_PRUEBA,
         "meta_semanal_usd": META_SEMANAL_USD,
         "ganancia_realizada_usd": 0.0,
@@ -2011,6 +2058,7 @@ def cargar_plan_semanal():
         "codigo_hash": "",
         "warmup_hasta_iso": "",
         "ultimo_reporte_hora": -1,
+        "ultimo_reporte_iso": "",
         "boletin_asistente": {},
         "auditoria_ia": {},
         "historial_auditorias": [],
@@ -2026,10 +2074,12 @@ def cargar_plan_semanal():
         data.setdefault("codigo_hash", "")
         data.setdefault("warmup_hasta_iso", "")
         data.setdefault("ultimo_reporte_hora", -1)
+        data.setdefault("ultimo_reporte_iso", "")
         data.setdefault("boletin_asistente", {})
         data.setdefault("auditoria_ia", {})
         data.setdefault("historial_auditorias", [])
         data.setdefault("alternativas_evaluadas", [])
+        data["posiciones"] = [p for p in data.get("posiciones", []) if es_cripto_spot_valida(p.get("symbol", ""))]
         return data
     if data:
         if data.get("historial_cierres"):
@@ -2053,6 +2103,8 @@ def calcular_estadisticas_embudo(mapa_mkt, eco):
     ganadas, en_curso, perdidas = 0, 0, 0
 
     for sym, info in reg_verdes.items():
+        if not es_cripto_spot_valida(sym):
+            continue
         est = str(info.get("estado", "")).upper()
         max_pct = float(info.get("max_ganancia_pct", info.get("ganancia_pct", 0.0)))
         if "GANADORA" in est or "EXPLOSION" in est or max_pct >= 8.0:
@@ -2063,7 +2115,7 @@ def calcular_estadisticas_embudo(mapa_mkt, eco):
             en_curso += 1
 
     for sym, info in graduadas.items():
-        if sym in reg_verdes:
+        if sym in reg_verdes or not es_cripto_spot_valida(sym):
             continue
         p_ref = float(info.get("precio_ref", 0))
         p_act = float(mapa_mkt.get(sym, {}).get("precio", p_ref))
@@ -2237,8 +2289,11 @@ def _poblar_hoja_matriz_central(ws, plan, eco, mapa_mkt, fill_hdr, font_hdr, fil
     alts_map = {a["symbol"]: a for a in plan.get("alternativas_evaluadas", [])}
 
     todos_syms = sorted(
-        set(graduadas.keys()) | set(posta.keys()) | set(reg_verdes.keys())
-        | set(ia_gan.keys()) | set(ia_tac.keys()) | set(ia_pre.keys()) | set(pos_map.keys())
+        sym for sym in (
+            set(graduadas.keys()) | set(posta.keys()) | set(reg_verdes.keys())
+            | set(ia_gan.keys()) | set(ia_tac.keys()) | set(ia_pre.keys()) | set(pos_map.keys())
+        )
+        if es_cripto_spot_valida(sym)
     )
 
     filas = []
@@ -2577,7 +2632,7 @@ def construir_bloque_1_alternativas(plan):
     bol = plan.get("boletin_asistente", {})
 
     msg = (
-        f"🔍 <b>MESA 6 ASISTENTES + CORROBORACIÓN CRUZADA • BLOQUE 1/3</b>\n"
+        f"🔍 <b>MESA 6 ASISTENTES + CORROBORACIÓN CRUZADA (CICLO 10M) • BLOQUE 1/3</b>\n"
         f"📅 <code>{ahora_str}</code> | Semana <code>{plan['semana_id']}</code>\n"
     )
     if bol.get("cerebro_resumen"):
@@ -2692,7 +2747,7 @@ def construir_bloque_2_cartera(plan, evento_titulo):
 
 
 # ==============================================================================
-# ORQUESTADOR PRINCIPAL DE EJECUCIÓN CONTINUA
+# ORQUESTADOR PRINCIPAL DE EJECUCIÓN CONTINUA (CADA 10 MINUTOS)
 # ==============================================================================
 
 def ejecutar_gestor_semanal():
@@ -2724,6 +2779,7 @@ def ejecutar_gestor_semanal():
         print(f"✅ Semana {plan['semana_id']} ya tiene META CUMPLIDA. Modo protección activo.")
         cerebro.guardar()
         actualizar_excel_semanal(plan, cerebro, eco, mapa_mkt)
+        guardar_plan_semanal(plan)
         return
 
     btc_ok, panico_btc_1h, cupos_max_regimen, msg_btc = verificar_clima_y_regimen_mercado(s, mapa_mkt)
@@ -3078,14 +3134,14 @@ def ejecutar_gestor_semanal():
         )
 
     es_ejecucion_manual = (os.getenv("GITHUB_EVENT_NAME") == "workflow_dispatch")
-    es_corte_horario = (plan.get("ultimo_reporte_hora") != ahora_dt.hour)
     hay_novedades = bool(nuevas_entradas or alertas_parciales or alertas_venta or plan["estado_semana"] == "META_CUMPLIDA" or cb_recien_activado)
 
     cerebro.guardar()
 
-    if hay_novedades or es_corte_horario or es_ejecucion_manual:
+    # Envío completo cada 10 minutos (REPORTE_COMPLETO_CADA_CICLO = True) para mantener el ecosistema 100% al día
+    if REPORTE_COMPLETO_CADA_CICLO or hay_novedades or es_ejecucion_manual:
         plan.setdefault("historial_auditorias", []).append(dict(aud_actual))
-        plan["historial_auditorias"] = plan["historial_auditorias"][-100:]
+        plan["historial_auditorias"] = plan["historial_auditorias"][-120:]
         actualizar_excel_semanal(plan, cerebro, eco, mapa_mkt)
 
         ok1 = enviar_telegram_texto(construir_bloque_1_alternativas(plan))
@@ -3103,18 +3159,19 @@ def ejecutar_gestor_semanal():
         elif alertas_venta or alertas_parciales:
             titulo_ev = "💰 <b>COSECHA RUNNER 3 TRAMOS / CIERRE</b>"
         else:
-            titulo_ev = "📡 <b>RADAR CONTINUO • CORROBORACIÓN ETAPA ➔ 3 TRADERS ➔ JEFE</b>"
+            titulo_ev = "📡 <b>RADAR CONTINUO 10M • CORROBORACIÓN ETAPA ➔ 3 TRADERS ➔ JEFE</b>"
 
         caption = construir_bloque_2_cartera(plan, titulo_ev)
         ok2 = enviar_foto_telegram(img, caption)
         time.sleep(1.5)
 
         ok3 = enviar_excel_telegram(
-            f"📎 <b>AUDITORÍA SEMANAL 3 TRADERS • BLOQUE 3/3 (7 PESTAÑAS)</b>\n"
+            f"📎 <b>AUDITORÍA SEMANAL 3 TRADERS (CICLO 10M) • BLOQUE 3/3 (7 PESTAÑAS)</b>\n"
             f"📊 Cartera activa, Bypass A3 Corroborado, Autocrítica Ciclo y Cerebro Evolutivo (<code>{EXCEL_SEMANAL_FILE}</code>)."
         )
         if ok1 and ok2 and ok3:
             plan["ultimo_reporte_hora"] = ahora_dt.hour
+            plan["ultimo_reporte_iso"] = ahora_dt.isoformat()
     else:
         actualizar_excel_semanal(plan, cerebro, eco, mapa_mkt)
 
@@ -3140,5 +3197,5 @@ def ejecutar_gestor_semanal():
 
 
 if __name__ == "__main__":
-    print(f"🧪 INICIANDO GESTOR SEMANAL EVOLUTIVO + CORROBORACIÓN CRUZADA ({ahora_art().strftime('%H:%M:%S')} ART)...")
+    print(f"🧪 INICIANDO GESTOR SEMANAL EVOLUTIVO 10M + CORROBORACIÓN CRUZADA ({ahora_art().strftime('%H:%M:%S')} ART)...")
     ejecutar_gestor_semanal()
