@@ -40,22 +40,29 @@ jobs:
           CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           TOPIC_ID_PRE_EXPLOSION: ${{ secrets.TOPIC_ID_PRE_EXPLOSION }}
           TELEGRAM_MESSAGE_THREAD_ID: ${{ secrets.TOPIC_ID_PRE_EXPLOSION }}
+          TOPIC_ID_CENTRAL: ${{ secrets.TOPIC_ID_CENTRAL }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python bot_pre_explosion.py
 
-      - name: Guardar Historial Compartido y Excel sin conflictos
+      - name: Guardar Historial Compartido, Excel y Reporte IA sin conflictos
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add -f historial_perlas.json AUDITORIA_PRE_EXPLOSION.xlsx || true
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          ARCHIVOS="historial_perlas.json AUDITORIA_PRE_EXPLOSION.xlsx reporte_ia_pre_explosion.json"
+          git add -f $ARCHIVOS || true
           [ -f datos_pre_explosion_ia.json ] && git add -f datos_pre_explosion_ia.json || true
           if ! git diff --staged --quiet; then
-            git commit -m "Auto-update: Estado Pre-Explosión IA y Excel [skip ci]"
+            git commit -m "chore: actualizar estado Pre-Explosion IA, Excel y reporte [skip ci]"
             for i in 1 2 3; do
-              if git pull --rebase -X ours origin main && git push origin main; then
-                break
+              if git pull --rebase -X ours origin main; then
+                if git push origin main; then
+                  break
+                fi
+              else
+                git checkout --ours $ARCHIVOS || true
+                git add -f $ARCHIVOS || true
+                git rebase --continue || git rebase --abort || true
               fi
-              git rebase --abort || true
-              sleep 5
+              sleep 4
             done
           fi
