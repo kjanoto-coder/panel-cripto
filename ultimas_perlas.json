@@ -1,14 +1,5 @@
 [
   [
-    "FETUSDT",
-    "ASTERUSDT",
-    "KAVAUSDT",
-    "LISTAUSDT",
-    "USUALUSDT",
-    "HYPERUSDT",
-    "RUNEUSDT"
-  ],
-  [
     "XRPUSDT",
     "DOGEUSDT",
     "PEPEUSDT",
@@ -16,5 +7,14 @@
     "ADAUSDT",
     "ENAUSDT",
     "OPGUSDT"
+  ],
+  [
+    "UNIUSDT",
+    "JSTUSDT",
+    "RENDERUSDT",
+    "ATUSDT",
+    "GRAMUSDT",
+    "SENTUSDT",
+    "HUMAUSDT"
   ]
 ]
