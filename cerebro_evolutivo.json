@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 77,
-  "ultima_actualizacion": "2026-11-26 22:21 ART",
+  "version_ciclo": 78,
+  "ultima_actualizacion": "2026-11-26 22:31 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.92,
     "min_ob_ratio": 1.31,
@@ -412,13 +412,6 @@
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     },
     {
-      "symbol": "SEIUSDT",
-      "ts_unix": 1795720879,
-      "precio_veto": 0.0411,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 0.99x < 1.84x"
-    },
-    {
       "symbol": "NEARUSDT",
       "ts_unix": 1795720881,
       "precio_veto": 3.09,
@@ -487,6 +480,27 @@
       "precio_veto": 0.04219,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "SKYUSDT",
+      "ts_unix": 1795743092,
+      "precio_veto": 0.04706,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "BABYUSDT",
+      "ts_unix": 1795743094,
+      "precio_veto": 0.00932,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "SEIUSDT",
+      "ts_unix": 1795743096,
+      "precio_veto": 0.03844,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     }
   ],
   "metricas_globales": {
@@ -495,7 +509,7 @@
     "runners_20_logrados": 0,
     "stops_prematuros": 0,
     "stops_salvadores": 0,
-    "vetos_acertados": 4,
+    "vetos_acertados": 5,
     "oportunidades_perdidas_20": 0
   }
 }
