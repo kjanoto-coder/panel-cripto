@@ -1,14 +1,5 @@
 [
   [
-    "ADAUSDT",
-    "PEPEUSDT",
-    "ASTERUSDT",
-    "DOTUSDT",
-    "ICPUSDT",
-    "POLUSDT",
-    "KAVAUSDT"
-  ],
-  [
     "ETHFIUSDT",
     "ONDOUSDT",
     "SAGAUSDT",
@@ -16,5 +7,14 @@
     "SOPHUSDT",
     "ARBUSDT",
     "PENGUUSDT"
+  ],
+  [
+    "ADAUSDT",
+    "DOTUSDT",
+    "ICPUSDT",
+    "ASTERUSDT",
+    "BIGTIMEUSDT",
+    "ONDOUSDT",
+    "POLUSDT"
   ]
 ]
