@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 178,
-  "ultima_actualizacion": "2026-11-27 14:31 ART",
+  "version_ciclo": 179,
+  "ultima_actualizacion": "2026-11-27 14:41 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.96,
     "min_ob_ratio": 1.3,
@@ -386,13 +386,6 @@
       "detalle": "A3 VETA: Sin historial suficiente de velas 15m/1D"
     },
     {
-      "symbol": "HYPEUSDT",
-      "ts_unix": 1795768308,
-      "precio_veto": 65.59,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
-    },
-    {
       "symbol": "SOPHUSDT",
       "ts_unix": 1795765878,
       "precio_veto": 0.00093,
@@ -518,8 +511,8 @@
     "runners_20_logrados": 0,
     "stops_prematuros": 0,
     "stops_salvadores": 0,
-    "vetos_acertados": 46,
+    "vetos_acertados": 47,
     "oportunidades_perdidas_20": 5,
-    "ajustes_autocritica_ciclo": 28
+    "ajustes_autocritica_ciclo": 29
   }
 }
