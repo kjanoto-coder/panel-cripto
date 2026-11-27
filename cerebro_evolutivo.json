@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 92,
-  "ultima_actualizacion": "2026-11-27 00:51 ART",
+  "version_ciclo": 93,
+  "ultima_actualizacion": "2026-11-27 01:01 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.92,
     "min_ob_ratio": 1.31,
@@ -620,6 +620,13 @@
       "precio_veto": 0.00269,
       "paso_fallido": "A4-Empresa",
       "detalle": "A4 VETA: Vol 1h 1.81x < 1.92x"
+    },
+    {
+      "symbol": "HAEDALUSDT",
+      "ts_unix": 1795752108,
+      "precio_veto": 0.02323,
+      "paso_fallido": "A5-Binance",
+      "detalle": "A5 VETA: Liquidez Ask 0.15% baja ($77) o slippage 0.33%"
     }
   ],
   "metricas_globales": {
