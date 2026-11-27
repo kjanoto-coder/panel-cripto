@@ -1,20 +1,20 @@
 [
   [
     "UNIUSDT",
-    "SUIUSDT",
-    "PEPEUSDT",
-    "ADAUSDT",
-    "LUNCUSDT",
-    "MARSCOINUSDT",
-    "ARBUSDT"
-  ],
-  [
-    "UNIUSDT",
     "JSTUSDT",
     "RENDERUSDT",
     "ATUSDT",
     "GRAMUSDT",
     "SENTUSDT",
     "VIRTUALUSDT"
+  ],
+  [
+    "FETUSDT",
+    "ASTERUSDT",
+    "KAVAUSDT",
+    "LISTAUSDT",
+    "USUALUSDT",
+    "HYPERUSDT",
+    "RUNEUSDT"
   ]
 ]
