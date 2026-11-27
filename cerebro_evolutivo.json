@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 118,
-  "ultima_actualizacion": "2026-11-27 05:11 ART",
+  "version_ciclo": 119,
+  "ultima_actualizacion": "2026-11-27 05:21 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.92,
     "min_ob_ratio": 1.31,
@@ -732,6 +732,13 @@
       "precio_veto": 0.04082,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "ADAUSDT",
+      "ts_unix": 1795767684,
+      "precio_veto": 0.1538,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Mechas superiores de rechazo en 15m (latigazo)"
     }
   ],
   "metricas_globales": {
