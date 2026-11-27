@@ -1,14 +1,5 @@
 [
   [
-    "DOGEUSDT",
-    "WLDUSDT",
-    "HBARUSDT",
-    "RENDERUSDT",
-    "FILUSDT",
-    "DOTUSDT",
-    "LUNCUSDT"
-  ],
-  [
     "ARBUSDT",
     "PENGUUSDT",
     "ASTERUSDT",
@@ -16,5 +7,14 @@
     "ETHFIUSDT",
     "XPLUSDT",
     "ICPUSDT"
+  ],
+  [
+    "XRPUSDT",
+    "NEARUSDT",
+    "SUIUSDT",
+    "ADAUSDT",
+    "PEPEUSDT",
+    "ENAUSDT",
+    "UNIUSDT"
   ]
 ]
