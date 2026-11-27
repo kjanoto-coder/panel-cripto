@@ -1,7 +1,7 @@
-import os, glob, json, html, hashlib, re, requests
+import os, json, html, hashlib, re, requests
 from datetime import datetime, timezone, timedelta
 import openpyxl
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.styles import Font, PatternFill, Alignment
 
 TZ_ART = timezone(timedelta(hours=-3))
 TELEGRAM_BOT_TOKEN = (os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("TELEGRAM_TOKEN") or "").strip()
@@ -15,6 +15,7 @@ BINANCE_API_BASES = [
 ]
 
 EXCEL_MATRIZ_CENTRAL_FILE = "MATRIZ_CENTRAL_ECOSISTEMA.xlsx"
+CEREBRO_FEED_JSON = "cerebro_matriz_central.json"
 MATRIZ_CONFIG_FILE = "matriz_topic_config.json"
 
 
@@ -67,7 +68,6 @@ def normalizar_symbol(raw):
     s = str(raw).strip().upper().replace("/USDT", "").replace("-USDT", "").replace("USDT", "")
     if not s or len(s) < 2 or len(s) > 14 or not s.isalnum():
         return ""
-    # Evitar encabezados o palabras reservadas
     if s in {"MONEDA", "NOMBRE", "SYMBOL", "BASE", "TOTAL", "PROMEDIO", "HORA", "ESTADO", "SEMANA"}:
         return ""
     return f"{s}USDT"
@@ -109,29 +109,35 @@ def limpiar_fecha(val):
 
 
 def parsear_fecha_dt(fecha_str):
-    s = limpiar_fecha(fecha_str)
-    if not s:
+    if not fecha_str:
         return None
-    for fmt in ("%Y-%m-%d %H:%M", "%Y-%m-%d", "%d/%m/%Y %H:%M", "%d/%m/%Y", "%d-%m-%Y"):
+    s = str(fecha_str).strip()
+    m = re.search(r"(20\d{2}-\d{2}-\d{2})(?:\s+(\d{2}:\d{2}))?", s)
+    if m:
+        f_part = m.group(1)
+        h_part = m.group(2) or "00:00"
         try:
-            return datetime.strptime(s[:len(fmt)], fmt).replace(tzinfo=TZ_ART)
+            return datetime.strptime(f"{f_part} {h_part}", "%Y-%m-%d %H:%M").replace(tzinfo=TZ_ART)
         except Exception:
-            continue
+            pass
     return None
 
 
 def es_hoy_y_24h(fecha_str, ahora_dt):
-    dt = parsear_fecha_dt(fecha_str)
-    if not dt:
-        return False, False
+    s = str(fecha_str or "").strip()
     hoy_iso = ahora_dt.strftime("%Y-%m-%d")
-    es_h = (dt.strftime("%Y-%m-%d") == hoy_iso)
-    es_24 = es_h or ((ahora_dt - dt).total_seconds() <= 86400)
+    ayer_iso = (ahora_dt - timedelta(days=1)).strftime("%Y-%m-%d")
+    es_h = hoy_iso in s
+    dt = parsear_fecha_dt(s)
+    if dt:
+        diff_h = (ahora_dt - dt).total_seconds() / 3600.0
+        es_24 = es_h or (0 <= diff_h <= 30)
+    else:
+        es_24 = es_h or (ayer_iso in s)
     return es_h, es_24
 
 
 def leer_hoja_tabular(ruta_xlsx, nombre_hoja):
-    """Lee una hoja tabular estándar detectando automáticamente la fila real de encabezados."""
     if not os.path.exists(ruta_xlsx):
         return [], []
     wb = openpyxl.load_workbook(ruta_xlsx, data_only=True)
@@ -155,11 +161,6 @@ def leer_hoja_tabular(ruta_xlsx, nombre_hoja):
 
 
 def desdoblar_calendario_mensual(ruta_xlsx, nombre_hoja, tipo="E2"):
-    """
-    Convierte las hojas horizontales de 7 días (Lunes a Domingo) en una tabla vertical limpia.
-    tipo='E2': Hora | MONEDA | Semáforo | IA % | $ Entrada | Estado
-    tipo='E3': N° | NOMBRE | Base 0% | $ Actual | % subida
-    """
     if not os.path.exists(ruta_xlsx):
         return []
     wb = openpyxl.load_workbook(ruta_xlsx, data_only=True)
@@ -174,7 +175,6 @@ def desdoblar_calendario_mensual(ruta_xlsx, nombre_hoja, tipo="E2"):
             txt = str(cell or "").strip().upper()
             if "NOVIEMBRE" in txt or "OCTUBRE" in txt or "DICIEMBRE" in txt:
                 dia_titulo = str(cell).strip()
-                # Buscar sub-encabezados 1 o 2 filas abajo
                 sub_r = r_idx + 1
                 if sub_r >= len(matriz):
                     continue
@@ -182,7 +182,6 @@ def desdoblar_calendario_mensual(ruta_xlsx, nombre_hoja, tipo="E2"):
                     fila_k = matriz[k]
                     if c_idx + 4 >= len(fila_k):
                         continue
-                    # Si empieza otro bloque de semana, cortar
                     val_0 = str(fila_k[c_idx] or "").upper()
                     if "NOVIEMBRE" in val_0 or "OCTUBRE" in val_0 or "DICIEMBRE" in val_0:
                         break
@@ -226,7 +225,7 @@ def desdoblar_calendario_mensual(ruta_xlsx, nombre_hoja, tipo="E2"):
     return registros
 
 
-def construir_matriz_ordenada():
+def construir_matriz_cerebro():
     ahora_dt = ahora_art()
     ahora_str = ahora_dt.strftime("%Y-%m-%d %H:%M ART")
     hoy_iso = ahora_dt.strftime("%Y-%m-%d")
@@ -234,21 +233,26 @@ def construir_matriz_ordenada():
     mapa_mkt = obtener_precios_vivos_binance()
     plan_sem = cargar_json_seguro("plan_semanal.json")
     cerebro = cargar_json_seguro("cerebro_evolutivo.json")
-    gan_json = cargar_json_seguro("historial_ganadoras.json")
-    perlas_json = cargar_json_seguro("historial_perlas.json")
+    version_cerebro = cerebro.get("version_ciclo", 1) if isinstance(cerebro, dict) else 1
 
-    # ==========================================================================
-    # 1. EXTRAER Y ORDENAR ETAPA 1: CAZADOR TÁCTICO (291 SEÑALES REALES)
-    # ==========================================================================
-    h_e1, rows_e1_raw = leer_hoja_tabular("HISTORICO_CAZADOR_TACTICO.xlsx", "HISTORICO_COMPLETO")
+    # 1. ETAPA 1: CAZADOR TÁCTICO
+    _, rows_e1_raw = leer_hoja_tabular("HISTORICO_CAZADOR_TACTICO.xlsx", "HISTORICO_COMPLETO")
     _, rows_e1_ia = leer_hoja_tabular("HISTORICO_CAZADOR_TACTICO.xlsx", "ASISTENTE_IA_TACTICO")
-    h_e1_aud, rows_e1_aud = leer_hoja_tabular("HISTORICO_CAZADOR_TACTICO.xlsx", "AUDITORIA_SETUPS")
+    _, rows_e1_aud = leer_hoja_tabular("HISTORICO_CAZADOR_TACTICO.xlsx", "AUDITORIA_SETUPS")
 
     ia_e1_map = {}
     for r in rows_e1_ia:
         sym = normalizar_symbol(r[0] if len(r) > 0 else "")
         if sym:
+            blind = a_float(r[2], 0.0) if len(r) > 2 else 0.0
+            if blind <= 1.0:
+                blind = round(blind * 100.0, 1)
+            stop_s = a_float(r[8], -3.5) if len(r) > 8 else -3.5
+            if abs(stop_s) < 1.0:
+                stop_s = round(stop_s * 100.0, 2)
             ia_e1_map[sym] = {
+                "blindaje": blind,
+                "stop_sugerido": stop_s,
                 "accion": str(r[9] or "").strip() if len(r) > 9 else "",
                 "dictamen": str(r[10] or "").strip() if len(r) > 10 else ""
             }
@@ -271,7 +275,6 @@ def construir_matriz_ordenada():
         var_act = a_float(r[6], 0.0)
         max_sub = a_float(r[7], 0.0)
         max_dd = a_float(r[8], 0.0)
-        # Normalizar si viene en decimal (0.0836 -> 8.36%)
         if abs(max_sub) < 1.5 and p_ini > 0:
             max_sub = round(max_sub * 100.0, 2)
         if abs(var_act) < 1.5 and p_ini > 0:
@@ -300,6 +303,8 @@ def construir_matriz_ordenada():
             "fibonacci": fib,
             "rsi_1h": rsi_1h,
             "resultado": res_aud,
+            "accion_ia": ia_info.get("accion", ""),
+            "stop_sugerido": ia_info.get("stop_sugerido", -3.5),
             "dictamen_ia": ia_info.get("dictamen", "")
         }
         lista_e1.append(reg)
@@ -308,20 +313,22 @@ def construir_matriz_ordenada():
 
     lista_e1.sort(key=lambda x: (x["fecha"], x["max_subida_pct"]), reverse=True)
 
-    # ==========================================================================
-    # 2. EXTRAER Y ORDENAR ETAPA 2: PRE-EXPLOSIÓN (151+ CRUCE + CALENDARIO)
-    # ==========================================================================
+    # 2. ETAPA 2: PRE-EXPLOSIÓN
     _, rows_e2_cruce = leer_hoja_tabular("AUDITORIA_PRE_EXPLOSION.xlsx", "CRUCE_TIEMPOS_GANADORA")
     _, rows_e2_ia = leer_hoja_tabular("AUDITORIA_PRE_EXPLOSION.xlsx", "ASISTENTE_IA_PRE_EXPLOSION")
-    h_e2_pat, rows_e2_pat = leer_hoja_tabular("AUDITORIA_PRE_EXPLOSION.xlsx", "ANALISIS_PATRONES")
+    _, rows_e2_pat = leer_hoja_tabular("AUDITORIA_PRE_EXPLOSION.xlsx", "ANALISIS_PATRONES")
     cal_e2 = desdoblar_calendario_mensual("AUDITORIA_PRE_EXPLOSION.xlsx", "NOVIEMBRE_2026", tipo="E2")
 
     ia_e2_map = {}
     for r in rows_e2_ia:
         sym = normalizar_symbol(r[0] if len(r) > 0 else "")
         if sym:
+            blind = a_float(r[3], 0.0) if len(r) > 3 else 0.0
+            if blind <= 1.0:
+                blind = round(blind * 100.0, 1)
             ia_e2_map[sym] = {
                 "cert": str(r[2] or "").strip() if len(r) > 2 else "",
+                "blindaje": blind,
                 "accion": str(r[9] or "").strip() if len(r) > 9 else "",
                 "dictamen": str(r[10] or "").strip() if len(r) > 10 else ""
             }
@@ -367,18 +374,19 @@ def construir_matriz_ordenada():
             "estado": estado,
             "fecha_ganadora": fecha_gan,
             "tiempo_maduracion": tiempo_gan,
+            "accion_ia": ia_info.get("accion", ""),
             "dictamen_ia": ia_info.get("dictamen", "")
         }
         lista_e2.append(reg)
         map_e2_best[sym] = reg
 
-    # Completar con monedas del calendario semanal que no estuvieran en cruce
     for c_it in cal_e2:
         sym = c_it["symbol"]
         if sym not in map_e2_best:
             p_vivo = mapa_mkt.get(sym, {}).get("precio", c_it["precio_entrada"])
             p_ent = c_it["precio_entrada"] or p_vivo
             var_r = ((p_vivo - p_ent) / p_ent * 100.0) if p_ent > 0 else 0.0
+            ia_info = ia_e2_map.get(sym, {})
             reg = {
                 "symbol": sym,
                 "moneda": sym[:-4],
@@ -397,19 +405,18 @@ def construir_matriz_ordenada():
                 "estado": c_it["estado"],
                 "fecha_ganadora": "",
                 "tiempo_maduracion": "-",
-                "dictamen_ia": ia_e2_map.get(sym, {}).get("dictamen", "")
+                "accion_ia": ia_info.get("accion", ""),
+                "dictamen_ia": ia_info.get("dictamen", "")
             }
             lista_e2.append(reg)
             map_e2_best[sym] = reg
 
     lista_e2.sort(key=lambda x: (x["fecha"], x["subida_pico_pct"]), reverse=True)
 
-    # ==========================================================================
-    # 3. EXTRAER Y ORDENAR ETAPA 3: MONEDAS GANADORAS (126+ DETALLE + REINCIDENCIA)
-    # ==========================================================================
+    # 3. ETAPA 3: MONEDAS GANADORAS
     _, rows_e3_det = leer_hoja_tabular("AUDITORIA_VERDE_GANADORAS.xlsx", "DETALLE_OPERACIONES")
     _, rows_e3_ia = leer_hoja_tabular("AUDITORIA_VERDE_GANADORAS.xlsx", "ASISTENTE_IA_GANADORAS")
-    h_e3_par, rows_e3_par = leer_hoja_tabular("AUDITORIA_VERDE_GANADORAS.xlsx", "PARAMETROS_RADAR")
+    _, rows_e3_par = leer_hoja_tabular("AUDITORIA_VERDE_GANADORAS.xlsx", "PARAMETROS_RADAR")
     cal_e3 = desdoblar_calendario_mensual("AUDITORIA_VERDE_GANADORAS.xlsx", "NOVIEMBRE_2026", tipo="E3")
 
     ia_e3_map = {}
@@ -424,6 +431,7 @@ def construir_matriz_ordenada():
                 "veces_mes": veces_mes,
                 "max_mes_pct": max_mes,
                 "estado_tactico": str(r[8] or "").strip() if len(r) > 8 else "",
+                "accion": str(r[9] or "").strip() if len(r) > 9 else "",
                 "dictamen": str(r[10] or "").strip() if len(r) > 10 else ""
             }
 
@@ -459,6 +467,7 @@ def construir_matriz_ordenada():
             "subida_dia_gan_pct": round(sub_dia_gan, 2),
             "dias_demora": dias_demora,
             "veces_mes": ia_info.get("veces_mes", 1),
+            "accion_ia": ia_info.get("accion", ""),
             "dictamen_ia": ia_info.get("dictamen", "")
         }
         lista_e3.append(reg)
@@ -483,6 +492,7 @@ def construir_matriz_ordenada():
                 "subida_dia_gan_pct": c_it["subida_pct"],
                 "dias_demora": 0,
                 "veces_mes": ia_info.get("veces_mes", 1),
+                "accion_ia": ia_info.get("accion", ""),
                 "dictamen_ia": ia_info.get("dictamen", "")
             }
             lista_e3.append(reg)
@@ -490,9 +500,7 @@ def construir_matriz_ordenada():
 
     lista_e3.sort(key=lambda x: (x["fecha"], x["subida_dia_gan_pct"]), reverse=True)
 
-    # ==========================================================================
-    # 4. EXTRAER ETAPA 4: GESTOR 3 TRADERS, MESA 6 ASISTENTES, AUTOPSIA Y CEREBRO
-    # ==========================================================================
+    # 4. GESTOR 3 TRADERS, MESA, AUTOPSIA Y CEREBRO
     h_tr, rows_tr = leer_hoja_tabular("AUDITORIA_SEMANAL_PRUEBA.xlsx", "1_CARTERA_3_TRADERS")
     h_mesa, rows_mesa = leer_hoja_tabular("AUDITORIA_SEMANAL_PRUEBA.xlsx", "2_MESA_6_ASISTENTES")
     h_aud24, rows_aud24 = leer_hoja_tabular("AUDITORIA_SEMANAL_PRUEBA.xlsx", "3_AUDITORIA_IA_24H")
@@ -505,9 +513,104 @@ def construir_matriz_ordenada():
     pos_map = {p["symbol"]: p for p in posiciones if p.get("symbol")}
     alts_map = {a["symbol"]: a for a in alts_eval if a.get("symbol")}
 
-    # ==========================================================================
-    # 5. CALCULAR MÉTRICAS REALES PARA EL TABLERO EJECUTIVO
-    # ==========================================================================
+    # 5. CONSENSO ACTIVO DE LOS 3 ASISTENTES IA -> ORDEN PARA LOS TRADERS
+    todos_syms = sorted(set(map_e1_best.keys()) | set(map_e2_best.keys()) | set(map_e3_best.keys()) | set(pos_map.keys()))
+    filas_matriz = []
+    ordenes_activas_cerebro = []
+
+    for sym in todos_syms:
+        mkt = mapa_mkt.get(sym, {})
+        p_vivo = float(mkt.get("precio", 0.0))
+        chg_24h = round(float(mkt.get("cambio_24h", 0.0)), 2)
+        vol_24m = round(float(mkt.get("vol_24h", 0.0)) / 1e6, 2)
+
+        d1 = map_e1_best.get(sym)
+        d2 = map_e2_best.get(sym)
+        d3 = map_e3_best.get(sym)
+        conf = sum([1 if d1 else 0, 1 if d2 else 0, 1 if d3 else 0])
+
+        # Votos positivos de cada Asistente IA de Etapa
+        voto_ia_1 = bool(d1 and ("APTA" in d1.get("accion_ia", "").upper() or d1.get("blindaje_pct", 0) >= 85))
+        voto_ia_2 = bool(d2 and ("COMPRA" in d2.get("accion_ia", "").upper() or d2.get("semaforo_max", "").endswith("ROJO")))
+        voto_ia_3 = bool(d3 and ("BONUS" in d3.get("accion_ia", "").upper() or d3.get("veces_mes", 0) >= 3))
+        votos_ia_total = sum([voto_ia_1, voto_ia_2, voto_ia_3])
+
+        fechas_validas = [x["fecha"] for x in (d1, d2, d3) if x and es_fecha_valida(x.get("fecha"))]
+        primera_fecha = min(fechas_validas) if fechas_validas else (d3["fecha"] if d3 else (d2["fecha"] if d2 else ""))
+
+        col_e1 = f"✅ {d1['etapa']} (Máx {d1['max_subida_pct']:+.1f}%)" if d1 else "—"
+        col_e2 = f"⚡ {d2['semaforo_max']} (Pico {d2['subida_pico_pct']:+.1f}%)" if d2 else "—"
+        col_e3 = f"🟢 {d3['estado']} (Verde {d3['subida_desde_verde_pct']:+.1f}% | Día +{d3['subida_dia_gan_pct']:.1f}% | {d3['veces_mes']}x)" if d3 else "—"
+
+        alt = alts_map.get(sym)
+        stop_sug = d1.get("stop_sugerido", -3.5) if d1 else -3.5
+
+        if sym in pos_map:
+            po = pos_map[sym]
+            tr_nom = po.get("trader_asignado") or po.get("trader") or "TRADER_3"
+            mesa_txt = "APROBADA (CARTERA)"
+            estado_tr = f"🟢 {tr_nom} ({float(po.get('pnl_pct', 0)):+.2f}%)"
+            orden_cerebro = f"CUSTODIAR_EN_{tr_nom}"
+        elif votos_ia_total >= 2 and chg_24h < 25.0:
+            mesa_txt = f"CONSENSO IA {votos_ia_total}/3"
+            estado_tr = "🚀 LISTA PARA TRADER LIBRE"
+            orden_cerebro = f"EJECUTAR_TRADER (Stop {stop_sug}%)"
+            ordenes_activas_cerebro.append({
+                "symbol": sym,
+                "moneda": sym[:-4],
+                "votos_ia": votos_ia_total,
+                "confluencia_etapas": conf,
+                "precio_vivo": p_vivo,
+                "chg_24h": chg_24h,
+                "vol_24m": vol_24m,
+                "stop_sugerido_pct": stop_sug,
+                "orden": orden_cerebro
+            })
+        elif alt and alt.get("consenso_3_de_3"):
+            mesa_txt = f"{alt.get('asistentes_aprobados', 0)}/6"
+            estado_tr = f"🟡 COLA ({alt.get('trader_propuesto', 'LIBRE')})"
+            orden_cerebro = "EJECUTAR_TRADER (MESA)"
+        else:
+            mesa_txt = f"IA {votos_ia_total}/3 | M {alt.get('asistentes_aprobados', 0)}/6" if alt else f"IA {votos_ia_total}/3"
+            estado_tr = "OBSERVACIÓN"
+            orden_cerebro = "ESPERAR_CONFIRMACION"
+
+        notas = []
+        if sym in pos_map:
+            po = pos_map[sym]
+            notas.append(f"[CARTERA] {po.get('operativa_trader') or po.get('jefe_veredicto_entrada') or 'Posición activa protegida'}")
+        if d1 and d1.get("dictamen_ia"):
+            notas.append(f"[E1] {d1['dictamen_ia']}")
+        if d2 and d2.get("dictamen_ia"):
+            notas.append(f"[E2] {d2['dictamen_ia']}")
+        if d3 and d3.get("dictamen_ia"):
+            notas.append(f"[E3] {d3['dictamen_ia']}")
+        if not notas:
+            notas.append(f"Confluencia {conf}/3 • Var 24h: {chg_24h:+.2f}% • Vol: ${vol_24m:.2f}M")
+
+        filas_matriz.append({
+            "moneda": sym[:-4],
+            "primera_fecha": primera_fecha,
+            "precio_vivo": p_vivo,
+            "chg_24h": chg_24h,
+            "vol_24m": vol_24m,
+            "confluencia": conf,
+            "orden_cerebro": orden_cerebro,
+            "col_e1": col_e1,
+            "col_e2": col_e2,
+            "col_e3": col_e3,
+            "mesa_txt": mesa_txt,
+            "estado_tr": estado_tr,
+            "notas_ia": " | ".join(notas)[:260]
+        })
+
+    filas_matriz.sort(key=lambda x: (
+        1 if "CUSTODIAR" in x["orden_cerebro"] else (2 if "EJECUTAR" in x["orden_cerebro"] else 0),
+        x["confluencia"],
+        x["chg_24h"]
+    ), reverse=True)
+
+    # 6. MÉTRICAS REALES PARA EL TABLERO EJECUTIVO + AUTOCRÍTICA DE FLUJO
     def _stats_etapa(lista, campo_pct):
         c_hoy, c_24h = 0, 0
         vals = []
@@ -535,7 +638,14 @@ def construir_matriz_ordenada():
         if h24_f:
             e4_24h += 1
 
+    traders_libres = max(0, 3 - len(posiciones))
     pnl_sem_neto = round(float(plan_sem.get("ganancia_realizada_usd", 0.0)) + sum(float(p.get("pnl_usd", 0.0)) for p in posiciones), 2)
+
+    alerta_flujo = (
+        f"⚠️ {traders_libres}/3 Traders libres con {len(ordenes_activas_cerebro)} candidatas aprobadas por Consenso IA."
+        if traders_libres > 0 and ordenes_activas_cerebro
+        else f"Activas: {len(posiciones)}/3 | Órdenes listas en Cerebro: {len(ordenes_activas_cerebro)}"
+    )
 
     resumen_bots = [
         {
@@ -546,7 +656,7 @@ def construir_matriz_ordenada():
             "h24": e1_24h,
             "total": len(lista_e1),
             "metrica": f"Máx Rebote Prom: {e1_prom:+.2f}% | Stop Óptimo: -3.5%",
-            "diag_ia": f"Base auditada de {len(lista_e1)} señales tácticas."
+            "diag_ia": f"Base auditada de {len(lista_e1)} señales tácticas ({e1_hoy} hoy)."
         },
         {
             "emoji": "⚡",
@@ -570,90 +680,33 @@ def construir_matriz_ordenada():
         },
         {
             "emoji": "🏆",
-            "etapa": "Etapa 4 • Gestor 3 Traders + Jefe",
+            "etapa": f"Etapa 4 • Gestor 3 Traders (Cerebro v{version_cerebro})",
             "fuente": "AUDITORIA_SEMANAL_PRUEBA.xlsx",
             "hoy": e4_hoy,
             "h24": e4_24h,
             "total": len(rows_tr),
             "metrica": f"Balance Semanal: ${pnl_sem_neto:+.2f} USD | Activas: {len(posiciones)}/3",
-            "diag_ia": plan_sem.get("auditoria_ia", {}).get("diagnostico_24h", "3 Traders independientes activos")
+            "diag_ia": alerta_flujo
         }
     ]
 
-    # ==========================================================================
-    # 6. MATRIZ MAESTRA CRUZADA (UNA FILA ORDENADA POR MONEDA ÚNICA)
-    # ==========================================================================
-    todos_syms = sorted(set(map_e1_best.keys()) | set(map_e2_best.keys()) | set(map_e3_best.keys()) | set(pos_map.keys()))
-    filas_matriz = []
+    # Guardar feed JSON para que el Gestor de 3 Traders lo consuma directo
+    guardar_json_seguro(CEREBRO_FEED_JSON, {
+        "actualizado": ahora_str,
+        "version_cerebro": version_cerebro,
+        "traders_libres": traders_libres,
+        "ordenes_ejecutar": ordenes_activas_cerebro[:6],
+        "diagnostico_flujo": alerta_flujo
+    })
 
-    for sym in todos_syms:
-        mkt = mapa_mkt.get(sym, {})
-        p_vivo = float(mkt.get("precio", 0.0))
-        chg_24h = round(float(mkt.get("cambio_24h", 0.0)), 2)
-        vol_24m = round(float(mkt.get("vol_24h", 0.0)) / 1e6, 2)
-
-        d1 = map_e1_best.get(sym)
-        d2 = map_e2_best.get(sym)
-        d3 = map_e3_best.get(sym)
-        conf = sum([1 if d1 else 0, 1 if d2 else 0, 1 if d3 else 0])
-
-        fechas_validas = [x["fecha"] for x in (d1, d2, d3) if x and es_fecha_valida(x.get("fecha"))]
-        primera_fecha = min(fechas_validas) if fechas_validas else (d3["fecha"] if d3 else (d2["fecha"] if d2 else ""))
-
-        col_e1 = f"✅ {d1['etapa']} (Máx {d1['max_subida_pct']:+.1f}%)" if d1 else "—"
-        col_e2 = f"⚡ {d2['semaforo_max']} (Pico {d2['subida_pico_pct']:+.1f}%)" if d2 else "—"
-        col_e3 = f"🟢 {d3['estado']} (Día +{d3['subida_dia_gan_pct']:.1f}% | {d3['veces_mes']}x mes)" if d3 else "—"
-
-        alt = alts_map.get(sym)
-        mesa_txt = f"{alt.get('asistentes_aprobados', 0)}/6" if alt else "Radar"
-
-        if sym in pos_map:
-            po = pos_map[sym]
-            tr_nom = po.get("trader_asignado") or po.get("trader") or "TRADER"
-            estado_tr = f"🟢 {tr_nom} ({float(po.get('pnl_pct', 0)):+.2f}%)"
-        elif alt and alt.get("consenso_3_de_3"):
-            estado_tr = f"🟡 LISTA ({alt.get('trader_propuesto', 'COLA')})"
-        else:
-            estado_tr = "OBSERVACIÓN"
-
-        notas = []
-        if d1 and d1.get("dictamen_ia"):
-            notas.append(f"[E1] {d1['dictamen_ia']}")
-        if d2 and d2.get("dictamen_ia"):
-            notas.append(f"[E2] {d2['dictamen_ia']}")
-        if d3 and d3.get("dictamen_ia"):
-            notas.append(f"[E3] {d3['dictamen_ia']}")
-        if not notas and alt and alt.get("jefe_veredicto"):
-            notas.append(str(alt["jefe_veredicto"]))
-        if not notas:
-            notas.append(f"Confluencia {conf}/3 • Var 24h: {chg_24h:+.2f}% • Vol: ${vol_24m:.2f}M")
-
-        filas_matriz.append({
-            "moneda": sym[:-4],
-            "primera_fecha": primera_fecha,
-            "precio_vivo": p_vivo,
-            "chg_24h": chg_24h,
-            "vol_24m": vol_24m,
-            "confluencia": conf,
-            "col_e1": col_e1,
-            "col_e2": col_e2,
-            "col_e3": col_e3,
-            "mesa_txt": mesa_txt,
-            "estado_tr": estado_tr,
-            "notas_ia": " | ".join(notas)[:250]
-        })
-
-    filas_matriz.sort(key=lambda x: (x["confluencia"], x["chg_24h"]), reverse=True)
-
-    # ==========================================================================
-    # 7. GENERAR EXCEL ORDENADO EN 10 PESTAÑAS LIMPIAS Y COLOREADAS
-    # ==========================================================================
+    # 7. GENERAR EXCEL MAESTRO ORDENADO (10 PESTAÑAS)
     wb = openpyxl.Workbook()
     fill_hdr = PatternFill(start_color="0B132B", end_color="0B132B", fill_type="solid")
     fill_sub = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
     font_hdr = Font(color="FFFFFF", bold=True)
     fill_verde = PatternFill(start_color="D1FAE5", end_color="D1FAE5", fill_type="solid")
     fill_amarillo = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+    fill_azul = PatternFill(start_color="DBEAFE", end_color="DBEAFE", fill_type="solid")
     fill_zebra = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
 
     def _preparar_hoja(ws, cols, tab_color_hex):
@@ -667,12 +720,11 @@ def construir_matriz_ordenada():
             c.alignment = Alignment(horizontal="center", vertical="center")
         ws.row_dimensions[1].height = 24
 
-    # --- Pestaña 0: Tablero Ejecutivo ---
     ws0 = wb.active
     ws0.title = "0_TABLERO_EJECUTIVO"
     _preparar_hoja(ws0, [
         "Fecha", "Etapa del Embudo", "Archivo Fuente", "Señales Hoy",
-        "Señales 24h", "Total Histórico", "Métrica Clave Calibrada", "Diagnóstico IA"
+        "Señales 24h", "Total Histórico", "Métrica Clave Calibrada", "Diagnóstico IA y Flujo"
     ], "0B132B")
     for rb in resumen_bots:
         ws0.append([
@@ -680,27 +732,30 @@ def construir_matriz_ordenada():
             rb["h24"], rb["total"], rb["metrica"], rb["diag_ia"]
         ])
 
-    # --- Pestaña 1: Matriz Maestra Cruzada ---
     ws1 = wb.create_sheet(title="1_MATRIZ_MAESTRA_CRUZADA")
     _preparar_hoja(ws1, [
         "Moneda", "Primera Detección", "Precio Vivo ($)", "Var 24h (%)", "Vol 24h ($M)",
-        "Confluencia", "Etapa 1: Cazador Táctico", "Etapa 2: Pre-Explosión",
-        "Etapa 3: Monedas Ganadoras", "Mesa 6 Asistentes", "Estado 3 Traders",
-        "Síntesis IA Combinada", "Actualizado"
+        "Confluencia", "Orden Cerebro -> Traders", "Etapa 1: Cazador Táctico",
+        "Etapa 2: Pre-Explosión", "Etapa 3: Monedas Ganadoras", "Consenso IA / Mesa",
+        "Estado 3 Traders", "Síntesis IA Combinada", "Actualizado"
     ], "1D4ED8")
     for r_idx, fm in enumerate(filas_matriz, start=2):
         ws1.append([
             fm["moneda"], fm["primera_fecha"], fm["precio_vivo"], fm["chg_24h"], fm["vol_24m"],
-            f"{fm['confluencia']}/3 Etapas", fm["col_e1"], fm["col_e2"], fm["col_e3"],
-            fm["mesa_txt"], fm["estado_tr"], fm["notas_ia"], ahora_str
+            f"{fm['confluencia']}/3 Etapas", fm["orden_cerebro"], fm["col_e1"], fm["col_e2"],
+            fm["col_e3"], fm["mesa_txt"], fm["estado_tr"], fm["notas_ia"], ahora_str
         ])
         cel_c = ws1.cell(row=r_idx, column=6)
+        cel_o = ws1.cell(row=r_idx, column=7)
         if fm["confluencia"] >= 2:
             cel_c.fill = fill_verde
         elif fm["confluencia"] == 1:
             cel_c.fill = fill_amarillo
+        if "EJECUTAR" in fm["orden_cerebro"]:
+            cel_o.fill = fill_azul
+        elif "CUSTODIAR" in fm["orden_cerebro"]:
+            cel_o.fill = fill_verde
 
-    # --- Pestaña 2: Historial Completo Etapa 1 (291 señales) ---
     ws2 = wb.create_sheet(title="2_HIST_E1_CAZADOR_291")
     _preparar_hoja(ws2, [
         "Fecha Detección", "Moneda", "Etapa Máxima", "Blindaje IA (%)",
@@ -719,7 +774,6 @@ def construir_matriz_ordenada():
             for c_i in range(1, 15):
                 ws2.cell(row=idx_r, column=c_i).fill = fill_zebra
 
-    # --- Pestaña 3: Historial Completo Etapa 2 (Pre-Explosión) ---
     ws3 = wb.create_sheet(title="3_HIST_E2_PRE_EXPLOSION")
     _preparar_hoja(ws3, [
         "1ª Aparición", "Moneda", "Semáforo Inicial", "Semáforo Máx", "Veces Vista",
@@ -738,7 +792,6 @@ def construir_matriz_ordenada():
             for c_i in range(1, 18):
                 ws3.cell(row=idx_r, column=c_i).fill = fill_zebra
 
-    # --- Pestaña 4: Historial Completo Etapa 3 (Monedas Ganadoras) ---
     ws4 = wb.create_sheet(title="4_HIST_E3_GANADORAS")
     _preparar_hoja(ws4, [
         "Fecha Verde", "Moneda", "Categoría", "Veces en el Mes", "Precio Verde ($)",
@@ -757,7 +810,6 @@ def construir_matriz_ordenada():
             for c_i in range(1, 14):
                 ws4.cell(row=idx_r, column=c_i).fill = fill_zebra
 
-    # --- Pestaña 5: Auditoría Estadística Consolidada (E1 + E2 + E3) ---
     ws5 = wb.create_sheet(title="5_AUDITORIA_ESTADISTICA")
     _preparar_hoja(ws5, [
         "Etapa", "Segmento / Parámetro", "Columna 1", "Columna 2", "Columna 3", "Columna 4", "Columna 5"
@@ -773,7 +825,6 @@ def construir_matriz_ordenada():
         if any(r):
             ws5.append(["Etapa 3 • Ganadoras"] + list(r[:6]))
 
-    # --- Pestañas 6, 7, 8, 9: Ejecución 3 Traders, Mesa 6 Asistentes, Autopsia/Cerebro, Bitácora ---
     for titulo_e4, hdr_e4, rws_e4, color_e4 in [
         ("6_CARTERA_3_TRADERS", h_tr, rows_tr, "334155"),
         ("7_MESA_6_ASISTENTES", h_mesa, rows_mesa, "475569"),
@@ -787,6 +838,7 @@ def construir_matriz_ordenada():
                 ws_e4.append(row_d)
         if titulo_e4 == "8_AUTOPSIA_Y_CEREBRO_IA" and h_cer:
             ws_e4.append([])
+            ws_e4.append(["=== PARÁMETROS Y PATRONES • CEREBRO EVOLUTIVO ==="])
             ws_e4.append(h_cer)
             for c_cell in ws_e4[ws_e4.max_row]:
                 c_cell.fill = fill_sub
@@ -794,7 +846,6 @@ def construir_matriz_ordenada():
             for row_c in rows_cer:
                 ws_e4.append(row_c)
 
-    # Ajustar anchos de columna y activar autofiltros en todas las hojas
     for sheet in wb.worksheets:
         sheet.auto_filter.ref = sheet.dimensions
         for col in sheet.columns:
@@ -802,12 +853,8 @@ def construir_matriz_ordenada():
             sheet.column_dimensions[col[0].column_letter].width = min(max_len + 4, 48)
 
     wb.save(EXCEL_MATRIZ_CENTRAL_FILE)
-    return ahora_str, hoy_iso, resumen_bots, filas_matriz, cerebro, plan_sem, len(wb.sheetnames)
+    return ahora_str, hoy_iso, resumen_bots, filas_matriz, ordenes_activas_cerebro, version_cerebro, plan_sem, len(wb.sheetnames)
 
-
-# ==============================================================================
-# TELEGRAM: TABLERO FIJADO + EXCEL ORDENADO DE 10 PESTAÑAS
-# ==============================================================================
 
 def tg_post(metodo, payload=None, files=None):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
@@ -842,7 +889,7 @@ def asegurar_topic_matriz(cfg):
     return None
 
 
-def actualizar_tema_matriz_telegram(ahora_str, hoy_iso, resumen_bots, filas_matriz, cerebro, plan_sem, total_pestanas):
+def actualizar_tema_matriz_telegram(ahora_str, hoy_iso, resumen_bots, filas_matriz, ordenes_cerebro, version_cerebro, plan_sem, total_pestanas):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         return
 
@@ -852,43 +899,40 @@ def actualizar_tema_matriz_telegram(ahora_str, hoy_iso, resumen_bots, filas_matr
     sem_id = plan_sem.get("semana_id", "2026") if isinstance(plan_sem, dict) else "2026"
     total_hoy = sum(rb["hoy"] for rb in resumen_bots)
     total_24h = sum(rb["h24"] for rb in resumen_bots)
-    top_confluencia = [f for f in filas_matriz if f["confluencia"] >= 2][:6]
-    en_cartera = [f for f in filas_matriz if "🟢 " in f["estado_tr"]]
+    en_cartera = [f for f in filas_matriz if "CUSTODIAR" in f["orden_cerebro"]]
 
     msg = (
-        f"📊 <b>MATRIZ CENTRAL ORDENADA • ETAPAS 1, 2, 3 Y 4</b>\n"
+        f"🧠 <b>MATRIZ CENTRAL • CEREBRO DE CONSENSO IA</b>\n"
         f"🗓️ <b>Fecha:</b> <code>{hoy_iso}</code> (Semana <code>{sem_id}</code>)\n"
         f"📈 <b>Actividad:</b> <b>{total_hoy} hoy</b> | <b>{total_24h} últimas 24h</b>\n"
-        f"📁 <b>Excel Maestro:</b> <code>{EXCEL_MATRIZ_CENTRAL_FILE}</code> (<b>{total_pestanas} pestañas ordenadas</b>)\n\n"
-        f"📋 <b>RESUMEN POR ETAPA DEL EMBUDO</b>\n\n"
+        f"📁 <b>Excel Maestro:</b> <code>{EXCEL_MATRIZ_CENTRAL_FILE}</code> (<b>{total_pestanas} pestañas</b>)\n\n"
     )
 
     for rb in resumen_bots:
         msg += (
             f"{rb['emoji']} <b>{html.escape(rb['etapa'])}:</b> <b>{rb['hoy']} hoy</b> (<code>{rb['h24']} en 24h</code>)\n"
-            f"• Total histórico: <b>{rb['total']} registros</b> | {html.escape(rb['metrica'])}\n"
+            f"• Total: <b>{rb['total']}</b> | {html.escape(rb['metrica'])}\n"
             f"• <i>{html.escape(rb['diag_ia'][:115])}</i>\n\n"
         )
 
-    msg += "🔥 <b>TOP CONFLUENCIA CRUZADA (2/3 O 3/3 ETAPAS)</b>\n"
-    if top_confluencia:
-        for tc in top_confluencia:
+    msg += "🚀 <b>ÓRDENES DE CONSENSO IA -> TRADERS LIBRES</b>\n"
+    if ordenes_cerebro:
+        for oc in ordenes_cerebro[:6]:
             msg += (
-                f"• <b>{tc['moneda']}</b> (<code>{tc['confluencia']}/3</code> | 24h: <b>{tc['chg_24h']:+.1f}%</b>) ➔ "
-                f"{html.escape(tc['estado_tr'])}\n"
+                f"• <b>{oc['moneda']}</b> (IA <code>{oc['votos_ia']}/3</code> | 24h: <b>{oc['chg_24h']:+.1f}%</b>) ➔ "
+                f"<b>{html.escape(oc['orden'])}</b>\n"
             )
     else:
-        msg += "• <i>Sin monedas en confluencia múltiple en este corte.</i>\n"
+        msg += "• <i>Sin nuevas órdenes 2/3 IA en este corte.</i>\n"
 
     if en_cartera:
-        msg += "\n🖥️ <b>ESCRITORIOS 3 TRADERS EN VIVO</b>\n"
+        msg += "\n🖥️ <b>EN CUSTODIA DE TRADERS</b>\n"
         for ec in en_cartera:
             msg += f"• <b>{ec['moneda']}</b>: {html.escape(ec['estado_tr'])}\n"
 
-    v_ciclo = cerebro.get("version_ciclo", 1) if isinstance(cerebro, dict) else 1
     msg += (
-        f"\n🧬 <i>Cerebro Evolutivo v{v_ciclo} • Universo histórico único: {len(filas_matriz)} monedas</i>\n"
-        f"<i>Actualizado • {ahora_str}</i>"
+        f"\n🧬 <i>Cerebro v{version_cerebro} • Universo único: {len(filas_matriz)} monedas</i>\n"
+        f"<i>Sincronizado • {ahora_str}</i>"
     )
 
     msg_id_tablero = cfg.get("tablero_message_id")
@@ -927,7 +971,7 @@ def actualizar_tema_matriz_telegram(ahora_str, hoy_iso, resumen_bots, filas_matr
             })
 
     hash_datos = hashlib.md5(
-        json.dumps([resumen_bots, [(f["moneda"], f["confluencia"], f["col_e1"], f["col_e2"], f["col_e3"], f["estado_tr"]) for f in filas_matriz]], sort_keys=True).encode()
+        json.dumps([resumen_bots, [(f["moneda"], f["orden_cerebro"], f["estado_tr"]) for f in filas_matriz]], sort_keys=True).encode()
     ).hexdigest()
 
     hora_actual = ahora_art().hour
@@ -936,8 +980,8 @@ def actualizar_tema_matriz_telegram(ahora_str, hoy_iso, resumen_bots, filas_matr
         doc_data = {
             "chat_id": TELEGRAM_CHAT_ID,
             "caption": (
-                f"📎 <b>{EXCEL_MATRIZ_CENTRAL_FILE}</b> ({total_pestanas} Pestañas Ordenadas)\n"
-                f"🔄 Sincronizado: <code>{ahora_str}</code> | 24h: <b>{total_24h}</b> | Universo Único: <b>{len(filas_matriz)} monedas</b>"
+                f"📎 <b>{EXCEL_MATRIZ_CENTRAL_FILE}</b> ({total_pestanas} Pestañas • Cerebro Central)\n"
+                f"🔄 Sincronizado: <code>{ahora_str}</code> | Órdenes IA listas: <b>{len(ordenes_cerebro)}</b>"
             ),
             "parse_mode": "HTML"
         }
@@ -957,6 +1001,6 @@ def actualizar_tema_matriz_telegram(ahora_str, hoy_iso, resumen_bots, filas_matr
 
 
 if __name__ == "__main__":
-    print(f"📊 GENERANDO MATRIZ CENTRAL ORDENADA ({ahora_art().strftime('%H:%M:%S')} ART)...")
-    ahora_s, hoy_s, res_bots, f_mat, cer, pl, tot_p = construir_matriz_ordenada()
-    actualizar_tema_matriz_telegram(ahora_s, hoy_s, res_bots, f_mat, cer, pl, tot_p)
+    print(f"🧠 ACTUALIZANDO CEREBRO CENTRAL ({ahora_art().strftime('%H:%M:%S')} ART)...")
+    ahora_s, hoy_s, res_bots, f_mat, ord_cer, v_cer, pl, tot_p = construir_matriz_cerebro()
+    actualizar_tema_matriz_telegram(ahora_s, hoy_s, res_bots, f_mat, ord_cer, v_cer, pl, tot_p)
