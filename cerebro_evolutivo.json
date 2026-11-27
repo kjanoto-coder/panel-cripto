@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 168,
-  "ultima_actualizacion": "2026-11-27 12:51 ART",
+  "version_ciclo": 169,
+  "ultima_actualizacion": "2026-11-27 13:01 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.96,
     "min_ob_ratio": 1.3,
@@ -98,13 +98,6 @@
     }
   },
   "pendientes_sombra_24h": [
-    {
-      "symbol": "YBUSDT",
-      "ts_unix": 1795773087,
-      "precio_veto": 0.0607,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Mechas superiores de rechazo en 15m (latigazo)"
-    },
     {
       "symbol": "NIGHTUSDT",
       "ts_unix": 1795776078,
@@ -344,6 +337,13 @@
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     },
     {
+      "symbol": "LUNCUSDT",
+      "ts_unix": 1795794675,
+      "precio_veto": 4.603e-05,
+      "paso_fallido": "A5-Binance",
+      "detalle": "A5 VETA: Libro vendedor (OB 0.85x < 1.30x)"
+    },
+    {
       "symbol": "HYPEUSDT",
       "ts_unix": 1795768308,
       "precio_veto": 65.59,
@@ -498,11 +498,11 @@
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     },
     {
-      "symbol": "LUNCUSDT",
-      "ts_unix": 1795794675,
-      "precio_veto": 4.603e-05,
-      "paso_fallido": "A5-Binance",
-      "detalle": "A5 VETA: Libro vendedor (OB 0.85x < 1.30x)"
+      "symbol": "YBUSDT",
+      "ts_unix": 1795795304,
+      "precio_veto": 0.0575,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     }
   ],
   "metricas_globales": {
@@ -511,8 +511,8 @@
     "runners_20_logrados": 0,
     "stops_prematuros": 0,
     "stops_salvadores": 0,
-    "vetos_acertados": 43,
+    "vetos_acertados": 44,
     "oportunidades_perdidas_20": 5,
-    "ajustes_autocritica_ciclo": 18
+    "ajustes_autocritica_ciclo": 19
   }
 }
