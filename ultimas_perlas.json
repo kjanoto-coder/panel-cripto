@@ -1,14 +1,5 @@
 [
   [
-    "NEARUSDT",
-    "SUIUSDT",
-    "ADAUSDT",
-    "UNIUSDT",
-    "ENAUSDT",
-    "PUMPUSDT",
-    "ONDOUSDT"
-  ],
-  [
     "DOGEUSDT",
     "WLDUSDT",
     "HBARUSDT",
@@ -16,5 +7,14 @@
     "FILUSDT",
     "DOTUSDT",
     "LUNCUSDT"
+  ],
+  [
+    "ARBUSDT",
+    "PENGUUSDT",
+    "ASTERUSDT",
+    "POLUSDT",
+    "ETHFIUSDT",
+    "XPLUSDT",
+    "ICPUSDT"
   ]
 ]
