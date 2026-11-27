@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 164,
-  "ultima_actualizacion": "2026-11-27 12:10 ART",
+  "version_ciclo": 165,
+  "ultima_actualizacion": "2026-11-27 12:21 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.96,
     "min_ob_ratio": 1.3,
@@ -337,6 +337,13 @@
       "detalle": "A5 VETA: Libro vendedor (OB 1.20x < 1.30x)"
     },
     {
+      "symbol": "OPGUSDT",
+      "ts_unix": 1795792255,
+      "precio_veto": 0.1713,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 1.20x < 1.25x"
+    },
+    {
       "symbol": "HYPEUSDT",
       "ts_unix": 1795768308,
       "precio_veto": 65.59,
@@ -498,11 +505,11 @@
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     },
     {
-      "symbol": "OPGUSDT",
-      "ts_unix": 1795792255,
-      "precio_veto": 0.1713,
+      "symbol": "WUSDT",
+      "ts_unix": 1795792874,
+      "precio_veto": 0.00904,
       "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 1.20x < 1.25x"
+      "detalle": "A4 VETA: Vol 1h 0.57x < 1.25x"
     }
   ],
   "metricas_globales": {
@@ -513,6 +520,6 @@
     "stops_salvadores": 0,
     "vetos_acertados": 40,
     "oportunidades_perdidas_20": 5,
-    "ajustes_autocritica_ciclo": 16
+    "ajustes_autocritica_ciclo": 17
   }
 }
