@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 162,
-  "ultima_actualizacion": "2026-11-27 12:01 ART",
+  "version_ciclo": 163,
+  "ultima_actualizacion": "2026-11-27 12:04 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.96,
     "min_ob_ratio": 1.3,
@@ -98,20 +98,6 @@
     }
   },
   "pendientes_sombra_24h": [
-    {
-      "symbol": "ZROUSDT",
-      "ts_unix": 1795770115,
-      "precio_veto": 1.13,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
-    },
-    {
-      "symbol": "INJUSDT",
-      "ts_unix": 1795770121,
-      "precio_veto": 6.521,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
-    },
     {
       "symbol": "NBISBUSDT",
       "ts_unix": 1795770685,
@@ -337,6 +323,20 @@
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     },
     {
+      "symbol": "SENTUSDT",
+      "ts_unix": 1795791704,
+      "precio_veto": 0.02205,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 1.06x < 1.25x"
+    },
+    {
+      "symbol": "SNDKBUSDT",
+      "ts_unix": 1795791704,
+      "precio_veto": 79.02,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
       "symbol": "HYPEUSDT",
       "ts_unix": 1795768308,
       "precio_veto": 65.59,
@@ -349,13 +349,6 @@
       "precio_veto": 0.00093,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
-    },
-    {
-      "symbol": "ANTBUSDT",
-      "ts_unix": 1795705307,
-      "precio_veto": 83.68,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin historial suficiente de velas 15m/1D"
     },
     {
       "symbol": "QQQBUSDT",
@@ -512,18 +505,11 @@
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     },
     {
-      "symbol": "SENTUSDT",
-      "ts_unix": 1795791704,
-      "precio_veto": 0.02205,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 1.06x < 1.25x"
-    },
-    {
-      "symbol": "SNDKBUSDT",
-      "ts_unix": 1795791704,
-      "precio_veto": 79.02,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+      "symbol": "INJUSDT",
+      "ts_unix": 1795791872,
+      "precio_veto": 6.225,
+      "paso_fallido": "A5-Binance",
+      "detalle": "A5 VETA: Libro vendedor (OB 1.20x < 1.30x)"
     }
   ],
   "metricas_globales": {
@@ -532,8 +518,8 @@
     "runners_20_logrados": 0,
     "stops_prematuros": 0,
     "stops_salvadores": 0,
-    "vetos_acertados": 37,
+    "vetos_acertados": 39,
     "oportunidades_perdidas_20": 5,
-    "ajustes_autocritica_ciclo": 15
+    "ajustes_autocritica_ciclo": 16
   }
 }
