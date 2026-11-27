@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 137,
-  "ultima_actualizacion": "2026-11-27 08:21 ART",
+  "version_ciclo": 138,
+  "ultima_actualizacion": "2026-11-27 08:31 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.92,
     "min_ob_ratio": 1.28,
@@ -606,13 +606,6 @@
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     },
     {
-      "symbol": "ONEUSDT",
-      "ts_unix": 1795756874,
-      "precio_veto": 0.001121,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
-    },
-    {
       "symbol": "MSTRBUSDT",
       "ts_unix": 1795758674,
       "precio_veto": 85.77,
@@ -850,7 +843,7 @@
     "runners_20_logrados": 0,
     "stops_prematuros": 0,
     "stops_salvadores": 0,
-    "vetos_acertados": 8,
+    "vetos_acertados": 9,
     "oportunidades_perdidas_20": 2
   }
 }
