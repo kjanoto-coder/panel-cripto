@@ -6918,6 +6918,21 @@
       "subida_24h_dia_pct": 0.0,
       "dias_demora": null,
       "dias_esperando": 0
+    },
+    "SSVUSDT": {
+      "symbol": "SSVUSDT",
+      "ticker": "SSV",
+      "fecha_verde": "2026-11-27",
+      "ts_verde": "2026-11-27 10:21",
+      "precio_verde": 2.76,
+      "es_oro": false,
+      "origen": "CAZADOR_TACTICO_ROJO",
+      "estado": "PENDIENTE",
+      "fecha_ganadora": "",
+      "precio_ganadora": 0.0,
+      "subida_real_pct": 0.0,
+      "subida_24h_dia_pct": 0.0,
+      "dias_demora": null
     }
   }
 }
