@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 84,
-  "ultima_actualizacion": "2026-11-26 23:31 ART",
+  "version_ciclo": 85,
+  "ultima_actualizacion": "2026-11-26 23:41 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.92,
     "min_ob_ratio": 1.31,
@@ -534,6 +534,20 @@
       "symbol": "BCHUSDT",
       "ts_unix": 1795746696,
       "precio_veto": 218.0,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "SNDKBUSDT",
+      "ts_unix": 1795747289,
+      "precio_veto": 79.39,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "LINKUSDT",
+      "ts_unix": 1795747290,
+      "precio_veto": 9.55,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     }
