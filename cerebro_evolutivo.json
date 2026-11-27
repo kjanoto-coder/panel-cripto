@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 202,
-  "ultima_actualizacion": "2026-11-27 18:51 ART",
+  "version_ciclo": 203,
+  "ultima_actualizacion": "2026-11-27 19:01 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.96,
     "min_ob_ratio": 1.27,
@@ -98,20 +98,6 @@
     }
   },
   "pendientes_sombra_24h": [
-    {
-      "symbol": "LUNCUSDT",
-      "ts_unix": 1795794675,
-      "precio_veto": 4.603e-05,
-      "paso_fallido": "A5-Binance",
-      "detalle": "A5 VETA: Libro vendedor (OB 0.85x < 1.30x)"
-    },
-    {
-      "symbol": "YBUSDT",
-      "ts_unix": 1795795304,
-      "precio_veto": 0.0575,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
-    },
     {
       "symbol": "RENDERUSDT",
       "ts_unix": 1795796472,
@@ -251,6 +237,27 @@
       "precio_veto": 645.16,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "SKYUSDT",
+      "ts_unix": 1795816271,
+      "precio_veto": 0.05297,
+      "paso_fallido": "A5-Binance",
+      "detalle": "A5 VETA: Liquidez Ask 0.15% baja ($2,284) o slippage 0.009%"
+    },
+    {
+      "symbol": "LUNCUSDT",
+      "ts_unix": 1795794675,
+      "precio_veto": 4.603e-05,
+      "paso_fallido": "A5-Binance",
+      "detalle": "A5 VETA: Libro vendedor (OB 0.85x < 1.30x)"
+    },
+    {
+      "symbol": "YBUSDT",
+      "ts_unix": 1795795304,
+      "precio_veto": 0.0575,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     },
     {
       "symbol": "SKYUSDT",
@@ -442,11 +449,18 @@
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     },
     {
-      "symbol": "SKYUSDT",
-      "ts_unix": 1795816271,
-      "precio_veto": 0.05297,
-      "paso_fallido": "A5-Binance",
-      "detalle": "A5 VETA: Liquidez Ask 0.15% baja ($2,284) o slippage 0.009%"
+      "symbol": "UNIUSDT",
+      "ts_unix": 1795816911,
+      "precio_veto": 4.846,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "YBUSDT",
+      "ts_unix": 1795816911,
+      "precio_veto": 0.0575,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.09x < 1.96x"
     }
   ],
   "metricas_globales": {
@@ -457,6 +471,6 @@
     "stops_salvadores": 0,
     "vetos_acertados": 63,
     "oportunidades_perdidas_20": 6,
-    "ajustes_autocritica_ciclo": 52
+    "ajustes_autocritica_ciclo": 53
   }
 }
