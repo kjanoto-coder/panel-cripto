@@ -1,20 +1,20 @@
 [
   [
     "UNIUSDT",
-    "JSTUSDT",
-    "RENDERUSDT",
-    "ATUSDT",
-    "GRAMUSDT",
-    "SENTUSDT",
-    "HUMAUSDT"
-  ],
-  [
-    "UNIUSDT",
     "DOGEUSDT",
     "JSTUSDT",
     "RENDERUSDT",
     "ATUSDT",
     "HUMAUSDT",
     "GRAMUSDT"
+  ],
+  [
+    "UNIUSDT",
+    "JSTUSDT",
+    "RENDERUSDT",
+    "GRAMUSDT",
+    "HUMAUSDT",
+    "ASTERUSDT",
+    "SENTUSDT"
   ]
 ]
