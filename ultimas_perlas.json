@@ -1,14 +1,5 @@
 [
   [
-    "GRAMUSDT",
-    "FETUSDT",
-    "NOMUSDT",
-    "SHIBUSDT",
-    "ATOMUSDT",
-    "PENGUUSDT",
-    "ZAMAUSDT"
-  ],
-  [
     "UNIUSDT",
     "JSTUSDT",
     "NIGHTUSDT",
@@ -16,5 +7,14 @@
     "GRAMUSDT",
     "WIFUSDT",
     "SKYUSDT"
+  ],
+  [
+    "UNIUSDT",
+    "JSTUSDT",
+    "NIGHTUSDT",
+    "RENDERUSDT",
+    "DODOUSDT",
+    "GRAMUSDT",
+    "SENTUSDT"
   ]
 ]
