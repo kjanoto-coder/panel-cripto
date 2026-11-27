@@ -1,14 +1,5 @@
 [
   [
-    "DOGEUSDT",
-    "WLDUSDT",
-    "HBARUSDT",
-    "FILUSDT",
-    "ICPUSDT",
-    "RENDERUSDT",
-    "DOTUSDT"
-  ],
-  [
     "PEPEUSDT",
     "POLUSDT",
     "SENTUSDT",
@@ -16,5 +7,14 @@
     "ARBUSDT",
     "PENGUUSDT",
     "ETHFIUSDT"
+  ],
+  [
+    "NEARUSDT",
+    "SUIUSDT",
+    "ADAUSDT",
+    "UNIUSDT",
+    "ENAUSDT",
+    "PUMPUSDT",
+    "ONDOUSDT"
   ]
 ]
