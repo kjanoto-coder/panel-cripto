@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 156,
-  "ultima_actualizacion": "2026-11-27 10:51 ART",
+  "version_ciclo": 157,
+  "ultima_actualizacion": "2026-11-27 11:01 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.92,
     "min_ob_ratio": 1.28,
@@ -92,13 +92,6 @@
     }
   },
   "pendientes_sombra_24h": [
-    {
-      "symbol": "SOPHUSDT",
-      "ts_unix": 1795765878,
-      "precio_veto": 0.00093,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
-    },
     {
       "symbol": "BIGTIMEUSDT",
       "ts_unix": 1795767075,
@@ -338,9 +331,16 @@
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     },
     {
-      "symbol": "NIGHTUSDT",
-      "ts_unix": 1795701072,
-      "precio_veto": 0.04774,
+      "symbol": "CRCLBUSDT",
+      "ts_unix": 1795787467,
+      "precio_veto": 50.99,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "SOPHUSDT",
+      "ts_unix": 1795765878,
+      "precio_veto": 0.00093,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     },
@@ -674,11 +674,18 @@
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     },
     {
-      "symbol": "CRCLBUSDT",
-      "ts_unix": 1795787467,
-      "precio_veto": 50.99,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+      "symbol": "ONEUSDT",
+      "ts_unix": 1795788107,
+      "precio_veto": 0.001027,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.07x < 1.25x"
+    },
+    {
+      "symbol": "SOPHUSDT",
+      "ts_unix": 1795788107,
+      "precio_veto": 0.00102,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.38x < 1.25x"
     }
   ],
   "metricas_globales": {
@@ -689,6 +696,6 @@
     "stops_salvadores": 0,
     "vetos_acertados": 10,
     "oportunidades_perdidas_20": 4,
-    "ajustes_autocritica_ciclo": 10
+    "ajustes_autocritica_ciclo": 11
   }
 }
