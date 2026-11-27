@@ -1,14 +1,5 @@
 [
   [
-    "XRPUSDT",
-    "DOGEUSDT",
-    "PEPEUSDT",
-    "SUIUSDT",
-    "ADAUSDT",
-    "ENAUSDT",
-    "OPGUSDT"
-  ],
-  [
     "UNIUSDT",
     "JSTUSDT",
     "RENDERUSDT",
@@ -16,5 +7,14 @@
     "GRAMUSDT",
     "SENTUSDT",
     "HUMAUSDT"
+  ],
+  [
+    "UNIUSDT",
+    "DOGEUSDT",
+    "JSTUSDT",
+    "RENDERUSDT",
+    "ATUSDT",
+    "HUMAUSDT",
+    "GRAMUSDT"
   ]
 ]
