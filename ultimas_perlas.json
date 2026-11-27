@@ -1,14 +1,5 @@
 [
   [
-    "UNIUSDT",
-    "JSTUSDT",
-    "NIGHTUSDT",
-    "RENDERUSDT",
-    "DODOUSDT",
-    "GRAMUSDT",
-    "SENTUSDT"
-  ],
-  [
     "DOGEUSDT",
     "PEPEUSDT",
     "ENAUSDT",
@@ -16,5 +7,14 @@
     "FETUSDT",
     "APTUSDT",
     "ATOMUSDT"
+  ],
+  [
+    "WIFUSDT",
+    "PUMPUSDT",
+    "ZAMAUSDT",
+    "NOMUSDT",
+    "SHIBUSDT",
+    "PENGUUSDT",
+    "MAGICUSDT"
   ]
 ]
