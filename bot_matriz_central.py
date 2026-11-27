@@ -1,4 +1,4 @@
-import os, json, html, hashlib, requests
+import os, glob, json, html, hashlib, requests
 from datetime import datetime, timezone, timedelta
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
@@ -14,24 +14,6 @@ BINANCE_API_BASES = [
     "https://" + "data-api.binance.vision"
 ]
 
-# Archivos reales de tus 4 temas (sin Perdedoras)
-EXCEL_GANADORAS_FILE = "AUDITORIA_VERDE_GANADORAS.xlsx"
-EXCEL_CAZADOR_HIST_FILE = "HISTORICO_CAZADOR_TACTICO.xlsx"
-EXCEL_CAZADOR_AUD_FILE = "AUDITORIA_CAZADOR_TACTICO.xlsx"
-EXCEL_PRE_EXPLOSION_FILE = "AUDITORIA_PRE_EXPLOSION.xlsx"
-EXCEL_SEMANAL_FILE = "AUDITORIA_SEMANAL_PRUEBA.xlsx"
-
-HISTORIAL_GANADORAS_FILE = "historial_ganadoras.json"
-HISTORIAL_PERLAS_FILE = "historial_perlas.json"
-DATOS_PRE_EXPLOSION_FILE = "datos_pre_explosion_ia.json"
-PLAN_SEMANAL_FILE = "plan_semanal.json"
-CEREBRO_EVOLUTIVO_FILE = "cerebro_evolutivo.json"
-
-REPORTE_IA_GANADORAS_FILE = "reporte_ia_ganadoras.json"
-REPORTE_IA_TACTICO_FILE = "reporte_ia_tactico.json"
-REPORTE_IA_PRE_EXPLOSION_FILE = "reporte_ia_pre_explosion.json"
-
-# Salidas unificadas
 EXCEL_MATRIZ_CENTRAL_FILE = "MATRIZ_CENTRAL_ECOSISTEMA.xlsx"
 MATRIZ_CONFIG_FILE = "matriz_topic_config.json"
 
@@ -79,66 +61,277 @@ def obtener_precios_vivos_binance():
     return mapa
 
 
-def leer_hoja_excel_cruda(rutas_posibles):
-    """Lee el primer Excel disponible de la lista y devuelve (nombre_archivo, headers, filas)."""
-    for ruta_excel in rutas_posibles:
-        if not os.path.exists(ruta_excel):
+def normalizar_symbol(raw):
+    if not raw:
+        return ""
+    s = str(raw).strip().upper().replace("/USDT", "").replace("-USDT", "").replace("USDT", "")
+    if not s or len(s) > 14 or not s.isalnum():
+        return ""
+    return f"{s}USDT"
+
+
+def buscar_numero(d, claves):
+    if not isinstance(d, dict):
+        return None
+    for k in claves:
+        if k in d and d[k] is not None:
+            try:
+                return float(str(d[k]).replace("%", "").replace("+", "").replace("$", "").replace(",", "").strip())
+            except Exception:
+                pass
+    for k, v in d.items():
+        kl = str(k).lower()
+        if any(c.lower() in kl for c in claves) and v is not None:
+            try:
+                return float(str(v).replace("%", "").replace("+", "").replace("$", "").replace(",", "").strip())
+            except Exception:
+                pass
+    return None
+
+
+def buscar_texto(d, claves):
+    if not isinstance(d, dict):
+        return ""
+    for k in claves:
+        if k in d and d[k] is not None and str(d[k]).strip():
+            return str(d[k]).strip()
+    for k, v in d.items():
+        kl = str(k).lower()
+        if any(c.lower() in kl for c in claves) and v is not None and str(v).strip():
+            return str(v).strip()
+    return ""
+
+
+def parsear_fecha_flexible(fecha_str):
+    if not fecha_str:
+        return None
+    s = str(fecha_str).strip()
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d", "%d/%m/%Y %H:%M", "%d/%m/%Y", "%d-%m-%Y"):
+        try:
+            dt = datetime.strptime(s[:len(fmt) + 2].strip(), fmt)
+            return dt.replace(tzinfo=TZ_ART)
+        except Exception:
+            continue
+    return None
+
+
+def es_de_hoy_o_24h(fecha_str, ahora_dt):
+    if not fecha_str:
+        return False, False
+    s = str(fecha_str).strip()
+    hoy_iso = ahora_dt.strftime("%Y-%m-%d")
+    dd_mm = ahora_dt.strftime("%d/%m")
+    es_hoy = (hoy_iso in s) or (dd_mm in s)
+    dt_p = parsear_fecha_flexible(s)
+    es_24h = es_hoy or (dt_p is not None and (ahora_dt - dt_p).total_seconds() <= 86400)
+    return es_hoy, es_24h
+
+
+def descubrir_archivos_ecosistema():
+    """Escanea todos los Excel y JSON de Etapas 1, 2, 3 y 4 en el repo (sin Perdedoras)."""
+    todos_xlsx = sorted(glob.glob("*.xlsx"))
+    todos_json = sorted(glob.glob("*.json"))
+
+    grupos_xlsx = {"E1": [], "E2": [], "E3": [], "E4": []}
+    for f in todos_xlsx:
+        fu = f.upper()
+        if f == EXCEL_MATRIZ_CENTRAL_FILE or "PERDEDORA" in fu:
+            continue
+        if any(k in fu for k in ("TACTICO", "CAZADOR", "PERLA", "ETAPA_1", "ETAPA1")):
+            grupos_xlsx["E1"].append(f)
+        elif any(k in fu for k in ("PRE_EXPLOSION", "PREEXPLOSION", "EXPLOSION", "ETAPA_2", "ETAPA2")):
+            grupos_xlsx["E2"].append(f)
+        elif any(k in fu for k in ("GANADORA", "VERDE", "ETAPA_3", "ETAPA3")):
+            grupos_xlsx["E3"].append(f)
+        elif any(k in fu for k in ("SEMANAL", "GLOBAL", "AUDITORIA")):
+            grupos_xlsx["E4"].append(f)
+
+    grupos_json = {"E1": [], "E2": [], "E3": [], "E4": []}
+    for f in todos_json:
+        fu = f.upper()
+        if "PERDEDORA" in fu or "CONFIG" in fu or f in ("package.json", "tsconfig.json"):
+            continue
+        if any(k in fu for k in ("TACTICO", "PERLA", "CAZADOR")):
+            grupos_json["E1"].append(f)
+        if any(k in fu for k in ("PRE_EXPLOSION", "PERLA")):
+            grupos_json["E2"].append(f)
+        if any(k in fu for k in ("GANADORA", "VERDE")):
+            grupos_json["E3"].append(f)
+        if any(k in fu for k in ("PLAN_SEMANAL", "CEREBRO")):
+            grupos_json["E4"].append(f)
+
+    return grupos_xlsx, grupos_json
+
+
+def extraer_registros_excel(lista_archivos):
+    """Lee todas las pestañas de una lista de Excel y extrae tanto hojas crudas como registros por moneda."""
+    hojas_crudas = []
+    registros_por_moneda = {}
+
+    for ruta in lista_archivos:
+        if not os.path.exists(ruta):
             continue
         try:
-            wb = openpyxl.load_workbook(ruta_excel, data_only=True)
-            hoja_elegida = wb.sheetnames[0]
-            for pref in ("DETALLE", "HISTORICO", "1_", "0_", "AUDITORIA", "RADAR"):
-                for sname in wb.sheetnames:
-                    if pref in sname.upper():
-                        hoja_elegida = sname
+            wb = openpyxl.load_workbook(ruta, data_only=True)
+            for sname in wb.sheetnames:
+                ws = wb[sname]
+                raw_rows = list(ws.iter_rows(values_only=True))
+                clean_rows = [list(r) for r in raw_rows if any(c is not None and str(c).strip() != "" for c in r)]
+                if not clean_rows:
+                    continue
+
+                idx_hdr = 0
+                if len(clean_rows) > 1:
+                    nv0 = sum(1 for c in clean_rows[0] if c is not None and str(c).strip() != "")
+                    nv1 = sum(1 for c in clean_rows[1] if c is not None and str(c).strip() != "")
+                    if nv0 <= 2 and nv1 >= 3:
+                        idx_hdr = 1
+
+                headers = [str(h or f"Col_{i+1}").strip() for i, h in enumerate(clean_rows[idx_hdr])]
+                rows = clean_rows[idx_hdr + 1:]
+                hojas_crudas.append((ruta, sname, headers, rows))
+
+                col_sym = None
+                for i_c, h_txt in enumerate(headers):
+                    hu = h_txt.upper()
+                    if any(k in hu for k in ("MONEDA", "SYMBOL", "PAR", "TICKER", "ACTIVO", "TOKEN")):
+                        col_sym = i_c
                         break
-            ws = wb[hoja_elegida]
-            filas_totales = list(ws.iter_rows(values_only=True))
-            if not filas_totales:
-                continue
-            headers = [str(h or f"Col_{i+1}").strip() for i, h in enumerate(filas_totales[0])]
-            filas = [list(r) for r in filas_totales[1:] if any(cell is not None and str(cell).strip() != "" for cell in r)]
-            return ruta_excel, headers, filas
+
+                if col_sym is not None:
+                    for r in rows:
+                        if col_sym >= len(r):
+                            continue
+                        sym = normalizar_symbol(r[col_sym])
+                        if not sym:
+                            continue
+                        item = registros_por_moneda.setdefault(sym, {"_fuentes": set()})
+                        item["_fuentes"].add(f"{ruta}:{sname}")
+                        for i_c, h_txt in enumerate(headers):
+                            if i_c < len(r) and r[i_c] is not None and str(r[i_c]).strip() != "":
+                                item[h_txt] = r[i_c]
         except Exception as e:
-            print(f"⚠️ No se pudo leer {ruta_excel}: {e}")
-    return rutas_posibles[0], [], []
+            print(f"⚠️ Error leyendo Excel {ruta}: {e}")
+
+    return hojas_crudas, registros_por_moneda
 
 
-def extraer_resumen_reporte_ia(ruta_json):
-    data = cargar_json_seguro(ruta_json)
-    if not isinstance(data, dict) or not data:
-        return "Sin reporte IA reciente", {}
-    resumen = ""
-    for k in ("resumen_ia", "diagnostico_general", "veredicto", "resumen", "conclusion", "analisis_global"):
-        val = data.get(k)
-        if isinstance(val, str) and val.strip():
-            resumen = val.strip()[:150]
-            break
+def extraer_registros_json(lista_archivos, etapa_tag):
+    """Extrae todos los registros históricos por moneda desde los JSON de cada etapa."""
+    registros = {}
+    resumen_ia = ""
 
-    mapa_mon = {}
-    for k, v in data.items():
-        if isinstance(k, str) and k.endswith("USDT") and isinstance(v, dict):
-            mapa_mon[k] = v
-        elif isinstance(v, dict):
-            for sub_k, sub_v in v.items():
-                if isinstance(sub_k, str) and sub_k.endswith("USDT") and isinstance(sub_v, dict):
-                    mapa_mon[sub_k] = sub_v
-        elif isinstance(v, list):
-            for it in v:
+    def _walk(obj, contexto_clave=""):
+        nonlocal resumen_ia
+        if isinstance(obj, dict):
+            if not resumen_ia:
+                for rk in ("resumen_ia", "diagnostico_general", "veredicto", "resumen", "conclusion", "analisis_global"):
+                    if isinstance(obj.get(rk), str) and obj[rk].strip():
+                        resumen_ia = obj[rk].strip()[:160]
+                        break
+            for k, v in obj.items():
+                kl = str(k).lower()
+                # En historial_perlas.json separar Etapa 1 (posta/descartadas) de Etapa 2 (graduadas_pre_explosion)
+                if etapa_tag == "E1" and "graduada" in kl:
+                    continue
+                if etapa_tag == "E2" and kl in ("posta", "descartadas", "descartadas_tactico"):
+                    continue
+
+                sym = normalizar_symbol(k)
+                if sym and isinstance(v, dict):
+                    dst = registros.setdefault(sym, {})
+                    dst.update(v)
+                    if contexto_clave and "_subgrupo" not in dst:
+                        dst["_subgrupo"] = contexto_clave
+                else:
+                    _walk(v, k)
+        elif isinstance(obj, list):
+            for it in obj:
                 if isinstance(it, dict):
-                    s = str(it.get("symbol") or it.get("moneda") or it.get("par") or "").upper().strip()
-                    if s:
-                        mapa_mon[s if s.endswith("USDT") else f"{s}USDT"] = it
-    return (resumen or f"Activo ({len(mapa_mon)} monedas analizadas)"), mapa_mon
+                    raw_s = it.get("symbol") or it.get("moneda") or it.get("par") or it.get("base")
+                    sym = normalizar_symbol(raw_s)
+                    if sym:
+                        dst = registros.setdefault(sym, {})
+                        dst.update(it)
+
+    for ruta in lista_archivos:
+        data = cargar_json_seguro(ruta)
+        if data:
+            _walk(data, ruta)
+
+    return registros, resumen_ia
 
 
-def es_de_hoy(fecha_str, hoy_iso):
-    if not fecha_str:
-        return False
-    s = str(fecha_str).strip()
-    dd_mm = datetime.strptime(hoy_iso, "%Y-%m-%d").strftime("%d/%m")
-    dd_mm_yy = datetime.strptime(hoy_iso, "%Y-%m-%d").strftime("%d-%m-%Y")
-    return (hoy_iso in s) or (dd_mm in s) or (dd_mm_yy in s)
+def construir_tabla_etapa(etapa_num, reg_json, reg_xls, mapa_mkt):
+    """Combina JSON + Excel de una etapa en una tabla histórica unificada y ordenada."""
+    syms = sorted(set(reg_json.keys()) | set(reg_xls.keys()))
+    filas = []
+    por_moneda = {}
+
+    for sym in syms:
+        dj = reg_json.get(sym, {})
+        dx = reg_xls.get(sym, {})
+        mkt = mapa_mkt.get(sym, {})
+
+        fecha = (
+            buscar_texto(dj, ["fecha_deteccion", "fecha_graduacion", "fecha_entrada", "fecha", "timestamp", "creado"])
+            or buscar_texto(dx, ["FECHA", "DIA", "DETECCION", "ENTRADA", "TIMESTAMP"])
+        )
+        p_ini = (
+            buscar_numero(dj, ["precio_entrada", "precio_deteccion", "precio_inicial", "precio_base", "precio_graduacion", "entry_price"])
+            or buscar_numero(dx, ["PRECIO ENTRADA", "ENTRADA", "INICIAL", "BASE", "PRECIO DETECCION", "PRECIO"])
+            or 0.0
+        )
+        p_vivo = float(mkt.get("precio", 0.0))
+        p_max = (
+            buscar_numero(dj, ["precio_maximo", "max_precio", "pico", "high"])
+            or buscar_numero(dx, ["MAXIMO", "PICO", "HIGH"])
+            or max(p_ini, p_vivo)
+        )
+
+        pct_max = buscar_numero(dj, ["max_ganancia_pct", "max_subida_pct", "pico_pct"]) or buscar_numero(dx, ["MAX SUBIDA", "MAX %", "PICO %"])
+        if pct_max is None and p_ini > 0 and p_max > 0:
+            pct_max = ((p_max - p_ini) / p_ini) * 100.0
+
+        pct_act = buscar_numero(dj, ["ganancia_pct", "rendimiento_pct", "variacion_pct", "subida_pct", "retorno_pct"]) or buscar_numero(dx, ["GANANCIA", "RENDIMIENTO", "VARIACION", "SUBIDA %", "ACTUAL %"])
+        if pct_act is None:
+            if p_ini > 0 and p_vivo > 0:
+                pct_act = ((p_vivo - p_ini) / p_ini) * 100.0
+            else:
+                pct_act = float(mkt.get("cambio_24h", 0.0))
+
+        if pct_max is None:
+            pct_max = max(pct_act, 0.0)
+
+        estado = (
+            buscar_texto(dj, ["estado", "status", "semaforo", "etapa", "resultado", "clasificacion", "_subgrupo"])
+            or buscar_texto(dx, ["ESTADO", "RESULTADO", "SEMAFORO", "ETAPA", "SETUP", "ESTRUCTURA"])
+            or "HISTÓRICO"
+        )
+        diag_ia = (
+            buscar_texto(dj, ["diagnostico_ia", "veredicto_ia", "razon_ia", "analisis", "comentario", "motivo", "detalle"])
+            or buscar_texto(dx, ["DIAGNOSTICO", "IA", "COMENTARIO", "ANALISIS", "OBSERVACION", "INTERPRETACION", "DETALLE"])
+            or ""
+        )
+
+        fila = {
+            "symbol": sym,
+            "moneda": sym[:-4],
+            "etapa": f"Etapa {etapa_num}",
+            "fecha": fecha,
+            "precio_ini": round(p_ini, 6),
+            "precio_vivo": round(p_vivo, 6),
+            "pct_max": round(float(pct_max), 2),
+            "pct_act": round(float(pct_act), 2),
+            "chg_24h": round(float(mkt.get("cambio_24h", 0.0)), 2),
+            "estado": estado,
+            "diag_ia": diag_ia[:220]
+        }
+        filas.append(fila)
+        por_moneda[sym] = fila
+
+    filas.sort(key=lambda x: (x["fecha"], x["pct_max"]), reverse=True)
+    return filas, por_moneda
 
 
 def construir_matriz_unificada():
@@ -147,28 +340,24 @@ def construir_matriz_unificada():
     hoy_iso = ahora_dt.strftime("%Y-%m-%d")
 
     mapa_mkt = obtener_precios_vivos_binance()
-    gan_json = cargar_json_seguro(HISTORIAL_GANADORAS_FILE)
-    perlas_json = cargar_json_seguro(HISTORIAL_PERLAS_FILE)
-    pre_json = cargar_json_seguro(DATOS_PRE_EXPLOSION_FILE)
-    plan_sem = cargar_json_seguro(PLAN_SEMANAL_FILE)
-    cerebro = cargar_json_seguro(CEREBRO_EVOLUTIVO_FILE)
+    grupos_xlsx, grupos_json = descubrir_archivos_ecosistema()
 
-    reg_verdes = gan_json.get("registro_verdes", {}) if isinstance(gan_json, dict) else {}
-    posta_e1 = perlas_json.get("posta", {}) if isinstance(perlas_json, dict) else {}
-    graduadas_e2 = dict(perlas_json.get("graduadas_pre_explosion", {})) if isinstance(perlas_json, dict) else {}
-    if isinstance(pre_json, dict):
-        for k, v in pre_json.items():
-            if isinstance(k, str) and k.endswith("USDT") and isinstance(v, dict):
-                graduadas_e2.setdefault(k, v)
+    # Leer Excel y JSON de cada Etapa
+    hojas_e1, xls_e1 = extraer_registros_excel(grupos_xlsx["E1"])
+    hojas_e2, xls_e2 = extraer_registros_excel(grupos_xlsx["E2"])
+    hojas_e3, xls_e3 = extraer_registros_excel(grupos_xlsx["E3"])
+    hojas_e4, _ = extraer_registros_excel(grupos_xlsx["E4"])
 
-    res_ia_gan, ia_gan_map = extraer_resumen_reporte_ia(REPORTE_IA_GANADORAS_FILE)
-    res_ia_tac, ia_tac_map = extraer_resumen_reporte_ia(REPORTE_IA_TACTICO_FILE)
-    res_ia_pre, ia_pre_map = extraer_resumen_reporte_ia(REPORTE_IA_PRE_EXPLOSION_FILE)
+    json_e1, res_ia_e1 = extraer_registros_json(grupos_json["E1"], "E1")
+    json_e2, res_ia_e2 = extraer_registros_json(grupos_json["E2"], "E2")
+    json_e3, res_ia_e3 = extraer_registros_json(grupos_json["E3"], "E3")
 
-    arch_gan, h_gan, rows_gan = leer_hoja_excel_cruda([EXCEL_GANADORAS_FILE])
-    arch_tac, h_tac, rows_tac = leer_hoja_excel_cruda([EXCEL_CAZADOR_HIST_FILE, EXCEL_CAZADOR_AUD_FILE])
-    arch_pre, h_pre, rows_pre = leer_hoja_excel_cruda([EXCEL_PRE_EXPLOSION_FILE])
+    filas_e1, map_e1 = construir_tabla_etapa(1, json_e1, xls_e1, mapa_mkt)
+    filas_e2, map_e2 = construir_tabla_etapa(2, json_e2, xls_e2, mapa_mkt)
+    filas_e3, map_e3 = construir_tabla_etapa(3, json_e3, xls_e3, mapa_mkt)
 
+    plan_sem = cargar_json_seguro("plan_semanal.json")
+    cerebro = cargar_json_seguro("cerebro_evolutivo.json")
     posiciones = plan_sem.get("posiciones", []) if isinstance(plan_sem, dict) else []
     cierres = plan_sem.get("historial_cierres", []) if isinstance(plan_sem, dict) else []
     alts_eval = plan_sem.get("alternativas_evaluadas", []) if isinstance(plan_sem, dict) else []
@@ -176,124 +365,137 @@ def construir_matriz_unificada():
     pos_map = {p["symbol"]: p for p in posiciones if p.get("symbol")}
     alts_map = {a["symbol"]: a for a in alts_eval if a.get("symbol")}
 
-    # --- 1. Resumen Diario por Bot ---
-    gan_hoy = [v for v in reg_verdes.values() if isinstance(v, dict) and es_de_hoy(v.get("fecha_entrada") or v.get("fecha"), hoy_iso)]
-    tac_hoy = [v for v in posta_e1.values() if isinstance(v, dict) and es_de_hoy(v.get("fecha_deteccion") or v.get("fecha"), hoy_iso)]
-    pre_hoy = [v for v in graduadas_e2.values() if isinstance(v, dict) and es_de_hoy(v.get("fecha_graduacion") or v.get("fecha"), hoy_iso)]
-    ops_sem_hoy = [c for c in cierres if es_de_hoy(c.get("fecha_cierre"), hoy_iso)] + [p for p in posiciones if es_de_hoy(p.get("fecha_entrada"), hoy_iso)]
+    # --- 1. Resumen Diario e Histórico por Bot (Etapas 1, 2, 3 y 4) ---
+    def _contar_fechas(filas_etapa):
+        c_hoy, c_24h = 0, 0
+        for f in filas_etapa:
+            h_f, h24_f = es_de_hoy_o_24h(f["fecha"], ahora_dt)
+            if h_f:
+                c_hoy += 1
+            if h24_f:
+                c_24h += 1
+        prom_max = round(sum(f["pct_max"] for f in filas_etapa) / max(len(filas_etapa), 1), 2)
+        return c_hoy, c_24h, prom_max
 
-    prom_gan = round(
-        sum(float(v.get("max_ganancia_pct", v.get("ganancia_pct", 0.0))) for v in reg_verdes.values() if isinstance(v, dict)) / max(len(reg_verdes), 1), 2
-    )
+    e1_hoy, e1_24h, e1_prom = _contar_fechas(filas_e1)
+    e2_hoy, e2_24h, e2_prom = _contar_fechas(filas_e2)
+    e3_hoy, e3_24h, e3_prom = _contar_fechas(filas_e3)
+
+    e4_hoy, e4_24h = 0, 0
+    for op in list(cierres) + list(posiciones):
+        h_f, h24_f = es_de_hoy_o_24h(op.get("fecha_cierre") or op.get("fecha_entrada"), ahora_dt)
+        if h_f:
+            e4_hoy += 1
+        if h24_f:
+            e4_24h += 1
+
     pnl_sem_neto = round(float(plan_sem.get("ganancia_realizada_usd", 0.0)) + sum(float(p.get("pnl_usd", 0.0)) for p in posiciones), 2)
 
-    resumen_diario_bots = [
-        {
-            "emoji": "🟢",
-            "bot": "Monedas Ganadoras",
-            "archivo_excel": arch_gan,
-            "senales_hoy": len(gan_hoy),
-            "total_activas_radar": len(reg_verdes),
-            "excel_filas": len(rows_gan),
-            "metrica_clave": f"Máx Promedio: +{prom_gan}%",
-            "diagnostico_ia": res_ia_gan
-        },
+    resumen_bots = [
         {
             "emoji": "🎯",
-            "bot": "Cazador Táctico (E1)",
-            "archivo_excel": arch_tac,
-            "senales_hoy": len(tac_hoy),
-            "total_activas_radar": len(posta_e1),
-            "excel_filas": len(rows_tac),
-            "metrica_clave": f"Radar E1: {len(posta_e1)} monedas",
-            "diagnostico_ia": res_ia_tac
+            "etapa": "Etapa 1 • Cazador Táctico",
+            "archivos": ", ".join(grupos_xlsx["E1"]) or "JSON Táctico",
+            "hoy": e1_hoy,
+            "h24": e1_24h,
+            "total_hist": len(filas_e1),
+            "metrica": f"Máx Subida Prom: {e1_prom:+.2f}%",
+            "diag_ia": res_ia_e1 or f"{len(filas_e1)} monedas auditadas en radar táctico"
         },
         {
             "emoji": "⚡",
-            "bot": "Pre-Explosión (E2)",
-            "archivo_excel": arch_pre,
-            "senales_hoy": len(pre_hoy),
-            "total_activas_radar": len(graduadas_e2),
-            "excel_filas": len(rows_pre),
-            "metrica_clave": f"Graduadas E2: {len(graduadas_e2)} monedas",
-            "diagnostico_ia": res_ia_pre
+            "etapa": "Etapa 2 • Pre-Explosión",
+            "archivos": ", ".join(grupos_xlsx["E2"]) or "JSON Pre-Explosión",
+            "hoy": e2_hoy,
+            "h24": e2_24h,
+            "total_hist": len(filas_e2),
+            "metrica": f"Máx Subida Prom: {e2_prom:+.2f}%",
+            "diag_ia": res_ia_e2 or f"{len(filas_e2)} monedas acumulando en Etapa 2"
+        },
+        {
+            "emoji": "🟢",
+            "etapa": "Etapa 3 • Monedas Ganadoras",
+            "archivos": ", ".join(grupos_xlsx["E3"]) or "JSON Ganadoras",
+            "hoy": e3_hoy,
+            "h24": e3_24h,
+            "total_hist": len(filas_e3),
+            "metrica": f"Máx Subida Prom: {e3_prom:+.2f}%",
+            "diag_ia": res_ia_e3 or f"{len(filas_e3)} monedas confirmadas en Etapa 3"
         },
         {
             "emoji": "🏆",
-            "bot": "Gestor y Radar Semanal",
-            "archivo_excel": EXCEL_SEMANAL_FILE,
-            "senales_hoy": len(ops_sem_hoy),
-            "total_activas_radar": len(posiciones),
-            "excel_filas": len(posiciones) + len(cierres),
-            "metrica_clave": f"Balance Sem: ${pnl_sem_neto:+.2f} USD",
-            "diagnostico_ia": plan_sem.get("auditoria_ia", {}).get("diagnostico_24h", "3 Traders independientes activos")
+            "etapa": "Etapa 4 • Gestor 3 Traders + Jefe",
+            "archivos": ", ".join(grupos_xlsx["E4"]) or "AUDITORIA_SEMANAL_PRUEBA.xlsx",
+            "hoy": e4_hoy,
+            "h24": e4_24h,
+            "total_hist": len(posiciones) + len(cierres),
+            "metrica": f"Balance Semanal: ${pnl_sem_neto:+.2f} USD",
+            "diag_ia": plan_sem.get("auditoria_ia", {}).get("diagnostico_24h", "Operando 3 Traders independientes")
         }
     ]
 
-    # --- 2. Tabla Cruzada Unificada de Monedas ---
-    todos_syms = sorted(
-        set(reg_verdes.keys()) | set(posta_e1.keys()) | set(graduadas_e2.keys())
-        | set(ia_gan_map.keys()) | set(ia_tac_map.keys()) | set(ia_pre_map.keys()) | set(pos_map.keys())
-    )
-
+    # --- 2. Matriz Cruzada Completa de TODO el Universo (E1 + E2 + E3 + E4) ---
+    todos_syms = sorted(set(map_e1.keys()) | set(map_e2.keys()) | set(map_e3.keys()) | set(pos_map.keys()))
     filas_matriz = []
+
     for sym in todos_syms:
         mkt = mapa_mkt.get(sym, {})
         p_vivo = float(mkt.get("precio", 0.0))
         chg_24h = round(float(mkt.get("cambio_24h", 0.0)), 2)
         vol_24m = round(float(mkt.get("vol_24h", 0.0)) / 1e6, 2)
 
-        en_g = (sym in reg_verdes) or (sym in ia_gan_map)
-        en_t = (sym in posta_e1) or (sym in ia_tac_map)
-        en_p = (sym in graduadas_e2) or (sym in ia_pre_map)
-        conf = sum([1 if en_g else 0, 1 if en_t else 0, 1 if en_p else 0])
+        d1 = map_e1.get(sym)
+        d2 = map_e2.get(sym)
+        d3 = map_e3.get(sym)
+        conf = sum([1 if d1 else 0, 1 if d2 else 0, 1 if d3 else 0])
 
-        v_info = reg_verdes.get(sym, {})
-        t_info = posta_e1.get(sym, {})
-        p_info = graduadas_e2.get(sym, {})
+        col_e1 = f"✅ {d1['estado']} (Máx {d1['pct_max']:+.1f}%)" if d1 else "—"
+        col_e2 = f"⚡ {d2['estado']} (Máx {d2['pct_max']:+.1f}%)" if d2 else "—"
+        col_e3 = f"🟢 {d3['estado']} ({d3['pct_act']:+.1f}% / Máx {d3['pct_max']:+.1f}%)" if d3 else "—"
 
-        col_gan = f"✅ {v_info.get('estado', 'ACTIVA')} ({float(v_info.get('max_ganancia_pct', v_info.get('ganancia_pct', 0))):+.1f}%)" if en_g else "—"
-        col_tac = f"✅ Etapa {t_info.get('etapa', ia_tac_map.get(sym, {}).get('etapa', 1))}" if en_t else "—"
-        col_pre = f"⚡ {p_info.get('semaforo', ia_pre_map.get(sym, {}).get('semaforo', 'VERDE'))}" if en_p else "—"
+        fechas_coin = [x["fecha"] for x in (d1, d2, d3) if x and x.get("fecha")]
+        primera_fecha = min(fechas_coin) if fechas_coin else ""
 
         alt = alts_map.get(sym)
         mesa_txt = f"{alt.get('asistentes_aprobados', 0)}/6" if alt else "Radar"
 
         if sym in pos_map:
             po = pos_map[sym]
-            estado_tr = f"🟢 {po.get('trader_asignado', 'TRADER')} ({float(po.get('pnl_pct', 0)):+.2f}%)"
+            tr_nom = po.get("trader_asignado") or po.get("trader") or po.get("escritorio") or "TRADER"
+            estado_tr = f"🟢 {tr_nom} ({float(po.get('pnl_pct', 0)):+.2f}%)"
         elif alt and alt.get("consenso_3_de_3"):
             estado_tr = f"🟡 LISTA ({alt.get('trader_propuesto', 'COLA')})"
         else:
             estado_tr = "OBSERVACIÓN"
 
-        notas_ia = []
-        for tag, m_ia in [("Gan", ia_gan_map), ("Tac", ia_tac_map), ("Pre", ia_pre_map)]:
-            d = m_ia.get(sym, {})
-            txt = d.get("diagnostico_ia") or d.get("veredicto_ia") or d.get("razon_ia") or d.get("analisis") or ""
-            if isinstance(txt, str) and txt.strip():
-                notas_ia.append(f"[{tag}] {txt.strip()}")
-        if not notas_ia and alt:
-            notas_ia.append(alt.get("jefe_veredicto", ""))
+        notas = []
+        for tag, item in [("E1", d1), ("E2", d2), ("E3", d3)]:
+            if item and item.get("diag_ia"):
+                notas.append(f"[{tag}] {item['diag_ia']}")
+        if not notas and alt and alt.get("jefe_veredicto"):
+            notas.append(str(alt["jefe_veredicto"]))
+        if not notas:
+            notas.append(f"Confluencia {conf}/3 • Var 24h: {chg_24h:+.2f}% • Vol: ${vol_24m:.2f}M")
 
         filas_matriz.append({
             "symbol": sym,
             "moneda": sym[:-4],
+            "primera_fecha": primera_fecha,
             "precio_vivo": p_vivo,
             "chg_24h": chg_24h,
             "vol_24m": vol_24m,
             "confluencia": conf,
-            "col_gan": col_gan,
-            "col_tac": col_tac,
-            "col_pre": col_pre,
+            "col_e1": col_e1,
+            "col_e2": col_e2,
+            "col_e3": col_e3,
             "mesa_txt": mesa_txt,
             "estado_tr": estado_tr,
-            "notas_ia": " | ".join(notas_ia)[:220]
+            "notas_ia": " | ".join(notas)[:250]
         })
 
     filas_matriz.sort(key=lambda x: (x["confluencia"], x["chg_24h"]), reverse=True)
 
-    # --- 3. Excel Unificado (6 Pestañas) ---
+    # --- 3. Construir Libro Excel Completo ---
     wb = openpyxl.Workbook()
     fill_hdr = PatternFill(start_color="0B132B", end_color="0B132B", fill_type="solid")
     font_hdr = Font(color="FFFFFF", bold=True)
@@ -308,58 +510,67 @@ def construir_matriz_unificada():
             c.font = font_hdr
             c.alignment = Alignment(horizontal="center")
 
+    # Hoja 0: Matriz Unificada Completa
     ws0 = wb.active
     ws0.title = "0_MATRIZ_UNIFICADA"
     _estilizar_hdr(ws0, [
-        "Moneda", "Precio Vivo ($)", "Var 24h (%)", "Vol 24h ($M)", "Confluencia",
-        "Monedas Ganadoras", "Cazador Táctico", "Pre-Explosión",
-        "Mesa 6 Asistentes", "Estado 3 Traders", "Síntesis IA Combinada", "Actualizado"
+        "Moneda", "Primera Detección", "Precio Vivo ($)", "Var 24h (%)", "Vol 24h ($M)",
+        "Confluencia", "Etapa 1: Cazador Táctico", "Etapa 2: Pre-Explosión",
+        "Etapa 3: Monedas Ganadoras", "Mesa 6 Asistentes", "Estado 3 Traders",
+        "Síntesis IA Combinada", "Actualizado"
     ])
     for r_idx, fm in enumerate(filas_matriz, start=2):
         ws0.append([
-            fm["moneda"], fm["precio_vivo"], fm["chg_24h"], fm["vol_24m"],
-            f"{fm['confluencia']}/3 Motores", fm["col_gan"], fm["col_tac"], fm["col_pre"],
+            fm["moneda"], fm["primera_fecha"], fm["precio_vivo"], fm["chg_24h"], fm["vol_24m"],
+            f"{fm['confluencia']}/3 Etapas", fm["col_e1"], fm["col_e2"], fm["col_e3"],
             fm["mesa_txt"], fm["estado_tr"], fm["notas_ia"], ahora_str
         ])
-        cel_c = ws0.cell(row=r_idx, column=5)
+        cel_c = ws0.cell(row=r_idx, column=6)
         if fm["confluencia"] >= 2:
             cel_c.fill = fill_verde
         elif fm["confluencia"] == 1:
             cel_c.fill = fill_amarillo
 
-    ws1 = wb.create_sheet(title="1_RESUMEN_DIARIO_BOTS")
+    # Hoja 1: Resumen Diario e Histórico por Etapa/Bot
+    ws1 = wb.create_sheet(title="1_RESUMEN_DIARIO_ETAPAS")
     _estilizar_hdr(ws1, [
-        "Fecha", "Bot / Tema Telegram", "Excel Origen", "Señales Hoy",
-        "Activas en Radar", "Filas Totales Excel", "Métrica Clave", "Diagnóstico IA Actual"
+        "Fecha", "Etapa / Bot", "Archivos Fuente", "Señales Hoy",
+        "Señales 24h", "Total Histórico Monedas", "Métrica Clave", "Diagnóstico IA"
     ])
-    for rb in resumen_diario_bots:
+    for rb in resumen_bots:
         ws1.append([
-            hoy_iso, rb["bot"], rb["archivo_excel"], rb["senales_hoy"],
-            rb["total_activas_radar"], rb["excel_filas"], rb["metrica_clave"], rb["diagnostico_ia"]
+            hoy_iso, rb["etapa"], rb["archivos"], rb["hoy"],
+            rb["h24"], rb["total_hist"], rb["metrica"], rb["diag_ia"]
         ])
 
-    for titulo_h, headers_h, rows_h in [
-        ("2_EXCEL_GANADORAS", h_gan, rows_gan),
-        ("3_EXCEL_CAZADOR_TACTICO", h_tac, rows_tac),
-        ("4_EXCEL_PRE_EXPLOSION", h_pre, rows_pre)
+    # Hojas 2, 3 y 4: Historial Consolidado Completo de Etapa 1, Etapa 2 y Etapa 3
+    for titulo_et, lista_et in [
+        ("2_HIST_ETAPA1_TACTICO", filas_e1),
+        ("3_HIST_ETAPA2_PRE_EXP", filas_e2),
+        ("4_HIST_ETAPA3_GANADORAS", filas_e3)
     ]:
-        ws_esp = wb.create_sheet(title=titulo_h)
-        if headers_h:
-            _estilizar_hdr(ws_esp, headers_h)
-            for row_data in rows_h:
-                ws_esp.append(row_data)
-        else:
-            _estilizar_hdr(ws_esp, ["Estado"])
-            ws_esp.append(["Sin datos registrados todavía en el Excel individual."])
+        ws_et = wb.create_sheet(title=titulo_et)
+        _estilizar_hdr(ws_et, [
+            "Moneda", "Etapa", "Fecha Detección", "Precio Inicial ($)", "Precio Vivo ($)",
+            "Máx Subida (%)", "Rendimiento Actual (%)", "Var 24h (%)", "Estado / Setup", "Diagnóstico IA"
+        ])
+        for item in lista_et:
+            ws_et.append([
+                item["moneda"], item["etapa"], item["fecha"], item["precio_ini"],
+                item["precio_vivo"], item["pct_max"], item["pct_act"],
+                item["chg_24h"], item["estado"], item["diag_ia"]
+            ])
 
-    ws5 = wb.create_sheet(title="5_GESTOR_3_TRADERS")
-    _estilizar_hdr(ws5, [
+    # Hoja 5: Gestor 3 Traders Completo
+    ws_tr = wb.create_sheet(title="5_GESTOR_3_TRADERS")
+    _estilizar_hdr(ws_tr, [
         "Semana", "Trader", "Moneda", "Estado", "Capital ($)", "Entrada ($)",
         "Actual/Cierre ($)", "PnL Neto (%)", "PnL Neto ($)", "Patrón Origen", "Veredicto Jefe"
     ])
-    for op in list(cierres) + list(posiciones):
-        ws5.append([
-            op.get("semana_id", ""), op.get("trader_asignado", ""), op.get("base", ""),
+    for idx_op, op in enumerate(list(cierres) + list(posiciones), start=1):
+        tr_name = op.get("trader_asignado") or op.get("trader") or op.get("escritorio") or f"TRADER_{(idx_op % 3) + 1}"
+        ws_tr.append([
+            op.get("semana_id", ""), tr_name, op.get("base", ""),
             op.get("estado", ""), round(float(op.get("capital_usd", 0)), 2),
             float(op.get("precio_entrada", 0)), float(op.get("precio_actual", 0)),
             round(float(op.get("pnl_pct", 0)), 2), round(float(op.get("pnl_usd", 0)), 2),
@@ -367,17 +578,34 @@ def construir_matriz_unificada():
             op.get("jefe_veredicto_entrada") or op.get("motivo_cierre", "")
         ])
 
+    # Hojas 6+: Copia íntegra de TODAS las pestañas originales de cada Excel del repo
+    titulos_usados = set(wb.sheetnames)
+    for tag_et, lista_hojas in [("E1", hojas_e1), ("E2", hojas_e2), ("E3", hojas_e3), ("E4", hojas_e4)]:
+        for ruta_orig, sname_orig, hdrs, rws in lista_hojas:
+            base_clean = "".join(c if c.isalnum() or c == "_" else "_" for c in f"{tag_et}_{sname_orig}".upper())[:28]
+            titulo_final = base_clean
+            suf = 2
+            while titulo_final in titulos_usados:
+                titulo_final = f"{base_clean[:26]}_{suf}"
+                suf += 1
+            titulos_usados.add(titulo_final)
+
+            ws_raw = wb.create_sheet(title=titulo_final)
+            _estilizar_hdr(ws_raw, hdrs)
+            for row_d in rws:
+                ws_raw.append(row_d)
+
     for sheet in wb.worksheets:
         for col in sheet.columns:
             max_len = max(len(str(c.value or "")) for c in col)
             sheet.column_dimensions[col[0].column_letter].width = min(max_len + 4, 52)
 
     wb.save(EXCEL_MATRIZ_CENTRAL_FILE)
-    return ahora_str, hoy_iso, resumen_diario_bots, filas_matriz, cerebro, plan_sem
+    return ahora_str, hoy_iso, resumen_bots, filas_matriz, cerebro, plan_sem, len(wb.sheetnames)
 
 
 # ==============================================================================
-# TELEGRAM: MISMO ESTILO VISUAL QUE EL TEMA "RESUMEN" (MENSAJE FIJADO + EXCEL)
+# TELEGRAM: TABLERO FIJADO + EXCEL COMPLETO DE TODAS LAS ETAPAS
 # ==============================================================================
 
 def tg_post(metodo, payload=None, files=None):
@@ -413,7 +641,7 @@ def asegurar_topic_matriz(cfg):
     return None
 
 
-def actualizar_tema_matriz_telegram(ahora_str, hoy_iso, resumen_diario_bots, filas_matriz, cerebro, plan_sem):
+def actualizar_tema_matriz_telegram(ahora_str, hoy_iso, resumen_bots, filas_matriz, cerebro, plan_sem, total_pestanas):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         return
 
@@ -421,28 +649,27 @@ def actualizar_tema_matriz_telegram(ahora_str, hoy_iso, resumen_diario_bots, fil
     topic_id = asegurar_topic_matriz(cfg)
 
     sem_id = plan_sem.get("semana_id", "2026") if isinstance(plan_sem, dict) else "2026"
-    total_hoy = sum(rb["senales_hoy"] for rb in resumen_diario_bots)
+    total_hoy = sum(rb["hoy"] for rb in resumen_bots)
+    total_24h = sum(rb["h24"] for rb in resumen_bots)
     top_confluencia = [f for f in filas_matriz if f["confluencia"] >= 2][:6]
-    en_cartera = [f for f in filas_matriz if "🟢 TRADER_" in f["estado_tr"]]
+    en_cartera = [f for f in filas_matriz if "🟢 " in f["estado_tr"]]
 
-    # Formato calcado al tema "Resumen" de tu captura
     msg = (
-        f"📊 <b>MATRIZ CENTRAL • EXCEL UNIFICADO Y RESUMEN DIARIO</b>\n"
-        f"🗓️ <b>Fecha:</b> <code>{hoy_iso}</code> (Semana <code>{sem_id}</code>) | <b>Señales hoy:</b> <b>{total_hoy}</b>\n"
-        f"📁 <b>Archivo Maestro:</b> <code>{EXCEL_MATRIZ_CENTRAL_FILE}</code> (6 pestañas)\n"
-        f"🔄 <b>Sincronización en vivo:</b> Cada 15 min junto a cada bot\n\n"
-        f"📋 <b>RESUMEN DIARIO POR BOT</b>\n\n"
+        f"📊 <b>MATRIZ CENTRAL • HISTORIAL COMPLETO ETAPAS 1, 2, 3 Y 4</b>\n"
+        f"🗓️ <b>Fecha:</b> <code>{hoy_iso}</code> (Semana <code>{sem_id}</code>)\n"
+        f"📈 <b>Actividad:</b> <b>{total_hoy} hoy</b> | <b>{total_24h} últimas 24h</b>\n"
+        f"📁 <b>Excel Maestro:</b> <code>{EXCEL_MATRIZ_CENTRAL_FILE}</code> (<b>{total_pestanas} pestañas completas</b>)\n\n"
+        f"📋 <b>RESUMEN POR ETAPA Y BOT</b>\n\n"
     )
 
-    for rb in resumen_diario_bots:
+    for rb in resumen_bots:
         msg += (
-            f"{rb['emoji']} <b>{html.escape(rb['bot'])}:</b> <b>{rb['senales_hoy']} señales hoy</b>\n"
-            f"• Activas en radar: <code>{rb['total_activas_radar']}</code> | Registros Excel: <code>{rb['excel_filas']}</code>\n"
-            f"• {html.escape(rb['metrica_clave'])}\n"
-            f"• <i>IA: {html.escape(rb['diagnostico_ia'][:115])}</i>\n\n"
+            f"{rb['emoji']} <b>{html.escape(rb['etapa'])}:</b> <b>{rb['hoy']} hoy</b> (<code>{rb['h24']} en 24h</code>)\n"
+            f"• Historial acumulado: <b>{rb['total_hist']} monedas</b> | {html.escape(rb['metrica'])}\n"
+            f"• <i>IA: {html.escape(rb['diag_ia'][:115])}</i>\n\n"
         )
 
-    msg += "🔥 <b>TOP CONFLUENCIA CRUZADA (2/3 O 3/3 MOTORES)</b>\n"
+    msg += "🔥 <b>TOP CONFLUENCIA CRUZADA (2/3 O 3/3 ETAPAS)</b>\n"
     if top_confluencia:
         for tc in top_confluencia:
             msg += (
@@ -459,11 +686,10 @@ def actualizar_tema_matriz_telegram(ahora_str, hoy_iso, resumen_diario_bots, fil
 
     v_ciclo = cerebro.get("version_ciclo", 1) if isinstance(cerebro, dict) else 1
     msg += (
-        f"\n🧬 <i>Cerebro Evolutivo v{v_ciclo} • Universo cruzado: {len(filas_matriz)} monedas</i>\n"
-        f"<i>Sincronizado con los 4 Excel • {ahora_str}</i>"
+        f"\n🧬 <i>Cerebro Evolutivo v{v_ciclo} • Universo histórico total: {len(filas_matriz)} monedas</i>\n"
+        f"<i>Sincronizado con todos los historiales • {ahora_str}</i>"
     )
 
-    # 1. Actualizar/Fijar el mensaje tablero principal (igual que "Mensaje fijado" en Resumen)
     msg_id_tablero = cfg.get("tablero_message_id")
     editado_ok = False
     if msg_id_tablero and cfg.get("fecha_tablero") == hoy_iso:
@@ -499,9 +725,8 @@ def actualizar_tema_matriz_telegram(ahora_str, hoy_iso, resumen_diario_bots, fil
                 "disable_notification": True
             })
 
-    # 2. Subir el Excel Matriz unificado cuando cambia cualquier dato o en cada corte horario
     hash_datos = hashlib.md5(
-        json.dumps([resumen_diario_bots, [(f["moneda"], f["confluencia"], f["estado_tr"]) for f in filas_matriz]], sort_keys=True).encode()
+        json.dumps([resumen_bots, [(f["moneda"], f["confluencia"], f["col_e1"], f["col_e2"], f["col_e3"], f["estado_tr"]) for f in filas_matriz]], sort_keys=True).encode()
     ).hexdigest()
 
     hora_actual = ahora_art().hour
@@ -510,8 +735,8 @@ def actualizar_tema_matriz_telegram(ahora_str, hoy_iso, resumen_diario_bots, fil
         doc_data = {
             "chat_id": TELEGRAM_CHAT_ID,
             "caption": (
-                f"📎 <b>{EXCEL_MATRIZ_CENTRAL_FILE}</b> (6 Pestañas Unificadas)\n"
-                f"🔄 Sincronizado: <code>{ahora_str}</code> | Señales hoy: <b>{total_hoy}</b> | Cruzadas: <b>{len(filas_matriz)}</b>"
+                f"📎 <b>{EXCEL_MATRIZ_CENTRAL_FILE}</b> ({total_pestanas} Pestañas • Historial Completo)\n"
+                f"🔄 Sincronizado: <code>{ahora_str}</code> | 24h: <b>{total_24h}</b> | Universo Total: <b>{len(filas_matriz)} monedas</b>"
             ),
             "parse_mode": "HTML"
         }
@@ -531,6 +756,6 @@ def actualizar_tema_matriz_telegram(ahora_str, hoy_iso, resumen_diario_bots, fil
 
 
 if __name__ == "__main__":
-    print(f"📊 SINCRONIZANDO MATRIZ CENTRAL UNIFICADA ({ahora_art().strftime('%H:%M:%S')} ART)...")
-    ahora_s, hoy_s, res_bots, f_mat, cer, pl = construir_matriz_unificada()
-    actualizar_tema_matriz_telegram(ahora_s, hoy_s, res_bots, f_mat, cer, pl)
+    print(f"📊 SINCRONIZANDO MATRIZ CENTRAL HISTÓRICA COMPLETA ({ahora_art().strftime('%H:%M:%S')} ART)...")
+    ahora_s, hoy_s, res_bots, f_mat, cer, pl, tot_p = construir_matriz_unificada()
+    actualizar_tema_matriz_telegram(ahora_s, hoy_s, res_bots, f_mat, cer, pl, tot_p)
