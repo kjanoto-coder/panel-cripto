@@ -1,20 +1,20 @@
 [
   [
     "ADAUSDT",
-    "KAVAUSDT",
-    "ASTERUSDT",
-    "DOTUSDT",
-    "POLUSDT",
-    "SENTUSDT",
-    "HBARUSDT"
-  ],
-  [
-    "ADAUSDT",
     "ICPUSDT",
     "ASTERUSDT",
     "KAVAUSDT",
     "DOTUSDT",
     "HBARUSDT",
     "POLUSDT"
+  ],
+  [
+    "ETHFIUSDT",
+    "RENDERUSDT",
+    "ONDOUSDT",
+    "SAGAUSDT",
+    "OPGUSDT",
+    "APTUSDT",
+    "PUMPUSDT"
   ]
 ]
