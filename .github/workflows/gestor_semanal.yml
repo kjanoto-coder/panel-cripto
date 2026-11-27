@@ -1,4 +1,4 @@
-name: Etapa 4 - Gestor Semanal Evolutivo (6 Asistentes + 3 Traders + Jefe)
+name: Etapa 4 - Gestor Semanal Evolutivo (Matriz Central + 6 Asistentes + 3 Traders + Jefe)
 
 on:
   schedule:
@@ -27,7 +27,7 @@ jobs:
       - name: Instalar dependencias
         run: pip install requests matplotlib openpyxl google-genai
 
-      - name: Ejecutar Mesa 6 Asistentes + 3 Traders + Jefe + Cerebro Evolutivo
+      - name: Ejecutar Matriz Central 3 Motores IA + 6 Asistentes + 3 Traders + Jefe
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
@@ -47,16 +47,17 @@ jobs:
           TOPIC_ID_RESUMEN: ${{ secrets.TOPIC_ID_RESUMEN }}
         run: sleep 4 && python bot_resumen_semanal.py
 
-      - name: Guardar plan semanal, Excel y Cerebro Evolutivo sin conflictos
+      - name: Guardar plan semanal, Matriz Central Excel y Cerebro Evolutivo
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add plan_semanal.json AUDITORIA_SEMANAL_PRUEBA.xlsx
+          [ -f MATRIZ_CENTRAL_ECOSISTEMA.xlsx ] && git add MATRIZ_CENTRAL_ECOSISTEMA.xlsx || true
           [ -f cerebro_evolutivo.json ] && git add cerebro_evolutivo.json || true
           [ -f bitacora_total.jsonl ] && git add bitacora_total.jsonl || true
           [ -f resumen_topic_config.json ] && git add resumen_topic_config.json || true
           if ! git diff --staged --quiet; then
-            git commit -m "Update plan semanal, 3 traders, Excel y cerebro evolutivo"
-            git pull --rebase origin main || true
+            git commit -m "Update plan semanal, Matriz Central 3 motores IA, Excel y cerebro evolutivo"
+            git pull --rebase -X ours origin main || true
             git push
           fi
