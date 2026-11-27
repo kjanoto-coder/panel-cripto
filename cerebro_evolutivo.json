@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 210,
-  "ultima_actualizacion": "2026-11-27 20:11 ART",
+  "version_ciclo": 211,
+  "ultima_actualizacion": "2026-11-27 20:21 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.91,
     "min_ob_ratio": 1.27,
@@ -280,6 +280,13 @@
       "detalle": "A3 VETA: Sin historial suficiente de velas 15m/1D"
     },
     {
+      "symbol": "THEUSDT",
+      "ts_unix": 1795821074,
+      "precio_veto": 0.0307,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
       "symbol": "CFGUSDT",
       "ts_unix": 1795798909,
       "precio_veto": 0.0564,
@@ -504,11 +511,11 @@
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     },
     {
-      "symbol": "THEUSDT",
-      "ts_unix": 1795821074,
-      "precio_veto": 0.0307,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+      "symbol": "GRAMUSDT",
+      "ts_unix": 1795821675,
+      "precio_veto": 0.978,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.38x < 1.25x"
     }
   ],
   "metricas_globales": {
@@ -519,6 +526,6 @@
     "stops_salvadores": 0,
     "vetos_acertados": 64,
     "oportunidades_perdidas_20": 7,
-    "ajustes_autocritica_ciclo": 60
+    "ajustes_autocritica_ciclo": 61
   }
 }
