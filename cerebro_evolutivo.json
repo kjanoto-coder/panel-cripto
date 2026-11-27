@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 135,
-  "ultima_actualizacion": "2026-11-27 08:02 ART",
+  "version_ciclo": 136,
+  "ultima_actualizacion": "2026-11-27 08:11 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.92,
     "min_ob_ratio": 1.28,
@@ -835,6 +835,13 @@
       "precio_veto": 86.65,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Sin historial suficiente de velas 15m/1D"
+    },
+    {
+      "symbol": "GRAMUSDT",
+      "ts_unix": 1795777876,
+      "precio_veto": 0.991,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     }
   ],
   "metricas_globales": {
