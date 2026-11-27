@@ -29,14 +29,14 @@ EXCEL_GANADORAS_FILE = "AUDITORIA_VERDE_GANADORAS.xlsx"
 EXCEL_CAZADOR_FILE = "AUDITORIA_CAZADOR_TACTICO.xlsx"
 EXCEL_PRE_EXPLOSION_FILE = "AUDITORIA_PRE_EXPLOSION.xlsx"
 
-# Informes IA generados por los 3 motores principales
+# Informes IA generados por los 3 motores principales + Cerebro Central
 REPORTE_IA_GANADORAS_FILE = "reporte_ia_ganadoras.json"
 REPORTE_IA_TACTICO_FILE = "reporte_ia_tactico.json"
 REPORTE_IA_PRE_EXPLOSION_FILE = "reporte_ia_pre_explosion.json"
+CEREBRO_FEED_JSON = "cerebro_matriz_central.json"
 
 PLAN_SEMANAL_FILE = "plan_semanal.json"
 EXCEL_SEMANAL_FILE = "AUDITORIA_SEMANAL_PRUEBA.xlsx"
-EXCEL_MATRIZ_CENTRAL_FILE = "MATRIZ_CENTRAL_ECOSISTEMA.xlsx"
 CEREBRO_EVOLUTIVO_FILE = "cerebro_evolutivo.json"
 BITACORA_TOTAL_FILE = "bitacora_total.jsonl"
 
@@ -560,17 +560,34 @@ def ejecutar_asistente_inteligencia(mapa_mkt, plan, cerebro: CerebroEvolutivo):
     1) Cazador Táctico (E1 + reporte_ia_tactico.json)
     2) Pre-Explosión (E2 + reporte_ia_pre_explosion.json)
     3) Monedas Ganadoras (24h + reporte_ia_ganadoras.json + Excel Verdes)
-    4) Contexto Macro / Sentinel (sin considerar Perdedoras)
+    4) Órdenes aprobadas del Cerebro Central (cerebro_matriz_central.json)
     """
     perlas = cargar_json_seguro(HISTORIAL_PERLAS_FILE)
     ganadoras = cargar_json_seguro(HISTORIAL_GANADORAS_FILE)
     pre_exp_extra = cargar_json_seguro(DATOS_PRE_EXPLOSION_FILE)
+    cerebro_central = cargar_json_seguro(CEREBRO_FEED_JSON)
     aciertos_excel_gan = _asistente_leer_excel_ganadoras()
     stats_autopsia = asistente_auditar_post_cierre(mapa_mkt, plan, cerebro)
 
     res_ia_gan, ia_gan_map = _extraer_diagnosticos_reporte_ia(REPORTE_IA_GANADORAS_FILE)
     res_ia_tac, ia_tac_map = _extraer_diagnosticos_reporte_ia(REPORTE_IA_TACTICO_FILE)
     res_ia_pre, ia_pre_map = _extraer_diagnosticos_reporte_ia(REPORTE_IA_PRE_EXPLOSION_FILE)
+
+    # Sincronizar stop calibrado si el Cerebro Central detectó stops prematuros
+    if isinstance(cerebro_central, dict) and cerebro_central.get("stop_calibrado_pct"):
+        try:
+            stop_cc = float(cerebro_central["stop_calibrado_pct"])
+            if -4.5 <= stop_cc <= -2.4:
+                cerebro.umbrales["stop_base_pct"] = stop_cc
+        except Exception:
+            pass
+
+    ordenes_central_map = {}
+    if isinstance(cerebro_central, dict):
+        for oc in cerebro_central.get("ordenes_ejecutar", []):
+            sym_oc = str(oc.get("symbol", "")).upper().strip()
+            if sym_oc:
+                ordenes_central_map[sym_oc] = oc
 
     graduadas = dict(perlas.get("graduadas_pre_explosion", {})) if isinstance(perlas, dict) else {}
     if isinstance(pre_exp_extra, dict):
@@ -597,6 +614,8 @@ def ejecutar_asistente_inteligencia(mapa_mkt, plan, cerebro: CerebroEvolutivo):
         fuentes_leidas.append(f"Ganadoras ({len(reg_verdes)})")
     if aciertos_excel_gan:
         fuentes_leidas.append(f"Excel Verdes ({len(aciertos_excel_gan)})")
+    if ordenes_central_map:
+        fuentes_leidas.append(f"Cerebro Central ({len(ordenes_central_map)} órdenes IA)")
     if ia_tac_map or res_ia_tac:
         fuentes_leidas.append(f"IA Táctico ({len(ia_tac_map)})")
     if ia_pre_map or res_ia_pre:
@@ -630,8 +649,8 @@ def ejecutar_asistente_inteligencia(mapa_mkt, plan, cerebro: CerebroEvolutivo):
                 notas_extra_monedas.setdefault(sym_k, []).append(f"{tag_ia}: {txt_k.strip()[:120]}")
 
     archivos_ignorar = {
-        PLAN_SEMANAL_FILE, CEREBRO_EVOLUTIVO_FILE, "package.json",
-        "package-lock.json", "tsconfig.json", "resumen_topic_config.json",
+        PLAN_SEMANAL_FILE, CEREBRO_EVOLUTIVO_FILE, CEREBRO_FEED_JSON, "package.json",
+        "package-lock.json", "tsconfig.json", "resumen_topic_config.json", "matriz_topic_config.json",
         HISTORIAL_PERLAS_FILE, HISTORIAL_GANADORAS_FILE, DATOS_PRE_EXPLOSION_FILE,
         REPORTE_IA_GANADORAS_FILE, REPORTE_IA_TACTICO_FILE, REPORTE_IA_PRE_EXPLOSION_FILE
     }
@@ -639,7 +658,6 @@ def ejecutar_asistente_inteligencia(mapa_mkt, plan, cerebro: CerebroEvolutivo):
         if ruta in archivos_ignorar:
             continue
         nombre_l = ruta.lower()
-        # Ignorar explícitamente el módulo de perdedoras según instrucción del usuario
         if "perdedor" in nombre_l or "loser" in nombre_l or "negra" in nombre_l:
             continue
         data = cargar_json_seguro(ruta)
@@ -660,10 +678,11 @@ def ejecutar_asistente_inteligencia(mapa_mkt, plan, cerebro: CerebroEvolutivo):
                 if isinstance(txt_nota, str) and txt_nota.strip():
                     notas_extra_monedas.setdefault(k, []).append(f"{ruta}: {txt_nota.strip()[:110]}")
 
-    universo_bots = set(graduadas.keys()) | set(posta.keys()) | set(reg_verdes.keys())
+    universo_bots = set(graduadas.keys()) | set(posta.keys()) | set(reg_verdes.keys()) | set(ordenes_central_map.keys())
     boletin_asistente = {
         "fuentes_auditadas": fuentes_leidas,
         "total_monedas_rastreadas": len(universo_bots),
+        "ordenes_cerebro_central": len(ordenes_central_map),
         "alertas_macro": resumen_macro_bots[:6],
         "reportes_ia_motores": {
             "ganadoras": res_ia_gan or "Activo",
@@ -673,8 +692,8 @@ def ejecutar_asistente_inteligencia(mapa_mkt, plan, cerebro: CerebroEvolutivo):
         "autopsia_24h": stats_autopsia,
         "cerebro_resumen": cerebro.resumen_corto(),
         "resumen_ejecutivo": (
-            f"Mesa 6 Asistentes integró {len(fuentes_leidas)} fuentes (3 Reportes IA + {len(universo_bots)} señales de bots + ~400 pares Binance). "
-            f"{stats_autopsia['resumen_autopsia']}."
+            f"Mesa 6 Asistentes integró {len(fuentes_leidas)} fuentes ({len(ordenes_central_map)} órdenes Cerebro Central + "
+            f"{len(universo_bots)} señales + ~400 pares Binance). {stats_autopsia['resumen_autopsia']}."
         )
     }
 
@@ -682,6 +701,7 @@ def ejecutar_asistente_inteligencia(mapa_mkt, plan, cerebro: CerebroEvolutivo):
         "perlas": perlas,
         "ganadoras": ganadoras,
         "aciertos_excel_ganadoras": aciertos_excel_gan,
+        "ordenes_central_map": ordenes_central_map,
         "graduadas": graduadas,
         "posta": posta,
         "reg_verdes": reg_verdes,
@@ -701,10 +721,11 @@ def ejecutar_asistente_inteligencia(mapa_mkt, plan, cerebro: CerebroEvolutivo):
 def asistente_1_forense_cazador_preexplosion(sym, p_actual, eco, plan=None, es_inyeccion_binance=False):
     """
     ASISTENTE 1 (EQUIPO EMPRESA):
-    Audita en profundidad la tríada principal del ecosistema:
+    Audita en profundidad la tríada principal + Consenso IA del Cerebro Central:
     - Cazador Táctico (Etapa 1 + reporte_ia_tactico.json)
     - Pre-Explosión (Etapa 2 + reporte_ia_pre_explosion.json)
     - Monedas Ganadoras (24h + reporte_ia_ganadoras.json + Excel Verdes)
+    - Consenso IA de Matriz Central (cerebro_matriz_central.json)
     """
     grad = eco["graduadas"].get(sym, {})
     post = eco["posta"].get(sym, {})
@@ -712,28 +733,31 @@ def asistente_1_forense_cazador_preexplosion(sym, p_actual, eco, plan=None, es_i
     ia_g = eco.get("ia_gan_map", {}).get(sym, {})
     ia_t = eco.get("ia_tac_map", {}).get(sym, {})
     ia_p = eco.get("ia_pre_map", {}).get(sym, {})
+    orden_cc = eco.get("ordenes_central_map", {}).get(sym, {})
     sub_excel_gan = float(eco.get("aciertos_excel_ganadoras", {}).get(sym, 0.0))
 
     p_ref = float(grad.get("precio_ref") or post.get("precio_ref") or verd.get("precio_entrada") or p_actual or 0)
     var_desde_radar = round(((p_actual - p_ref) / p_ref) * 100, 2) if p_ref > 0 and p_actual > 0 else 0.0
 
     semaforo = str(
-        ia_p.get("semaforo") or ia_t.get("semaforo") or grad.get("semaforo") or post.get("semaforo") or ("VERDE" if (verd or ia_g) else "N/D")
+        ia_p.get("semaforo") or ia_t.get("semaforo") or grad.get("semaforo") or post.get("semaforo") or ("VERDE" if (verd or ia_g or orden_cc) else "N/D")
     ).upper()
     etapa = int(post.get("etapa", grad.get("etapa", ia_t.get("etapa", 0))) or 0)
     blindaje = int(
         ia_p.get("blindaje_pct") or grad.get("blindaje_pct") or post.get("blindaje_etapa1")
-        or grad.get("probabilidad_pct") or (84 if (verd or ia_g) else 72)
+        or grad.get("probabilidad_pct") or (88 if orden_cc else (84 if (verd or ia_g) else 72))
     )
     cert_e1 = bool(grad.get("certificada_etapa1") or post.get("certificada_etapa1") or ia_t.get("certificada_ia"))
     cert_e2 = bool(grad.get("certificada_ia") or ia_p.get("certificada_ia"))
 
     cazador_en_verde = bool(post) or bool(ia_t) or bool(verd) or ("VERDE" in semaforo)
-    confirmada_pre_explosion = (bool(grad) or bool(ia_p)) and (
+    confirmada_pre_explosion = (bool(grad) or bool(ia_p) or bool(orden_cc)) and (
         ("VERDE" in semaforo) or cert_e1 or cert_e2 or blindaje >= 75
     )
 
     tesis_textos = []
+    if orden_cc:
+        tesis_textos.append(f"Cerebro Central IA {orden_cc.get('votos_ia', 2)}/3 ({orden_cc.get('orden', '')})")
     for fuente in (ia_p, ia_t, ia_g, grad, post, verd):
         for clave in ("diagnostico_ia", "veredicto_ia", "razon_ia", "analisis_ia", "motivo", "razon", "patron", "detalle"):
             val = fuente.get(clave)
@@ -761,22 +785,25 @@ def asistente_1_forense_cazador_preexplosion(sym, p_actual, eco, plan=None, es_i
         1 if (bool(post) or bool(ia_t)) else 0,
         1 if confirmada_pre_explosion else 0,
         1 if en_ganadoras_activo else 0,
-        1 if (bool(ia_p) or bool(ia_t) or bool(ia_g)) else 0
+        1 if (bool(ia_p) or bool(ia_t) or bool(ia_g) or bool(orden_cc)) else 0
     ])
 
-    # Vetos duros de Asistente 1
     if bloqueada_por_reincidencia:
         ok_a1 = False
         patron = "VETADA_REINCIDENCIA"
         dictamen = f"⛔ A1 VETA: Agotó re-entrada semanal ({stops_previos_semana} stops)."
-    elif "ROJO" in semaforo and not es_inyeccion_binance:
+    elif "ROJO" in semaforo and not es_inyeccion_binance and not orden_cc:
         ok_a1 = False
         patron = "VETADA_SEMAFORO_ROJO"
         dictamen = f"⛔ A1 VETA: Semáforo ROJO en Cazador/Pre-Explosión ({var_desde_radar:+.1f}%)."
-    elif (cazador_en_verde or confirmada_pre_explosion) and var_desde_radar < -2.8 and not es_inyeccion_binance:
+    elif (cazador_en_verde or confirmada_pre_explosion) and var_desde_radar < -2.8 and not es_inyeccion_binance and not orden_cc:
         ok_a1 = False
         patron = "VETADA_ESTANCADA_BAJA"
         dictamen = f"⛔ A1 VETA: Señal E1/E2 retrocediendo ({var_desde_radar:+.1f}% desde radar)."
+    elif orden_cc:
+        ok_a1 = True
+        patron = "CONFLUENCIA_E1_E3_MAS_PREEXPLOSION"
+        dictamen = f"✅ A1 OK [Consenso IA Central {orden_cc.get('votos_ia', 2)}/3] | {orden_cc.get('orden', 'EJECUTAR')} | Radar:{var_desde_radar:+.1f}%"
     elif cazador_en_verde and confirmada_pre_explosion:
         ok_a1 = True
         patron = "CONFLUENCIA_E1_E3_MAS_PREEXPLOSION"
@@ -802,7 +829,7 @@ def asistente_1_forense_cazador_preexplosion(sym, p_actual, eco, plan=None, es_i
         patron = "INCOMPLETA_E1_E2"
         dictamen = f"⏳ A1 ESPERA: Señal E{etapa} sin despegue ni confirmación Pre-Explosión ({var_desde_radar:+.1f}%)."
 
-    carril_vip = ok_a1 and (-2.5 <= var_desde_radar <= 13.0) and (confirmada_pre_explosion or es_inyeccion_binance)
+    carril_vip = ok_a1 and (-2.5 <= var_desde_radar <= 13.0) and (confirmada_pre_explosion or es_inyeccion_binance or bool(orden_cc))
     resumen_corto = (
         f"Patrón:{patron} | E1:{'SÍ' if (post or ia_t) else 'NO'} | E2:{'SÍ' if confirmada_pre_explosion else 'NO'} | "
         f"Gan24h:{'SÍ' if en_ganadoras_activo else 'NO'} | Radar:{var_desde_radar:+.1f}%"
@@ -814,10 +841,12 @@ def asistente_1_forense_cazador_preexplosion(sym, p_actual, eco, plan=None, es_i
         "cazador_en_verde": cazador_en_verde,
         "confirmada_pre_explosion": confirmada_pre_explosion,
         "es_inyeccion_binance": es_inyeccion_binance,
+        "es_orden_cerebro_central": bool(orden_cc),
+        "stop_sugerido_central": float(orden_cc.get("stop_sugerido_pct", STOP_LOSS_FIJO_PCT)) if orden_cc else None,
         "semaforo_radar": semaforo,
         "etapa_cazador": etapa,
         "blindaje_pct": blindaje,
-        "doble_certificada": (cert_e1 and cert_e2),
+        "doble_certificada": (cert_e1 and cert_e2) or bool(orden_cc),
         "en_ganadoras_activo": en_ganadoras_activo,
         "carril_vip_radar": carril_vip,
         "es_reentrada_habilitada": es_reentrada_habilitada,
@@ -839,15 +868,17 @@ def asistente_1_forense_cazador_preexplosion(sym, p_actual, eco, plan=None, es_i
 def asistente_2_confluencia_velocidad(mkt: dict, dossier_a1: dict) -> dict:
     """
     ASISTENTE 2 (EQUIPO EMPRESA):
-    Audita velocidad diaria (+3.0% a +28%), liquidez base 24h (>= $3.0M) y confluencia entre los 3 bots.
+    Audita velocidad diaria (+3.0% a +28%, o +1.5% si trae orden directa de Cerebro Central),
+    liquidez base 24h (>= $3.0M) y confluencia entre los bots.
     """
     cambio_24h = float(mkt.get("cambio_24h", 0.0))
     vol_24h = float(mkt.get("vol_24h", 0.0))
+    min_chg = 1.5 if dossier_a1.get("es_orden_cerebro_central") else 3.0
 
     if vol_24h < 3_000_000:
         return {"ok": False, "motivo": f"A2 VETA: Liquidez 24h baja (${vol_24h/1e6:.1f}M < $3.0M)"}
-    if cambio_24h < 3.0:
-        return {"ok": False, "motivo": f"A2 ESPERA: Sin aceleración diaria ({cambio_24h:+.1f}% < +3.0%)"}
+    if cambio_24h < min_chg:
+        return {"ok": False, "motivo": f"A2 ESPERA: Sin aceleración diaria ({cambio_24h:+.1f}% < +{min_chg:.1f}%)"}
     if cambio_24h > 28.0:
         return {"ok": False, "motivo": f"A2 VETA: Movimiento extendido (+{cambio_24h:.1f}% > +28%)"}
 
@@ -1228,7 +1259,7 @@ def empleado_evaluar_palanca_emergencia(pos, v1m, v15, v1h, fib, pnl_pct, dossie
 def mesa_asistentes_y_traders_evaluar_candidatas(session, mapa_mkt, excluidas, eco, plan, cerebro: CerebroEvolutivo):
     """
     Ejecuta la Mesa completa de 6 Asistentes (4 Empresa + 2 Binance en vivo)
-    y asigna las mejores candidatas aprobadas 6/6 a los Traders libres (1 moneda por Trader).
+    priorizando las órdenes ya aprobadas por los 3 Asistentes IA en cerebro_matriz_central.json.
     """
     umbrales = cerebro.umbrales
     graduadas = eco["graduadas"]
@@ -1237,9 +1268,11 @@ def mesa_asistentes_y_traders_evaluar_candidatas(session, mapa_mkt, excluidas, e
     ia_pre_map = eco.get("ia_pre_map", {})
     ia_tac_map = eco.get("ia_tac_map", {})
     ia_gan_map = eco.get("ia_gan_map", {})
+    ordenes_central_map = eco.get("ordenes_central_map", {})
 
     simbolos_bots = (
-        set(graduadas.keys())
+        set(ordenes_central_map.keys())
+        | set(graduadas.keys())
         | set(posta_dict.keys())
         | set(reg_verdes.keys())
         | set(ia_pre_map.keys())
@@ -1249,7 +1282,8 @@ def mesa_asistentes_y_traders_evaluar_candidatas(session, mapa_mkt, excluidas, e
     inyectadas_binance_a5 = set(asistente_5_barrido_global_binance(mapa_mkt, simbolos_bots))
 
     universo_syms = list(dict.fromkeys(
-        list(graduadas.keys())
+        list(ordenes_central_map.keys())
+        + list(graduadas.keys())
         + list(posta_dict.keys())
         + list(reg_verdes.keys())
         + list(ia_pre_map.keys())
@@ -1271,7 +1305,7 @@ def mesa_asistentes_y_traders_evaluar_candidatas(session, mapa_mkt, excluidas, e
         precio = float(mkt["precio"])
         es_iny_a5 = (sym in inyectadas_binance_a5)
 
-        # --- CÉLULA 1: ASISTENTE 1 (Cazador E1 + Pre-Explosión E2 + Ganadoras 24h) ---
+        # --- CÉLULA 1: ASISTENTE 1 (Cazador E1 + Pre-Explosión E2 + Ganadoras 24h + Cerebro Central) ---
         dossier_a1 = asistente_1_forense_cazador_preexplosion(sym, precio, eco, plan, es_inyeccion_binance=es_iny_a5)
         check_a1 = bool(dossier_a1["check_a1"])
 
@@ -1352,23 +1386,27 @@ def mesa_asistentes_y_traders_evaluar_candidatas(session, mapa_mkt, excluidas, e
         )
 
         bono_evol = cerebro.bono_evolutivo(sym, dossier_a1["patron_detectado"])
+        bono_cc = 8.0 if dossier_a1.get("es_orden_cerebro_central") else 0.0
         fib_4h = v4h.get("fib", {})
         bono_fib = 10.0 if fib_4h.get("en_zona_dorada") else (6.0 if fib_4h.get("en_tramo_alcista") else 0.0)
         score = round(
             50.0
             + (asistentes_aprobados * 5.0)
             + bono_evol
+            + bono_cc
             + bono_fib
             + min(float(v1h.get("vol_ratio", 0)) * 3.0, 10.0)
             + (6.0 if check_2_trader else 0.0),
             1
         )
 
-        stop_base = float(umbrales.get("stop_base_pct", STOP_LOSS_FIJO_PCT))
+        stop_base = float(dossier_a1.get("stop_sugerido_central") or umbrales.get("stop_base_pct", STOP_LOSS_FIJO_PCT))
         stop_ma25 = ((ma25_15 * 0.994 - precio) / precio) * 100.0 if precio > 0 else stop_base
         stop_trader_pct = round(max(stop_base, min(-1.90, stop_ma25)), 2)
 
-        if dossier_a1["cazador_en_verde"] and dossier_a1["confirmada_pre_explosion"]:
+        if dossier_a1.get("es_orden_cerebro_central"):
+            sello_txt = "🧠 CONSENSO IA CENTRAL (2/3+)"
+        elif dossier_a1["cazador_en_verde"] and dossier_a1["confirmada_pre_explosion"]:
             sello_txt = "🟢⚡ CAZADOR E1 + PRE-EXPLOSIÓN E2"
         elif es_iny_a5:
             sello_txt = "🛰️ INYECCIÓN EN VIVO BINANCE (A5)"
@@ -1634,7 +1672,9 @@ def ejecutar_jefe_supervisor_ia(plan, alternativas, posiciones_revisar, boletin_
         fib = alt.get("fib_4h", {})
 
         fact = 68
-        if dossier.get("cazador_en_verde") and dossier.get("confirmada_pre_explosion"):
+        if dossier.get("es_orden_cerebro_central"):
+            fact += 11
+        elif dossier.get("cazador_en_verde") and dossier.get("confirmada_pre_explosion"):
             fact += 10
         elif dossier.get("es_inyeccion_binance"):
             fact += 7
@@ -1813,7 +1853,7 @@ def verificar_circuit_breaker_diario(plan, ahora_dt=None):
         dt_listo = ahora_dt + timedelta(minutes=MINUTOS_CALIBRACION_SISTEMA)
         plan["warmup_hasta_iso"] = dt_listo.isoformat()
         return True, True, (
-            f"Actualización detectada (Matriz Central 3 Motores IA + Mesa 6 Asistentes + 3 Traders). "
+            f"Actualización detectada (Cerebro Central 3 Motores IA + Mesa 6 Asistentes + 3 Traders). "
             f"Calibrando variables durante {MINUTOS_CALIBRACION_SISTEMA} min (compras habilitadas desde las {dt_listo.strftime('%H:%M ART')})."
         )
 
@@ -1838,7 +1878,7 @@ def cargar_plan_semanal():
     base = {
         "semana_id": sem,
         "fecha_inicio": ahora_art().strftime("%Y-%m-%d %H:%M"),
-        "modo": "MESA_6_ASISTENTES_3_TRADERS_JEFE_MATRIZ_CENTRAL",
+        "modo": "MESA_6_ASISTENTES_3_TRADERS_JEFE_CEREBRO_CENTRAL",
         "capital_total_usd": CAPITAL_INICIAL_PRUEBA,
         "meta_semanal_usd": META_SEMANAL_USD,
         "ganancia_realizada_usd": 0.0,
@@ -1962,7 +2002,7 @@ def generar_veredicto_final_ia(plan, cerebro: CerebroEvolutivo):
         try:
             client = genai.Client(api_key=GEMINI_API_KEY)
             prompt = (
-                "Eres el Jefe Supervisor de una mesa Spot en Binance (Matriz Central 3 Motores IA + 6 Asistentes -> 3 Traders Dedicados -> Jefe + Cerebro Evolutivo). "
+                "Eres el Jefe Supervisor de una mesa Spot en Binance (Cerebro Central 3 Motores IA + 6 Asistentes -> 3 Traders Dedicados -> Jefe + Cerebro Evolutivo). "
                 "Cumplimos la meta semanal neta. Da un VEREDICTO FINAL DE FACTIBILIDAD para dinero real en máximo 4 líneas en español.\n"
                 f"Capital Base: ${plan.get('capital_total_usd', 3500)} USD | Meta: ${meta_usd} USD | Ganancia Neta Lograda: ${total_usd} USD\n"
                 f"Cerebro Evolutivo: {cerebro.resumen_corto()}\n"
@@ -1977,7 +2017,7 @@ def generar_veredicto_final_ia(plan, cerebro: CerebroEvolutivo):
 
 
 # ==============================================================================
-# GRÁFICOS, EXCEL MATRIZ CENTRAL (7 PESTAÑAS) Y MENSAJES DE TELEGRAM
+# GRÁFICOS, EXCEL AUDITORÍA SEMANAL (7 PESTAÑAS) Y MENSAJES DE TELEGRAM
 # ==============================================================================
 
 def generar_tablero_visual(plan, filename="tablero_semanal.png"):
@@ -2046,7 +2086,7 @@ def generar_tablero_visual(plan, filename="tablero_semanal.png"):
     aud = plan.get("auditoria_ia", {})
     fact_txt = f" | Jefe IA: {aud.get('factibilidad_pct', 82)}% Factible" if aud else ""
     ax2.set_title(f"3 TRADERS DEDICADOS ({len(posiciones)}/{MAX_TRADERS_SEMANA} • 1 MONEDA C/U) • TP1 +{TP1_ASEGURAR_PCT}% | TP2 +{TP2_ASEGURAR_PCT}%", color="#00e676", fontsize=8.3, fontweight="bold", pad=10)
-    fig.suptitle(f"MATRIZ CENTRAL 3 MOTORES IA ➔ 3 TRADERS ➔ JEFE ({plan['semana_id']}){fact_txt} | {ahora_art().strftime('%d/%m %H:%M ART')}", color="white", fontsize=9.2, fontweight="bold", y=0.98)
+    fig.suptitle(f"GESTOR 3 TRADERS DEDICADOS ➔ JEFE SUPERVISOR ({plan['semana_id']}){fact_txt} | {ahora_art().strftime('%d/%m %H:%M ART')}", color="white", fontsize=9.2, fontweight="bold", y=0.98)
     plt.tight_layout(rect=[0, 0, 1, 0.93])
     plt.savefig(filename, dpi=260, facecolor=fig.get_facecolor())
     plt.close()
@@ -2136,7 +2176,7 @@ def actualizar_excel_semanal(plan, cerebro: CerebroEvolutivo, eco=None, mapa_mkt
     fill_amarillo = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
     fill_rojo = PatternFill(start_color="FEE2E2", end_color="FEE2E2", fill_type="solid")
 
-    # Pestaña 0: Matriz Central Consolidada (3 Motores IA: Ganadoras + Táctico + Pre-Explosión)
+    # Pestaña 0: Radar Cruzado de Operaciones
     ws_mc = wb.active
     ws_mc.title = "0_MATRIZ_CENTRAL_IA"
     _poblar_hoja_matriz_central(ws_mc, plan, eco, mapa_mkt, fill_hdr, font_hdr, fill_verde, fill_amarillo)
@@ -2203,7 +2243,7 @@ def actualizar_excel_semanal(plan, cerebro: CerebroEvolutivo, eco=None, mapa_mkt
         c.font = font_hdr
         c.alignment = Alignment(horizontal="center")
 
-    activas_syms = {p["symbol"] for p in plan.get("posiciones", [])}
+    pos_map_act = {p["symbol"]: p for p in plan.get("posiciones", [])}
     for idx, alt in enumerate(plan.get("alternativas_evaluadas", []), start=1):
         ch = alt.get("checks_6_asistentes", {})
         c1 = "✅" if ch.get("A1_Cazador_PreExp") else "❌"
@@ -2212,11 +2252,13 @@ def actualizar_excel_semanal(plan, cerebro: CerebroEvolutivo, eco=None, mapa_mkt
         c4 = "✅" if ch.get("A4_Vol_Pista20") else "❌"
         c5 = "✅" if ch.get("A5_Binance_Libro") else "❌"
         c6 = "✅" if ch.get("A6_Binance_Cinta") else "❌"
-        tr_lbl = alt.get("trader_propuesto") or ("✅ OK" if alt.get("check_2_trader") else "⏳")
-        c3_j = "✅ OK" if alt.get("check_3_jefe") else ("⛔ VETA" if (alt.get("check_1_asistente") and alt.get("check_2_trader")) else "—")
+        sym_a = alt.get("symbol", "")
+        tr_real = pos_map_act[sym_a].get("trader_asignado", "TRADER") if sym_a in pos_map_act else ""
+        tr_lbl = tr_real or alt.get("trader_propuesto") or ("✅ OK" if alt.get("check_2_trader") else "⏳")
+        c3_j = "✅ OK" if (alt.get("check_3_jefe") or sym_a in pos_map_act) else ("⛔ VETA" if (alt.get("check_1_asistente") and alt.get("check_2_trader")) else "—")
 
-        if alt["symbol"] in activas_syms:
-            estado_alt = "✅ COMPRADA POR TRADER"
+        if sym_a in pos_map_act:
+            estado_alt = f"✅ OPERADA POR {tr_real}"
         elif alt.get("consenso_3_de_3"):
             estado_alt = "🟢 CONSENSO TOTAL (En Cola)"
         elif alt.get("check_1_asistente") and alt.get("check_2_trader"):
@@ -2328,8 +2370,8 @@ def actualizar_excel_semanal(plan, cerebro: CerebroEvolutivo, eco=None, mapa_mkt
             max_len = max(len(str(c.value or "")) for c in col)
             sheet.column_dimensions[col[0].column_letter].width = min(max_len + 4, 54)
 
+    # Guarda únicamente AUDITORIA_SEMANAL_PRUEBA.xlsx para no sobrescribir MATRIZ_CENTRAL_ECOSISTEMA.xlsx
     wb.save(EXCEL_SEMANAL_FILE)
-    wb.save(EXCEL_MATRIZ_CENTRAL_FILE)
 
 
 def enviar_telegram_texto(texto):
@@ -2376,14 +2418,14 @@ def enviar_foto_telegram(imagen_path, caption):
 
 
 def enviar_excel_telegram(caption):
-    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID or not os.path.exists(EXCEL_MATRIZ_CENTRAL_FILE):
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID or not os.path.exists(EXCEL_SEMANAL_FILE):
         return False
     url = f"{TELEGRAM_API_BASE}{TELEGRAM_BOT_TOKEN}/sendDocument"
     data = {"chat_id": TELEGRAM_CHAT_ID, "caption": caption[:1000], "parse_mode": "HTML"}
     if TELEGRAM_TOPIC_ID.isdigit():
         data["message_thread_id"] = int(TELEGRAM_TOPIC_ID)
     try:
-        with open(EXCEL_MATRIZ_CENTRAL_FILE, "rb") as f:
+        with open(EXCEL_SEMANAL_FILE, "rb") as f:
             r = requests.post(url, data=data, files={"document": f}, timeout=25).json()
             if not r.get("ok") and "thread not found" in str(r.get("description", "")).lower():
                 data.pop("message_thread_id", None)
@@ -2391,7 +2433,7 @@ def enviar_excel_telegram(caption):
                 r = requests.post(url, data=data, files={"document": f}, timeout=25).json()
         return bool(r.get("ok"))
     except Exception as e:
-        print(f"⚠️ Error enviando Excel Matriz Central: {e}")
+        print(f"⚠️ Error enviando Excel Auditoría Semanal: {e}")
         return False
 
 
@@ -2408,11 +2450,11 @@ def cooldown_panico_cumplido(ultimo_iso):
 def construir_bloque_1_alternativas(plan):
     ahora_str = ahora_art().strftime("%Y-%m-%d %H:%M ART")
     alts = plan.get("alternativas_evaluadas", [])
-    activas_syms = {p["symbol"] for p in plan.get("posiciones", [])}
+    pos_map_act = {p["symbol"]: p for p in plan.get("posiciones", [])}
     bol = plan.get("boletin_asistente", {})
 
     msg = (
-        f"🔍 <b>MATRIZ CENTRAL 3 MOTORES IA + 6 ASISTENTES • BLOQUE 1/3</b>\n"
+        f"🔍 <b>MESA 6 ASISTENTES + CEREBRO CENTRAL • BLOQUE 1/3</b>\n"
         f"📅 <code>{ahora_str}</code> | Semana <code>{plan['semana_id']}</code>\n"
     )
     if bol.get("cerebro_resumen"):
@@ -2432,13 +2474,15 @@ def construir_bloque_1_alternativas(plan):
         c4 = "✅" if ch.get("A4_Vol_Pista20") else "❌"
         c5 = "✅" if ch.get("A5_Binance_Libro") else "❌"
         c6 = "✅" if ch.get("A6_Binance_Cinta") else "❌"
-        tr_tag = a.get("trader_propuesto") if a.get("trader_propuesto") in NOMBRES_TRADERS else ("⏳" if a.get("check_1_asistente") else "—")
-        jf_tag = "✅" if a.get("check_3_jefe") else ("⛔" if a.get("check_2_trader") else "—")
+        sym_a = a.get("symbol", "")
+        tr_real = pos_map_act[sym_a].get("trader_asignado", "TRADER") if sym_a in pos_map_act else ""
+        tr_tag = tr_real or (a.get("trader_propuesto") if a.get("trader_propuesto") in NOMBRES_TRADERS else ("⏳" if a.get("check_1_asistente") else "—"))
+        jf_tag = "✅" if (a.get("check_3_jefe") or sym_a in pos_map_act) else ("⛔" if a.get("check_2_trader") else "—")
 
         checklist = f"<code>[Emp A1:{c1} A2:{c2} A3:{c3} A4:{c4} | Bin A5:{c5} A6:{c6} | Tr:{tr_tag} | Jf:{jf_tag}]</code>"
 
-        if a["symbol"] in activas_syms:
-            marca = f"✅ <b>[OPERADA POR {html.escape(a.get('trader_propuesto', 'TRADER'))}]</b>"
+        if sym_a in pos_map_act:
+            marca = f"✅ <b>[OPERADA POR {html.escape(tr_real)}]</b>"
         elif a.get("consenso_3_de_3"):
             marca = f"🟢 <b>[CONSENSO TOTAL ➔ {html.escape(a.get('trader_propuesto', 'TRADER'))}]</b>"
         elif a.get("check_1_asistente") and a.get("fomo_15m"):
@@ -2536,7 +2580,7 @@ def ejecutar_gestor_semanal():
     # Auditoría en sombra de rechazos previos (6h-24h) para auto-calibrar filtros si alguno subió >= +18%
     cerebro.auditar_sombra_y_calibrar(s, mapa_mkt)
 
-    # PASO 1: MESA DE 6 ASISTENTES + 3 REPORTES IA + AUTOPSIA 24H
+    # PASO 1: MESA DE 6 ASISTENTES + 3 REPORTES IA + CEREBRO CENTRAL + AUTOPSIA 24H
     boletin_asistente, eco = ejecutar_asistente_inteligencia(mapa_mkt, plan, cerebro)
     plan["boletin_asistente"] = boletin_asistente
 
@@ -2931,15 +2975,15 @@ def ejecutar_gestor_semanal():
         elif alertas_venta or alertas_parciales:
             titulo_ev = "💰 <b>COSECHA RUNNER 3 TRAMOS / CIERRE</b>"
         else:
-            titulo_ev = "📡 <b>RADAR CONTINUO • MATRIZ CENTRAL 3 MOTORES IA ➔ 3 TRADERS ➔ JEFE</b>"
+            titulo_ev = "📡 <b>RADAR CONTINUO • MESA 6 ASISTENTES ➔ 3 TRADERS ➔ JEFE</b>"
 
         caption = construir_bloque_2_cartera(plan, titulo_ev)
         ok2 = enviar_foto_telegram(img, caption)
         time.sleep(1.5)
 
         ok3 = enviar_excel_telegram(
-            f"📎 <b>MATRIZ CENTRAL EVOLUTIVA • BLOQUE 3/3: EXCEL CONSOLIDADO (7 PESTAÑAS)</b>\n"
-            f"📊 Cruza <b>Ganadoras 24h + Cazador Táctico + Pre-Explosión</b> con los 3 Traders, Autopsia 24h y Cerebro IA (<code>{EXCEL_MATRIZ_CENTRAL_FILE}</code>)."
+            f"📎 <b>AUDITORÍA SEMANAL 3 TRADERS • BLOQUE 3/3 (7 PESTAÑAS)</b>\n"
+            f"📊 Cartera activa, Mesa 6 Asistentes, Autopsia 24h y Cerebro Evolutivo (<code>{EXCEL_SEMANAL_FILE}</code>)."
         )
         if ok1 and ok2 and ok3:
             plan["ultimo_reporte_hora"] = ahora_dt.hour
@@ -2968,5 +3012,5 @@ def ejecutar_gestor_semanal():
 
 
 if __name__ == "__main__":
-    print(f"🧪 INICIANDO GESTOR SEMANAL EVOLUTIVO + MATRIZ CENTRAL IA ({ahora_art().strftime('%H:%M:%S')} ART)...")
+    print(f"🧪 INICIANDO GESTOR SEMANAL EVOLUTIVO + CEREBRO CENTRAL IA ({ahora_art().strftime('%H:%M:%S')} ART)...")
     ejecutar_gestor_semanal()
