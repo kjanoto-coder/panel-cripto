@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 142,
-  "ultima_actualizacion": "2026-11-27 09:11 ART",
+  "version_ciclo": 143,
+  "ultima_actualizacion": "2026-11-27 09:18 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.92,
     "min_ob_ratio": 1.28,
@@ -856,6 +856,13 @@
       "precio_veto": 0.02689,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "ARBUSDT",
+      "ts_unix": 1795781896,
+      "precio_veto": 0.1187,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     }
   ],
   "metricas_globales": {
