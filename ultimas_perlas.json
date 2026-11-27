@@ -1,14 +1,5 @@
 [
   [
-    "TLMUSDT",
-    "WIFUSDT",
-    "BANKUSDT",
-    "ZAMAUSDT",
-    "NOMUSDT",
-    "ATOMUSDT",
-    "SHIBUSDT"
-  ],
-  [
     "UNIUSDT",
     "JSTUSDT",
     "SENTUSDT",
@@ -16,5 +7,14 @@
     "RENDERUSDT",
     "STXUSDT",
     "DODOUSDT"
+  ],
+  [
+    "GRAMUSDT",
+    "TIAUSDT",
+    "APTUSDT",
+    "FETUSDT",
+    "PENDLEUSDT",
+    "ATUSDT",
+    "HYPERUSDT"
   ]
 ]
