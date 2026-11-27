@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 87,
-  "ultima_actualizacion": "2026-11-27 00:01 ART",
+  "version_ciclo": 88,
+  "ultima_actualizacion": "2026-11-27 00:11 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.92,
     "min_ob_ratio": 1.31,
@@ -576,6 +576,20 @@
       "symbol": "KORUBUSDT",
       "ts_unix": 1795748507,
       "precio_veto": 5.66,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Mechas superiores de rechazo en 15m (latigazo)"
+    },
+    {
+      "symbol": "NBISBUSDT",
+      "ts_unix": 1795749071,
+      "precio_veto": 91.8,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "QNTUSDT",
+      "ts_unix": 1795749072,
+      "precio_veto": 151.4,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Mechas superiores de rechazo en 15m (latigazo)"
     }
