@@ -6,6 +6,7 @@ import time
 import random
 import html
 import subprocess
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone, timedelta
 
 # Auto-instalación blindada de todas las dependencias necesarias
@@ -44,7 +45,8 @@ BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
 HISTORIAL_GANADORAS_FILE = "historial_ganadoras.json"
 HISTORIAL_PERLAS_FILE = "historial_perlas.json"
 EXCEL_AUDITORIA_FILE = "AUDITORIA_VERDE_GANADORAS.xlsx"
-DIAS_RETENCION = 62
+REPORTE_IA_GANADORAS_FILE = "reporte_ia_ganadoras.json"
+DIAS_RETENCION = 365
 MODELOS_GEMINI_GANADORAS = ["gemini-2.5-flash", "gemini-2.5-flash-lite"]
 
 MESES_ES = {
@@ -144,6 +146,120 @@ def guardar_historial_ganadoras(historial):
             json.dump(historial, f, ensure_ascii=False, indent=2)
     except Exception as e:
         print(f"⚠️ Error guardando {HISTORIAL_GANADORAS_FILE}: {e}")
+
+
+# ==============================================================================
+# BACKFILL AUTOMÁTICO DEL MES COMPLETO (DÍA 1 HASTA AYER)
+# ==============================================================================
+def _fetch_klines_1d_simbolo(sym, start_ms, end_ms):
+    urls = [
+        "https://api.binance.com/api/v3/klines",
+        "https://data-api.binance.vision/api/v3/klines"
+    ]
+    params = {
+        "symbol": sym,
+        "interval": "1d",
+        "startTime": start_ms,
+        "endTime": end_ms,
+        "limit": 35
+    }
+    for url in urls:
+        try:
+            r = requests.get(url, params=params, timeout=10)
+            if r.status_code == 200:
+                data = r.json()
+                if isinstance(data, list):
+                    return sym, data
+        except Exception:
+            continue
+    return sym, []
+
+
+def completar_historial_mes_binance(simbolos_activos, historial):
+    """Detecta días faltantes del mes en curso (ej. 1 al 22) y los reconstruye con velas 1d de Binance."""
+    hoy_dt = ahora_art().date()
+    primer_dia_mes = hoy_dt.replace(day=1)
+    ayer_dt = hoy_dt - timedelta(days=1)
+
+    if ayer_dt < primer_dia_mes:
+        return False
+
+    dias_dict = historial.setdefault("dias", {})
+    fechas_faltantes = []
+    cursor = primer_dia_mes
+    while cursor <= ayer_dt:
+        f_str = cursor.strftime('%Y-%m-%d')
+        if f_str not in dias_dict or len(dias_dict.get(f_str, [])) == 0:
+            fechas_faltantes.append(f_str)
+        cursor += timedelta(days=1)
+
+    if not fechas_faltantes:
+        return False
+
+    print(f"🔄 Reconstruyendo {len(fechas_faltantes)} días faltantes del mes desde Binance: {fechas_faltantes[0]} -> {fechas_faltantes[-1]}")
+    start_ms = int(datetime(primer_dia_mes.year, primer_dia_mes.month, primer_dia_mes.day, 0, 0, tzinfo=timezone.utc).timestamp() * 1000)
+    end_ms = int(datetime(ayer_dt.year, ayer_dt.month, ayer_dt.day, 23, 59, 59, tzinfo=timezone.utc).timestamp() * 1000)
+
+    simbolos_filtrados = [
+        s for s in sorted(simbolos_activos)
+        if s.endswith("USDT") and es_simbolo_valido(s[:-4])
+    ]
+
+    candidatas_por_fecha = {f: [] for f in fechas_faltantes}
+    faltantes_set = set(fechas_faltantes)
+
+    with ThreadPoolExecutor(max_workers=12) as executor:
+        futuros = {
+            executor.submit(_fetch_klines_1d_simbolo, sym, start_ms, end_ms): sym
+            for sym in simbolos_filtrados
+        }
+        for fut in as_completed(futuros):
+            sym, klines = fut.result()
+            base = sym[:-4]
+            for k in klines:
+                try:
+                    open_ts_ms = int(k[0])
+                    f_str = datetime.fromtimestamp(open_ts_ms / 1000.0, tz=timezone.utc).strftime('%Y-%m-%d')
+                    if f_str not in faltantes_set:
+                        continue
+                    open_p = float(k[1])
+                    high_p = float(k[2])
+                    low_p = float(k[3])
+                    close_p = float(k[4])
+                    quote_vol = float(k[7])
+                    if open_p <= 0 or close_p <= 0:
+                        continue
+                    cambio_pct = ((close_p - open_p) / open_p) * 100.0
+                    if quote_vol >= 1_000_000 and cambio_pct >= 3.0:
+                        pos_rango = round(((close_p - low_p) / (high_p - low_p)) * 100, 1) if high_p > low_p else 50.0
+                        candidatas_por_fecha[f_str].append({
+                            "symbol": sym,
+                            "ticker": base,
+                            "precio_base": round(open_p, 8),
+                            "precio": round(close_p, 8),
+                            "cambio_24h": round(cambio_pct, 2),
+                            "vol_usdt": round(quote_vol, 2),
+                            "high": high_p,
+                            "low": low_p,
+                            "pos_rango": pos_rango
+                        })
+                except Exception:
+                    continue
+
+    dias_agregados = 0
+    for f_str in fechas_faltantes:
+        lista = candidatas_por_fecha.get(f_str, [])
+        lista.sort(key=lambda x: x["cambio_24h"], reverse=True)
+        top20 = lista[:20]
+        for idx, it in enumerate(top20, start=1):
+            it["rank"] = idx
+        dias_dict[f_str] = top20
+        if top20:
+            dias_agregados += 1
+
+    guardar_historial_ganadoras(historial)
+    print(f"✅ Backfill completado: {dias_agregados} días cargados con Top Ganadoras en {HISTORIAL_GANADORAS_FILE}.")
+    return dias_agregados > 0
 
 
 def absorber_verdes_desde_pre_explosion(historial, mapa_actual):
@@ -424,9 +540,178 @@ def ejecutar_etapa_2_semanal(historial, mapa_actual):
 
 
 # ==============================================================================
+# ASISTENTE IA DEDICADO: MONEDAS GANADORAS (REINCIDENCIA + REPORTE MATRIZ)
+# ==============================================================================
+def ejecutar_asistente_ia_ganadoras(historial, mapa_actual, reinas_semanales, segunda_ola, stats_verde):
+    """Analiza todo el mes + semana + segunda ola y genera reporte JSON y tabla Excel."""
+    ahora_dt = ahora_art()
+    anio_mes = (ahora_dt.year, ahora_dt.month)
+    dias_dict = historial.get("dias", {})
+    reg_verdes = historial.get("registro_verdes", {})
+
+    acum_mes = {}
+    dias_mes_count = 0
+    for f_str in sorted(dias_dict.keys()):
+        try:
+            d = datetime.strptime(f_str, '%Y-%m-%d').date()
+            if (d.year, d.month) != anio_mes:
+                continue
+        except Exception:
+            continue
+        dias_mes_count += 1
+        for item in dias_dict.get(f_str, []):
+            sym = item["symbol"]
+            if sym not in acum_mes:
+                acum_mes[sym] = {
+                    "symbol": sym,
+                    "ticker": item["ticker"],
+                    "veces_mes": 0,
+                    "dias_mes": [],
+                    "gains": [],
+                    "precio_pico_mes": item.get("high") or item.get("precio", 0.0)
+                }
+            acum_mes[sym]["veces_mes"] += 1
+            acum_mes[sym]["dias_mes"].append(f_str[5:])
+            acum_mes[sym]["gains"].append(float(item.get("cambio_24h", 0.0)))
+            pico_c = float(item.get("high") or item.get("precio", 0.0))
+            if pico_c > acum_mes[sym]["precio_pico_mes"]:
+                acum_mes[sym]["precio_pico_mes"] = pico_c
+
+    sem_map = {x["symbol"]: x for x in reinas_semanales}
+    ola_set = {x["symbol"] for x in segunda_ola}
+
+    candidatas_ia = []
+    for sym, info in acum_mes.items():
+        actual = mapa_actual.get(sym, {})
+        p_act = float(actual.get("precio", 0.0))
+        cambio_hoy = float(actual.get("cambio_24h", 0.0))
+        pos_rango = float(actual.get("pos_rango", 50.0))
+        vol_hoy = float(actual.get("vol_usdt", 0.0))
+        pico = float(info["precio_pico_mes"] or p_act)
+        retroceso = round(((p_act - pico) / pico) * 100, 2) if (pico > 0 and p_act > 0) else 0.0
+
+        veces_sem = sem_map[sym]["veces"] if sym in sem_map else 0
+        es_segunda_ola = sym in ola_set
+        tiene_verde = sym in reg_verdes
+
+        # Score de prioridad para Matriz Central (0 a 100)
+        bonus_prioridad = min(30, info["veces_mes"] * 6 + veces_sem * 5 + (10 if es_segunda_ola else 0) + (5 if tiene_verde else 0))
+
+        if es_segunda_ola:
+            estado_tactico = "SEGUNDA_OLA_SOPORTE"
+            accion_sugerida = "PRIORIDAD_COMPRA_RETROCESO"
+        elif cambio_hoy >= 25.0 or pos_rango >= 88.0:
+            estado_tactico = "IMPULSO_EXTENDIDO"
+            accion_sugerida = "NO_PERSEGUIR_ESPERAR_RETEST"
+        elif info["veces_mes"] >= 2 and (-18.0 <= retroceso <= -4.0) and vol_hoy >= 1_000_000:
+            estado_tactico = "REINCIDENTE_EN_DESCANSO"
+            accion_sugerida = "VIGILAR_APOYO_SOPORTE"
+        elif info["veces_mes"] >= 2:
+            estado_tactico = "LIDER_REINCIDENTE_ACTIVO"
+            accion_sugerida = "SEGUIMIENTO_CON_BONUS"
+        else:
+            estado_tactico = "GANADORA_PUNTUAL"
+            accion_sugerida = "OBSERVAR_CONTINUIDAD"
+
+        candidatas_ia.append({
+            "symbol": sym,
+            "ticker": info["ticker"],
+            "veces_mes": info["veces_mes"],
+            "veces_semana": veces_sem,
+            "dias_mes": ", ".join(info["dias_mes"][-5:]),
+            "gain_max_mes": round(max(info["gains"]), 2),
+            "gain_prom_mes": round(sum(info["gains"]) / len(info["gains"]), 2),
+            "precio_actual": p_act,
+            "cambio_hoy_pct": cambio_hoy,
+            "retroceso_pico_pct": retroceso,
+            "pos_rango_hoy": pos_rango,
+            "vol_hoy_m": round(vol_hoy / 1_000_000, 2),
+            "en_radar_verde": tiene_verde,
+            "segunda_ola": es_segunda_ola,
+            "bonus_matriz": bonus_prioridad,
+            "estado_tactico": estado_tactico,
+            "accion_sugerida": accion_sugerida,
+            "nota_ia": ""
+        })
+
+    candidatas_ia.sort(key=lambda x: (x["veces_mes"], x["veces_semana"], x["gain_max_mes"]), reverse=True)
+    top_ia = candidatas_ia[:25]
+
+    diagnostico_global = (
+        f"Mes con {dias_mes_count} días auditados. Líderes reincidentes detectados: "
+        f"{', '.join([c['ticker'] for c in top_ia if c['veces_mes'] >= 2][:6]) or 'En formación'}. "
+        f"Conversión Verde->Ganadora: {stats_verde.get('total_aciertos', 0)} aciertos (demora típica {stats_verde.get('demora_mediana_dias', 'N/D')}d)."
+    )
+
+    if GEMINI_API_KEY and top_ia:
+        try:
+            client = genai.Client(api_key=GEMINI_API_KEY)
+            resumen_top = "\n".join([
+                f"- {c['ticker']}: {c['veces_mes']}d en mes ({c['veces_semana']}d sem), máx +{c['gain_max_mes']}%, hoy {c['cambio_hoy_pct']:+.1f}%, retroceso pico {c['retroceso_pico_pct']:+.1f}%, estado {c['estado_tactico']}"
+                for c in top_ia[:12]
+            ])
+            prompt = (
+                "Sos el Asistente IA de la etapa MONEDAS GANADORAS en Binance Spot. "
+                "Analizá estas monedas líderes del mes y devolvé SOLO un JSON válido con este formato exacto:\n"
+                '{"diagnostico_global": "resumen ejecutivo de 2 oraciones sobre rotación y líderes", '
+                '"notas_monedas": {"TICKER": "recomendación táctica concreta de 1 línea para el gestor semanal"}}\n\n'
+                f"Datos reales:\n{resumen_top}"
+            )
+            for mod in MODELOS_GEMINI_GANADORAS:
+                try:
+                    resp = client.models.generate_content(model=mod, contents=prompt)
+                    if resp and resp.text:
+                        raw = resp.text.strip()
+                        raw = re.sub(r'^```(?:json)?\s*|\s*```$', '', raw).strip()
+                        parsed = json.loads(raw)
+                        if isinstance(parsed, dict):
+                            if parsed.get("diagnostico_global"):
+                                diagnostico_global = str(parsed["diagnostico_global"]).strip()
+                            notas_map = parsed.get("notas_monedas") or {}
+                            for c in top_ia:
+                                if c["ticker"] in notas_map:
+                                    c["nota_ia"] = str(notas_map[c["ticker"]]).strip()
+                        break
+                except Exception:
+                    continue
+        except Exception as e:
+            print(f"⚠️ Asistente IA Ganadoras fallback determinístico: {e}")
+
+    for c in top_ia:
+        if not c["nota_ia"]:
+            if c["segunda_ola"]:
+                c["nota_ia"] = f"Ganadora reincidente ({c['veces_mes']}x mes) en retroceso sano ({c['retroceso_pico_pct']:+.1f}%); apta para entrada escalonada en soporte."
+            elif c["estado_tactico"] == "IMPULSO_EXTENDIDO":
+                c["nota_ia"] = f"Subida extendida ({c['cambio_hoy_pct']:+.1f}%); no perseguir en techo, esperar apoyo."
+            elif c["veces_mes"] >= 2:
+                c["nota_ia"] = f"Repite {c['veces_mes']} veces en el mes (máx +{c['gain_max_mes']}%); sumar bonus de seguimiento en soporte."
+            else:
+                c["nota_ia"] = f"Aparición puntual (+{c['gain_max_mes']}%); validar volumen antes de operar."
+
+    reporte_json = {
+        "etapa": "MONEDAS_GANADORAS",
+        "actualizado_art": ahora_dt.strftime('%Y-%m-%d %H:%M:%S ART'),
+        "dias_mes_auditados": dias_mes_count,
+        "diagnostico_global": diagnostico_global,
+        "parametros_verde_ganadora": stats_verde,
+        "lideres_reincidentes_mes": [c for c in top_ia if c["veces_mes"] >= 2],
+        "oportunidades_segunda_ola": [c for c in top_ia if c["segunda_ola"]],
+        "ranking_asistente_ia": top_ia
+    }
+
+    try:
+        with open(REPORTE_IA_GANADORAS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(reporte_json, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"⚠️ Error guardando {REPORTE_IA_GANADORAS_FILE}: {e}")
+
+    return reporte_json
+
+
+# ==============================================================================
 # ETAPA 3: AUDITORÍA REALIDAD (VERDE PRE-EXPLOSIÓN -> MONEDA GANADORA)
 # ==============================================================================
-def ejecutar_etapa_3_auditoria_verde(historial, mapa_actual):
+def ejecutar_etapa_3_auditoria_verde(historial, mapa_actual, reinas_semanales, segunda_ola):
     absorber_verdes_desde_pre_explosion(historial, mapa_actual)
     reg = historial.get("registro_verdes", {})
     dias_dict = historial.get("dias", {})
@@ -496,8 +781,9 @@ def ejecutar_etapa_3_auditoria_verde(historial, mapa_actual):
         "subida_prom_pct": subida_prom
     }
 
-    generar_excel_auditoria(aciertos, pendientes, stats, mapa_actual, historial)
-    return aciertos, pendientes, stats
+    reporte_ia = ejecutar_asistente_ia_ganadoras(historial, mapa_actual, reinas_semanales, segunda_ola, stats)
+    generar_excel_auditoria(aciertos, pendientes, stats, mapa_actual, historial, reporte_ia)
+    return aciertos, pendientes, stats, reporte_ia
 
 
 def construir_hoja_mensual_ganadoras(wb, anio, mes, dias_dict, reg_verdes):
@@ -683,7 +969,7 @@ def construir_hoja_mensual_ganadoras(wb, anio, mes, dias_dict, reg_verdes):
             ws.column_dimensions[openpyxl.utils.get_column_letter(c_start + 5)].width = 2.5
 
 
-def generar_excel_auditoria(aciertos, pendientes, stats, mapa_actual, historial):
+def generar_excel_auditoria(aciertos, pendientes, stats, mapa_actual, historial, reporte_ia):
     wb = openpyxl.Workbook()
     wb.remove(wb.active)
 
@@ -691,6 +977,7 @@ def generar_excel_auditoria(aciertos, pendientes, stats, mapa_actual, historial)
     sub_fill = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
     gold_fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
     green_fill = PatternFill(start_color="DCFCE7", end_color="DCFCE7", fill_type="solid")
+    blue_soft_fill = PatternFill(start_color="E0F2FE", end_color="E0F2FE", fill_type="solid")
     thin_border = Border(
         left=Side(style='thin', color='CBD5E1'),
         right=Side(style='thin', color='CBD5E1'),
@@ -716,6 +1003,68 @@ def generar_excel_auditoria(aciertos, pendientes, stats, mapa_actual, historial)
     for anio, mes in sorted(meses_presentes):
         construir_hoja_mensual_ganadoras(wb, anio, mes, dias_dict, reg_verdes)
 
+    # HOJA DEDICADA DEL ASISTENTE IA DE MONEDAS GANADORAS
+    ws_ia = wb.create_sheet("ASISTENTE_IA_GANADORAS")
+    ws_ia["A1"] = "ASISTENTE IA • ETAPA MONEDAS GANADORAS (REINCIDENCIA MENSUAL + SEGUNDA OLA + REPORTE MATRIZ)"
+    ws_ia["A1"].font = Font(name="Arial", size=12, bold=True, color="FFFFFF")
+    ws_ia["A1"].fill = header_fill
+    ws_ia.merge_cells("A1:K1")
+    ws_ia.row_dimensions[1].height = 28
+
+    ws_ia["A2"] = f"Diagnóstico Global IA ({reporte_ia.get('actualizado_art', '')}): {reporte_ia.get('diagnostico_global', '')}"
+    ws_ia["A2"].font = Font(name="Arial", size=10, bold=True, color="0F172A")
+    ws_ia["A2"].fill = gold_fill
+    ws_ia["A2"].alignment = Alignment(wrap_text=True, vertical="center")
+    ws_ia.merge_cells("A2:K2")
+    ws_ia.row_dimensions[2].height = 34
+
+    headers_ia = [
+        "MONEDA", "VECES MES", "VECES SEM", "MÁX MES %", "ACTUAL $",
+        "HOY %", "RETROCESO PICO %", "BONUS MATRIZ", "ESTADO TÁCTICO",
+        "ACCIÓN SUGERIDA", "DICTAMEN ASISTENTE IA"
+    ]
+    ws_ia.append([])
+    ws_ia.append(headers_ia)
+    ws_ia.row_dimensions[4].height = 24
+    for col_idx in range(1, len(headers_ia) + 1):
+        cell = ws_ia.cell(4, col_idx)
+        cell.font = Font(name="Arial", size=9.5, bold=True, color="FFFFFF")
+        cell.fill = sub_fill
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = thin_border
+
+    for r_idx, c in enumerate(reporte_ia.get("ranking_asistente_ia", []), start=5):
+        row_vals = [
+            c["ticker"],
+            c["veces_mes"],
+            c["veces_semana"],
+            round(c["gain_max_mes"] / 100.0, 4),
+            c["precio_actual"],
+            round(c["cambio_hoy_pct"] / 100.0, 4),
+            round(c["retroceso_pico_pct"] / 100.0, 4),
+            c["bonus_matriz"],
+            c["estado_tactico"],
+            c["accion_sugerida"],
+            c["nota_ia"]
+        ]
+        ws_ia.append(row_vals)
+        ws_ia.row_dimensions[r_idx].height = 22
+        for col_i in range(1, len(headers_ia) + 1):
+            cell = ws_ia.cell(r_idx, col_i)
+            cell.border = thin_border
+            cell.font = Font(name="Arial", size=9.5, bold=(c["veces_mes"] >= 2 or c["segunda_ola"]))
+            if col_i in (4, 6, 7):
+                cell.number_format = "0.0%"
+            if c["segunda_ola"]:
+                cell.fill = green_fill
+            elif c["veces_mes"] >= 2:
+                cell.fill = blue_soft_fill
+
+    widths_ia = [12, 11, 11, 12, 14, 10, 17, 14, 24, 26, 56]
+    for i, w in enumerate(widths_ia, start=1):
+        ws_ia.column_dimensions[openpyxl.utils.get_column_letter(i)].width = w
+
+    # HOJA PARAMETROS_RADAR
     ws_res = wb.create_sheet("PARAMETROS_RADAR")
     ws_res["A1"] = "AUDITORÍA REALIDAD: COMPRA EN VERDE (PRE-EXPLOSIÓN) -> MONEDA GANADORA"
     ws_res["A1"].font = Font(name="Arial", size=13, bold=True, color="FFFFFF")
@@ -752,6 +1101,7 @@ def generar_excel_auditoria(aciertos, pendientes, stats, mapa_actual, historial)
     ws_res.column_dimensions["B"].width = 24
     ws_res.column_dimensions["C"].width = 50
 
+    # HOJA DETALLE_OPERACIONES
     ws_det = wb.create_sheet("DETALLE_OPERACIONES")
     headers_det = [
         "MONEDA", "CATEGORÍA", "FECHA VERDE", "PRECIO VERDE",
@@ -970,7 +1320,7 @@ def enviar_texto_telegram(texto):
         print(f"⚠️ Error enviando texto Telegram: {e}")
 
 
-def publicar_reporte_diario(top_10, total_dias_guardados):
+def publicar_reporte_diario(top_10, total_dias_guardados, reporte_ia):
     fecha_str = ahora_art().strftime('%Y-%m-%d %H:%M ART')
     if not top_10:
         enviar_texto_telegram(f"🏆 <b>MONEDAS GANADORAS (24H)</b>\n📅 <code>{fecha_str}</code>\n\n⏳ <i>Sin monedas con subida >= +3% y liquidez suficiente hoy.</i>")
@@ -988,7 +1338,10 @@ def publicar_reporte_diario(top_10, total_dias_guardados):
         enviar_telegram_foto(fname, caption)
         time.sleep(1)
 
-    cuerpo = f"💡 <i>{html.escape(dictamen)}</i>\n\n"
+    reinc_mes = [c["ticker"] for c in reporte_ia.get("lideres_reincidentes_mes", [])[:5]]
+    reinc_txt = f"🔁 <b>Líderes reincidentes del mes:</b> <code>{', '.join(reinc_mes)}</code>\n" if reinc_mes else ""
+
+    cuerpo = f"💡 <i>{html.escape(dictamen)}</i>\n{reinc_txt}\n"
     for item in top_10:
         sim = item["ticker"]
         precio_str = formatear_precio(item["precio"])
@@ -1010,7 +1363,7 @@ def publicar_excel_diario(stats, fecha_cierre_str):
     """Envía diariamente la planilla Excel actualizada al cierre de cada jornada."""
     caption = (
         f"📊 <b>Planilla Excel Diaria Actualizada (Cierre {fecha_cierre_str}):</b> "
-        f"Bloques Diarios (Base 0% vs Actual) + Resumen Semanal + Auditoría Verde ➔ Ganadoras ({stats['total_aciertos']} aciertos)."
+        f"Mes Completo (Base 0% vs Actual) + Asistente IA Ganadoras + Auditoría Verde ➔ Ganadoras ({stats['total_aciertos']} aciertos)."
     )
     return enviar_telegram_documento(EXCEL_AUDITORIA_FILE, caption)
 
@@ -1076,12 +1429,12 @@ def publicar_reporte_semanal_y_auditoria(reinas, segunda_ola, dias_count, aciert
     time.sleep(1)
     enviar_telegram_documento(
         EXCEL_AUDITORIA_FILE,
-        f"📊 <b>Planilla Excel Actualizada:</b> Bloques Diarios (Base 0% vs Actual) + Resumen Semanal + Auditoría Verde ➔ Ganadoras ({stats['total_aciertos']} aciertos)."
+        f"📊 <b>Planilla Excel Actualizada:</b> Mes Completo (Base 0% vs Actual) + Asistente IA + Auditoría Verde ➔ Ganadoras ({stats['total_aciertos']} aciertos)."
     )
 
 
 if __name__ == "__main__":
-    print(f"🏆 EJECUTANDO BOT MONEDAS GANADORAS + AUDITORÍA VERDE (3 ETAPAS) - {ahora_art().strftime('%Y-%m-%d %H:%M:%S')} ART")
+    print(f"🏆 EJECUTANDO BOT MONEDAS GANADORAS + ASISTENTE IA + MES COMPLETO - {ahora_art().strftime('%Y-%m-%d %H:%M:%S')} ART")
     session = crear_sesion_binance()
     simbolos_activos = obtener_simbolos_spot_activos(session)
     datos = obtener_datos_binance(session)
@@ -1089,11 +1442,20 @@ if __name__ == "__main__":
     if datos and simbolos_activos:
         historial = cargar_historial_ganadoras()
 
+        # Reconstruye automáticamente cualquier día faltante del mes desde el día 1 hasta ayer
+        completar_historial_mes_binance(simbolos_activos, historial)
+
         top_10_dia, mapa_actual = ejecutar_etapa_1_diaria(datos, simbolos_activos, historial)
         total_dias = len(historial.get("dias", {}))
-        publicar_reporte_diario(top_10_dia, total_dias)
 
-        aciertos, pendientes, stats = ejecutar_etapa_3_auditoria_verde(historial, mapa_actual)
+        reinas, segunda_ola, dias_count = ejecutar_etapa_2_semanal(historial, mapa_actual)
+        sincronizar_con_radar_pre_explosion(segunda_ola)
+
+        aciertos, pendientes, stats, reporte_ia = ejecutar_etapa_3_auditoria_verde(
+            historial, mapa_actual, reinas, segunda_ola
+        )
+
+        publicar_reporte_diario(top_10_dia, total_dias, reporte_ia)
 
         hoy = ahora_art()
         hoy_str = hoy.strftime('%Y-%m-%d')
@@ -1101,9 +1463,6 @@ if __name__ == "__main__":
         forzar_semanal = os.getenv("FORZAR_SEMANAL", "").strip() == "1"
         es_ejecucion_manual = (os.getenv("GITHUB_EVENT_NAME") == "workflow_dispatch")
         es_domingo = (hoy.weekday() == 6)
-
-        reinas, segunda_ola, dias_count = ejecutar_etapa_2_semanal(historial, mapa_actual)
-        sincronizar_con_radar_pre_explosion(segunda_ola)
 
         excel_ya_enviado_en_ciclo = False
         if (es_domingo or forzar_semanal or total_dias % 7 == 0) and historial.get("ultimo_reporte_semanal") != hoy_str and dias_count >= 1:
@@ -1129,4 +1488,4 @@ if __name__ == "__main__":
     else:
         print("❌ ERROR: Sin datos o sin símbolos activos de Binance.")
 
-# FIN BOT MONEDAS GANADORAS V2
+# FIN BOT MONEDAS GANADORAS V3 (MES COMPLETO + ASISTENTE IA)
