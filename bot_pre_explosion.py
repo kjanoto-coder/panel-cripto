@@ -44,8 +44,9 @@ BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
 HISTORIAL_FILE = "historial_perlas.json"
 HISTORIAL_GANADORAS_FILE = "historial_ganadoras.json"
 EXCEL_PRE_EXPLOSION_FILE = "AUDITORIA_PRE_EXPLOSION.xlsx"
+REPORTE_IA_PRE_EXPLOSION_FILE = "reporte_ia_pre_explosion.json"
 DIAS_GRADUADAS = 7
-DIAS_RETENCION_CALENDARIO = 90
+DIAS_RETENCION_CALENDARIO = 365
 MODELOS_GEMINI_PRE = ["gemini-2.5-flash", "gemini-2.5-flash-lite"]
 
 MESES_ES = {
@@ -700,7 +701,7 @@ def motor_ia_seleccion_tactica(tickers, simbolos_activos, session, historial):
 
 
 # ==============================================================================
-# AUDITORÍA HISTÓRICA + CRUCE CON MONEDAS GANADORAS + EXCEL DIARIO
+# AUDITORÍA HISTÓRICA + ASISTENTE IA PRE-EXPLOSIÓN + CRUCE GANADORAS + EXCEL
 # ==============================================================================
 def _normalizar_symbol(raw):
     s = str(raw or "").strip().upper()
@@ -999,7 +1000,179 @@ def migrar_historial_existente(historial, ganadoras, registro, por_dia):
         })
 
 
-def _generar_excel_pre_explosion(registro, por_dia, mapa_tickers):
+# ==============================================================================
+# ASISTENTE IA DEDICADO: PRE-EXPLOSIÓN (MADURACIÓN, EFECTIVIDAD Y REPORTE MATRIZ)
+# ==============================================================================
+def ejecutar_asistente_ia_pre_explosion(registro, por_dia, bloques, mapa_tickers):
+    todas = list(registro.values())
+    ganadas = [r for r in todas if r.get("estado") == "GANADORA"]
+
+    horas_all = [
+        r["horas_hasta_ganadora"] for r in ganadas
+        if r.get("horas_hasta_ganadora") is not None and not r.get("mismo_dia_sin_hora", False)
+    ]
+    prom_h = round(sum(horas_all) / len(horas_all), 1) if horas_all else None
+    med_h = round(sorted(horas_all)[len(horas_all) // 2], 1) if horas_all else None
+    dias_mediana = round(med_h / 24.0, 1) if med_h is not None else 2.0
+    tasa_global = round((len(ganadas) / len(todas)) * 100, 1) if todas else 0.0
+
+    # Estadística por categoría del semáforo
+    segmentos = [
+        ("TOP_ORO", "🏆 TOP ORO", [r for r in todas if r.get("color_inicial") == "VERDE" and r.get("es_oro")]),
+        ("VERDE", "🟢 VERDE", [r for r in todas if r.get("color_inicial") == "VERDE" and not r.get("es_oro")]),
+        ("AMARILLO", "🟡 AMARILLO", [r for r in todas if r.get("color_inicial") == "AMARILLO"]),
+        ("ROJO", "🔴 ROJO", [r for r in todas if r.get("color_inicial") == "ROJO"]),
+        ("CONFLUENCIA_CAZADOR", "🛡️ CONFLUENCIA CAZADOR+PRE", [r for r in todas if r.get("coincide_cazador")])
+    ]
+
+    stats_segmentos = []
+    tasa_por_cat = {}
+    horizonte_por_cat = {}
+    for cod, nombre, sub in segmentos:
+        tot_s = len(sub)
+        wins_s = [x for x in sub if x.get("estado") == "GANADORA"]
+        h_s = [x["horas_hasta_ganadora"] for x in wins_s if x.get("horas_hasta_ganadora") is not None and not x.get("mismo_dia_sin_hora", False)]
+        picos_s = [float(x.get("subida_pico_pct") or 0.0) for x in sub if float(x.get("precio_inicial") or 0.0) > 0]
+        tasa_s = round((len(wins_s) / tot_s) * 100, 1) if tot_s > 0 else 0.0
+        med_h_s = round(sorted(h_s)[len(h_s) // 2], 1) if h_s else (med_h if med_h is not None else 48.0)
+        pico_prom_s = round(sum(picos_s) / len(picos_s), 2) if picos_s else 0.0
+
+        tasa_por_cat[cod] = tasa_s
+        horizonte_por_cat[cod] = max(12.0, med_h_s)
+        stats_segmentos.append({
+            "codigo": cod,
+            "categoria": nombre,
+            "detectadas": tot_s,
+            "ganadoras": len(wins_s),
+            "tasa_acierto_pct": tasa_s,
+            "demora_mediana_horas": med_h_s,
+            "demora_mediana_txt": _formatear_demora(med_h_s),
+            "pico_max_prom_pct": pico_prom_s
+        })
+
+    # Evaluar candidatas activas del ciclo actual para Matriz Central
+    activas_eval = []
+    vistas = set()
+    for cat_key in ("ROJO", "AMARILLO", "VERDE"):
+        for it in (bloques.get(cat_key) or []):
+            sym = it["symbol"]
+            if sym in vistas:
+                continue
+            vistas.add(sym)
+            rec = registro.get(sym, {})
+            cod_seg = "TOP_ORO" if (cat_key == "VERDE" and it.get("es_oro")) else cat_key
+            tasa_hist = tasa_por_cat.get(cod_seg, tasa_global)
+            horiz_h = round(horizonte_por_cat.get(cod_seg, 48.0), 1)
+            horiz_dias = round(horiz_h / 24.0, 1)
+
+            fib = it.get("fib_info") or {}
+            cert = bool(it.get("certificada_ia"))
+            blindaje = int(it.get("blindaje_pct") or 50)
+
+            if cert and cat_key in ("ROJO", "AMARILLO"):
+                accion = "COMPRA_CONFIRMADA_MADURACION"
+            elif it.get("es_oro"):
+                accion = "COMPRA_TEMPRANA_ORO_PACIENCIA"
+            elif cert:
+                accion = "ACUMULACION_ESCALONADA"
+            else:
+                accion = "OBSERVACION_ESPERAR_CONFIRMACION"
+
+            nota_default = (
+                f"Señal {cod_seg} (blindaje {blindaje}%, efectividad hist. {tasa_hist}%); "
+                f"horizonte típico de maduración {horiz_dias}d ({_formatear_demora(horiz_h)})."
+            )
+
+            activas_eval.append({
+                "symbol": sym,
+                "ticker": it["ticker"],
+                "semaforo": cod_seg,
+                "certificada_ia": cert,
+                "blindaje_pct": blindaje,
+                "precio_actual": it.get("precio_f", 0.0),
+                "cambio_1h_pct": it.get("cambio_1h", 0.0),
+                "cambio_4h_pct": it.get("cambio_4h", 0.0),
+                "cambio_24h_pct": it.get("cambio_f", 0.0),
+                "vol_1h_rel": it.get("vol_1h_rel", 1.0),
+                "ratio_bids_asks": it.get("ratio_bids_asks", 1.0),
+                "fib_etiqueta": fib.get("etiqueta_fib", "N/D") if fib.get("ok") else "N/D",
+                "ext_1618": round(float(fib.get("ext_1618") or 0.0), 8) if fib.get("ok") else 0.0,
+                "tasa_conversion_hist_pct": tasa_hist,
+                "horizonte_maduracion_horas": horiz_h,
+                "horizonte_maduracion_dias": horiz_dias,
+                "apariciones_dias": int(rec.get("apariciones_count") or 1),
+                "accion_matriz": accion,
+                "dictamen_ia": nota_default
+            })
+
+    diagnostico_global = (
+        f"Universo de {len(todas)} monedas auditadas en {len(por_dia)} días (conversión real a Ganadora: {tasa_global}%). "
+        f"El tiempo típico de maduración desde Pre-Explosión hasta el impulso ganador es de {_formatear_demora(med_h) if med_h is not None else '48h'} ({dias_mediana}d)."
+    )
+
+    if GEMINI_API_KEY and (activas_eval or stats_segmentos):
+        try:
+            client = genai.Client(api_key=GEMINI_API_KEY)
+            res_seg = "\n".join([
+                f"- {s['categoria']}: {s['detectadas']} detectadas, {s['ganadoras']} ganadoras ({s['tasa_acierto_pct']}%), demora mediana {s['demora_mediana_txt']}, pico prom +{s['pico_max_prom_pct']}%"
+                for s in stats_segmentos
+            ])
+            res_act = "\n".join([
+                f"- {a['ticker']} ({a['semaforo']}, blindaje {a['blindaje_pct']}%, cert={a['certificada_ia']}): 1h {a['cambio_1h_pct']:+.1f}%, 24h {a['cambio_24h_pct']:+.1f}%, OB {a['ratio_bids_asks']}x, {a['fib_etiqueta']}"
+                for a in activas_eval[:12]
+            ])
+            prompt = (
+                "Sos el Asistente IA de la etapa PRE-EXPLOSIÓN en Binance Spot. "
+                "Analizá la efectividad histórica por color y las candidatas activas de hoy, y devolvé SOLO JSON válido:\n"
+                '{"diagnostico_global":"2 oraciones ejecutivas sobre qué señales convierten más rápido y cuánta paciencia requieren", '
+                '"dictamenes":{"TICKER":"recomendación táctica concreta de 1 línea con horizonte de espera"}}\n\n'
+                f"Estadísticas reales:\n{res_seg}\n\nCandidatas activas:\n{res_act}"
+            )
+            for mod in MODELOS_GEMINI_PRE:
+                try:
+                    resp = client.models.generate_content(model=mod, contents=prompt)
+                    if resp and resp.text:
+                        raw = resp.text.strip()
+                        raw = re.sub(r'^```(?:json)?\s*|\s*```$', '', raw).strip()
+                        parsed = json.loads(raw)
+                        if isinstance(parsed, dict):
+                            if parsed.get("diagnostico_global"):
+                                diagnostico_global = str(parsed["diagnostico_global"]).strip()
+                            d_map = parsed.get("dictamenes") or {}
+                            for a in activas_eval:
+                                if a["ticker"] in d_map:
+                                    a["dictamen_ia"] = str(d_map[a["ticker"]]).strip()
+                        break
+                except Exception:
+                    continue
+        except Exception as e:
+            print(f"⚠️ Fallback Asistente IA Pre-Explosión: {e}")
+
+    reporte_json = {
+        "etapa": "PRE_EXPLOSION",
+        "actualizado_art": ahora_art().strftime('%Y-%m-%d %H:%M:%S ART'),
+        "total_monedas_historicas": len(todas),
+        "dias_registrados": len(por_dia),
+        "total_ganadoras_confirmadas": len(ganadas),
+        "tasa_conversion_global_pct": tasa_global,
+        "demora_promedio_horas": prom_h,
+        "demora_mediana_horas": med_h,
+        "horizonte_tipico_dias": dias_mediana,
+        "diagnostico_global": diagnostico_global,
+        "efectividad_por_semaforo": stats_segmentos,
+        "candidatas_activas_evaluadas": activas_eval
+    }
+
+    try:
+        with open(REPORTE_IA_PRE_EXPLOSION_FILE, 'w', encoding='utf-8') as f:
+            json.dump(reporte_json, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"⚠️ Error guardando {REPORTE_IA_PRE_EXPLOSION_FILE}: {e}")
+
+    return reporte_json
+
+
+def _generar_excel_pre_explosion(registro, por_dia, mapa_tickers, reporte_ia):
     wb = openpyxl.Workbook()
     wb.remove(wb.active)
 
@@ -1148,6 +1321,67 @@ def _generar_excel_pre_explosion(registro, por_dia, mapa_tickers):
             ws.column_dimensions[openpyxl.utils.get_column_letter(cs + 5)].width = 16.5
             if b_idx < 6:
                 ws.column_dimensions[openpyxl.utils.get_column_letter(cs + 6)].width = 2.5
+
+    # HOJA DEDICADA DEL ASISTENTE IA DE PRE-EXPLOSIÓN
+    ws_ia = wb.create_sheet("ASISTENTE_IA_PRE_EXPLOSION")
+    ws_ia["A1"] = "ASISTENTE IA • ETAPA PRE-EXPLOSIÓN (MADURACIÓN REAL, CONVERSIÓN A GANADORA Y CANDIDATAS ACTIVAS)"
+    ws_ia["A1"].font = Font(name="Arial", size=12, bold=True, color="FFFFFF")
+    ws_ia["A1"].fill = fill_titulo
+    ws_ia.merge_cells("A1:K1")
+    ws_ia.row_dimensions[1].height = 28
+
+    ws_ia["A2"] = f"Diagnóstico Global IA ({reporte_ia.get('actualizado_art', '')}): {reporte_ia.get('diagnostico_global', '')}"
+    ws_ia["A2"].font = Font(name="Arial", size=10, bold=True, color="0F172A")
+    ws_ia["A2"].fill = fill_gold
+    ws_ia["A2"].alignment = Alignment(wrap_text=True, vertical="center")
+    ws_ia.merge_cells("A2:K2")
+    ws_ia.row_dimensions[2].height = 34
+
+    headers_ia = [
+        "MONEDA", "SEMÁFORO", "CERTIFICADA IA", "BLINDAJE %", "PRECIO ACTUAL",
+        "EFECTIVIDAD HIST %", "HORIZONTE MADURACIÓN", "FIBONACCI", "BIDS/ASKS",
+        "ACCIÓN MATRIZ", "DICTAMEN ASISTENTE IA"
+    ]
+    ws_ia.append([])
+    ws_ia.append(headers_ia)
+    ws_ia.row_dimensions[4].height = 24
+    for ci in range(1, len(headers_ia) + 1):
+        cell = ws_ia.cell(4, ci)
+        cell.font = Font(name="Arial", size=9.5, bold=True, color="FFFFFF")
+        cell.fill = fill_col_hdr
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = borde
+
+    for r_idx, a in enumerate(reporte_ia.get("candidatas_activas_evaluadas", []), start=5):
+        row = [
+            a["ticker"],
+            a["semaforo"],
+            "🛡️ SÍ" if a["certificada_ia"] else "⏳ NO",
+            round(a["blindaje_pct"] / 100.0, 4),
+            a["precio_actual"],
+            round(a["tasa_conversion_hist_pct"] / 100.0, 4),
+            f"{a['horizonte_maduracion_dias']}d ({_formatear_demora(a['horizonte_maduracion_horas'])})",
+            a["fib_etiqueta"],
+            f"{a['ratio_bids_asks']}x",
+            a["accion_matriz"],
+            a["dictamen_ia"]
+        ]
+        ws_ia.append(row)
+        ws_ia.row_dimensions[r_idx].height = 22
+        for ci in range(1, len(headers_ia) + 1):
+            cell = ws_ia.cell(r_idx, ci)
+            cell.border = borde
+            cell.font = Font(name="Arial", size=9.5, bold=a["certificada_ia"])
+            if ci in (4, 6):
+                cell.number_format = "0.0%"
+            if a["certificada_ia"]:
+                cell.fill = fill_verde
+            elif a["semaforo"] == "TOP_ORO":
+                cell.fill = fill_gold
+
+    widths_ia = [12, 14, 15, 12, 14, 17, 21, 22, 12, 28, 56]
+    for i, w in enumerate(widths_ia, start=1):
+        ws_ia.column_dimensions[openpyxl.utils.get_column_letter(i)].width = w
 
     ws_cruce = wb.create_sheet("CRUCE_TIEMPOS_GANADORA")
     headers_cruce = [
@@ -1427,7 +1661,7 @@ def enviar_telegram_documento(doc_path, caption_text):
 
 
 def ejecutar_auditoria_y_excel_pre_explosion(historial, bloques, mapa_tickers):
-    """Migra historial, cruza con Monedas Ganadoras, genera AUDITORIA_PRE_EXPLOSION.xlsx y lo envía al cierre."""
+    """Migra historial, ejecuta Asistente IA, cruza con Monedas Ganadoras y genera Excel + JSON."""
     ahora = ahora_art()
     hoy_str = ahora.strftime("%Y-%m-%d")
     ayer_str = (ahora - timedelta(days=1)).strftime("%Y-%m-%d")
@@ -1552,7 +1786,8 @@ def ejecutar_auditoria_y_excel_pre_explosion(historial, bloques, mapa_tickers):
                 rec["alcanzo_fib_1618"] = bool(ext_target > 0 and max(p_win, p_pico_actual) >= ext_target)
                 break
 
-    stats = _generar_excel_pre_explosion(registro, por_dia, mapa_tickers)
+    reporte_ia = ejecutar_asistente_ia_pre_explosion(registro, por_dia, bloques, mapa_tickers)
+    stats = _generar_excel_pre_explosion(registro, por_dia, mapa_tickers, reporte_ia)
 
     ultimo_envio = historial.get("ultimo_envio_excel_pre", "")
     es_cierre = (ahora.hour == 23 and ahora.minute >= 30 and ultimo_envio != hoy_str)
@@ -1562,7 +1797,7 @@ def ejecutar_auditoria_y_excel_pre_explosion(historial, bloques, mapa_tickers):
     if es_cierre or es_recupero or es_manual:
         fecha_lbl = ayer_str if (es_recupero and not es_cierre) else hoy_str
         caption = (
-            f"📊 <b>Excel Pre-Explosión + Historial ({fecha_lbl})</b>\n"
+            f"📊 <b>Excel Pre-Explosión + Asistente IA ({fecha_lbl})</b>\n"
             f"• Universo histórico: <b>{stats['total']} monedas</b> en <b>{stats['dias_hist']} días</b>\n"
             f"• Convertidas en Ganadoras: <b>{stats['ganadas']}</b> ({stats['tasa_pct']}%)\n"
             f"• ⏱️ Tiempo medio hasta Ganadora: <code>{stats['prom_txt']}</code>"
@@ -1748,7 +1983,7 @@ def enviar_mensaje_por_color(num_msg, cat_key, titulo_color, items, total_analiz
 
 
 if __name__ == "__main__":
-    print(f"🔥 EJECUTANDO PRE-EXPLOSIÓN V8 + CERTIFICADOR IA + EXCEL ({ahora_art().strftime('%Y-%m-%d %H:%M:%S')} ART)...")
+    print(f"🔥 EJECUTANDO PRE-EXPLOSIÓN V9 + ASISTENTE IA + EXCEL ({ahora_art().strftime('%Y-%m-%d %H:%M:%S')} ART)...")
     session = crear_sesion_binance()
     simbolos_activos = obtener_simbolos_spot_activos(session)
     datos = obtener_datos_binance(session)
