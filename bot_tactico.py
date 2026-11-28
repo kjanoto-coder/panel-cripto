@@ -5,6 +5,7 @@ import json
 import time
 import random
 import html
+import copy
 import subprocess
 from collections import Counter
 from datetime import datetime, timezone, timedelta
@@ -973,7 +974,7 @@ def actualizar_historial_completo_tactico(session, historial, mapa_mkt):
         except Exception:
             dias_trans = 0
 
-        if not reg.get("auditada_completa") and actualizaciones_klines < 35:
+        if not reg.get("auditada_completa") and actualizaciones_klines < 60:
             ev = _evaluar_evolucion_historica_binance(session, sym, reg["fecha_deteccion"], p_ini, p_act)
             actualizaciones_klines += 1
             if ev:
@@ -988,12 +989,13 @@ def actualizar_historial_completo_tactico(session, historial, mapa_mkt):
         reg["max_gain_pct"] = max_g
         reg["max_dd_pct"] = max_dd
 
-        if not reg.get("resultado_real"):
-            if max_g >= 8.0:
-                reg["resultado_real"] = "REBOTE_EXITOSO (>=+8%)"
-            elif max_g >= 4.0:
-                reg["resultado_real"] = "AVANCE_MODERADO (+4% a +8%)"
-            elif dias_trans <= 3:
+        res_prev = str(reg.get("resultado_real") or "").strip()
+        if max_g >= 8.0:
+            reg["resultado_real"] = "REBOTE_EXITOSO (>=+8%)"
+        elif max_g >= 4.0 and res_prev in ("", "EN_MADURACION (<=3d)", "LATERAL_SIN_IMPULSO", "INVALIDADA (<-7%)"):
+            reg["resultado_real"] = "AVANCE_MODERADO (+4% a +8%)"
+        elif not res_prev:
+            if dias_trans <= 3:
                 reg["resultado_real"] = "EN_MADURACION (<=3d)"
             elif max_dd <= -7.0:
                 reg["resultado_real"] = "INVALIDADA (<-7%)"
@@ -1191,6 +1193,7 @@ def generar_excel_tactico(hist_comp, reporte_ia):
     if not required_sheets.issubset(set(wb.sheetnames)) and os.path.exists(MAESTRO_BASE_FILE):
         wb = openpyxl.load_workbook(MAESTRO_BASE_FILE)
 
+    ws_res = wb["1_RESUMEN_MENSUAL_IA"]
     ws_rad = wb["2_RADAR_ACTIVO_IA"]
     ws_reg = wb["3_REGISTRO_MAESTRO"]
     ws_mon = wb["4_RANKING_MONEDAS"]
@@ -1282,14 +1285,32 @@ def generar_excel_tactico(hist_comp, reporte_ia):
                 ws_reg.cell(r, 22).value = reg.get("fib_tag")
             if reg.get("rsi_1h") is not None and ws_reg.cell(r, 23).value is None:
                 ws_reg.cell(r, 23).value = reg.get("rsi_1h")
-            if res_aud and ws_reg.cell(r, 24).value is None:
+            res_celda = str(ws_reg.cell(r, 24).value or "").strip()
+            if res_aud and (
+                not res_celda
+                or res_aud == "REBOTE_EXITOSO (>=+8%)"
+                or (res_aud == "AVANCE_MODERADO (+4% a +8%)" and res_celda in ("EN_MADURACION (<=3d)", "LATERAL_SIN_IMPULSO", "INVALIDADA (<-7%)"))
+            ):
                 ws_reg.cell(r, 24).value = res_aud
             if cat == "ROJA":
                 ws_reg.cell(r, 25).value = "SÍ (Pre-Exp)"
+            elif res_aud == "REBOTE_EXITOSO (>=+8%)" and (not ws_reg.cell(r, 25).value or ws_reg.cell(r, 25).value == "NO"):
+                ws_reg.cell(r, 25).value = "SÍ (Ganadoras)"
         else:
             r = next_row
             next_row += 1
             existing_by_key[key] = r
+
+            for c_style in range(1, 28):
+                src_c = ws_reg.cell(5, c_style)
+                dst_c = ws_reg.cell(r, c_style)
+                if src_c.has_style:
+                    dst_c.font = copy.copy(src_c.font)
+                    dst_c.alignment = copy.copy(src_c.alignment)
+                    dst_c.border = copy.copy(src_c.border)
+                    dst_c.number_format = src_c.number_format
+                    if c_style in (1, 3, 4, 15) and src_c.fill:
+                        dst_c.fill = copy.copy(src_c.fill)
 
             if not ws_reg.cell(r, 1).value:
                 ws_reg.cell(r, 1).value = f'=IF(F{r}="","",ROW()-4)'
@@ -1331,7 +1352,20 @@ def generar_excel_tactico(hist_comp, reporte_ia):
         r = 5 + idx
         ws_mon.cell(r, 2).value = ranked_coins[idx] if idx < len(ranked_coins) else None
 
-    # 4. Actualizar Tabla 1 de `5_AUDITORIA_SETUPS` sin tocar la Tabla 2 dinámica
+    # 4. Actualizar Tabla 1 y subtítulos dinámicos con el conteo real unificado
+    total_unif = len(existing_by_key)
+    total_fmt = f"{total_unif:,}".replace(",", ".")
+    ws_res["A2"] = (
+        f"Consolidación automática de '3_REGISTRO_MAESTRO' ({total_fmt} señales únicas). "
+        "Cambiá el período en B4 para inspeccionar cualquier mes en tiempo real."
+    )
+    ws_aud["A2"] = (
+        f"Combina la calibración oficial del bot (Tabla 1) con el conteo dinámico en vivo sobre las "
+        f"{total_fmt} señales del Registro Maestro (Tabla 2)."
+    )
+    ws_aud["A4"] = f"1. CALIBRACIÓN ESTADÍSTICA DEL BOT (BASE AUDITADA: {total_fmt} SEÑALES)"
+    ws_aud["A13"] = f"2. DISTRIBUCIÓN DINÁMICA POR RESULTADO AUDITADO (SOBRE TOTAL UNIFICADO DE {total_fmt} SEÑALES)"
+
     filas_set = reporte_ia.get("auditoria_por_etapa", []) + reporte_ia.get("auditoria_por_estructura", [])
     for idx, st in enumerate(filas_set[:6]):
         r = 6 + idx
