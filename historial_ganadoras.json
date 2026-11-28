@@ -7310,6 +7310,21 @@
       "subida_real_pct": -0.99,
       "subida_24h_dia_pct": 5.82,
       "dias_demora": 0
+    },
+    "CATIUSDT": {
+      "symbol": "CATIUSDT",
+      "ticker": "CATI",
+      "fecha_verde": "2026-11-28",
+      "ts_verde": "2026-11-28 10:42",
+      "precio_verde": 0.03723,
+      "es_oro": false,
+      "origen": "CAZADOR_TACTICO_ROJO",
+      "estado": "PENDIENTE",
+      "fecha_ganadora": "",
+      "precio_ganadora": 0.0,
+      "subida_real_pct": 0.0,
+      "subida_24h_dia_pct": 0.0,
+      "dias_demora": null
     }
   }
 }
