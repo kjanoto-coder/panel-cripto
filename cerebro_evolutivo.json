@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 259,
-  "ultima_actualizacion": "2026-11-28 04:01 ART",
+  "version_ciclo": 260,
+  "ultima_actualizacion": "2026-11-28 04:11 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.86,
     "min_ob_ratio": 1.24,
@@ -116,13 +116,6 @@
     }
   },
   "pendientes_sombra_24h": [
-    {
-      "symbol": "LISTAUSDT",
-      "ts_unix": 1795827717,
-      "precio_veto": 0.0871,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 0.21x < 1.25x"
-    },
     {
       "symbol": "SEIUSDT",
       "ts_unix": 1795828869,
@@ -269,6 +262,13 @@
       "precio_veto": 2.596,
       "paso_fallido": "A4-Empresa",
       "detalle": "A4 VETA: Vol 1h 0.91x < 1.25x"
+    },
+    {
+      "symbol": "LISTAUSDT",
+      "ts_unix": 1795827717,
+      "precio_veto": 0.0871,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.21x < 1.25x"
     },
     {
       "symbol": "KAVAUSDT",
@@ -566,6 +566,6 @@
     "stops_salvadores": 1,
     "vetos_acertados": 74,
     "oportunidades_perdidas_20": 12,
-    "ajustes_autocritica_ciclo": 104
+    "ajustes_autocritica_ciclo": 105
   }
 }
