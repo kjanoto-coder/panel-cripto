@@ -5134,6 +5134,16 @@
       "certificada_ia": true,
       "blindaje_pct": 79,
       "motivo_certificacion": "Pullback Sano Fib (0.37) | Libro Bids/Asks: 2.14x (Spread 0.244%)"
+    },
+    "REZUSDT": {
+      "symbol": "REZUSDT",
+      "base": "REZ",
+      "estrellas": 3,
+      "probabilidad_pct": 80,
+      "precio_ref": 0.002395,
+      "fecha_iso": "2026-11-28",
+      "fecha_corta": "28/11",
+      "origen": "SEGUNDA_OLA_GANADORAS"
     }
   },
   "verdes_hoy": [
