@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 247,
-  "ultima_actualizacion": "2026-11-28 02:01 ART",
+  "version_ciclo": 248,
+  "ultima_actualizacion": "2026-11-28 02:11 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.91,
     "min_ob_ratio": 1.27,
@@ -73,10 +73,10 @@
       "ajuste_score": -5.0
     },
     "CFGUSDT": {
-      "eventos": 3,
-      "positivos": 3,
+      "eventos": 4,
+      "positivos": 4,
       "negativos": 0,
-      "ajuste_score": 12.0
+      "ajuste_score": 16.0
     },
     "HAEDALUSDT": {
       "eventos": 1,
@@ -104,34 +104,6 @@
     }
   },
   "pendientes_sombra_24h": [
-    {
-      "symbol": "NIGHTUSDT",
-      "ts_unix": 1795820510,
-      "precio_veto": 0.0501,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 0.22x < 1.25x"
-    },
-    {
-      "symbol": "TRUMPUSDT",
-      "ts_unix": 1795820510,
-      "precio_veto": 0.878,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 0.23x < 1.25x"
-    },
-    {
-      "symbol": "CFGUSDT",
-      "ts_unix": 1795820510,
-      "precio_veto": 0.0569,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
-    },
-    {
-      "symbol": "ANTBUSDT",
-      "ts_unix": 1795820510,
-      "precio_veto": 90.94,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin historial suficiente de velas 15m/1D"
-    },
     {
       "symbol": "THEUSDT",
       "ts_unix": 1795821074,
@@ -271,6 +243,20 @@
       "precio_veto": 0.0801,
       "paso_fallido": "A4-Empresa",
       "detalle": "A4 VETA: Vol 1h 0.28x < 1.25x"
+    },
+    {
+      "symbol": "NIGHTUSDT",
+      "ts_unix": 1795820510,
+      "precio_veto": 0.0501,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.22x < 1.25x"
+    },
+    {
+      "symbol": "ANTBUSDT",
+      "ts_unix": 1795820510,
+      "precio_veto": 90.94,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin historial suficiente de velas 15m/1D"
     },
     {
       "symbol": "TQQQBUSDT",
@@ -516,6 +502,20 @@
       "precio_veto": 133.93,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "NIGHTUSDT",
+      "ts_unix": 1795842668,
+      "precio_veto": 0.04985,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.45x < 1.25x"
+    },
+    {
+      "symbol": "ANTBUSDT",
+      "ts_unix": 1795842668,
+      "precio_veto": 91.56,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin historial suficiente de velas 15m/1D"
     }
   ],
   "metricas_globales": {
@@ -524,8 +524,8 @@
     "runners_20_logrados": 0,
     "stops_prematuros": 0,
     "stops_salvadores": 1,
-    "vetos_acertados": 71,
-    "oportunidades_perdidas_20": 9,
-    "ajustes_autocritica_ciclo": 95
+    "vetos_acertados": 72,
+    "oportunidades_perdidas_20": 10,
+    "ajustes_autocritica_ciclo": 96
   }
 }
