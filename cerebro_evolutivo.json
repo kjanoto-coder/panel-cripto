@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 315,
-  "ultima_actualizacion": "2026-11-28 13:21 ART",
+  "version_ciclo": 316,
+  "ultima_actualizacion": "2026-11-28 13:31 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.89,
     "min_ob_ratio": 1.28,
@@ -244,6 +244,13 @@
       "precio_veto": 0.05002,
       "paso_fallido": "A4-Empresa",
       "detalle": "A4 VETA: Vol 1h 0.49x < 1.25x"
+    },
+    {
+      "symbol": "PARTIUSDT",
+      "ts_unix": 1795882871,
+      "precio_veto": 0.0363,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     },
     {
       "symbol": "SKYUSDT",
@@ -503,20 +510,6 @@
       "precio_veto": 0.0883,
       "paso_fallido": "A5-Binance",
       "detalle": "A5 VETA: Muro vendedor en Ask (56% del libro)"
-    },
-    {
-      "symbol": "RENDERUSDT",
-      "ts_unix": 1795796472,
-      "precio_veto": 1.365,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
-    },
-    {
-      "symbol": "PARTIUSDT",
-      "ts_unix": 1795882871,
-      "precio_veto": 0.0363,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     }
   ],
   "metricas_globales": {
@@ -527,6 +520,6 @@
     "stops_salvadores": 1,
     "vetos_acertados": 84,
     "oportunidades_perdidas_20": 15,
-    "ajustes_autocritica_ciclo": 159
+    "ajustes_autocritica_ciclo": 160
   }
 }
