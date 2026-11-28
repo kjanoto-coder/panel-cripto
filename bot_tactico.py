@@ -1345,16 +1345,28 @@ def generar_excel_tactico(hist_comp, reporte_ia):
             ws_reg.cell(r, 26).value = "NO"
             ws_reg.cell(r, 27).value = "Bot Cazador Táctico"
 
-    # 3. Reordenar `4_RANKING_MONEDAS` por recurrencia histórica conservando fórmulas
+    # 3. Reordenar `4_RANKING_MONEDAS` por recurrencia histórica y sanear fórmulas MAX/MIN
+    ws_mon["A1"] = "CAZADOR TÁCTICO • RANKING MAESTRO DE MONEDAS ÚNICAS (ACUMULADO HISTÓRICO)"
     counts = Counter(k[1] for k in existing_by_key.keys())
     ranked_coins = sorted(counts.keys(), key=lambda c: (-counts[c], c))
     for idx in range(500):
         r = 5 + idx
         ws_mon.cell(r, 2).value = ranked_coins[idx] if idx < len(ranked_coins) else None
+        ws_mon.cell(r, 11).value = (
+            f'=IF(OR(B{r}="",C{r}=0),"",IFERROR(AGGREGATE(14,6,'
+            f"'3_REGISTRO_MAESTRO'!$O$5:$O$2504/('3_REGISTRO_MAESTRO'!$F$5:$F$2504=B{r}),1),0))"
+        )
+        ws_mon.cell(r, 12).value = (
+            f'=IF(OR(B{r}="",C{r}=0),"",IFERROR(AGGREGATE(15,6,'
+            f"'3_REGISTRO_MAESTRO'!$P$5:$P$2504/('3_REGISTRO_MAESTRO'!$F$5:$F$2504=B{r}),1),0))"
+        )
 
     # 4. Actualizar Tabla 1 y subtítulos dinámicos con el conteo real unificado
     total_unif = len(existing_by_key)
     total_fmt = f"{total_unif:,}".replace(",", ".")
+    total_radar = sum(int(st.get("cantidad", 0)) for st in reporte_ia.get("auditoria_por_etapa", []) if int(st.get("cantidad", 0)) < total_unif)
+    total_radar_fmt = f"{total_radar:,}".replace(",", ".") if total_radar > 0 else total_fmt
+
     ws_res["A2"] = (
         f"Consolidación automática de '3_REGISTRO_MAESTRO' ({total_fmt} señales únicas). "
         "Cambiá el período en B4 para inspeccionar cualquier mes en tiempo real."
@@ -1363,7 +1375,7 @@ def generar_excel_tactico(hist_comp, reporte_ia):
         f"Combina la calibración oficial del bot (Tabla 1) con el conteo dinámico en vivo sobre las "
         f"{total_fmt} señales del Registro Maestro (Tabla 2)."
     )
-    ws_aud["A4"] = f"1. CALIBRACIÓN ESTADÍSTICA DEL BOT (BASE AUDITADA: {total_fmt} SEÑALES)"
+    ws_aud["A4"] = f"1. CALIBRACIÓN ESTADÍSTICA DEL BOT (SUBSET CON ETAPA DE RADAR: {total_radar_fmt} SEÑALES)"
     ws_aud["A13"] = f"2. DISTRIBUCIÓN DINÁMICA POR RESULTADO AUDITADO (SOBRE TOTAL UNIFICADO DE {total_fmt} SEÑALES)"
 
     filas_set = reporte_ia.get("auditoria_por_etapa", []) + reporte_ia.get("auditoria_por_estructura", [])
