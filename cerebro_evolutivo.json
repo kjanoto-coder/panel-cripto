@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 268,
-  "ultima_actualizacion": "2026-11-28 05:31 ART",
+  "version_ciclo": 269,
+  "ultima_actualizacion": "2026-11-28 05:41 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.86,
     "min_ob_ratio": 1.24,
@@ -116,13 +116,6 @@
     }
   },
   "pendientes_sombra_24h": [
-    {
-      "symbol": "HAEDALUSDT",
-      "ts_unix": 1795833084,
-      "precio_veto": 0.02345,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
-    },
     {
       "symbol": "牛来USDT",
       "ts_unix": 1795833669,
@@ -243,6 +236,13 @@
       "detalle": "A4 VETA: Vol 1h 0.91x < 1.25x"
     },
     {
+      "symbol": "HAEDALUSDT",
+      "ts_unix": 1795833084,
+      "precio_veto": 0.02345,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
       "symbol": "PUMPUSDT",
       "ts_unix": 1795830075,
       "precio_veto": 0.00263,
@@ -337,13 +337,6 @@
       "symbol": "TQQQBUSDT",
       "ts_unix": 1795819271,
       "precio_veto": 48.5,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
-    },
-    {
-      "symbol": "RENDERUSDT",
-      "ts_unix": 1795818687,
-      "precio_veto": 1.396,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     },
@@ -550,8 +543,8 @@
     "runners_20_logrados": 0,
     "stops_prematuros": 0,
     "stops_salvadores": 1,
-    "vetos_acertados": 75,
+    "vetos_acertados": 76,
     "oportunidades_perdidas_20": 12,
-    "ajustes_autocritica_ciclo": 112
+    "ajustes_autocritica_ciclo": 113
   }
 }
