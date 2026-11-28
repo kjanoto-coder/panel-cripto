@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 238,
-  "ultima_actualizacion": "2026-11-28 00:41 ART",
+  "version_ciclo": 239,
+  "ultima_actualizacion": "2026-11-28 00:51 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.91,
     "min_ob_ratio": 1.27,
@@ -104,13 +104,6 @@
     }
   },
   "pendientes_sombra_24h": [
-    {
-      "symbol": "MUBUSDT",
-      "ts_unix": 1795815670,
-      "precio_veto": 645.16,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
-    },
     {
       "symbol": "SKYUSDT",
       "ts_unix": 1795816271,
@@ -297,6 +290,20 @@
       "symbol": "SNDKBUSDT",
       "ts_unix": 1795835474,
       "precio_veto": 85.78,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "PORTALUSDT",
+      "ts_unix": 1795837268,
+      "precio_veto": 0.01474,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "MUBUSDT",
+      "ts_unix": 1795815670,
+      "precio_veto": 645.16,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     },
@@ -516,13 +523,6 @@
       "precio_veto": 133.93,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
-    },
-    {
-      "symbol": "PORTALUSDT",
-      "ts_unix": 1795837268,
-      "precio_veto": 0.01474,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     }
   ],
   "metricas_globales": {
@@ -533,6 +533,6 @@
     "stops_salvadores": 1,
     "vetos_acertados": 67,
     "oportunidades_perdidas_20": 9,
-    "ajustes_autocritica_ciclo": 86
+    "ajustes_autocritica_ciclo": 87
   }
 }
