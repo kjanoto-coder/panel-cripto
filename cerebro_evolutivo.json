@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 316,
-  "ultima_actualizacion": "2026-11-28 13:31 ART",
+  "version_ciclo": 317,
+  "ultima_actualizacion": "2026-11-28 13:41 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.89,
     "min_ob_ratio": 1.28,
@@ -503,13 +503,6 @@
       "precio_veto": 0.04974,
       "paso_fallido": "A6-Binance",
       "detalle": "A6 VETA: Ballenas vendiendo (53.1% < 55.6%)"
-    },
-    {
-      "symbol": "HEIUSDT",
-      "ts_unix": 1795797091,
-      "precio_veto": 0.0883,
-      "paso_fallido": "A5-Binance",
-      "detalle": "A5 VETA: Muro vendedor en Ask (56% del libro)"
     }
   ],
   "metricas_globales": {
@@ -520,6 +513,6 @@
     "stops_salvadores": 1,
     "vetos_acertados": 84,
     "oportunidades_perdidas_20": 15,
-    "ajustes_autocritica_ciclo": 160
+    "ajustes_autocritica_ciclo": 161
   }
 }
