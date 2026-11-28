@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 255,
-  "ultima_actualizacion": "2026-11-28 03:21 ART",
+  "version_ciclo": 256,
+  "ultima_actualizacion": "2026-11-28 03:31 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.91,
     "min_ob_ratio": 1.24,
@@ -110,13 +110,6 @@
     }
   },
   "pendientes_sombra_24h": [
-    {
-      "symbol": "BIGTIMEUSDT",
-      "ts_unix": 1795825263,
-      "precio_veto": 0.00579,
-      "paso_fallido": "A5-Binance",
-      "detalle": "A5 VETA: Muro vendedor en Ask (35% del libro)"
-    },
     {
       "symbol": "KAVAUSDT",
       "ts_unix": 1795825889,
@@ -256,6 +249,20 @@
       "precio_veto": 0.02439,
       "paso_fallido": "A4-Empresa",
       "detalle": "A4 VETA: Vol 1h 1.15x < 1.25x"
+    },
+    {
+      "symbol": "ACEUSDT",
+      "ts_unix": 1795846866,
+      "precio_veto": 0.0753,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.17x < 1.25x"
+    },
+    {
+      "symbol": "BIGTIMEUSDT",
+      "ts_unix": 1795825263,
+      "precio_veto": 0.00579,
+      "paso_fallido": "A5-Binance",
+      "detalle": "A5 VETA: Muro vendedor en Ask (35% del libro)"
     },
     {
       "symbol": "SENTUSDT",
@@ -536,13 +543,6 @@
       "precio_veto": 0.00093,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
-    },
-    {
-      "symbol": "ACEUSDT",
-      "ts_unix": 1795846866,
-      "precio_veto": 0.0753,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 0.17x < 1.25x"
     }
   ],
   "metricas_globales": {
@@ -553,6 +553,6 @@
     "stops_salvadores": 1,
     "vetos_acertados": 73,
     "oportunidades_perdidas_20": 11,
-    "ajustes_autocritica_ciclo": 101
+    "ajustes_autocritica_ciclo": 102
   }
 }
