@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-BOT PRE-EXPLOSIÓN (AUDITORÍA MAESTRA UNIFICADA + RADAR IA + TELEGRAM + DASHBOARD)
-Versión: 2026-11-28 (Sincronizada con AUDITORIA_PRE_EXPLOSION.xlsx de 5 pestañas, sin #NAME?)
+BOT PRE-EXPLOSIÓN (AUDITORÍA MAESTRA UNIFICADA + RADAR IA + TELEGRAM TOPICS + DASHBOARD)
+Versión: 2026-11-28 (Sincronizada con AUDITORIA_PRE_EXPLOSION.xlsx de 5 pestañas, sin #NAME? y con soporte de hilos)
 """
 
 import os
@@ -26,8 +26,18 @@ log = logging.getLogger("bot_pre_explosion")
 # ==============================================================================
 # 1. CONFIGURACIÓN GENERAL Y VARIABLES DE ENTORNO
 # ==============================================================================
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "").strip()
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "").strip()
+TELEGRAM_TOKEN = (
+    os.getenv("TELEGRAM_TOKEN", "").strip()
+    or os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+)
+TELEGRAM_CHAT_ID = (
+    os.getenv("TELEGRAM_CHAT_ID", "").strip()
+    or os.getenv("CHAT_ID", "").strip()
+)
+TOPIC_ID_PRE_EXPLOSION = (
+    os.getenv("TOPIC_ID_PRE_EXPLOSION", "").strip()
+    or os.getenv("TELEGRAM_MESSAGE_THREAD_ID", "").strip()
+)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 
 ARCHIVO_EXCEL_MAESTRO = "AUDITORIA_PRE_EXPLOSION.xlsx"
@@ -791,32 +801,62 @@ def generar_excel_pre_explosion(reg: RegistroMaestro, candidatas: list, filepath
 
 
 # ==============================================================================
-# 6. ENVÍO A TELEGRAM (ALERTAS + EXCEL ADJUNTO)
+# 6. ENVÍO A TELEGRAM CON SOPORTE DE HILOS (TOPICS) Y LOGS DE RESPUESTA
 # ==============================================================================
 def enviar_telegram_mensaje(texto: str):
     if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
+        log.warning("Faltan TELEGRAM_TOKEN o TELEGRAM_CHAT_ID.")
         return
+    payload = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": texto,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": True,
+    }
+    if TOPIC_ID_PRE_EXPLOSION:
+        try:
+            payload["message_thread_id"] = int(TOPIC_ID_PRE_EXPLOSION)
+        except ValueError:
+            log.warning(f"TOPIC_ID_PRE_EXPLOSION inválido: {TOPIC_ID_PRE_EXPLOSION}")
     try:
-        requests.post(
+        r = requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
-            json={"chat_id": TELEGRAM_CHAT_ID, "text": texto, "parse_mode": "HTML", "disable_web_page_preview": True},
+            json=payload,
             timeout=15,
         )
+        if r.status_code != 200:
+            log.error(f"Telegram rechazó sendMessage ({r.status_code}): {r.text}")
+        else:
+            log.info(f"Mensaje enviado correctamente a Telegram (topic={TOPIC_ID_PRE_EXPLOSION or 'General'}).")
     except Exception as e:
         log.error(f"Error enviando mensaje Telegram: {e}")
 
 
 def enviar_telegram_excel(filepath: str, caption: str):
     if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID or not os.path.exists(filepath):
+        log.warning("Faltan credenciales de Telegram o no existe el Excel.")
         return
+    data = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "caption": caption[:1000],
+    }
+    if TOPIC_ID_PRE_EXPLOSION:
+        try:
+            data["message_thread_id"] = int(TOPIC_ID_PRE_EXPLOSION)
+        except ValueError:
+            pass
     try:
         with open(filepath, "rb") as f:
-            requests.post(
+            r = requests.post(
                 f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendDocument",
-                data={"chat_id": TELEGRAM_CHAT_ID, "caption": caption[:1000]},
+                data=data,
                 files={"document": (os.path.basename(filepath), f)},
                 timeout=30,
             )
+        if r.status_code != 200:
+            log.error(f"Telegram rechazó sendDocument ({r.status_code}): {r.text}")
+        else:
+            log.info(f"Excel enviado correctamente a Telegram (topic={TOPIC_ID_PRE_EXPLOSION or 'General'}).")
     except Exception as e:
         log.error(f"Error enviando Excel a Telegram: {e}")
 
@@ -864,6 +904,7 @@ def main():
     hora_hoy = dt_art.strftime("%H:%M")
 
     log.info(f"Iniciando ciclo bot_pre_explosion ({fecha_hoy} {hora_hoy} ART)...")
+    log.info(f"Configuración Telegram -> Chat: {'OK' if TELEGRAM_CHAT_ID else 'FALTA'} | Topic: {TOPIC_ID_PRE_EXPLOSION or 'General'}")
 
     reg = RegistroMaestro()
     # 1. Cargar histórico completo desde el Excel maestro subido (2.400+ filas desde 09/10/2026)
@@ -882,6 +923,7 @@ def main():
     # 5. Escanear nuevas candidatas Pre-Explosión
     cazador_set = reg.leer_cazador_activo()
     candidatas = clasificar_candidatas(tickers, cazador_set) if tickers else []
+    log.info(f"Candidatas detectadas en este ciclo: {len(candidatas)}")
 
     for cand in candidatas:
         reg.upsert({
@@ -906,8 +948,7 @@ def main():
     generar_excel_pre_explosion(reg, candidatas, ARCHIVO_EXCEL_MAESTRO)
 
     # 7. Publicar alertas y Excel actualizado en Telegram
-    if candidatas or tickers:
-        publicar_reporte_telegram(candidatas, reg, dt_art)
+    publicar_reporte_telegram(candidatas, reg, dt_art)
 
     log.info("Ciclo finalizado correctamente.")
 
