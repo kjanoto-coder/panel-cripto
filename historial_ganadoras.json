@@ -1,5 +1,5 @@
 {
-  "ultima_actualizacion": "2026-11-28 09:31:17 ART",
+  "ultima_actualizacion": "2026-11-28 09:41:01 ART",
   "dias": {
     "2026-11-23": [
       {
@@ -4887,122 +4887,98 @@
       {
         "symbol": "ACEUSDT",
         "ticker": "ACE",
-        "precio_base": 0.0735,
-        "precio": 0.0986,
-        "cambio_24h": 34.15,
-        "vol_usdt": 9879816.43,
+        "precio_base": 0.0734,
+        "precio": 0.0952,
+        "cambio_24h": 29.7,
+        "vol_usdt": 9986073.9,
         "high": 0.115,
         "low": 0.0721,
-        "pos_rango": 61.8,
+        "pos_rango": 53.8,
         "rank": 1
       },
       {
         "symbol": "NIGHTUSDT",
         "ticker": "NIGHT",
-        "precio_base": 0.04788,
-        "precio": 0.05453,
-        "cambio_24h": 13.89,
-        "vol_usdt": 6902319.93,
+        "precio_base": 0.04817,
+        "precio": 0.05457,
+        "cambio_24h": 13.29,
+        "vol_usdt": 6997089.3,
         "high": 0.05543,
-        "low": 0.04783,
-        "pos_rango": 88.2,
+        "low": 0.04787,
+        "pos_rango": 88.6,
         "rank": 2
       },
       {
         "symbol": "SKYUSDT",
         "ticker": "SKY",
-        "precio_base": 0.04667,
-        "precio": 0.05104,
-        "cambio_24h": 9.36,
-        "vol_usdt": 6574754.81,
+        "precio_base": 0.04692,
+        "precio": 0.05147,
+        "cambio_24h": 9.7,
+        "vol_usdt": 6574226.83,
         "high": 0.05471,
         "low": 0.04489,
-        "pos_rango": 62.6,
+        "pos_rango": 67.0,
         "rank": 3
-      },
-      {
-        "symbol": "SSVUSDT",
-        "ticker": "SSV",
-        "precio_base": 2.557,
-        "precio": 2.788,
-        "cambio_24h": 9.03,
-        "vol_usdt": 4872756.91,
-        "high": 3.336,
-        "low": 2.52,
-        "pos_rango": 32.8,
-        "rank": 4
       },
       {
         "symbol": "TFUELUSDT",
         "ticker": "TFUEL",
-        "precio_base": 0.00676,
+        "precio_base": 0.00679,
         "precio": 0.0073,
-        "cambio_24h": 7.99,
-        "vol_usdt": 1128644.69,
+        "cambio_24h": 7.51,
+        "vol_usdt": 1136246.38,
         "high": 0.01014,
         "low": 0.00656,
         "pos_rango": 20.7,
+        "rank": 4
+      },
+      {
+        "symbol": "SSVUSDT",
+        "ticker": "SSV",
+        "precio_base": 2.584,
+        "precio": 2.745,
+        "cambio_24h": 6.23,
+        "vol_usdt": 4874141.99,
+        "high": 3.336,
+        "low": 2.52,
+        "pos_rango": 27.6,
         "rank": 5
       },
       {
         "symbol": "SENTUSDT",
         "ticker": "SENT",
-        "precio_base": 0.02284,
-        "precio": 0.02455,
-        "cambio_24h": 7.49,
-        "vol_usdt": 6012793.2,
+        "precio_base": 0.02305,
+        "precio": 0.02446,
+        "cambio_24h": 6.12,
+        "vol_usdt": 6070542.34,
         "high": 0.02536,
         "low": 0.02197,
-        "pos_rango": 76.1,
+        "pos_rango": 73.5,
         "rank": 6
       },
       {
         "symbol": "DODOUSDT",
         "ticker": "DODO",
-        "precio_base": 0.03931,
-        "precio": 0.04133,
-        "cambio_24h": 5.14,
-        "vol_usdt": 2274736.38,
+        "precio_base": 0.03938,
+        "precio": 0.04154,
+        "cambio_24h": 5.49,
+        "vol_usdt": 2286964.02,
         "high": 0.04261,
         "low": 0.03913,
-        "pos_rango": 63.2,
+        "pos_rango": 69.3,
         "rank": 7
-      },
-      {
-        "symbol": "KAVAUSDT",
-        "ticker": "KAVA",
-        "precio_base": 0.02702,
-        "precio": 0.02807,
-        "cambio_24h": 3.89,
-        "vol_usdt": 5675428.89,
-        "high": 0.03162,
-        "low": 0.0257,
-        "pos_rango": 40.0,
-        "rank": 8
       },
       {
         "symbol": "CFGUSDT",
         "ticker": "CFG",
-        "precio_base": 0.0577,
-        "precio": 0.0599,
-        "cambio_24h": 3.81,
-        "vol_usdt": 6551317.78,
+        "precio_base": 0.0574,
+        "precio": 0.0593,
+        "cambio_24h": 3.31,
+        "vol_usdt": 6500620.81,
         "high": 0.0735,
         "low": 0.0551,
-        "pos_rango": 26.1,
-        "rank": 9
-      },
-      {
-        "symbol": "ACTUSDT",
-        "ticker": "ACT",
-        "precio_base": 0.00918,
-        "precio": 0.00947,
-        "cambio_24h": 3.16,
-        "vol_usdt": 1414526.22,
-        "high": 0.01006,
-        "low": 0.0089,
-        "pos_rango": 49.1,
-        "rank": 10
+        "pos_rango": 22.8,
+        "rank": 8
       }
     ]
   },
@@ -7341,7 +7317,8 @@
       "precio_ganadora": 0.0,
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
-      "dias_demora": null
+      "dias_demora": null,
+      "dias_esperando": 0
     }
   }
 }
