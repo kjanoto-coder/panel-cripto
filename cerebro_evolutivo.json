@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 222,
-  "ultima_actualizacion": "2026-11-27 22:01 ART",
+  "version_ciclo": 223,
+  "ultima_actualizacion": "2026-11-27 22:11 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.91,
     "min_ob_ratio": 1.27,
@@ -308,6 +308,13 @@
       "detalle": "A4 VETA: Vol 1h 0.10x < 1.25x"
     },
     {
+      "symbol": "LISTAUSDT",
+      "ts_unix": 1795827717,
+      "precio_veto": 0.0871,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.21x < 1.25x"
+    },
+    {
       "symbol": "KAVAUSDT",
       "ts_unix": 1795803666,
       "precio_veto": 0.0264,
@@ -530,13 +537,6 @@
       "precio_veto": 133.93,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
-    },
-    {
-      "symbol": "LISTAUSDT",
-      "ts_unix": 1795827717,
-      "precio_veto": 0.0871,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 0.21x < 1.25x"
     }
   ],
   "metricas_globales": {
@@ -547,6 +547,6 @@
     "stops_salvadores": 1,
     "vetos_acertados": 67,
     "oportunidades_perdidas_20": 7,
-    "ajustes_autocritica_ciclo": 71
+    "ajustes_autocritica_ciclo": 72
   }
 }
