@@ -1,14 +1,5 @@
 [
   [
-    "WIFUSDT",
-    "TRUMPUSDT",
-    "ZAMAUSDT",
-    "SHIBUSDT",
-    "STRKUSDT",
-    "PENGUUSDT",
-    "NOMUSDT"
-  ],
-  [
     "UNIUSDT",
     "DOGEUSDT",
     "PEPEUSDT",
@@ -16,5 +7,14 @@
     "NIGHTUSDT",
     "STXUSDT",
     "BONKUSDT"
+  ],
+  [
+    "SUIUSDT",
+    "APTUSDT",
+    "FETUSDT",
+    "TIAUSDT",
+    "POLUSDT",
+    "RENDERUSDT",
+    "DODOUSDT"
   ]
 ]
