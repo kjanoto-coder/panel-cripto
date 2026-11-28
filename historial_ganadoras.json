@@ -7347,6 +7347,21 @@
       "subida_real_pct": -0.44,
       "subida_24h_dia_pct": 4.32,
       "dias_demora": 0
+    },
+    "BICOUSDT": {
+      "symbol": "BICOUSDT",
+      "ticker": "BICO",
+      "fecha_verde": "2026-11-28",
+      "ts_verde": "2026-11-28 07:32",
+      "precio_verde": 0.01074,
+      "es_oro": false,
+      "origen": "CAZADOR_TACTICO_ROJO",
+      "estado": "PENDIENTE",
+      "fecha_ganadora": "",
+      "precio_ganadora": 0.0,
+      "subida_real_pct": 0.0,
+      "subida_24h_dia_pct": 0.0,
+      "dias_demora": null
     }
   }
 }
