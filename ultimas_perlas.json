@@ -1,14 +1,5 @@
 [
   [
-    "STXUSDT",
-    "KAVAUSDT",
-    "GUNUSDT",
-    "RESOLVUSDT",
-    "CFGUSDT",
-    "TFUELUSDT",
-    "TLMUSDT"
-  ],
-  [
     "JSTUSDT",
     "STXUSDT",
     "SENTUSDT",
@@ -16,5 +7,14 @@
     "AVAUSDT",
     "SPKUSDT",
     "GALAUSDT"
+  ],
+  [
+    "JSTUSDT",
+    "SENTUSDT",
+    "DODOUSDT",
+    "OPGUSDT",
+    "SPKUSDT",
+    "ACTUSDT",
+    "AVAUSDT"
   ]
 ]
