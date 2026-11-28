@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 318,
-  "ultima_actualizacion": "2026-11-28 13:51 ART",
+  "version_ciclo": 319,
+  "ultima_actualizacion": "2026-11-28 14:11 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.84,
     "min_ob_ratio": 1.28,
@@ -488,20 +488,6 @@
       "precio_veto": 0.986,
       "paso_fallido": "A4-Empresa",
       "detalle": "A4 VETA: Vol 1h 0.36x < 1.25x"
-    },
-    {
-      "symbol": "ANTBUSDT",
-      "ts_unix": 1795798909,
-      "precio_veto": 91.81,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin historial suficiente de velas 15m/1D"
-    },
-    {
-      "symbol": "NIGHTUSDT",
-      "ts_unix": 1795798276,
-      "precio_veto": 0.04974,
-      "paso_fallido": "A6-Binance",
-      "detalle": "A6 VETA: Ballenas vendiendo (53.1% < 55.6%)"
     }
   ],
   "metricas_globales": {
@@ -512,6 +498,6 @@
     "stops_salvadores": 1,
     "vetos_acertados": 84,
     "oportunidades_perdidas_20": 16,
-    "ajustes_autocritica_ciclo": 161
+    "ajustes_autocritica_ciclo": 162
   }
 }
