@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 273,
-  "ultima_actualizacion": "2026-11-28 06:21 ART",
+  "version_ciclo": 274,
+  "ultima_actualizacion": "2026-11-28 06:31 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.86,
     "min_ob_ratio": 1.24,
@@ -220,6 +220,13 @@
       "precio_veto": 2.596,
       "paso_fallido": "A4-Empresa",
       "detalle": "A4 VETA: Vol 1h 0.91x < 1.25x"
+    },
+    {
+      "symbol": "SNDKBUSDT",
+      "ts_unix": 1795857672,
+      "precio_veto": 85.24,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     },
     {
       "symbol": "SNDKBUSDT",
@@ -528,13 +535,6 @@
       "precio_veto": 86.65,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Sin historial suficiente de velas 15m/1D"
-    },
-    {
-      "symbol": "SNDKBUSDT",
-      "ts_unix": 1795857672,
-      "precio_veto": 85.24,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     }
   ],
   "metricas_globales": {
@@ -545,6 +545,6 @@
     "stops_salvadores": 1,
     "vetos_acertados": 77,
     "oportunidades_perdidas_20": 12,
-    "ajustes_autocritica_ciclo": 117
+    "ajustes_autocritica_ciclo": 118
   }
 }
