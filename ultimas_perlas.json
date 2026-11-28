@@ -1,14 +1,5 @@
 [
   [
-    "DOGEUSDT",
-    "JSTUSDT",
-    "DODOUSDT",
-    "RENDERUSDT",
-    "NIGHTUSDT",
-    "TLMUSDT",
-    "BANKUSDT"
-  ],
-  [
     "JSTUSDT",
     "DODOUSDT",
     "NIGHTUSDT",
@@ -16,5 +7,14 @@
     "SKYUSDT",
     "STXUSDT",
     "BANKUSDT"
+  ],
+  [
+    "JSTUSDT",
+    "NIGHTUSDT",
+    "SEIUSDT",
+    "DODOUSDT",
+    "RENDERUSDT",
+    "SKYUSDT",
+    "TLMUSDT"
   ]
 ]
