@@ -1,5 +1,5 @@
 {
-  "ultima_actualizacion": "2026-11-28 10:42:26 ART",
+  "ultima_actualizacion": "2026-11-28 10:51:02 ART",
   "dias": {
     "2026-11-23": [
       {
@@ -4887,73 +4887,73 @@
       {
         "symbol": "ACEUSDT",
         "ticker": "ACE",
-        "precio_base": 0.0732,
-        "precio": 0.099,
-        "cambio_24h": 35.25,
-        "vol_usdt": 10729111.31,
+        "precio_base": 0.0733,
+        "precio": 0.1015,
+        "cambio_24h": 38.47,
+        "vol_usdt": 10746948.05,
         "high": 0.115,
         "low": 0.0721,
-        "pos_rango": 62.7,
+        "pos_rango": 68.5,
         "rank": 1
       },
       {
         "symbol": "SKYUSDT",
         "ticker": "SKY",
-        "precio_base": 0.04649,
-        "precio": 0.05237,
-        "cambio_24h": 12.65,
-        "vol_usdt": 6730991.69,
+        "precio_base": 0.04662,
+        "precio": 0.05175,
+        "cambio_24h": 11.0,
+        "vol_usdt": 6824560.52,
         "high": 0.05471,
         "low": 0.04489,
-        "pos_rango": 76.2,
+        "pos_rango": 69.9,
         "rank": 2
       },
       {
         "symbol": "NIGHTUSDT",
         "ticker": "NIGHT",
-        "precio_base": 0.04929,
-        "precio": 0.05424,
-        "cambio_24h": 10.04,
-        "vol_usdt": 7059383.58,
+        "precio_base": 0.04959,
+        "precio": 0.05401,
+        "cambio_24h": 8.91,
+        "vol_usdt": 6991373.98,
         "high": 0.05543,
         "low": 0.04787,
-        "pos_rango": 84.3,
+        "pos_rango": 81.2,
         "rank": 3
       },
       {
         "symbol": "SENTUSDT",
         "ticker": "SENT",
-        "precio_base": 0.02289,
-        "precio": 0.0245,
-        "cambio_24h": 7.03,
-        "vol_usdt": 6157652.72,
+        "precio_base": 0.02303,
+        "precio": 0.02443,
+        "cambio_24h": 6.08,
+        "vol_usdt": 6169693.25,
         "high": 0.02536,
         "low": 0.02197,
-        "pos_rango": 74.6,
+        "pos_rango": 72.6,
         "rank": 4
-      },
-      {
-        "symbol": "CFGUSDT",
-        "ticker": "CFG",
-        "precio_base": 0.0565,
-        "precio": 0.0599,
-        "cambio_24h": 6.02,
-        "vol_usdt": 6462652.18,
-        "high": 0.0735,
-        "low": 0.0551,
-        "pos_rango": 26.1,
-        "rank": 5
       },
       {
         "symbol": "DODOUSDT",
         "ticker": "DODO",
-        "precio_base": 0.03941,
-        "precio": 0.04175,
-        "cambio_24h": 5.94,
-        "vol_usdt": 2298377.51,
+        "precio_base": 0.04,
+        "precio": 0.04185,
+        "cambio_24h": 4.62,
+        "vol_usdt": 2264651.66,
         "high": 0.04261,
         "low": 0.03934,
-        "pos_rango": 73.7,
+        "pos_rango": 76.8,
+        "rank": 5
+      },
+      {
+        "symbol": "CFGUSDT",
+        "ticker": "CFG",
+        "precio_base": 0.0568,
+        "precio": 0.0594,
+        "cambio_24h": 4.58,
+        "vol_usdt": 6445458.49,
+        "high": 0.0735,
+        "low": 0.0551,
+        "pos_rango": 23.4,
         "rank": 6
       }
     ]
@@ -7324,7 +7324,8 @@
       "precio_ganadora": 0.0,
       "subida_real_pct": 0.0,
       "subida_24h_dia_pct": 0.0,
-      "dias_demora": null
+      "dias_demora": null,
+      "dias_esperando": 0
     }
   }
 }
