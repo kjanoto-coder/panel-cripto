@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 287,
-  "ultima_actualizacion": "2026-11-28 08:51 ART",
+  "version_ciclo": 288,
+  "ultima_actualizacion": "2026-11-28 09:01 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.9,
     "min_ob_ratio": 1.26,
@@ -135,27 +135,6 @@
   },
   "pendientes_sombra_24h": [
     {
-      "symbol": "CFGUSDT",
-      "ts_unix": 1795845071,
-      "precio_veto": 0.0648,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
-    },
-    {
-      "symbol": "ROBOUSDT",
-      "ts_unix": 1795845071,
-      "precio_veto": 0.0033,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
-    },
-    {
-      "symbol": "SENTUSDT",
-      "ts_unix": 1795845701,
-      "precio_veto": 0.02439,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 1.15x < 1.25x"
-    },
-    {
       "symbol": "ACEUSDT",
       "ts_unix": 1795846866,
       "precio_veto": 0.0753,
@@ -215,6 +194,20 @@
       "symbol": "THEUSDT",
       "ts_unix": 1795864870,
       "precio_veto": 0.0302,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "CFGUSDT",
+      "ts_unix": 1795845071,
+      "precio_veto": 0.0648,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "ROBOUSDT",
+      "ts_unix": 1795845071,
+      "precio_veto": 0.0033,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     },
@@ -525,6 +518,13 @@
       "precio_veto": 0.02689,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "SENTUSDT",
+      "ts_unix": 1795867309,
+      "precio_veto": 0.02487,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.63x < 1.25x"
     }
   ],
   "metricas_globales": {
@@ -533,8 +533,8 @@
     "runners_20_logrados": 0,
     "stops_prematuros": 0,
     "stops_salvadores": 1,
-    "vetos_acertados": 81,
+    "vetos_acertados": 82,
     "oportunidades_perdidas_20": 14,
-    "ajustes_autocritica_ciclo": 131
+    "ajustes_autocritica_ciclo": 132
   }
 }
