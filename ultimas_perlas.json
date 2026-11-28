@@ -3,18 +3,18 @@
     "JSTUSDT",
     "DODOUSDT",
     "NIGHTUSDT",
-    "RENDERUSDT",
-    "OPGUSDT",
-    "SKYUSDT",
-    "TLMUSDT"
-  ],
-  [
-    "JSTUSDT",
-    "DODOUSDT",
-    "NIGHTUSDT",
     "OPGUSDT",
     "RENDERUSDT",
     "TLMUSDT",
     "ATUSDT"
+  ],
+  [
+    "GALAUSDT",
+    "ACTUSDT",
+    "GUNUSDT",
+    "USUALUSDT",
+    "AVAUSDT",
+    "GRAMUSDT",
+    "GTCUSDT"
   ]
 ]
