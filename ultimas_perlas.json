@@ -1,20 +1,20 @@
 [
   [
     "JSTUSDT",
-    "LUNCUSDT",
-    "LISTAUSDT",
-    "DODOUSDT",
-    "OPGUSDT",
-    "WIFUSDT",
-    "SEIUSDT"
-  ],
-  [
-    "JSTUSDT",
     "LISTAUSDT",
     "LUNCUSDT",
     "DODOUSDT",
     "OPGUSDT",
     "ZROUSDT",
     "KITEUSDT"
+  ],
+  [
+    "STXUSDT",
+    "SENTUSDT",
+    "NIGHTUSDT",
+    "YBUSDT",
+    "RESOLVUSDT",
+    "ROBOUSDT",
+    "ETHFIUSDT"
   ]
 ]
