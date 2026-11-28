@@ -1,14 +1,5 @@
 [
   [
-    "PARTIUSDT",
-    "OPGUSDT",
-    "ROBOUSDT",
-    "SKYUSDT",
-    "KAVAUSDT",
-    "CFGUSDT",
-    "THEUSDT"
-  ],
-  [
     "FFUSDT",
     "KITEUSDT",
     "DODOUSDT",
@@ -16,5 +7,14 @@
     "PARTIUSDT",
     "STXUSDT",
     "YBUSDT"
+  ],
+  [
+    "KITEUSDT",
+    "DODOUSDT",
+    "SENTUSDT",
+    "NIGHTUSDT",
+    "STXUSDT",
+    "YBUSDT",
+    "OPGUSDT"
   ]
 ]
