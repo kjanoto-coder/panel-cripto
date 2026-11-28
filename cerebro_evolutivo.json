@@ -1,10 +1,10 @@
 {
-  "version_ciclo": 254,
-  "ultima_actualizacion": "2026-11-28 03:11 ART",
+  "version_ciclo": 255,
+  "ultima_actualizacion": "2026-11-28 03:21 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.91,
-    "min_ob_ratio": 1.27,
-    "max_concentracion_muro_pct": 34.0,
+    "min_ob_ratio": 1.24,
+    "max_concentracion_muro_pct": 35.0,
     "min_taker_buy_pct": 56.6,
     "min_whale_buy_pct": 55.6,
     "min_trades_por_min": 12.0,
@@ -101,16 +101,15 @@
       "positivos": 1,
       "negativos": 0,
       "ajuste_score": 4.0
+    },
+    "ACEUSDT": {
+      "eventos": 1,
+      "positivos": 1,
+      "negativos": 0,
+      "ajuste_score": 4.0
     }
   },
   "pendientes_sombra_24h": [
-    {
-      "symbol": "ACEUSDT",
-      "ts_unix": 1795824669,
-      "precio_veto": 0.0894,
-      "paso_fallido": "A5-Binance",
-      "detalle": "A5 VETA: Liquidez Ask 0.15% baja ($156) o slippage 0.274%"
-    },
     {
       "symbol": "BIGTIMEUSDT",
       "ts_unix": 1795825263,
@@ -537,6 +536,13 @@
       "precio_veto": 0.00093,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "ACEUSDT",
+      "ts_unix": 1795846866,
+      "precio_veto": 0.0753,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.17x < 1.25x"
     }
   ],
   "metricas_globales": {
@@ -546,7 +552,7 @@
     "stops_prematuros": 0,
     "stops_salvadores": 1,
     "vetos_acertados": 73,
-    "oportunidades_perdidas_20": 10,
+    "oportunidades_perdidas_20": 11,
     "ajustes_autocritica_ciclo": 101
   }
 }
