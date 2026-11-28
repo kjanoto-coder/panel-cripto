@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 218,
-  "ultima_actualizacion": "2026-11-27 21:21 ART",
+  "version_ciclo": 219,
+  "ultima_actualizacion": "2026-11-27 21:31 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.91,
     "min_ob_ratio": 1.27,
@@ -104,13 +104,6 @@
     }
   },
   "pendientes_sombra_24h": [
-    {
-      "symbol": "KAVAUSDT",
-      "ts_unix": 1795803666,
-      "precio_veto": 0.0264,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 0.17x < 1.25x"
-    },
     {
       "symbol": "LISTAUSDT",
       "ts_unix": 1795806101,
@@ -299,6 +292,20 @@
       "precio_veto": 0.0894,
       "paso_fallido": "A5-Binance",
       "detalle": "A5 VETA: Liquidez Ask 0.15% baja ($156) o slippage 0.274%"
+    },
+    {
+      "symbol": "BIGTIMEUSDT",
+      "ts_unix": 1795825263,
+      "precio_veto": 0.00579,
+      "paso_fallido": "A5-Binance",
+      "detalle": "A5 VETA: Muro vendedor en Ask (35% del libro)"
+    },
+    {
+      "symbol": "KAVAUSDT",
+      "ts_unix": 1795803666,
+      "precio_veto": 0.0264,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.17x < 1.25x"
     },
     {
       "symbol": "ZECUSDT",
@@ -525,11 +532,18 @@
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     },
     {
-      "symbol": "BIGTIMEUSDT",
-      "ts_unix": 1795825263,
-      "precio_veto": 0.00579,
-      "paso_fallido": "A5-Binance",
-      "detalle": "A5 VETA: Muro vendedor en Ask (35% del libro)"
+      "symbol": "KAVAUSDT",
+      "ts_unix": 1795825889,
+      "precio_veto": 0.02743,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.25x < 1.25x"
+    },
+    {
+      "symbol": "SSVUSDT",
+      "ts_unix": 1795825889,
+      "precio_veto": 2.733,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.10x < 1.25x"
     }
   ],
   "metricas_globales": {
@@ -540,6 +554,6 @@
     "stops_salvadores": 1,
     "vetos_acertados": 65,
     "oportunidades_perdidas_20": 7,
-    "ajustes_autocritica_ciclo": 68
+    "ajustes_autocritica_ciclo": 69
   }
 }
