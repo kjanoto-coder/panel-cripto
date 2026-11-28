@@ -1,14 +1,5 @@
 [
   [
-    "SENTUSDT",
-    "SKYUSDT",
-    "WIFUSDT",
-    "AIGENSYNUSDT",
-    "HEIUSDT",
-    "ACEUSDT",
-    "LISTAUSDT"
-  ],
-  [
     "JSTUSDT",
     "NIGHTUSDT",
     "KAVAUSDT",
@@ -16,5 +7,14 @@
     "RENDERUSDT",
     "TLMUSDT",
     "ROBOUSDT"
+  ],
+  [
+    "DODOUSDT",
+    "GALAUSDT",
+    "ACTUSDT",
+    "AVAUSDT",
+    "USUALUSDT",
+    "GUNUSDT",
+    "ATUSDT"
   ]
 ]
