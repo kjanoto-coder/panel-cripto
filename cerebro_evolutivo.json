@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 322,
-  "ultima_actualizacion": "2026-11-28 14:41 ART",
+  "version_ciclo": 323,
+  "ultima_actualizacion": "2026-11-28 14:51 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.84,
     "min_ob_ratio": 1.28,
@@ -462,13 +462,6 @@
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     },
     {
-      "symbol": "PUMPUSDT",
-      "ts_unix": 1795808467,
-      "precio_veto": 0.002622,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 0.53x < 1.25x"
-    },
-    {
       "symbol": "DRAMBUSDT",
       "ts_unix": 1795808467,
       "precio_veto": 37.6,
@@ -496,8 +489,8 @@
     "runners_20_logrados": 0,
     "stops_prematuros": 0,
     "stops_salvadores": 1,
-    "vetos_acertados": 85,
+    "vetos_acertados": 86,
     "oportunidades_perdidas_20": 16,
-    "ajustes_autocritica_ciclo": 165
+    "ajustes_autocritica_ciclo": 166
   }
 }
