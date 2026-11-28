@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 275,
-  "ultima_actualizacion": "2026-11-28 06:41 ART",
+  "version_ciclo": 276,
+  "ultima_actualizacion": "2026-11-28 06:51 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.9,
     "min_ob_ratio": 1.26,
@@ -119,16 +119,15 @@
       "positivos": 0,
       "negativos": 1,
       "ajuste_score": -5.0
+    },
+    "PORTALUSDT": {
+      "eventos": 1,
+      "positivos": 1,
+      "negativos": 0,
+      "ajuste_score": 4.0
     }
   },
   "pendientes_sombra_24h": [
-    {
-      "symbol": "PORTALUSDT",
-      "ts_unix": 1795837268,
-      "precio_veto": 0.01474,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
-    },
     {
       "symbol": "SKYUSDT",
       "ts_unix": 1795838501,
@@ -550,7 +549,7 @@
     "stops_prematuros": 0,
     "stops_salvadores": 1,
     "vetos_acertados": 77,
-    "oportunidades_perdidas_20": 12,
-    "ajustes_autocritica_ciclo": 119
+    "oportunidades_perdidas_20": 13,
+    "ajustes_autocritica_ciclo": 120
   }
 }
