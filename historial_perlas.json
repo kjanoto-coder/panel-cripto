@@ -3509,18 +3509,6 @@
       "symbol": "JSTUSDT",
       "base": "JST",
       "estrellas": 3,
-      "probabilidad_pct": 73,
-      "precio_ref": 0.14646,
-      "fecha_iso": "2026-11-28",
-      "fecha_corta": "28/11",
-      "certificada_ia": false,
-      "blindaje_pct": 73,
-      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.35) | Libro Bids/Asks: 0.33x (Spread 0.014%)"
-    },
-    "JSTUSDT": {
-      "symbol": "JSTUSDT",
-      "base": "JST",
-      "estrellas": 3,
       "probabilidad_pct": 55,
       "precio_ref": 0.14689,
       "fecha_iso": "2026-11-28",
