@@ -1,14 +1,5 @@
 [
   [
-    "NIGHTUSDT",
-    "JSTUSDT",
-    "GUNUSDT",
-    "WIFUSDT",
-    "SENTUSDT",
-    "OPGUSDT",
-    "SKYUSDT"
-  ],
-  [
     "JSTUSDT",
     "NIGHTUSDT",
     "GUNUSDT",
@@ -16,5 +7,14 @@
     "AVAUSDT",
     "SKYUSDT",
     "OPGUSDT"
+  ],
+  [
+    "NIGHTUSDT",
+    "JSTUSDT",
+    "WIFUSDT",
+    "GUNUSDT",
+    "OPGUSDT",
+    "AVAUSDT",
+    "SENTUSDT"
   ]
 ]
