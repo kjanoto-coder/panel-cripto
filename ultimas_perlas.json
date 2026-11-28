@@ -1,14 +1,5 @@
 [
   [
-    "LISTAUSDT",
-    "DODOUSDT",
-    "LUNCUSDT",
-    "YBUSDT",
-    "STXUSDT",
-    "ZROUSDT",
-    "OPGUSDT"
-  ],
-  [
     "SKYUSDT",
     "SENTUSDT",
     "NIGHTUSDT",
@@ -16,5 +7,14 @@
     "GUNUSDT",
     "TFUELUSDT",
     "CFGUSDT"
+  ],
+  [
+    "DODOUSDT",
+    "STXUSDT",
+    "FFUSDT",
+    "YBUSDT",
+    "NIGHTUSDT",
+    "ZROUSDT",
+    "SENTUSDT"
   ]
 ]
