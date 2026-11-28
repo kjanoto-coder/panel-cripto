@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 325,
-  "ultima_actualizacion": "2026-11-28 15:11 ART",
+  "version_ciclo": 326,
+  "ultima_actualizacion": "2026-11-28 15:21 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.84,
     "min_ob_ratio": 1.28,
@@ -147,13 +147,6 @@
   },
   "pendientes_sombra_24h": [
     {
-      "symbol": "CFGUSDT",
-      "ts_unix": 1795867869,
-      "precio_veto": 0.0595,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 0.22x < 1.25x"
-    },
-    {
       "symbol": "KAVAUSDT",
       "ts_unix": 1795870271,
       "precio_veto": 0.02783,
@@ -241,6 +234,13 @@
       "symbol": "THEUSDT",
       "ts_unix": 1795886472,
       "precio_veto": 0.0274,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.23x < 1.25x"
+    },
+    {
+      "symbol": "SENTUSDT",
+      "ts_unix": 1795889467,
+      "precio_veto": 0.02381,
       "paso_fallido": "A4-Empresa",
       "detalle": "A4 VETA: Vol 1h 0.23x < 1.25x"
     },
@@ -462,11 +462,11 @@
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     },
     {
-      "symbol": "SENTUSDT",
-      "ts_unix": 1795889467,
-      "precio_veto": 0.02381,
+      "symbol": "CFGUSDT",
+      "ts_unix": 1795890079,
+      "precio_veto": 0.0574,
       "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 0.23x < 1.25x"
+      "detalle": "A4 VETA: Vol 1h 0.15x < 1.25x"
     }
   ],
   "metricas_globales": {
@@ -475,8 +475,8 @@
     "runners_20_logrados": 0,
     "stops_prematuros": 0,
     "stops_salvadores": 1,
-    "vetos_acertados": 88,
+    "vetos_acertados": 89,
     "oportunidades_perdidas_20": 16,
-    "ajustes_autocritica_ciclo": 168
+    "ajustes_autocritica_ciclo": 169
   }
 }
