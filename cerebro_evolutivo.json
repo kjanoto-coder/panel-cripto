@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 251,
-  "ultima_actualizacion": "2026-11-28 02:41 ART",
+  "version_ciclo": 252,
+  "ultima_actualizacion": "2026-11-28 02:51 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.91,
     "min_ob_ratio": 1.27,
@@ -301,13 +301,6 @@
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     },
     {
-      "symbol": "UNIUSDT",
-      "ts_unix": 1795816911,
-      "precio_veto": 4.846,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
-    },
-    {
       "symbol": "YBUSDT",
       "ts_unix": 1795816911,
       "precio_veto": 0.0575,
@@ -530,6 +523,20 @@
       "precio_veto": 133.93,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "CFGUSDT",
+      "ts_unix": 1795845071,
+      "precio_veto": 0.0648,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "ROBOUSDT",
+      "ts_unix": 1795845071,
+      "precio_veto": 0.0033,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     }
   ],
   "metricas_globales": {
@@ -538,8 +545,8 @@
     "runners_20_logrados": 0,
     "stops_prematuros": 0,
     "stops_salvadores": 1,
-    "vetos_acertados": 72,
+    "vetos_acertados": 73,
     "oportunidades_perdidas_20": 10,
-    "ajustes_autocritica_ciclo": 98
+    "ajustes_autocritica_ciclo": 99
   }
 }
