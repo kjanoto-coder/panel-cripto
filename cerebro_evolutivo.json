@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 272,
-  "ultima_actualizacion": "2026-11-28 06:11 ART",
+  "version_ciclo": 273,
+  "ultima_actualizacion": "2026-11-28 06:21 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.86,
     "min_ob_ratio": 1.24,
@@ -117,13 +117,6 @@
   },
   "pendientes_sombra_24h": [
     {
-      "symbol": "SNDKBUSDT",
-      "ts_unix": 1795835474,
-      "precio_veto": 85.78,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
-    },
-    {
       "symbol": "PORTALUSDT",
       "ts_unix": 1795837268,
       "precio_veto": 0.01474,
@@ -227,6 +220,13 @@
       "precio_veto": 2.596,
       "paso_fallido": "A4-Empresa",
       "detalle": "A4 VETA: Vol 1h 0.91x < 1.25x"
+    },
+    {
+      "symbol": "SNDKBUSDT",
+      "ts_unix": 1795835474,
+      "precio_veto": 85.78,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     },
     {
       "symbol": "牛来USDT",
@@ -528,6 +528,13 @@
       "precio_veto": 86.65,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Sin historial suficiente de velas 15m/1D"
+    },
+    {
+      "symbol": "SNDKBUSDT",
+      "ts_unix": 1795857672,
+      "precio_veto": 85.24,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     }
   ],
   "metricas_globales": {
@@ -538,6 +545,6 @@
     "stops_salvadores": 1,
     "vetos_acertados": 77,
     "oportunidades_perdidas_20": 12,
-    "ajustes_autocritica_ciclo": 116
+    "ajustes_autocritica_ciclo": 117
   }
 }
