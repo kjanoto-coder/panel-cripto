@@ -1361,15 +1361,34 @@ def generar_excel_tactico(hist_comp, reporte_ia):
             f"'3_REGISTRO_MAESTRO'!$P$5:$P$2504/('3_REGISTRO_MAESTRO'!$F$5:$F$2504=B{r}),1),0))"
         )
 
-    # 4. Actualizar Tabla 1 y subtítulos dinámicos con el conteo real unificado
+    # 4. Actualizar Tabla 1 y subtítulos dinámicos (incluyendo rango de fechas y conteo real en 3_REGISTRO_MAESTRO)
     total_unif = len(existing_by_key)
     total_fmt = f"{total_unif:,}".replace(",", ".")
     total_radar = sum(int(st.get("cantidad", 0)) for st in reporte_ia.get("auditoria_por_etapa", []) if int(st.get("cantidad", 0)) < total_unif)
     total_radar_fmt = f"{total_radar:,}".replace(",", ".") if total_radar > 0 else total_fmt
 
+    fechas_reg = sorted(k[0] for k in existing_by_key.keys() if k[0])
+    if fechas_reg:
+        try:
+            f_ini_fmt = datetime.strptime(fechas_reg[0], "%Y-%m-%d").strftime("%d/%m/%Y")
+        except ValueError:
+            f_ini_fmt = fechas_reg[0]
+        try:
+            f_fin_fmt = datetime.strptime(fechas_reg[-1], "%Y-%m-%d").strftime("%d/%m/%Y")
+        except ValueError:
+            f_fin_fmt = fechas_reg[-1]
+    else:
+        f_ini_fmt = "-"
+        f_fin_fmt = "-"
+
     ws_res["A2"] = (
         f"Consolidación automática de '3_REGISTRO_MAESTRO' ({total_fmt} señales únicas). "
         "Cambiá el período en B4 para inspeccionar cualquier mes en tiempo real."
+    )
+    ws_reg["A2"] = (
+        f"Base única consolidada y deduplicada ({f_ini_fmt} al {f_fin_fmt} • "
+        f"{total_fmt} señales únicas). Las columnas con fórmula se calculan "
+        "automáticamente al agregar nuevas filas."
     )
     ws_aud["A2"] = (
         f"Combina la calibración oficial del bot (Tabla 1) con el conteo dinámico en vivo sobre las "
