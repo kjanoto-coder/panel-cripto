@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 278,
-  "ultima_actualizacion": "2026-11-28 07:11 ART",
+  "version_ciclo": 279,
+  "ultima_actualizacion": "2026-11-28 07:21 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.9,
     "min_ob_ratio": 1.26,
@@ -129,13 +129,6 @@
   },
   "pendientes_sombra_24h": [
     {
-      "symbol": "YBUSDT",
-      "ts_unix": 1795839070,
-      "precio_veto": 0.0582,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
-    },
-    {
       "symbol": "HEIUSDT",
       "ts_unix": 1795841473,
       "precio_veto": 0.0801,
@@ -223,6 +216,20 @@
       "symbol": "SNDKBUSDT",
       "ts_unix": 1795857672,
       "precio_veto": 85.24,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "SKYUSDT",
+      "ts_unix": 1795860670,
+      "precio_veto": 0.05003,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.19x < 1.25x"
+    },
+    {
+      "symbol": "YBUSDT",
+      "ts_unix": 1795839070,
+      "precio_veto": 0.0582,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     },
@@ -526,13 +533,6 @@
       "precio_veto": 86.65,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Sin historial suficiente de velas 15m/1D"
-    },
-    {
-      "symbol": "SKYUSDT",
-      "ts_unix": 1795860670,
-      "precio_veto": 0.05003,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 0.19x < 1.25x"
     }
   ],
   "metricas_globales": {
@@ -543,6 +543,6 @@
     "stops_salvadores": 1,
     "vetos_acertados": 79,
     "oportunidades_perdidas_20": 13,
-    "ajustes_autocritica_ciclo": 122
+    "ajustes_autocritica_ciclo": 123
   }
 }
