@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 285,
-  "ultima_actualizacion": "2026-11-28 08:21 ART",
+  "version_ciclo": 286,
+  "ultima_actualizacion": "2026-11-28 08:41 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.9,
     "min_ob_ratio": 1.26,
@@ -125,23 +125,15 @@
       "positivos": 1,
       "negativos": 0,
       "ajuste_score": 4.0
+    },
+    "THEUSDT": {
+      "eventos": 1,
+      "positivos": 1,
+      "negativos": 0,
+      "ajuste_score": 4.0
     }
   },
   "pendientes_sombra_24h": [
-    {
-      "symbol": "THEUSDT",
-      "ts_unix": 1795843267,
-      "precio_veto": 0.0273,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
-    },
-    {
-      "symbol": "GRAMUSDT",
-      "ts_unix": 1795843889,
-      "precio_veto": 0.974,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 0.50x < 1.25x"
-    },
     {
       "symbol": "CFGUSDT",
       "ts_unix": 1795845071,
@@ -218,6 +210,20 @@
       "precio_veto": 91.19,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Sin historial suficiente de velas 15m/1D"
+    },
+    {
+      "symbol": "THEUSDT",
+      "ts_unix": 1795864870,
+      "precio_veto": 0.0302,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "GRAMUSDT",
+      "ts_unix": 1795843889,
+      "precio_veto": 0.974,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.50x < 1.25x"
     },
     {
       "symbol": "NIGHTUSDT",
@@ -519,13 +525,6 @@
       "precio_veto": 0.02689,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
-    },
-    {
-      "symbol": "THEUSDT",
-      "ts_unix": 1795864870,
-      "precio_veto": 0.0302,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     }
   ],
   "metricas_globales": {
@@ -535,7 +534,7 @@
     "stops_prematuros": 0,
     "stops_salvadores": 1,
     "vetos_acertados": 81,
-    "oportunidades_perdidas_20": 13,
-    "ajustes_autocritica_ciclo": 129
+    "oportunidades_perdidas_20": 14,
+    "ajustes_autocritica_ciclo": 130
   }
 }
