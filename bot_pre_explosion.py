@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-BOT PRE-EXPLOSIÓN (AUDITORÍA MAESTRA UNIFICADA + RADAR IA + TELEGRAM TOPICS + DASHBOARD)
-Versión: 2026-11-28 (Sincronizada con AUDITORIA_PRE_EXPLOSION.xlsx de 5 pestañas, sin #NAME? y con soporte de hilos)
+BOT PRE-EXPLOSIÓN (AUDITORÍA MAESTRA UNIFICADA + TRAZABILIDAD DE PATRONES + CRUCE GANADORAS + TELEGRAM TOPICS)
+Versión: 2026-11-28.2 (6 pestañas: incluye $ Mínimo, secuencia multi-día de colores, lateralización, prob. rebote y cruce con AUDITORIA_VERDE_GANADORAS.xlsx)
 """
 
 import os
 import re
+import glob
 import json
 import time
-import math
 import logging
 from datetime import datetime, timedelta, timezone
 
 import requests
 import openpyxl
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.styles import Font, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.chart import BarChart, Reference
@@ -42,8 +42,8 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 
 ARCHIVO_EXCEL_MAESTRO = "AUDITORIA_PRE_EXPLOSION.xlsx"
 ARCHIVO_EXCEL_CAZADOR = "HISTORICO_CAZADOR_TACTICO.xlsx"
+ARCHIVO_EXCEL_GANADORAS = "AUDITORIA_VERDE_GANADORAS.xlsx"
 ARCHIVO_ESTADO_JSON = "estado_pre_explosion.json"
-ARCHIVO_TELEGRAM_JSON = "result.json"
 
 TZ_ART = timezone(timedelta(hours=-3))
 
@@ -101,6 +101,17 @@ def sem_cod(et) -> str:
     return "VERDE"
 
 
+def sem_emoji_corto(et) -> str:
+    s = str(et or "").upper()
+    if "ORO" in s:
+        return "🏆"
+    if "ROJ" in s:
+        return "🔴"
+    if "AMAR" in s:
+        return "🟡"
+    return "🟢"
+
+
 def parse_ia(val):
     s = str(val or "").replace("%", "").strip()
     if s in ("", "-", "None", "nan"):
@@ -132,6 +143,13 @@ def fmt_precio(p: float) -> str:
     if p >= 0.01:
         return f"${p:,.5f}"
     return f"${p:,.8f}".rstrip("0").rstrip(".")
+
+
+def buscar_archivo_repo(nombre_archivo: str) -> str:
+    if os.path.exists(nombre_archivo):
+        return nombre_archivo
+    encontrados = glob.glob(f"**/{nombre_archivo}", recursive=True)
+    return encontrados[0] if encontrados else ""
 
 
 # ==============================================================================
@@ -166,7 +184,7 @@ def obtener_tickers_24h() -> dict:
             low = float(t.get("lowPrice", 0))
             pct = float(t.get("priceChangePercent", 0))
             qvol = float(t.get("quoteVolume", 0))
-            if price > 0 and qvol >= 150_000:
+            if price > 0 and qvol >= 100_000:
                 out[base] = {
                     "symbol": sym,
                     "base": base,
@@ -224,6 +242,11 @@ def calcular_metricas_tecnicas(symbol: str, ticker: dict) -> dict:
     fib_pos = round((hi_48 - p_act) / (hi_48 - lo_48), 2) if hi_48 > lo_48 else 0.5
     fib_1618 = round(hi_48 + 0.618 * (hi_48 - lo_48), 6) if hi_48 > lo_48 else p_act
 
+    # Amplitud de lateralización en últimas 12 horas
+    hi_12 = max(highs[-12:])
+    lo_12 = min(lows[-12:])
+    rango_12h_pct = round(((hi_12 - lo_12) / lo_12) * 100.0, 2) if lo_12 > 0 else 0.0
+
     ba_ratio = obtener_orderbook_ratio(symbol, limit=20)
 
     return {
@@ -235,11 +258,12 @@ def calcular_metricas_tecnicas(symbol: str, ticker: dict) -> dict:
         "ba_ratio": ba_ratio,
         "hi_48": hi_48,
         "lo_48": lo_48,
+        "rango_12h_pct": rango_12h_pct,
     }
 
 
 # ==============================================================================
-# 4. MOTOR DE HIDRATACIÓN HISTÓRICA (PRESERVA 100% DESDE EL 09/10/2026)
+# 4. MOTOR DE HIDRATACIÓN HISTÓRICA + CRUCE GANADORAS + TRAZABILIDAD
 # ==============================================================================
 class RegistroMaestro:
     def __init__(self):
@@ -262,6 +286,8 @@ class RegistroMaestro:
         s_max = norm_sem(ev.get("Semaforo_Max") or s_ini)
         p_ent = float(ev.get("Precio_Entrada") or 0.0)
         p_pico = max(float(ev.get("Precio_Pico") or 0.0), p_ent)
+        p_min_raw = float(ev.get("Precio_Min") or 0.0)
+        p_min = p_min_raw if p_min_raw > 0 else p_ent
 
         if key not in self.eventos:
             self.eventos[key] = {
@@ -275,6 +301,7 @@ class RegistroMaestro:
                 "Fib_Zona": ev.get("Fib_Zona"),
                 "Bids_Asks": ev.get("Bids_Asks"),
                 "Precio_Entrada": p_ent,
+                "Precio_Min": p_min,
                 "Precio_Pico": p_pico,
                 "Estado": str(ev.get("Estado") or "⏳ EN SEGUIMIENTO").strip(),
                 "Fecha_Ganadora": str(ev.get("Fecha_Ganadora") or "-").strip(),
@@ -309,11 +336,14 @@ class RegistroMaestro:
             if ev.get("Fib_Zona") is not None and cur["Fib_Zona"] is None:
                 cur["Fib_Zona"] = ev["Fib_Zona"]
 
-            if ev.get("Bids_Asks") is not None and cur["Bids_Asks"] is None:
+            if ev.get("Bids_Asks") is not None:
                 cur["Bids_Asks"] = ev["Bids_Asks"]
 
             if cur["Precio_Entrada"] <= 0 and p_ent > 0:
                 cur["Precio_Entrada"] = p_ent
+
+            if p_min > 0 and (cur.get("Precio_Min", 0) <= 0 or p_min < cur["Precio_Min"]):
+                cur["Precio_Min"] = p_min
 
             if p_pico > cur["Precio_Pico"]:
                 cur["Precio_Pico"] = p_pico
@@ -339,11 +369,12 @@ class RegistroMaestro:
                 cur["Origen"] = "Cazador + Pre-Explosión"
 
     def hidratar_desde_excel_maestro(self, filepath: str):
-        if not os.path.exists(filepath):
+        path = buscar_archivo_repo(filepath)
+        if not path:
             log.warning(f"No se encontró {filepath}; se iniciará desde cero si no hay respaldo.")
             return
         try:
-            wb = openpyxl.load_workbook(filepath, data_only=True)
+            wb = openpyxl.load_workbook(path, data_only=True)
             if "3_REGISTRO_MAESTRO" not in wb.sheetnames:
                 return
             ws = wb["3_REGISTRO_MAESTRO"]
@@ -353,6 +384,11 @@ class RegistroMaestro:
                 m = str(ws.cell(r, 6).value or "").strip().upper()
                 if not f or not m:
                     continue
+                p_ent = float(ws.cell(r, 14).value or 0.0) if isinstance(ws.cell(r, 14).value, (int, float)) else 0.0
+                p_pico = float(ws.cell(r, 15).value or 0.0) if isinstance(ws.cell(r, 15).value, (int, float)) else 0.0
+                p_fin = float(ws.cell(r, 19).value or 0.0) if isinstance(ws.cell(r, 19).value, (int, float)) else 0.0
+                p_min_est = min([x for x in (p_ent, p_fin) if x > 0], default=p_ent)
+
                 self.upsert({
                     "Fecha": f,
                     "Hora": ws.cell(r, 5).value,
@@ -363,11 +399,12 @@ class RegistroMaestro:
                     "IA_Pct": parse_ia(ws.cell(r, 11).value),
                     "Fib_Zona": float(ws.cell(r, 12).value) if isinstance(ws.cell(r, 12).value, (int, float)) else None,
                     "Bids_Asks": parse_ba(ws.cell(r, 13).value),
-                    "Precio_Entrada": float(ws.cell(r, 14).value or 0.0) if isinstance(ws.cell(r, 14).value, (int, float)) else 0.0,
-                    "Precio_Pico": float(ws.cell(r, 15).value or 0.0) if isinstance(ws.cell(r, 15).value, (int, float)) else 0.0,
+                    "Precio_Entrada": p_ent,
+                    "Precio_Min": p_min_est,
+                    "Precio_Pico": p_pico,
                     "Estado": ws.cell(r, 17).value,
                     "Fecha_Ganadora": ws.cell(r, 18).value,
-                    "Precio_Final": float(ws.cell(r, 19).value or 0.0) if isinstance(ws.cell(r, 19).value, (int, float)) else 0.0,
+                    "Precio_Final": p_fin,
                     "Tiempo_Ganadora_Txt": ws.cell(r, 21).value,
                     "Dias_Dec": float(ws.cell(r, 22).value) if isinstance(ws.cell(r, 22).value, (int, float)) else None,
                     "Fib_1618": ws.cell(r, 23).value,
@@ -375,9 +412,9 @@ class RegistroMaestro:
                     "Origen": ws.cell(r, 25).value,
                 })
                 cargadas += 1
-            log.info(f"Hidratado desde {filepath}: {cargadas} filas leídas (total acumulado: {len(self.eventos)}).")
+            log.info(f"Hidratado desde {path}: {cargadas} filas leídas (total acumulado: {len(self.eventos)}).")
         except Exception as e:
-            log.error(f"Error hidratando {filepath}: {e}")
+            log.error(f"Error hidratando {path}: {e}")
 
     def hidratar_desde_json_estado(self, filepath: str):
         if not os.path.exists(filepath):
@@ -401,10 +438,11 @@ class RegistroMaestro:
 
     def leer_cazador_activo(self) -> set:
         activos = set()
-        if not os.path.exists(ARCHIVO_EXCEL_CAZADOR):
+        path = buscar_archivo_repo(ARCHIVO_EXCEL_CAZADOR)
+        if not path:
             return activos
         try:
-            wb = openpyxl.load_workbook(ARCHIVO_EXCEL_CAZADOR, data_only=True)
+            wb = openpyxl.load_workbook(path, data_only=True)
             if "3_REGISTRO_MAESTRO" not in wb.sheetnames:
                 return activos
             ws = wb["3_REGISTRO_MAESTRO"]
@@ -419,9 +457,67 @@ class RegistroMaestro:
             pass
         return activos
 
+    def leer_ganadoras_otro_bot(self) -> dict:
+        """
+        Lee AUDITORIA_VERDE_GANADORAS.xlsx (del bot de Monedas Ganadoras) para cruzar
+        qué monedas de nuestro radar terminaron en el ranking de ganadoras diarias y en qué fechas.
+        """
+        ganadoras_map = {}  # mon -> {"veces": int, "fechas": sorted_list, "mejor_subida": float}
+        path = buscar_archivo_repo(ARCHIVO_EXCEL_GANADORAS)
+        if not path:
+            log.info(f"No se encontró {ARCHIVO_EXCEL_GANADORAS} en el repo; cruce de ganadoras omitido.")
+            return ganadoras_map
+        try:
+            wb = openpyxl.load_workbook(path, data_only=True)
+            for sname in wb.sheetnames:
+                ws = wb[sname]
+                col_mon, col_fec, col_pct = None, None, None
+                header_row = None
+                for r in range(1, min(10, ws.max_row + 1)):
+                    for c in range(1, ws.max_column + 1):
+                        val = str(ws.cell(r, c).value or "").strip().upper()
+                        if val in ("MONEDA", "SYMBOL", "PAR", "TICKER"):
+                            col_mon = c
+                            header_row = r
+                        elif val in ("FECHA", "DATE", "DÍA", "DIA"):
+                            col_fec = c
+                        elif any(k in val for k in ("SUBIDA", "GANANCIA", "VAR", "PICO", "%")):
+                            if col_pct is None:
+                                col_pct = c
+                    if col_mon and header_row:
+                        break
+                if not col_mon or not header_row:
+                    continue
+
+                for r in range(header_row + 1, ws.max_row + 1):
+                    raw_m = str(ws.cell(r, col_mon).value or "").strip().upper()
+                    if raw_m.endswith("USDT"):
+                        raw_m = raw_m[:-4]
+                    if not es_simbolo_valido(raw_m):
+                        continue
+                    f_val = str(ws.cell(r, col_fec).value or "")[:10] if col_fec else ""
+                    pct_val = 0.0
+                    if col_pct and isinstance(ws.cell(r, col_pct).value, (int, float)):
+                        pct_val = float(ws.cell(r, col_pct).value)
+
+                    info = ganadoras_map.setdefault(raw_m, {"veces": 0, "fechas": set(), "mejor_subida": 0.0})
+                    info["veces"] += 1
+                    if f_val and len(f_val) == 10:
+                        info["fechas"].add(f_val)
+                    if pct_val > info["mejor_subida"]:
+                        info["mejor_subida"] = pct_val
+                if ganadoras_map:
+                    break
+            for info in ganadoras_map.values():
+                info["fechas"] = sorted(info["fechas"])
+            log.info(f"Cruce con {path}: {len(ganadoras_map)} monedas ganadoras cargadas.")
+        except Exception as e:
+            log.warning(f"No se pudo leer {path}: {e}")
+        return ganadoras_map
+
     def actualizar_precios_y_ganadoras(self, tickers: dict, fecha_hoy: str):
         """
-        Actualiza Precio_Final y Precio_Pico de señales activas y marca 🏆 GANADORA
+        Actualiza Precio_Final, Precio_Pico y Precio_Min de señales activas y marca 🏆 GANADORA
         cuando una moneda supera +12% desde su Precio_Entrada dentro de una ventana de 7 días.
         """
         for r in self.eventos.values():
@@ -430,6 +526,7 @@ class RegistroMaestro:
                 continue
             p_live = tickers[mon]["price"]
             p_high = max(p_live, tickers[mon]["high"])
+            p_low = min(p_live, tickers[mon]["low"]) if tickers[mon]["low"] > 0 else p_live
             p_ent = float(r.get("Precio_Entrada") or 0.0)
 
             if p_ent <= 0:
@@ -438,6 +535,10 @@ class RegistroMaestro:
 
             if p_high > float(r.get("Precio_Pico") or 0.0):
                 r["Precio_Pico"] = p_high
+
+            cur_min = float(r.get("Precio_Min") or 0.0)
+            if cur_min <= 0 or p_low < cur_min:
+                r["Precio_Min"] = p_low
 
             if r["Estado"] != "🏆 GANADORA":
                 r["Precio_Final"] = p_live
@@ -454,9 +555,163 @@ class RegistroMaestro:
                         r["Dias_Dec"] = float(d_diff)
                         r["Tiempo_Ganadora_Txt"] = "Mismo día" if d_diff == 0 else f"{d_diff}d"
 
+    def construir_trazabilidad_monedas(self, tickers: dict, ganadoras_ext: dict) -> list:
+        """
+        Construye el perfil longitudinal completo de cada moneda única que pasó por el radar:
+        - Secuencia cronológica de colores (ej. 🟢 ➔ 🟡 ➔ 🔴) y si escaló hacia explosión
+        - Precio Base (1ra aparición), Precio Mínimo, Precio Máximo y Precio Actual
+        - Detección de Lateralización, Posición en Rango y Probabilidad de Nueva Subida (%)
+        - Cruce con el bot de Monedas Ganadoras y días de anticipación
+        """
+        por_moneda = {}
+        for ev in sorted(self.eventos.values(), key=lambda x: (x["Fecha"], x["Hora"])):
+            por_moneda.setdefault(ev["Moneda"], []).append(ev)
+
+        resumen_monedas = []
+        for mon, lista in por_moneda.items():
+            primera = lista[0]
+            ultima = lista[-1]
+
+            # Secuencia deduplicada de semáforos
+            seq_emojis = []
+            seq_cods = []
+            fecha_verde = None
+            fecha_rojo = None
+            for item in lista:
+                em = sem_emoji_corto(item["Semaforo_Ini"])
+                cd = sem_cod(item["Semaforo_Ini"])
+                if not seq_emojis or seq_emojis[-1] != em:
+                    seq_emojis.append(em)
+                    seq_cods.append(cd)
+                if cd == "VERDE" and fecha_verde is None:
+                    fecha_verde = item["Fecha"]
+                if cd == "ROJO" and fecha_rojo is None:
+                    fecha_rojo = item["Fecha"]
+                if sem_cod(item["Semaforo_Max"]) == "ROJO" and fecha_rojo is None:
+                    fecha_rojo = item["Fecha"]
+
+            secuencia_txt = " ➔ ".join(seq_emojis)
+            cambio_color = "SÍ" if len(seq_emojis) > 1 else "NO"
+
+            # Detectar si cumplió escalada ascendente (Verde->Amarillo, Amarillo->Rojo, Verde->Rojo)
+            escalo_alcista = False
+            for i in range(len(seq_cods) - 1):
+                if PRIORIDAD_COLOR[seq_cods[i + 1]] > PRIORIDAD_COLOR[seq_cods[i]]:
+                    escalo_alcista = True
+                    break
+
+            dias_a_rojo = "-"
+            if fecha_verde and fecha_rojo and fecha_rojo >= fecha_verde:
+                try:
+                    d_vr = (datetime.strptime(fecha_rojo, "%Y-%m-%d") - datetime.strptime(fecha_verde, "%Y-%m-%d")).days
+                    dias_a_rojo = f"{d_vr}d"
+                except Exception:
+                    pass
+
+            p_base = float(primera.get("Precio_Entrada") or 0.0)
+            p_max = max(float(x.get("Precio_Pico") or 0.0) for x in lista)
+            mins_validos = [float(x.get("Precio_Min") or x.get("Precio_Entrada") or 0.0) for x in lista if float(x.get("Precio_Min") or x.get("Precio_Entrada") or 0.0) > 0]
+            p_min = min(mins_validos) if mins_validos else p_base
+
+            p_actual = tickers[mon]["price"] if mon in tickers else float(ultima.get("Precio_Final") or p_base)
+            if p_actual > p_max:
+                p_max = p_actual
+            if p_actual > 0 and (p_min <= 0 or p_actual < p_min):
+                p_min = p_actual
+
+            subida_max_pct = ((p_max - p_base) / p_base) if p_base > 0 else 0.0
+            caida_min_pct = ((p_min - p_base) / p_base) if p_base > 0 else 0.0
+            var_actual_base = ((p_actual - p_base) / p_base) if p_base > 0 else 0.0
+
+            rango_total = p_max - p_min
+            pos_rango = ((p_actual - p_min) / rango_total) if rango_total > 0 else 0.5
+            pos_rango = max(0.0, min(1.0, pos_rango))
+
+            # Precio estimado de lateralización (promedio entre último cierre, última entrada y punto medio reciente)
+            p_lat = round((p_actual + float(ultima.get("Precio_Entrada") or p_actual)) / 2.0, 6)
+
+            # Diagnóstico de estructura y probabilidad de nueva subida
+            ba_ult = float(ultima.get("Bids_Asks") or 1.0)
+            pct_24h_live = tickers[mon]["pct_24h"] if mon in tickers else 0.0
+            wins_internas = sum(1 for x in lista if x["Estado"] == "🏆 GANADORA")
+
+            prob_rebote = 0.40
+            if pos_rango <= 0.28 and abs(pct_24h_live) <= 4.5:
+                estructura = "🔄 LATERALIZANDO EN PISO"
+                prob_rebote += 0.25
+            elif 0.28 < pos_rango <= 0.55 and p_actual >= p_base * 0.96 and abs(pct_24h_live) <= 5.0:
+                estructura = "🧱 ACUMULANDO SOBRE BASE"
+                prob_rebote += 0.22
+            elif pos_rango >= 0.78 and pct_24h_live > 4.0:
+                estructura = "🚀 EN EXPANSIÓN ALCISTA"
+                prob_rebote += 0.15
+            elif subida_max_pct >= 0.25 and pos_rango < 0.35 and pct_24h_live < -3.0:
+                estructura = "⚠️ AGOTADA TRAS PICO"
+                prob_rebote -= 0.12
+            else:
+                estructura = "📊 RANGO INTERMEDIO"
+                prob_rebote += 0.08
+
+            if ba_ult >= 1.5:
+                prob_rebote += 0.14
+            elif ba_ult >= 1.2:
+                prob_rebote += 0.07
+            if escalo_alcista:
+                prob_rebote += 0.08
+            if wins_internas > 0:
+                prob_rebote += 0.06
+
+            prob_rebote = round(max(0.10, min(0.96, prob_rebote)), 2)
+
+            # Cruce con bot de Monedas Ganadoras
+            g_ext = ganadoras_ext.get(mon)
+            if g_ext:
+                cruce_txt = f"🏆 SÍ ({g_ext['veces']}x)"
+                dias_ant = "-"
+                for fg in g_ext["fechas"]:
+                    if fg >= primera["Fecha"]:
+                        try:
+                            d_ant = (datetime.strptime(fg, "%Y-%m-%d") - datetime.strptime(primera["Fecha"], "%Y-%m-%d")).days
+                            dias_ant = f"{d_ant}d antes" if d_ant > 0 else "Mismo día"
+                            break
+                        except Exception:
+                            pass
+            else:
+                cruce_txt = "🏆 SÍ (Radar)" if wins_internas > 0 else "⏳ Pendiente"
+                dias_ant = "-"
+
+            resumen_monedas.append({
+                "Moneda": mon,
+                "Apariciones": len(lista),
+                "Dias_Radar": len({x["Fecha"] for x in lista}),
+                "Fecha_Ini": primera["Fecha"],
+                "Fecha_Ult": ultima["Fecha"],
+                "Color_Ini": primera["Semaforo_Ini"],
+                "Secuencia": secuencia_txt,
+                "Color_Actual": ultima["Semaforo_Max"],
+                "Escalo_Color": "🚀 SÍ" if escalo_alcista else ("🔄 MIX" if cambio_color == "SÍ" else "➖ NO"),
+                "Tiempo_a_Rojo": dias_a_rojo,
+                "Precio_Base": p_base,
+                "Precio_Min": p_min,
+                "Precio_Max": p_max,
+                "Precio_Lat": p_lat,
+                "Precio_Actual": p_actual,
+                "Subida_Max_Pct": round(subida_max_pct, 4),
+                "Caida_Min_Pct": round(caida_min_pct, 4),
+                "Var_Actual_Base": round(var_actual_base, 4),
+                "Pos_Rango": round(pos_rango, 3),
+                "Estructura": estructura,
+                "Prob_Subida": prob_rebote,
+                "Ganadora_Bot": cruce_txt,
+                "Anticipacion": dias_ant,
+            })
+
+        resumen_monedas.sort(key=lambda x: (-x["Prob_Subida"], -x["Apariciones"], x["Moneda"]))
+        return resumen_monedas
+
 
 # ==============================================================================
-# 5. ESCÁNER PRE-EXPLOSIÓN Y GENERADOR DE EXCEL MAESTRO (5 PESTAÑAS)
+# 5. ESCÁNER PRE-EXPLOSIÓN Y GENERADOR DE EXCEL MAESTRO (6 PESTAÑAS)
 # ==============================================================================
 def clasificar_candidatas(tickers: dict, cazador_set: set) -> list:
     candidatas = []
@@ -464,7 +719,7 @@ def clasificar_candidatas(tickers: dict, cazador_set: set) -> list:
         [t for t in tickers.values() if -6.0 <= t["pct_24h"] <= 18.0],
         key=lambda x: x["quote_vol"],
         reverse=True,
-    )[:45]
+    )[:50]
 
     for t in pre:
         mon = t["base"]
@@ -498,7 +753,7 @@ def clasificar_candidatas(tickers: dict, cazador_set: set) -> list:
             sem = "🔴 ROJO"
         elif (vol_r >= 1.5 and v4 >= 0.5) or (en_caz and blindaje >= 0.80):
             sem = "🟡 AMARILLO"
-        elif vol_r >= 1.3 and 0.35 <= fib <= 0.85 and blindaje >= 0.78:
+        elif vol_r >= 1.25 and 0.35 <= fib <= 0.85 and blindaje >= 0.76:
             sem = "🏆 TOP ORO" if blindaje >= 0.88 else "🟢 VERDE"
         else:
             continue
@@ -508,6 +763,8 @@ def clasificar_candidatas(tickers: dict, cazador_set: set) -> list:
             "Semaforo": sem,
             "Blindaje": blindaje,
             "Precio": t["price"],
+            "Low24h": t["low"],
+            "High24h": t["high"],
             "Var1h": v1,
             "Var4h": v4,
             "Var24h": round(t["pct_24h"], 2),
@@ -522,14 +779,20 @@ def clasificar_candidatas(tickers: dict, cazador_set: set) -> list:
     return candidatas[:18]
 
 
-def generar_excel_pre_explosion(reg: RegistroMaestro, candidatas: list, filepath: str = ARCHIVO_EXCEL_MAESTRO):
+def generar_excel_pre_explosion(
+    reg: RegistroMaestro,
+    candidatas: list,
+    trazabilidad: list,
+    filepath: str = ARCHIVO_EXCEL_MAESTRO
+):
     """
-    Genera AUDITORIA_PRE_EXPLOSION.xlsx con 5 pestañas idénticas al modelo maestro unificado:
-    1_RESUMEN_MENSUAL_IA (filtros dinámicos en todas las columnas por período en B4)
-    2_RADAR_ACTIVO_IA (candidatas activas en vivo)
-    3_REGISTRO_MAESTRO (histórico completo desde el 09/10/2026)
-    4_RANKING_MONEDAS (100% libre de #NAME?, métricas por moneda precalculadas)
-    5_AUDITORIA_SETUPS (efectividad por semáforo y confluencia)
+    Genera AUDITORIA_PRE_EXPLOSION.xlsx con 6 pestañas:
+    1_RESUMEN_MENSUAL_IA
+    2_RADAR_ACTIVO_IA
+    3_REGISTRO_MAESTRO
+    4_RANKING_MONEDAS
+    5_AUDITORIA_SETUPS
+    6_TRAZABILIDAD_Y_PATRONES (secuencia de colores, base, mínimo, máximo, lateralización, rebote y cruce ganadoras)
     """
     wb = openpyxl.Workbook()
     wb.remove(wb.active)
@@ -555,7 +818,6 @@ def generar_excel_pre_explosion(reg: RegistroMaestro, candidatas: list, filepath
     f_ini_fmt = datetime.strptime(fechas_ord[0], "%Y-%m-%d").strftime("%d/%m/%Y")
     f_fin_fmt = datetime.strptime(fechas_ord[-1], "%Y-%m-%d").strftime("%d/%m/%Y")
 
-    # Precalcular métricas por moneda en Python (evita #NAME? de MINIFS/MAXIFS)
     coin_agg = {}
     sem_wins = {"ROJO": [0, 0], "AMARILLO": [0, 0], "VERDE": [0, 0]}
     for r in filas_ord:
@@ -786,6 +1048,62 @@ def generar_excel_pre_explosion(reg: RegistroMaestro, candidatas: list, filepath
         c5 = ws5.cell(rn, 5, f"=IFERROR(AVERAGEIFS('3_REGISTRO_MAESTRO'!$P$5:$P${END_ROW},'3_REGISTRO_MAESTRO'!${col_l}$5:${col_l}${END_ROW},\"{crit}\",'3_REGISTRO_MAESTRO'!$P$5:$P${END_ROW},\">0\"),0)")
         c5.border, c5.number_format = borde, "+0.0%;-0.0%;0.0%"
 
+    # --------------------------------------------------------------------------
+    # PESTAÑA 6: 6_TRAZABILIDAD_Y_PATRONES (1 fila por moneda: colores, precios, lateralización y cruce)
+    # --------------------------------------------------------------------------
+    ws6 = wb.create_sheet("6_TRAZABILIDAD_Y_PATRONES")
+    tot_escalaron = sum(1 for x in trazabilidad if "SÍ" in x["Escalo_Color"])
+    tot_lat = sum(1 for x in trazabilidad if "LATERALIZANDO" in x["Estructura"] or "ACUMULANDO" in x["Estructura"])
+    ws6["A1"] = f"MAPA DE PATRONES Y TRAZABILIDAD POR MONEDA ({len(trazabilidad)} MONEDAS • {tot_escalaron} ESCALARON COLOR • {tot_lat} EN BASE/PISO)"
+    ws6["A1"].font, ws6["A1"].fill = Font(name="Arial", size=12, bold=True, color="FFFFFF"), f_navy
+    ws6.merge_cells("A1:W1")
+    ws6["A2"] = "Ordenado por Probabilidad de Nueva Subida %. Muestra secuencia histórica de colores, $ Base, $ Mínimo, $ Máximo, $ Lateralización y cruce con Bot Ganadoras."
+    ws6.merge_cells("A2:W2")
+
+    headers_ws6 = [
+        "N°", "Moneda", "Apariciones", "Días Radar", "1ª Fecha", "Última Fecha",
+        "Color Ini", "Secuencia Colores", "Color Actual", "Escaló Color", "Tiempo a Rojo",
+        "$ Base Radar", "$ Mínimo", "$ Máximo", "$ Lateraliz.", "$ Actual",
+        "Subida Máx %", "Caída Mín %", "Pos. Rango %", "Estructura Actual",
+        "Prob. Rebote %", "Bot Ganadoras", "Anticipación"
+    ]
+    for ci, h in enumerate(headers_ws6, 1):
+        c = ws6.cell(4, ci, h)
+        c.font, c.fill, c.border = Font(name="Arial", size=9, bold=True, color="FFFFFF"), f_slate, borde
+
+    for idx_t, item in enumerate(trazabilidad):
+        rn = 5 + idx_t
+        vals6 = [
+            idx_t + 1, item["Moneda"], item["Apariciones"], item["Dias_Radar"],
+            item["Fecha_Ini"], item["Fecha_Ult"], item["Color_Ini"], item["Secuencia"],
+            item["Color_Actual"], item["Escalo_Color"], item["Tiempo_a_Rojo"],
+            item["Precio_Base"], item["Precio_Min"], item["Precio_Max"],
+            item["Precio_Lat"], item["Precio_Actual"], item["Subida_Max_Pct"],
+            item["Caida_Min_Pct"], item["Pos_Rango"], item["Estructura"],
+            item["Prob_Subida"], item["Ganadora_Bot"], item["Anticipacion"]
+        ]
+        for ci, v in enumerate(vals6, 1):
+            c = ws6.cell(rn, ci, v)
+            c.border = borde
+            if ci in (17, 18):
+                c.number_format = "+0.0%;-0.0%;0.0%"
+            elif ci in (19, 21):
+                c.number_format = "0.0%"
+
+            if ci in (7, 9):
+                c.fill = sem_fills.get(str(v), f_grn)
+            elif ci == 10 and "SÍ" in str(v):
+                c.fill = f_gld
+            elif ci == 20 and ("LATERALIZANDO" in str(v) or "ACUMULANDO" in str(v)):
+                c.fill = f_grn
+            elif ci == 22 and "SÍ" in str(v):
+                c.fill = f_blu
+            elif idx_t % 2 == 1:
+                c.fill = f_zeb
+
+    ws6.freeze_panes = "C5"
+    ws6.auto_filter.ref = f"A4:W{4 + max(1, len(trazabilidad))}"
+
     # Ajuste automático de anchos de columna
     for ws in wb.worksheets:
         for col in ws.columns:
@@ -797,7 +1115,7 @@ def generar_excel_pre_explosion(reg: RegistroMaestro, candidatas: list, filepath
             ws.column_dimensions[col_letter].width = min(max(max_len + 4, 12), 46)
 
     wb.save(filepath)
-    log.info(f"Excel maestro guardado: {filepath} ({len(filas_ord)} registros, {N_COINS} monedas, {wins_tot} ganadoras).")
+    log.info(f"Excel maestro guardado: {filepath} ({len(filas_ord)} registros, {N_COINS} monedas, {wins_tot} ganadoras, 6 pestañas).")
 
 
 # ==============================================================================
@@ -861,7 +1179,7 @@ def enviar_telegram_excel(filepath: str, caption: str):
         log.error(f"Error enviando Excel a Telegram: {e}")
 
 
-def publicar_reporte_telegram(candidatas: list, reg: RegistroMaestro, dt_art: datetime):
+def publicar_reporte_telegram(candidatas: list, reg: RegistroMaestro, trazabilidad: list, dt_art: datetime):
     fecha_txt = dt_art.strftime("%Y-%m-%d %H:%M ART")
     bloques = [
         ("🔴 1. EXPLOSIÓN INMINENTE (ROJO)", [c for c in candidatas if "ROJO" in c["Semaforo"]]),
@@ -886,11 +1204,16 @@ def publicar_reporte_telegram(candidatas: list, reg: RegistroMaestro, dt_art: da
 
     tot_reg = len(reg.eventos)
     tot_wins = sum(1 for r in reg.eventos.values() if r["Estado"] == "🏆 GANADORA")
+    tot_esc = sum(1 for x in trazabilidad if "SÍ" in x["Escalo_Color"])
+    top_rebote = [x["Moneda"] for x in trazabilidad[:4]]
+
     caption = (
         f"📊 AUDITORÍA MAESTRA PRE-EXPLOSIÓN ({fecha_txt})\n"
-        f"• Histórico acumulado: {tot_reg} señales desde 09/10/2026\n"
+        f"• Histórico acumulado: {tot_reg} señales ({len(trazabilidad)} monedas únicas)\n"
         f"• Ganadoras confirmadas: {tot_wins} ({round(tot_wins/max(1,tot_reg)*100,1)}%)\n"
-        f"• Sin errores #NAME? • Filtros mensuales activos"
+        f"• Escaladas de color (🟢➔🟡➔🔴): {tot_esc} monedas\n"
+        f"• Top acumulación/rebote: {', '.join(top_rebote)}\n"
+        f"• Pestaña 6: Trazabilidad, Mínimos, Lateralización y Cruce Ganadoras"
     )
     enviar_telegram_excel(ARCHIVO_EXCEL_MAESTRO, caption)
 
@@ -907,21 +1230,17 @@ def main():
     log.info(f"Configuración Telegram -> Chat: {'OK' if TELEGRAM_CHAT_ID else 'FALTA'} | Topic: {TOPIC_ID_PRE_EXPLOSION or 'General'}")
 
     reg = RegistroMaestro()
-    # 1. Cargar histórico completo desde el Excel maestro subido (2.400+ filas desde 09/10/2026)
     reg.hidratar_desde_excel_maestro(ARCHIVO_EXCEL_MAESTRO)
-    # 2. Mezclar respaldo JSON incremental si existe
     reg.hidratar_desde_json_estado(ARCHIVO_ESTADO_JSON)
 
-    # 3. Consultar mercado Spot en Binance
     tickers = obtener_tickers_24h()
     log.info(f"Pares Spot válidos obtenidos en Binance: {len(tickers)}")
 
-    # 4. Actualizar precios y detectar nuevas ganadoras (+12% en <=7 días)
     if tickers:
         reg.actualizar_precios_y_ganadoras(tickers, fecha_hoy)
 
-    # 5. Escanear nuevas candidatas Pre-Explosión
     cazador_set = reg.leer_cazador_activo()
+    ganadoras_ext = reg.leer_ganadoras_otro_bot()
     candidatas = clasificar_candidatas(tickers, cazador_set) if tickers else []
     log.info(f"Candidatas detectadas en este ciclo: {len(candidatas)}")
 
@@ -936,19 +1255,18 @@ def main():
             "Fib_Zona": cand["Fib"],
             "Bids_Asks": cand["BidsAsks"],
             "Precio_Entrada": cand["Precio"],
-            "Precio_Pico": cand["Precio"],
+            "Precio_Min": cand.get("Low24h") or cand["Precio"],
+            "Precio_Pico": max(cand["Precio"], cand.get("High24h") or cand["Precio"]),
             "Precio_Final": cand["Precio"],
             "Fib_1618": str(cand["Fib1618"]),
             "Confluencia": "SÍ (Cazador + Pre-Exp)" if cand["EnCazador"] else "Solo Pre-Explosión",
             "Origen": "Cazador + Pre-Explosión" if cand["EnCazador"] else "Bot Pre-Explosión",
         })
 
-    # 6. Guardar JSON de estado y regenerar AUDITORIA_PRE_EXPLOSION.xlsx (5 pestañas)
+    trazabilidad = reg.construir_trazabilidad_monedas(tickers, ganadoras_ext)
     reg.guardar_json_estado(ARCHIVO_ESTADO_JSON)
-    generar_excel_pre_explosion(reg, candidatas, ARCHIVO_EXCEL_MAESTRO)
-
-    # 7. Publicar alertas y Excel actualizado en Telegram
-    publicar_reporte_telegram(candidatas, reg, dt_art)
+    generar_excel_pre_explosion(reg, candidatas, trazabilidad, ARCHIVO_EXCEL_MAESTRO)
+    publicar_reporte_telegram(candidatas, reg, trazabilidad, dt_art)
 
     log.info("Ciclo finalizado correctamente.")
 
