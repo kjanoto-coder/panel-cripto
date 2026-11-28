@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 314,
-  "ultima_actualizacion": "2026-11-28 13:11 ART",
+  "version_ciclo": 315,
+  "ultima_actualizacion": "2026-11-28 13:21 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.89,
     "min_ob_ratio": 1.28,
@@ -141,13 +141,6 @@
   },
   "pendientes_sombra_24h": [
     {
-      "symbol": "SKYUSDT",
-      "ts_unix": 1795860670,
-      "precio_veto": 0.05003,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 0.19x < 1.25x"
-    },
-    {
       "symbol": "NIGHTUSDT",
       "ts_unix": 1795864273,
       "precio_veto": 0.05255,
@@ -244,6 +237,20 @@
       "precio_veto": 0.002556,
       "paso_fallido": "A4-Empresa",
       "detalle": "A4 VETA: Vol 1h 0.34x < 1.25x"
+    },
+    {
+      "symbol": "SKYUSDT",
+      "ts_unix": 1795882270,
+      "precio_veto": 0.05002,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.49x < 1.25x"
+    },
+    {
+      "symbol": "SKYUSDT",
+      "ts_unix": 1795860670,
+      "precio_veto": 0.05003,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.19x < 1.25x"
     },
     {
       "symbol": "SNDKBUSDT",
@@ -505,11 +512,11 @@
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     },
     {
-      "symbol": "SKYUSDT",
-      "ts_unix": 1795882270,
-      "precio_veto": 0.05002,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 0.49x < 1.25x"
+      "symbol": "PARTIUSDT",
+      "ts_unix": 1795882871,
+      "precio_veto": 0.0363,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     }
   ],
   "metricas_globales": {
@@ -520,6 +527,6 @@
     "stops_salvadores": 1,
     "vetos_acertados": 84,
     "oportunidades_perdidas_20": 15,
-    "ajustes_autocritica_ciclo": 158
+    "ajustes_autocritica_ciclo": 159
   }
 }
