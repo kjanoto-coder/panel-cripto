@@ -5136,14 +5136,14 @@
     "CFGUSDT": {
       "symbol": "CFGUSDT",
       "base": "CFG",
-      "estrellas": 3,
-      "probabilidad_pct": 83,
+      "estrellas": 2,
+      "probabilidad_pct": 97,
       "precio_ref": 0.0571,
       "fecha_iso": "2026-11-28",
       "fecha_corta": "28/11",
-      "origen": "CAZADOR_TACTICO_ROJO",
-      "certificada_etapa1": true,
-      "blindaje_etapa1": 83
+      "certificada_ia": true,
+      "blindaje_pct": 97,
+      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.55) | Libro Bids/Asks: 1.53x (Spread 0.349%)"
     },
     "MOVEUSDT": {
       "symbol": "MOVEUSDT",
