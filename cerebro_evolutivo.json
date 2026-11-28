@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 258,
-  "ultima_actualizacion": "2026-11-28 03:51 ART",
+  "version_ciclo": 259,
+  "ultima_actualizacion": "2026-11-28 04:01 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.86,
     "min_ob_ratio": 1.24,
@@ -262,6 +262,13 @@
       "precio_veto": 0.001197,
       "paso_fallido": "A5-Binance",
       "detalle": "A5 VETA: Libro vendedor (OB 1.13x < 1.24x)"
+    },
+    {
+      "symbol": "SSVUSDT",
+      "ts_unix": 1795848665,
+      "precio_veto": 2.596,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.91x < 1.25x"
     },
     {
       "symbol": "KAVAUSDT",
@@ -549,13 +556,6 @@
       "precio_veto": 0.00093,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
-    },
-    {
-      "symbol": "SSVUSDT",
-      "ts_unix": 1795848665,
-      "precio_veto": 2.596,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 0.91x < 1.25x"
     }
   ],
   "metricas_globales": {
