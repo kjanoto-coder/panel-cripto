@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 307,
-  "ultima_actualizacion": "2026-11-28 12:01 ART",
+  "version_ciclo": 308,
+  "ultima_actualizacion": "2026-11-28 12:11 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.89,
     "min_ob_ratio": 1.28,
@@ -244,6 +244,13 @@
       "precio_veto": 0.03793,
       "paso_fallido": "A4-Empresa",
       "detalle": "A4 VETA: Vol 1h 0.45x < 1.25x"
+    },
+    {
+      "symbol": "PUMPUSDT",
+      "ts_unix": 1795878098,
+      "precio_veto": 0.002556,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.34x < 1.25x"
     },
     {
       "symbol": "KAVAUSDT",
@@ -517,41 +524,6 @@
       "precio_veto": 0.00904,
       "paso_fallido": "A4-Empresa",
       "detalle": "A4 VETA: Vol 1h 0.57x < 1.25x"
-    },
-    {
-      "symbol": "SENTUSDT",
-      "ts_unix": 1795791704,
-      "precio_veto": 0.02205,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 1.06x < 1.25x"
-    },
-    {
-      "symbol": "SNDKBUSDT",
-      "ts_unix": 1795791704,
-      "precio_veto": 79.02,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
-    },
-    {
-      "symbol": "INJUSDT",
-      "ts_unix": 1795791872,
-      "precio_veto": 6.225,
-      "paso_fallido": "A5-Binance",
-      "detalle": "A5 VETA: Libro vendedor (OB 1.20x < 1.30x)"
-    },
-    {
-      "symbol": "OPGUSDT",
-      "ts_unix": 1795792255,
-      "precio_veto": 0.1713,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 1.20x < 1.25x"
-    },
-    {
-      "symbol": "PUMPUSDT",
-      "ts_unix": 1795878098,
-      "precio_veto": 0.002556,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 0.34x < 1.25x"
     }
   ],
   "metricas_globales": {
@@ -562,6 +534,6 @@
     "stops_salvadores": 1,
     "vetos_acertados": 83,
     "oportunidades_perdidas_20": 15,
-    "ajustes_autocritica_ciclo": 151
+    "ajustes_autocritica_ciclo": 152
   }
 }
