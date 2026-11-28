@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 221,
-  "ultima_actualizacion": "2026-11-27 21:51 ART",
+  "version_ciclo": 222,
+  "ultima_actualizacion": "2026-11-27 22:01 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.91,
     "min_ob_ratio": 1.27,
@@ -104,13 +104,6 @@
     }
   },
   "pendientes_sombra_24h": [
-    {
-      "symbol": "LISTAUSDT",
-      "ts_unix": 1795806101,
-      "precio_veto": 0.0937,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 0.09x < 1.25x"
-    },
     {
       "symbol": "HAEDALUSDT",
       "ts_unix": 1795806672,
@@ -371,13 +364,6 @@
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     },
     {
-      "symbol": "LUNCUSDT",
-      "ts_unix": 1795794675,
-      "precio_veto": 4.603e-05,
-      "paso_fallido": "A5-Binance",
-      "detalle": "A5 VETA: Libro vendedor (OB 0.85x < 1.30x)"
-    },
-    {
       "symbol": "YBUSDT",
       "ts_unix": 1795795304,
       "precio_veto": 0.0575,
@@ -544,6 +530,13 @@
       "precio_veto": 133.93,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
+    },
+    {
+      "symbol": "LISTAUSDT",
+      "ts_unix": 1795827717,
+      "precio_veto": 0.0871,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.21x < 1.25x"
     }
   ],
   "metricas_globales": {
@@ -552,8 +545,8 @@
     "runners_20_logrados": 0,
     "stops_prematuros": 0,
     "stops_salvadores": 1,
-    "vetos_acertados": 65,
+    "vetos_acertados": 67,
     "oportunidades_perdidas_20": 7,
-    "ajustes_autocritica_ciclo": 70
+    "ajustes_autocritica_ciclo": 71
   }
 }
