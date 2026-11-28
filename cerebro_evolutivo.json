@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 292,
-  "ultima_actualizacion": "2026-11-28 09:41 ART",
+  "version_ciclo": 293,
+  "ultima_actualizacion": "2026-11-28 09:51 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.85,
     "min_ob_ratio": 1.26,
@@ -135,27 +135,6 @@
   },
   "pendientes_sombra_24h": [
     {
-      "symbol": "KAVAUSDT",
-      "ts_unix": 1795848072,
-      "precio_veto": 0.0291,
-      "paso_fallido": "A5-Binance",
-      "detalle": "A5 VETA: Libro vendedor (OB 0.27x < 1.24x)"
-    },
-    {
-      "symbol": "TLMUSDT",
-      "ts_unix": 1795848072,
-      "precio_veto": 0.001197,
-      "paso_fallido": "A5-Binance",
-      "detalle": "A5 VETA: Libro vendedor (OB 1.13x < 1.24x)"
-    },
-    {
-      "symbol": "SSVUSDT",
-      "ts_unix": 1795848665,
-      "precio_veto": 2.596,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 0.91x < 1.25x"
-    },
-    {
       "symbol": "SNDKBUSDT",
       "ts_unix": 1795857672,
       "precio_veto": 85.24,
@@ -203,6 +182,27 @@
       "precio_veto": 0.0595,
       "paso_fallido": "A4-Empresa",
       "detalle": "A4 VETA: Vol 1h 0.22x < 1.25x"
+    },
+    {
+      "symbol": "KAVAUSDT",
+      "ts_unix": 1795848072,
+      "precio_veto": 0.0291,
+      "paso_fallido": "A5-Binance",
+      "detalle": "A5 VETA: Libro vendedor (OB 0.27x < 1.24x)"
+    },
+    {
+      "symbol": "TLMUSDT",
+      "ts_unix": 1795848072,
+      "precio_veto": 0.001197,
+      "paso_fallido": "A5-Binance",
+      "detalle": "A5 VETA: Libro vendedor (OB 1.13x < 1.24x)"
+    },
+    {
+      "symbol": "SSVUSDT",
+      "ts_unix": 1795848665,
+      "precio_veto": 2.596,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.91x < 1.25x"
     },
     {
       "symbol": "CFGUSDT",
@@ -518,6 +518,20 @@
       "precio_veto": 0.14634,
       "paso_fallido": "A4-Empresa",
       "detalle": "A4 VETA: Vol 1h 0.66x < 1.25x"
+    },
+    {
+      "symbol": "KAVAUSDT",
+      "ts_unix": 1795870271,
+      "precio_veto": 0.02783,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.18x < 1.25x"
+    },
+    {
+      "symbol": "SSVUSDT",
+      "ts_unix": 1795870271,
+      "precio_veto": 2.712,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.53x < 1.25x"
     }
   ],
   "metricas_globales": {
@@ -528,6 +542,6 @@
     "stops_salvadores": 1,
     "vetos_acertados": 82,
     "oportunidades_perdidas_20": 15,
-    "ajustes_autocritica_ciclo": 136
+    "ajustes_autocritica_ciclo": 137
   }
 }
