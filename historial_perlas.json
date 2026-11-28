@@ -5508,6 +5508,16 @@
       "certificada_ia": true,
       "blindaje_pct": 97,
       "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.55) | Libro Bids/Asks: 0.83x (Spread 0.146%)"
+    },
+    "PARTIUSDT": {
+      "symbol": "PARTIUSDT",
+      "base": "PARTI",
+      "estrellas": 3,
+      "probabilidad_pct": 80,
+      "precio_ref": 0.0363,
+      "fecha_iso": "2026-11-28",
+      "fecha_corta": "28/11",
+      "origen": "SEGUNDA_OLA_GANADORAS"
     }
   },
   "verdes_hoy": [
