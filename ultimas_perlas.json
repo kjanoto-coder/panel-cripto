@@ -1,20 +1,20 @@
 [
   [
     "DODOUSDT",
-    "STXUSDT",
-    "FFUSDT",
-    "YBUSDT",
-    "NIGHTUSDT",
-    "ZROUSDT",
-    "SENTUSDT"
-  ],
-  [
-    "DODOUSDT",
     "FFUSDT",
     "YBUSDT",
     "STXUSDT",
     "NIGHTUSDT",
     "KITEUSDT",
     "SENTUSDT"
+  ],
+  [
+    "PARTIUSDT",
+    "OPGUSDT",
+    "ROBOUSDT",
+    "SKYUSDT",
+    "KAVAUSDT",
+    "CFGUSDT",
+    "THEUSDT"
   ]
 ]
