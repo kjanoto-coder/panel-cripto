@@ -6,6 +6,7 @@ import time
 import random
 import html
 import subprocess
+from collections import Counter
 from datetime import datetime, timezone, timedelta
 
 # Auto-instalación blindada de dependencias
@@ -25,7 +26,6 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import openpyxl
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from google import genai
 
 TZ_ART = timezone(timedelta(hours=-3))
@@ -37,6 +37,7 @@ BASE_URL_NETLIFY = "https://gregarious-frangollo-0346c5.netlify.app"
 
 HISTORIAL_FILE = "historial_perlas.json"
 HISTORIAL_GANADORAS_FILE = "historial_ganadoras.json"
+MAESTRO_BASE_FILE = "CAZADOR_TACTICO_MAESTRO_UNIFICADO.xlsx"
 EXCEL_TACTICO_FILE = "HISTORICO_CAZADOR_TACTICO.xlsx"
 REPORTE_IA_TACTICO_FILE = "reporte_ia_tactico.json"
 
@@ -773,7 +774,6 @@ def actualizar_historial_completo_tactico(session, historial, mapa_mkt):
     hoy_iso = ahora_art().strftime('%Y-%m-%d')
     hoy_dt = ahora_art().date()
 
-    # 1. Absorber registros previos si quedaron en graduadas o en historial_ganadoras.json
     for sym, info in historial.get("graduadas_pre_explosion", {}).items():
         f_iso = info.get("fecha_iso", hoy_iso)
         key = f"{sym}_{f_iso}"
@@ -826,7 +826,6 @@ def actualizar_historial_completo_tactico(session, historial, mapa_mkt):
         except Exception:
             pass
 
-    # 2. Volcar / actualizar todas las monedas activas en posta
     for sym, info in historial.get("posta", {}).items():
         f_iso = info.get("fecha_iso", hoy_iso)
         key = f"{sym}_{f_iso}"
@@ -868,7 +867,6 @@ def actualizar_historial_completo_tactico(session, historial, mapa_mkt):
             if tec.get("fib_tag"):
                 reg["fib_tag"] = tec["fib_tag"]
 
-    # 3. Auditar rendimiento real (máximo impulso y drawdown) contra Binance
     actualizaciones_klines = 0
     for key, reg in hist_comp.items():
         sym = reg["symbol"]
@@ -927,12 +925,10 @@ def ejecutar_asistente_ia_tactico(hist_comp, grupos):
     tasa_exito = round((len(exitosos) / total) * 100, 1) if total > 0 else 0.0
     prom_max_gain = round(sum(r.get("max_gain_pct", 0.0) for r in registros) / total, 2) if total > 0 else 0.0
 
-    # Drawdown típico de las operaciones que SÍ terminaron subiendo >= 6% (clave para no poner stop corto)
     dds_ganadoras = [abs(r.get("max_dd_pct", 0.0)) for r in exitosos if r.get("max_dd_pct") is not None]
     dd_tipico_rebote = round(sorted(dds_ganadoras)[len(dds_ganadoras) // 2], 2) if dds_ganadoras else 3.8
     stop_sugerido_global = round(min(7.5, max(3.5, dd_tipico_rebote + 1.2)), 1)
 
-    # Estadística por Etapa (1, 2, 3) y Estructura 1D
     stats_etapas = []
     for et, nombre_et in [(3, "3⭐⭐⭐ ROJO CERTIFICADO"), (2, "2⭐⭐ AMARILLO"), (1, "1⭐ VERDE")]:
         sub = [r for r in registros if int(r.get("etapa_max", 1)) == et]
@@ -967,7 +963,6 @@ def ejecutar_asistente_ia_tactico(hist_comp, grupos):
                 "stop_optimo_pct": -round(min(7.5, max(3.5, dd_med + 1.2)), 1)
             })
 
-    # Monedas activas evaluadas para Matriz Central
     activas_eval = []
     vistas = set()
     for grp_name in ["ROJO", "AMARILLO", "VERDE"]:
@@ -1068,188 +1063,192 @@ def ejecutar_asistente_ia_tactico(hist_comp, grupos):
 
 
 # ==============================================================================
-# GENERACIÓN DE PLANILLA EXCEL HISTÓRICA COMPLETA + ASISTENTE IA
+# ACTUALIZACIÓN INCREMENTAL DEL EXCEL MAESTRO UNIFICADO (5 HOJAS)
 # ==============================================================================
+def _map_etapa_a_cat(etiqueta_etapa: str) -> str:
+    up = str(etiqueta_etapa or "").upper()
+    if "ROJ" in up or "3⭐⭐⭐" in up:
+        return "ROJA"
+    if "AMAR" in up or "2⭐⭐" in up:
+        return "AMARILLA"
+    return "VERDE"
+
+
 def generar_excel_tactico(hist_comp, reporte_ia):
-    wb = openpyxl.Workbook()
-    wb.remove(wb.active)
+    """
+    Actualiza el libro unificado de 5 hojas (`1_RESUMEN_MENSUAL_IA`, `2_RADAR_ACTIVO_IA`,
+    `3_REGISTRO_MAESTRO`, `4_RANKING_MONEDAS`, `5_AUDITORIA_SETUPS`) partiendo de
+    `CAZADOR_TACTICO_MAESTRO_UNIFICADO.xlsx` o `HISTORICO_CAZADOR_TACTICO.xlsx` sin
+    duplicar registros ni romper fórmulas.
+    """
+    base_source = None
+    for candidate in [EXCEL_TACTICO_FILE, MAESTRO_BASE_FILE]:
+        if candidate and os.path.exists(candidate):
+            base_source = candidate
+            break
 
-    fill_hdr = PatternFill(start_color="0B132B", end_color="0B132B", fill_type="solid")
-    fill_sub = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
-    fill_gold = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
-    fill_green = PatternFill(start_color="DCFCE7", end_color="DCFCE7", fill_type="solid")
-    fill_red = PatternFill(start_color="FEE2E2", end_color="FEE2E2", fill_type="solid")
-    fill_blue = PatternFill(start_color="E0F2FE", end_color="E0F2FE", fill_type="solid")
+    if not base_source:
+        raise FileNotFoundError(f"No se encontró {MAESTRO_BASE_FILE} ni {EXCEL_TACTICO_FILE}")
 
-    borde = Border(
-        left=Side(style='thin', color='CBD5E1'),
-        right=Side(style='thin', color='CBD5E1'),
-        top=Side(style='thin', color='CBD5E1'),
-        bottom=Side(style='thin', color='CBD5E1')
+    wb = openpyxl.load_workbook(base_source)
+
+    required_sheets = {
+        "1_RESUMEN_MENSUAL_IA",
+        "2_RADAR_ACTIVO_IA",
+        "3_REGISTRO_MAESTRO",
+        "4_RANKING_MONEDAS",
+        "5_AUDITORIA_SETUPS",
+    }
+    if not required_sheets.issubset(set(wb.sheetnames)) and os.path.exists(MAESTRO_BASE_FILE):
+        wb = openpyxl.load_workbook(MAESTRO_BASE_FILE)
+
+    ws_rad = wb["2_RADAR_ACTIVO_IA"]
+    ws_reg = wb["3_REGISTRO_MAESTRO"]
+    ws_mon = wb["4_RANKING_MONEDAS"]
+    ws_aud = wb["5_AUDITORIA_SETUPS"]
+
+    # 1. Refrescar `2_RADAR_ACTIVO_IA`
+    act_list = reporte_ia.get("senales_activas_evaluadas", [])
+    ws_rad["A2"] = (
+        f"Diagnóstico Global IA ({reporte_ia.get('actualizado_art', '')}): "
+        f"{reporte_ia.get('diagnostico_global', '')}"
+    )
+    max_rad_rows = max(45, ws_rad.max_row - 4)
+    for idx in range(max_rad_rows):
+        r = 5 + idx
+        if idx < len(act_list):
+            a = act_list[idx]
+            ws_rad.cell(r, 1).value = a["ticker"]
+            ws_rad.cell(r, 2).value = a["etapa_actual"]
+            ws_rad.cell(r, 3).value = round(float(a["blindaje_pct"]) / 100.0, 4)
+            ws_rad.cell(r, 4).value = float(a["precio_inicio"])
+            ws_rad.cell(r, 5).value = float(a["precio_actual"])
+            ws_rad.cell(r, 6).value = f"=IF(D{r}>0,(E{r}-D{r})/D{r},0)"
+            ws_rad.cell(r, 7).value = a["estructura_1d"]
+            ws_rad.cell(r, 8).value = a["fib_tag"]
+            ws_rad.cell(r, 9).value = round(float(a["stop_sugerido_pct"]) / 100.0, 4)
+            ws_rad.cell(r, 10).value = a["accion_matriz"]
+            ws_rad.cell(r, 11).value = a["dictamen_ia"]
+        else:
+            for c_i in range(1, 12):
+                ws_rad.cell(r, c_i).value = None
+
+    # 2. Deduplicar e insertar/actualizar señales en `3_REGISTRO_MAESTRO`
+    existing_by_key = {}
+    last_used_row = 4
+    for r in range(5, ws_reg.max_row + 1):
+        fec = ws_reg.cell(r, 2).value
+        mon = ws_reg.cell(r, 6).value
+        if fec and mon:
+            key = (str(fec)[:10].strip(), str(mon).strip().upper())
+            existing_by_key[key] = r
+            if r > last_used_row:
+                last_used_row = r
+
+    next_row = last_used_row + 1
+    hora_actual = ahora_art().strftime("%H:%M")
+
+    registros_ord = sorted(
+        hist_comp.values(),
+        key=lambda x: (x.get("fecha_deteccion", ""), x.get("etapa_max", 1))
     )
 
-    # HOJA 1: ASISTENTE IA TÁCTICO
-    ws_ia = wb.create_sheet("ASISTENTE_IA_TACTICO")
-    ws_ia["A1"] = "ASISTENTE IA • ETAPA 1 CAZADOR TÁCTICO (CALIBRACIÓN DE REBOTES, STOPS Y SEÑALES ACTIVAS)"
-    ws_ia["A1"].font = Font(name="Arial", size=12, bold=True, color="FFFFFF")
-    ws_ia["A1"].fill = fill_hdr
-    ws_ia.merge_cells("A1:K1")
-    ws_ia.row_dimensions[1].height = 28
+    for reg in registros_ord:
+        fecha = str(reg.get("fecha_deteccion") or ahora_art().strftime("%Y-%m-%d"))[:10].strip()
+        moneda = str(reg.get("ticker") or (reg.get("symbol", "")[:-4] if str(reg.get("symbol", "")).endswith("USDT") else reg.get("symbol", ""))).strip().upper()
+        if not moneda or not fecha:
+            continue
 
-    ws_ia["A2"] = f"Diagnóstico Global IA ({reporte_ia.get('actualizado_art', '')}): {reporte_ia.get('diagnostico_global', '')}"
-    ws_ia["A2"].font = Font(name="Arial", size=10, bold=True, color="0F172A")
-    ws_ia["A2"].fill = fill_gold
-    ws_ia["A2"].alignment = Alignment(wrap_text=True, vertical="center")
-    ws_ia.merge_cells("A2:K2")
-    ws_ia.row_dimensions[2].height = 34
+        key = (fecha, moneda)
+        p_ini = float(reg.get("precio_inicio") or 0.0)
+        p_act = float(reg.get("precio_actual") or p_ini)
+        p_max = float(reg.get("precio_max") or max(p_ini, p_act))
+        max_dd = round(float(reg.get("max_dd_pct") or 0.0) / 100.0, 4)
+        ret_24h = round(float(reg["ret_24h_pct"]) / 100.0, 4) if reg.get("ret_24h_pct") is not None else None
+        ret_48h = round(float(reg["ret_48h_pct"]) / 100.0, 4) if reg.get("ret_48h_pct") is not None else None
+        cat = _map_etapa_a_cat(reg.get("etiqueta_etapa", ""))
+        etapa_lbl = str(reg.get("etiqueta_etapa") or f"{reg.get('etapa_max', 1)}⭐")
+        res_aud = str(reg.get("resultado_real") or "EN_MADURACION (<=3d)")
 
-    headers_act = [
-        "MONEDA", "ETAPA", "BLINDAJE %", "PRECIO INICIO", "PRECIO ACTUAL",
-        "AVANCE SEQ %", "ESTRUCTURA 1D", "FIBONACCI", "STOP SUGERIDO %",
-        "ACCIÓN MATRIZ", "DICTAMEN ASISTENTE IA"
-    ]
-    ws_ia.append([])
-    ws_ia.append(headers_act)
-    ws_ia.row_dimensions[4].height = 24
-    for c_i in range(1, len(headers_act) + 1):
-        cell = ws_ia.cell(4, c_i)
-        cell.font = Font(name="Arial", size=9.5, bold=True, color="FFFFFF")
-        cell.fill = fill_sub
-        cell.alignment = Alignment(horizontal="center", vertical="center")
-        cell.border = borde
+        if key in existing_by_key:
+            r = existing_by_key[key]
+            prev_pmax = ws_reg.cell(r, 14).value
+            if prev_pmax is None or float(prev_pmax) < p_max:
+                ws_reg.cell(r, 14).value = p_max
+            ws_reg.cell(r, 7).value = cat
+            ws_reg.cell(r, 8).value = etapa_lbl
+            ws_reg.cell(r, 16).value = max_dd
+            if ret_24h is not None:
+                ws_reg.cell(r, 19).value = ret_24h
+            if ret_48h is not None:
+                ws_reg.cell(r, 20).value = ret_48h
+            if reg.get("estructura_1d"):
+                ws_reg.cell(r, 21).value = reg.get("estructura_1d")
+            if reg.get("fib_tag"):
+                ws_reg.cell(r, 22).value = reg.get("fib_tag")
+            if reg.get("rsi_1h") is not None:
+                ws_reg.cell(r, 23).value = reg.get("rsi_1h")
+            ws_reg.cell(r, 24).value = res_aud
+        else:
+            r = next_row
+            next_row += 1
+            existing_by_key[key] = r
 
-    for r_idx, a in enumerate(reporte_ia.get("senales_activas_evaluadas", []), start=5):
-        row = [
-            a["ticker"],
-            a["etapa_actual"],
-            round(a["blindaje_pct"] / 100.0, 4),
-            a["precio_inicio"],
-            a["precio_actual"],
-            round(a["var_seq_pct"] / 100.0, 4),
-            a["estructura_1d"],
-            a["fib_tag"],
-            round(a["stop_sugerido_pct"] / 100.0, 4),
-            a["accion_matriz"],
-            a["dictamen_ia"]
-        ]
-        ws_ia.append(row)
-        ws_ia.row_dimensions[r_idx].height = 22
-        for c_i in range(1, len(headers_act) + 1):
-            cell = ws_ia.cell(r_idx, c_i)
-            cell.border = borde
-            cell.font = Font(name="Arial", size=9.5, bold=(a["etapa_actual"] == "ROJO"))
-            if c_i in (3, 6, 9):
-                cell.number_format = "0.0%"
-            if a["etapa_actual"] == "ROJO":
-                cell.fill = fill_green
-            elif a["etapa_actual"] == "AMARILLO":
-                cell.fill = fill_blue
+            if not ws_reg.cell(r, 1).value:
+                ws_reg.cell(r, 1).value = f'=IF(F{r}="","",ROW()-4)'
+            if not ws_reg.cell(r, 3).value:
+                ws_reg.cell(r, 3).value = f'=IF(B{r}="","",IF(ISNUMBER(B{r}),TEXT(B{r},"yyyy-mm"),LEFT(B{r},7)))'
+            if not ws_reg.cell(r, 4).value:
+                ws_reg.cell(r, 4).value = f'=IF(C{r}="","",C{r}&" • "&CHOOSE(VALUE(RIGHT(C{r},2)),"Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"))'
+            if not ws_reg.cell(r, 15).value:
+                ws_reg.cell(r, 15).value = f'=IF(AND(ISNUMBER(I{r}),ISNUMBER(N{r}),I{r}>0),(N{r}-I{r})/I{r},"")'
 
-    widths_ia = [12, 13, 12, 14, 14, 14, 18, 22, 16, 25, 56]
-    for i, w in enumerate(widths_ia, start=1):
-        ws_ia.column_dimensions[openpyxl.utils.get_column_letter(i)].width = w
+            ws_reg.cell(r, 2).value = fecha
+            ws_reg.cell(r, 5).value = hora_actual
+            ws_reg.cell(r, 6).value = moneda
+            ws_reg.cell(r, 7).value = cat
+            ws_reg.cell(r, 8).value = etapa_lbl
+            ws_reg.cell(r, 9).value = p_ini if p_ini > 0 else None
+            ws_reg.cell(r, 10).value = 0.0
+            ws_reg.cell(r, 11).value = reg.get("vol_surge")
+            ws_reg.cell(r, 12).value = None
+            ws_reg.cell(r, 13).value = "LATERAL"
+            ws_reg.cell(r, 14).value = p_max if p_max > 0 else None
+            ws_reg.cell(r, 16).value = max_dd
+            ws_reg.cell(r, 17).value = 0.0
+            ws_reg.cell(r, 18).value = "LATERAL"
+            ws_reg.cell(r, 19).value = ret_24h
+            ws_reg.cell(r, 20).value = ret_48h
+            ws_reg.cell(r, 21).value = reg.get("estructura_1d")
+            ws_reg.cell(r, 22).value = reg.get("fib_tag")
+            ws_reg.cell(r, 23).value = reg.get("rsi_1h")
+            ws_reg.cell(r, 24).value = res_aud
+            ws_reg.cell(r, 25).value = "SÍ (Pre-Exp)" if cat == "ROJA" else "NO"
+            ws_reg.cell(r, 26).value = "NO"
+            ws_reg.cell(r, 27).value = "Bot Cazador Táctico"
 
-    # HOJA 2: HISTÓRICO COMPLETO ACUMULADO
-    ws_hist = wb.create_sheet("HISTORICO_COMPLETO")
-    headers_hist = [
-        "FECHA DETECCIÓN", "MONEDA", "ETAPA MÁXIMA", "BLINDAJE %",
-        "PRECIO INICIO", "PRECIO ACTUAL", "VAR ACTUAL %",
-        "MÁX SUBIDA %", "MÁX CAÍDA (DD) %", "RET 24H %", "RET 48H %",
-        "ESTRUCTURA 1D", "FIBONACCI", "RSI 1H", "RESULTADO REAL AUDITADO"
-    ]
-    ws_hist.append(headers_hist)
-    ws_hist.row_dimensions[1].height = 25
-    for c_i in range(1, len(headers_hist) + 1):
-        cell = ws_hist.cell(1, c_i)
-        cell.font = Font(name="Arial", size=9.5, bold=True, color="FFFFFF")
-        cell.fill = fill_hdr
-        cell.alignment = Alignment(horizontal="center", vertical="center")
-        cell.border = borde
+    # 3. Reordenar `4_RANKING_MONEDAS` por recurrencia histórica conservando fórmulas
+    counts = Counter(k[1] for k in existing_by_key.keys())
+    ranked_coins = sorted(counts.keys(), key=lambda c: (-counts[c], c))
+    for idx in range(500):
+        r = 5 + idx
+        ws_mon.cell(r, 2).value = ranked_coins[idx] if idx < len(ranked_coins) else None
 
-    registros_ord = sorted(hist_comp.values(), key=lambda x: (x.get("fecha_deteccion", ""), x.get("etapa_max", 1)), reverse=True)
-    for r_idx, reg in enumerate(registros_ord, start=2):
-        max_g = float(reg.get("max_gain_pct", 0.0))
-        res_txt = reg.get("resultado_real", "EN_MADURACION")
-        row = [
-            reg.get("fecha_deteccion", ""),
-            reg.get("ticker", ""),
-            reg.get("etiqueta_etapa", ""),
-            round(float(reg.get("probabilidad", 50)) / 100.0, 4),
-            float(reg.get("precio_inicio", 0.0)),
-            float(reg.get("precio_actual", 0.0)),
-            round(float(reg.get("var_actual_pct", 0.0)) / 100.0, 4),
-            round(max_g / 100.0, 4),
-            round(float(reg.get("max_dd_pct", 0.0)) / 100.0, 4),
-            round(float(reg["ret_24h_pct"]) / 100.0, 4) if reg.get("ret_24h_pct") is not None else "",
-            round(float(reg["ret_48h_pct"]) / 100.0, 4) if reg.get("ret_48h_pct") is not None else "",
-            reg.get("estructura_1d", ""),
-            reg.get("fib_tag", ""),
-            reg.get("rsi_1h", ""),
-            res_txt
-        ]
-        ws_hist.append(row)
-        for c_i in range(1, len(headers_hist) + 1):
-            cell = ws_hist.cell(r_idx, c_i)
-            cell.border = borde
-            cell.font = Font(name="Arial", size=9.5)
-            if c_i in (4, 7, 8, 9, 10, 11) and isinstance(cell.value, float):
-                cell.number_format = "0.0%"
-            if "REBOTE_EXITOSO" in res_txt:
-                cell.fill = fill_green
-            elif "INVALIDADA" in res_txt:
-                cell.fill = fill_red
-
-    widths_hist = [16, 12, 24, 12, 14, 14, 14, 14, 16, 12, 12, 18, 22, 10, 26]
-    for i, w in enumerate(widths_hist, start=1):
-        ws_hist.column_dimensions[openpyxl.utils.get_column_letter(i)].width = w
-
-    # HOJA 3: AUDITORÍA DE SETUPS Y CALIBRACIÓN DE STOPS
-    ws_set = wb.create_sheet("AUDITORIA_SETUPS")
-    ws_set["A1"] = "AUDITORÍA ESTADÍSTICA POR ETAPA Y ESTRUCTURA 1D • CAZADOR TÁCTICO"
-    ws_set["A1"].font = Font(name="Arial", size=12, bold=True, color="FFFFFF")
-    ws_set["A1"].fill = fill_hdr
-    ws_set.merge_cells("A1:G1")
-    ws_set.row_dimensions[1].height = 26
-
-    headers_set = [
-        "SEGMENTO / SETUP", "SEÑALES TOTALES", "REBOTES >=6%",
-        "EFECTIVIDAD %", "MÁX SUBIDA PROM %", "DD PREVIO MEDIANO %", "STOP ÓPTIMO CALIBRADO %"
-    ]
-    ws_set.append([])
-    ws_set.append(headers_set)
-    ws_set.row_dimensions[3].height = 24
-    for c_i in range(1, len(headers_set) + 1):
-        cell = ws_set.cell(3, c_i)
-        cell.font = Font(name="Arial", size=9.5, bold=True, color="FFFFFF")
-        cell.fill = fill_sub
-        cell.alignment = Alignment(horizontal="center", vertical="center")
-        cell.border = borde
-
+    # 4. Actualizar Tabla 1 de `5_AUDITORIA_SETUPS` sin tocar la Tabla 2 dinámica
     filas_set = reporte_ia.get("auditoria_por_etapa", []) + reporte_ia.get("auditoria_por_estructura", [])
-    for r_idx, st in enumerate(filas_set, start=4):
-        ws_set.append([
-            st["categoria"],
-            st["cantidad"],
-            st["aciertos_6pct"],
-            round(st["efectividad_pct"] / 100.0, 4),
-            round(st["max_gain_prom_pct"] / 100.0, 4),
-            round(st["dd_previo_mediano_pct"] / 100.0, 4),
-            round(st["stop_optimo_pct"] / 100.0, 4)
-        ])
-        for c_i in range(1, len(headers_set) + 1):
-            cell = ws_set.cell(r_idx, c_i)
-            cell.border = borde
-            cell.font = Font(name="Arial", size=9.5, bold=(c_i in (1, 7)))
-            if c_i in (4, 5, 6, 7):
-                cell.number_format = "0.0%"
-            if c_i == 7:
-                cell.fill = fill_gold
-
-    widths_set = [28, 17, 15, 16, 20, 21, 24]
-    for i, w in enumerate(widths_set, start=1):
-        ws_set.column_dimensions[openpyxl.utils.get_column_letter(i)].width = w
+    for idx, st in enumerate(filas_set[:6]):
+        r = 6 + idx
+        ws_aud.cell(r, 1).value = st["categoria"]
+        ws_aud.cell(r, 2).value = int(st["cantidad"])
+        ws_aud.cell(r, 3).value = int(st["aciertos_6pct"])
+        ws_aud.cell(r, 4).value = f"=IF(B{r}>0,C{r}/B{r},0)"
+        ws_aud.cell(r, 5).value = round(float(st["max_gain_prom_pct"]) / 100.0, 4)
+        ws_aud.cell(r, 6).value = round(float(st["dd_previo_mediano_pct"]) / 100.0, 4)
+        ws_aud.cell(r, 7).value = round(float(st["stop_optimo_pct"]) / 100.0, 4)
 
     wb.save(EXCEL_TACTICO_FILE)
+    if MAESTRO_BASE_FILE and MAESTRO_BASE_FILE != EXCEL_TACTICO_FILE:
+        wb.save(MAESTRO_BASE_FILE)
 
 
 # ==============================================================================
