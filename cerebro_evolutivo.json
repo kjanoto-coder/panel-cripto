@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 217,
-  "ultima_actualizacion": "2026-11-27 21:11 ART",
+  "version_ciclo": 218,
+  "ultima_actualizacion": "2026-11-27 21:21 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.91,
     "min_ob_ratio": 1.27,
@@ -104,13 +104,6 @@
     }
   },
   "pendientes_sombra_24h": [
-    {
-      "symbol": "NBISBUSDT",
-      "ts_unix": 1795803069,
-      "precio_veto": 90.74,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
-    },
     {
       "symbol": "KAVAUSDT",
       "ts_unix": 1795803666,
@@ -299,6 +292,13 @@
       "precio_veto": 732.39,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "ACEUSDT",
+      "ts_unix": 1795824669,
+      "precio_veto": 0.0894,
+      "paso_fallido": "A5-Binance",
+      "detalle": "A5 VETA: Liquidez Ask 0.15% baja ($156) o slippage 0.274%"
     },
     {
       "symbol": "ZECUSDT",
@@ -525,11 +525,11 @@
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     },
     {
-      "symbol": "ACEUSDT",
-      "ts_unix": 1795824669,
-      "precio_veto": 0.0894,
+      "symbol": "BIGTIMEUSDT",
+      "ts_unix": 1795825263,
+      "precio_veto": 0.00579,
       "paso_fallido": "A5-Binance",
-      "detalle": "A5 VETA: Liquidez Ask 0.15% baja ($156) o slippage 0.274%"
+      "detalle": "A5 VETA: Muro vendedor en Ask (35% del libro)"
     }
   ],
   "metricas_globales": {
@@ -538,8 +538,8 @@
     "runners_20_logrados": 0,
     "stops_prematuros": 0,
     "stops_salvadores": 1,
-    "vetos_acertados": 64,
+    "vetos_acertados": 65,
     "oportunidades_perdidas_20": 7,
-    "ajustes_autocritica_ciclo": 67
+    "ajustes_autocritica_ciclo": 68
   }
 }
