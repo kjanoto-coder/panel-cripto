@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 298,
-  "ultima_actualizacion": "2026-11-28 10:41 ART",
+  "version_ciclo": 299,
+  "ultima_actualizacion": "2026-11-28 10:51 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.85,
     "min_ob_ratio": 1.26,
@@ -380,13 +380,6 @@
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
     },
     {
-      "symbol": "WUSDT",
-      "ts_unix": 1795815086,
-      "precio_veto": 0.00915,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 0.32x < 1.25x"
-    },
-    {
       "symbol": "SNDKBUSDT",
       "ts_unix": 1795813304,
       "precio_veto": 85.22,
@@ -526,8 +519,8 @@
     "runners_20_logrados": 0,
     "stops_prematuros": 0,
     "stops_salvadores": 1,
-    "vetos_acertados": 82,
+    "vetos_acertados": 83,
     "oportunidades_perdidas_20": 15,
-    "ajustes_autocritica_ciclo": 142
+    "ajustes_autocritica_ciclo": 143
   }
 }
