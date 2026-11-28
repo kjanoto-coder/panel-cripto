@@ -1,14 +1,5 @@
 [
   [
-    "GALAUSDT",
-    "ACTUSDT",
-    "GUNUSDT",
-    "USUALUSDT",
-    "AVAUSDT",
-    "GRAMUSDT",
-    "GTCUSDT"
-  ],
-  [
     "SENTUSDT",
     "SKYUSDT",
     "WIFUSDT",
@@ -16,5 +7,14 @@
     "HEIUSDT",
     "ACEUSDT",
     "LISTAUSDT"
+  ],
+  [
+    "JSTUSDT",
+    "NIGHTUSDT",
+    "KAVAUSDT",
+    "OPGUSDT",
+    "RENDERUSDT",
+    "TLMUSDT",
+    "ROBOUSDT"
   ]
 ]
