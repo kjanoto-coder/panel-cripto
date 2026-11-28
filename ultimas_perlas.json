@@ -6,15 +6,15 @@
     "OPGUSDT",
     "SENTUSDT",
     "WIFUSDT",
-    "SKYUSDT"
+    "AVAUSDT"
   ],
   [
     "JSTUSDT",
-    "DODOUSDT",
     "NIGHTUSDT",
+    "DODOUSDT",
     "OPGUSDT",
-    "SENTUSDT",
-    "WIFUSDT",
-    "AVAUSDT"
+    "AVAUSDT",
+    "SKYUSDT",
+    "LUNCUSDT"
   ]
 ]
