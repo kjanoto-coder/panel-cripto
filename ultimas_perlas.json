@@ -3,18 +3,18 @@
     "JSTUSDT",
     "NIGHTUSDT",
     "DODOUSDT",
-    "OPGUSDT",
-    "TLMUSDT",
     "RENDERUSDT",
+    "AVAUSDT",
+    "OPGUSDT",
     "BANKUSDT"
   ],
   [
     "JSTUSDT",
     "NIGHTUSDT",
-    "DODOUSDT",
     "RENDERUSDT",
-    "AVAUSDT",
     "OPGUSDT",
-    "BANKUSDT"
+    "BANKUSDT",
+    "TLMUSDT",
+    "AVAUSDT"
   ]
 ]
