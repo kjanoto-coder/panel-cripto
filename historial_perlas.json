@@ -3508,30 +3508,6 @@
     "JSTUSDT": {
       "symbol": "JSTUSDT",
       "base": "JST",
-      "estrellas": 2,
-      "probabilidad_pct": 97,
-      "precio_ref": 0.14683,
-      "fecha_iso": "2026-11-28",
-      "fecha_corta": "28/11",
-      "certificada_ia": true,
-      "blindaje_pct": 97,
-      "motivo_certificacion": "Coincide Cazador+PreExplosión | Pullback Sano Fib (0.39) | Libro Bids/Asks: 2.25x (Spread 0.02%)"
-    },
-    "ORCAUSDT": {
-      "symbol": "ORCAUSDT",
-      "base": "ORCA",
-      "estrellas": 3,
-      "probabilidad_pct": 37,
-      "precio_ref": 0.0266,
-      "fecha_iso": "2026-11-28",
-      "fecha_corta": "28/11",
-      "origen": "CAZADOR_TACTICO_ROJO",
-      "certificada_etapa1": true,
-      "blindaje_etapa1": 37
-    },
-    "JSTUSDT": {
-      "symbol": "JSTUSDT",
-      "base": "JST",
       "estrellas": 3,
       "probabilidad_pct": 55,
       "precio_ref": 0.14676,
