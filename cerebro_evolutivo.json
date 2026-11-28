@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 270,
-  "ultima_actualizacion": "2026-11-28 05:51 ART",
+  "version_ciclo": 271,
+  "ultima_actualizacion": "2026-11-28 06:01 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.86,
     "min_ob_ratio": 1.24,
@@ -234,13 +234,6 @@
       "precio_veto": 0.0486,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
-    },
-    {
-      "symbol": "HAEDALUSDT",
-      "ts_unix": 1795833084,
-      "precio_veto": 0.02345,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     },
     {
       "symbol": "PUMPUSDT",
@@ -543,8 +536,8 @@
     "runners_20_logrados": 0,
     "stops_prematuros": 0,
     "stops_salvadores": 1,
-    "vetos_acertados": 76,
+    "vetos_acertados": 77,
     "oportunidades_perdidas_20": 12,
-    "ajustes_autocritica_ciclo": 114
+    "ajustes_autocritica_ciclo": 115
   }
 }
