@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 250,
-  "ultima_actualizacion": "2026-11-28 02:31 ART",
+  "version_ciclo": 251,
+  "ultima_actualizacion": "2026-11-28 02:41 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.91,
     "min_ob_ratio": 1.27,
@@ -104,13 +104,6 @@
     }
   },
   "pendientes_sombra_24h": [
-    {
-      "symbol": "INJUSDT",
-      "ts_unix": 1795822865,
-      "precio_veto": 6.317,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 0.59x < 1.25x"
-    },
     {
       "symbol": "SENTUSDT",
       "ts_unix": 1795823480,
@@ -250,6 +243,20 @@
       "precio_veto": 0.0273,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "GRAMUSDT",
+      "ts_unix": 1795843889,
+      "precio_veto": 0.974,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.50x < 1.25x"
+    },
+    {
+      "symbol": "INJUSDT",
+      "ts_unix": 1795822865,
+      "precio_veto": 6.317,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.59x < 1.25x"
     },
     {
       "symbol": "GRAMUSDT",
@@ -523,13 +530,6 @@
       "precio_veto": 133.93,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
-    },
-    {
-      "symbol": "GRAMUSDT",
-      "ts_unix": 1795843889,
-      "precio_veto": 0.974,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 0.50x < 1.25x"
     }
   ],
   "metricas_globales": {
@@ -540,6 +540,6 @@
     "stops_salvadores": 1,
     "vetos_acertados": 72,
     "oportunidades_perdidas_20": 10,
-    "ajustes_autocritica_ciclo": 97
+    "ajustes_autocritica_ciclo": 98
   }
 }
