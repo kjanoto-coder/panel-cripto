@@ -4992,6 +4992,16 @@
       "certificada_ia": true,
       "blindaje_pct": 93,
       "motivo_certificacion": "Coincide Cazador+PreExplosión | Tramo Alcista Fib (0.14) | Libro Bids/Asks: 2.43x (Spread 0.1%)"
+    },
+    "AVAUSDT": {
+      "symbol": "AVAUSDT",
+      "base": "AVA",
+      "estrellas": 3,
+      "probabilidad_pct": 80,
+      "precio_ref": 0.2203,
+      "fecha_iso": "2026-11-28",
+      "fecha_corta": "28/11",
+      "origen": "SEGUNDA_OLA_GANADORAS"
     }
   },
   "verdes_hoy": [
