@@ -1,14 +1,5 @@
 [
   [
-    "YBUSDT",
-    "STXUSDT",
-    "SENTUSDT",
-    "NIGHTUSDT",
-    "ROBOUSDT",
-    "ETHFIUSDT",
-    "RESOLVUSDT"
-  ],
-  [
     "LISTAUSDT",
     "JSTUSDT",
     "DODOUSDT",
@@ -16,5 +7,14 @@
     "YBUSDT",
     "STXUSDT",
     "SKYUSDT"
+  ],
+  [
+    "LUNCUSDT",
+    "OPGUSDT",
+    "PARTIUSDT",
+    "ZROUSDT",
+    "ATMUSDT",
+    "KAVAUSDT",
+    "ACTUSDT"
   ]
 ]
