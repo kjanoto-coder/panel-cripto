@@ -4897,6 +4897,16 @@
       "certificada_ia": true,
       "blindaje_pct": 79,
       "motivo_certificacion": "Pullback Sano Fib (0.49) | Libro Bids/Asks: 1.25x (Spread 0.016%)"
+    },
+    "HEIUSDT": {
+      "symbol": "HEIUSDT",
+      "base": "HEI",
+      "estrellas": 3,
+      "probabilidad_pct": 80,
+      "precio_ref": 0.0802,
+      "fecha_iso": "2026-11-28",
+      "fecha_corta": "28/11",
+      "origen": "SEGUNDA_OLA_GANADORAS"
     }
   },
   "verdes_hoy": [
