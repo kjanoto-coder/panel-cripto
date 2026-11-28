@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 304,
-  "ultima_actualizacion": "2026-11-28 11:31 ART",
+  "version_ciclo": 305,
+  "ultima_actualizacion": "2026-11-28 11:41 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.89,
     "min_ob_ratio": 1.28,
@@ -209,6 +209,13 @@
       "precio_veto": 0.00311,
       "paso_fallido": "A4-Empresa",
       "detalle": "A4 VETA: Vol 1h 0.11x < 1.25x"
+    },
+    {
+      "symbol": "COOKIEUSDT",
+      "ts_unix": 1795876290,
+      "precio_veto": 0.00781,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.58x < 1.25x"
     },
     {
       "symbol": "KAVAUSDT",
@@ -519,18 +526,18 @@
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     },
     {
-      "symbol": "ASTERUSDT",
-      "ts_unix": 1795789886,
-      "precio_veto": 0.5065,
+      "symbol": "ZROUSDT",
+      "ts_unix": 1795876871,
+      "precio_veto": 1.086,
       "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 0.80x < 1.25x"
+      "detalle": "A4 VETA: Vol 1h 1.02x < 1.25x"
     },
     {
-      "symbol": "COOKIEUSDT",
-      "ts_unix": 1795876290,
-      "precio_veto": 0.00781,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 0.58x < 1.25x"
+      "symbol": "MUBUSDT",
+      "ts_unix": 1795876871,
+      "precio_veto": 641.66,
+      "paso_fallido": "A3-Empresa",
+      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     }
   ],
   "metricas_globales": {
@@ -541,6 +548,6 @@
     "stops_salvadores": 1,
     "vetos_acertados": 83,
     "oportunidades_perdidas_20": 15,
-    "ajustes_autocritica_ciclo": 148
+    "ajustes_autocritica_ciclo": 149
   }
 }
