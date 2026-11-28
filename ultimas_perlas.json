@@ -3,18 +3,18 @@
     "JSTUSDT",
     "NIGHTUSDT",
     "SENTUSDT",
-    "GUNUSDT",
-    "WIFUSDT",
-    "OPGUSDT",
-    "ACTUSDT"
-  ],
-  [
-    "JSTUSDT",
-    "NIGHTUSDT",
-    "SENTUSDT",
     "WIFUSDT",
     "OPGUSDT",
     "GUNUSDT",
     "AVAUSDT"
+  ],
+  [
+    "SKYUSDT",
+    "GALAUSDT",
+    "RESOLVUSDT",
+    "SPKUSDT",
+    "KAVAUSDT",
+    "SSVUSDT",
+    "TFUELUSDT"
   ]
 ]
