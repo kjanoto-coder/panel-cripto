@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 253,
-  "ultima_actualizacion": "2026-11-28 03:01 ART",
+  "version_ciclo": 254,
+  "ultima_actualizacion": "2026-11-28 03:11 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.91,
     "min_ob_ratio": 1.27,
@@ -250,6 +250,13 @@
       "precio_veto": 0.0033,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
+    },
+    {
+      "symbol": "SENTUSDT",
+      "ts_unix": 1795845701,
+      "precio_veto": 0.02439,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 1.15x < 1.25x"
     },
     {
       "symbol": "SENTUSDT",
@@ -530,13 +537,6 @@
       "precio_veto": 0.00093,
       "paso_fallido": "A3-Empresa",
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
-    },
-    {
-      "symbol": "SENTUSDT",
-      "ts_unix": 1795845701,
-      "precio_veto": 0.02439,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 1.15x < 1.25x"
     }
   ],
   "metricas_globales": {
@@ -547,6 +547,6 @@
     "stops_salvadores": 1,
     "vetos_acertados": 73,
     "oportunidades_perdidas_20": 10,
-    "ajustes_autocritica_ciclo": 100
+    "ajustes_autocritica_ciclo": 101
   }
 }
