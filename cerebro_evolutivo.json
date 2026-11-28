@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 271,
-  "ultima_actualizacion": "2026-11-28 06:01 ART",
+  "version_ciclo": 272,
+  "ultima_actualizacion": "2026-11-28 06:11 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.86,
     "min_ob_ratio": 1.24,
@@ -538,6 +538,6 @@
     "stops_salvadores": 1,
     "vetos_acertados": 77,
     "oportunidades_perdidas_20": 12,
-    "ajustes_autocritica_ciclo": 115
+    "ajustes_autocritica_ciclo": 116
   }
 }
