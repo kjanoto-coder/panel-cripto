@@ -1,12 +1,12 @@
 {
-  "version_ciclo": 274,
-  "ultima_actualizacion": "2026-11-28 06:31 ART",
+  "version_ciclo": 275,
+  "ultima_actualizacion": "2026-11-28 06:41 ART",
   "umbrales": {
-    "min_ratio_vol_1h": 1.86,
-    "min_ob_ratio": 1.24,
+    "min_ratio_vol_1h": 1.9,
+    "min_ob_ratio": 1.26,
     "max_concentracion_muro_pct": 35.0,
-    "min_taker_buy_pct": 56.6,
-    "min_whale_buy_pct": 55.6,
+    "min_taker_buy_pct": 57.0,
+    "min_whale_buy_pct": 56.0,
     "min_trades_por_min": 12.0,
     "min_pista_libre_pct": 15.0,
     "max_distancia_ma7_15m_pct": 3.2,
@@ -47,10 +47,10 @@
       "bonus": 6.0
     },
     "REBOTE_EXPLOSION_CORROBORADO_ETAPA": {
-      "ops": 1,
+      "ops": 2,
       "ganadas": 0,
       "runners_20": 0,
-      "bonus": 18.0
+      "bonus": 16.0
     }
   },
   "memoria_monedas": {
@@ -113,6 +113,12 @@
       "positivos": 1,
       "negativos": 0,
       "ajuste_score": 4.0
+    },
+    "ASTERUSDT": {
+      "eventos": 1,
+      "positivos": 0,
+      "negativos": 1,
+      "ajuste_score": -5.0
     }
   },
   "pendientes_sombra_24h": [
@@ -538,13 +544,13 @@
     }
   ],
   "metricas_globales": {
-    "total_operadas": 4,
+    "total_operadas": 5,
     "total_ganadas": 0,
     "runners_20_logrados": 0,
     "stops_prematuros": 0,
     "stops_salvadores": 1,
     "vetos_acertados": 77,
     "oportunidades_perdidas_20": 12,
-    "ajustes_autocritica_ciclo": 118
+    "ajustes_autocritica_ciclo": 119
   }
 }
