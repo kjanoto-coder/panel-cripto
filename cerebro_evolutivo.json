@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 302,
-  "ultima_actualizacion": "2026-11-28 11:11 ART",
+  "version_ciclo": 303,
+  "ultima_actualizacion": "2026-11-28 11:21 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.85,
     "min_ob_ratio": 1.26,
@@ -511,6 +511,13 @@
       "precio_veto": 0.5065,
       "paso_fallido": "A4-Empresa",
       "detalle": "A4 VETA: Vol 1h 0.80x < 1.25x"
+    },
+    {
+      "symbol": "ROBOUSDT",
+      "ts_unix": 1795875672,
+      "precio_veto": 0.00311,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.11x < 1.25x"
     }
   ],
   "metricas_globales": {
@@ -521,6 +528,6 @@
     "stops_salvadores": 1,
     "vetos_acertados": 83,
     "oportunidades_perdidas_20": 15,
-    "ajustes_autocritica_ciclo": 146
+    "ajustes_autocritica_ciclo": 147
   }
 }
