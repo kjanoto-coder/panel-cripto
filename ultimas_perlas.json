@@ -1,20 +1,20 @@
 [
   [
-    "JSTUSDT",
-    "SENTUSDT",
-    "OPGUSDT",
-    "DODOUSDT",
-    "SPKUSDT",
-    "YBUSDT",
-    "ACTUSDT"
-  ],
-  [
     "DODOUSDT",
     "SENTUSDT",
     "JSTUSDT",
     "YBUSDT",
     "SPKUSDT",
     "ACTUSDT",
+    "CFGUSDT"
+  ],
+  [
+    "DODOUSDT",
+    "SENTUSDT",
+    "YBUSDT",
+    "STXUSDT",
+    "ACTUSDT",
+    "RESOLVUSDT",
     "CFGUSDT"
   ]
 ]
