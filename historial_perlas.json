@@ -5075,6 +5075,16 @@
       "certificada_ia": true,
       "blindaje_pct": 93,
       "motivo_certificacion": "Coincide Cazador+PreExplosión | Piso Profundo Fib (0.88) | Libro Bids/Asks: 0.9x (Spread 0.095%)"
+    },
+    "BANKUSDT": {
+      "symbol": "BANKUSDT",
+      "base": "BANK",
+      "estrellas": 3,
+      "probabilidad_pct": 80,
+      "precio_ref": 0.0155,
+      "fecha_iso": "2026-11-28",
+      "fecha_corta": "28/11",
+      "origen": "SEGUNDA_OLA_GANADORAS"
     }
   },
   "verdes_hoy": [
