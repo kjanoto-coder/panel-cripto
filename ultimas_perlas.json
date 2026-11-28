@@ -1,20 +1,20 @@
 [
   [
     "JSTUSDT",
-    "DODOUSDT",
-    "NIGHTUSDT",
-    "OPGUSDT",
-    "SENTUSDT",
-    "WIFUSDT",
-    "AVAUSDT"
-  ],
-  [
-    "JSTUSDT",
     "NIGHTUSDT",
     "DODOUSDT",
     "OPGUSDT",
     "AVAUSDT",
     "SKYUSDT",
     "LUNCUSDT"
+  ],
+  [
+    "GALAUSDT",
+    "GUNUSDT",
+    "ACTUSDT",
+    "USUALUSDT",
+    "ALICEUSDT",
+    "ROBOUSDT",
+    "RESOLVUSDT"
   ]
 ]
