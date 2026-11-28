@@ -1,12 +1,12 @@
 {
-  "version_ciclo": 303,
-  "ultima_actualizacion": "2026-11-28 11:21 ART",
+  "version_ciclo": 304,
+  "ultima_actualizacion": "2026-11-28 11:31 ART",
   "umbrales": {
-    "min_ratio_vol_1h": 1.85,
-    "min_ob_ratio": 1.26,
+    "min_ratio_vol_1h": 1.89,
+    "min_ob_ratio": 1.28,
     "max_concentracion_muro_pct": 35.0,
-    "min_taker_buy_pct": 57.0,
-    "min_whale_buy_pct": 56.0,
+    "min_taker_buy_pct": 57.4,
+    "min_whale_buy_pct": 56.4,
     "min_trades_por_min": 12.0,
     "min_pista_libre_pct": 14.5,
     "max_distancia_ma7_15m_pct": 3.2,
@@ -47,10 +47,10 @@
       "bonus": 6.0
     },
     "REBOTE_EXPLOSION_CORROBORADO_ETAPA": {
-      "ops": 2,
+      "ops": 3,
       "ganadas": 0,
       "runners_20": 0,
-      "bonus": 16.0
+      "bonus": 14.0
     }
   },
   "memoria_monedas": {
@@ -131,6 +131,12 @@
       "positivos": 1,
       "negativos": 0,
       "ajuste_score": 4.0
+    },
+    "JSTUSDT": {
+      "eventos": 1,
+      "positivos": 0,
+      "negativos": 1,
+      "ajuste_score": -5.0
     }
   },
   "pendientes_sombra_24h": [
@@ -196,6 +202,13 @@
       "precio_veto": 2.712,
       "paso_fallido": "A4-Empresa",
       "detalle": "A4 VETA: Vol 1h 0.53x < 1.25x"
+    },
+    {
+      "symbol": "ROBOUSDT",
+      "ts_unix": 1795875672,
+      "precio_veto": 0.00311,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.11x < 1.25x"
     },
     {
       "symbol": "KAVAUSDT",
@@ -513,21 +526,21 @@
       "detalle": "A4 VETA: Vol 1h 0.80x < 1.25x"
     },
     {
-      "symbol": "ROBOUSDT",
-      "ts_unix": 1795875672,
-      "precio_veto": 0.00311,
+      "symbol": "COOKIEUSDT",
+      "ts_unix": 1795876290,
+      "precio_veto": 0.00781,
       "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 0.11x < 1.25x"
+      "detalle": "A4 VETA: Vol 1h 0.58x < 1.25x"
     }
   ],
   "metricas_globales": {
-    "total_operadas": 5,
+    "total_operadas": 6,
     "total_ganadas": 0,
     "runners_20_logrados": 0,
     "stops_prematuros": 0,
     "stops_salvadores": 1,
     "vetos_acertados": 83,
     "oportunidades_perdidas_20": 15,
-    "ajustes_autocritica_ciclo": 147
+    "ajustes_autocritica_ciclo": 148
   }
 }
