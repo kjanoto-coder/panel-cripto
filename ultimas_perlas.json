@@ -1,14 +1,5 @@
 [
   [
-    "KITEUSDT",
-    "DODOUSDT",
-    "SENTUSDT",
-    "NIGHTUSDT",
-    "STXUSDT",
-    "YBUSDT",
-    "OPGUSDT"
-  ],
-  [
     "INITUSDT",
     "ROBOUSDT",
     "ZROUSDT",
@@ -16,5 +7,14 @@
     "KAVAUSDT",
     "SKYUSDT",
     "THEUSDT"
+  ],
+  [
+    "JSTUSDT",
+    "INITUSDT",
+    "SENTUSDT",
+    "DODOUSDT",
+    "LUNCUSDT",
+    "PARTIUSDT",
+    "NIGHTUSDT"
   ]
 ]
