@@ -105,6 +105,27 @@
       "dictamen_ia": "Señal ROJO (blindaje 98%, efectividad hist. 30.4%); horizonte típico de maduración 3.0d (3d 00h)."
     },
     {
+      "symbol": "RESOLVUSDT",
+      "ticker": "RESOLV",
+      "semaforo": "ROJO",
+      "certificada_ia": true,
+      "blindaje_pct": 97,
+      "precio_actual": 0.01423,
+      "cambio_1h_pct": 0.92,
+      "cambio_4h_pct": 0.92,
+      "cambio_24h_pct": 1.57,
+      "vol_1h_rel": 0.24,
+      "ratio_bids_asks": 1.33,
+      "fib_etiqueta": "Pullback Sano Fib (0.45)",
+      "ext_1618": 0.0171695,
+      "tasa_conversion_hist_pct": 30.4,
+      "horizonte_maduracion_horas": 71.8,
+      "horizonte_maduracion_dias": 3.0,
+      "apariciones_dias": 1,
+      "accion_matriz": "COMPRA_CONFIRMADA_MADURACION",
+      "dictamen_ia": "Señal ROJO (blindaje 97%, efectividad hist. 30.4%); horizonte típico de maduración 3.0d (3d 00h)."
+    },
+    {
       "symbol": "UNIUSDT",
       "ticker": "UNI",
       "semaforo": "ROJO",
@@ -142,7 +163,7 @@
       "tasa_conversion_hist_pct": 30.4,
       "horizonte_maduracion_horas": 71.8,
       "horizonte_maduracion_dias": 3.0,
-      "apariciones_dias": 1,
+      "apariciones_dias": 3,
       "accion_matriz": "COMPRA_CONFIRMADA_MADURACION",
       "dictamen_ia": "Señal ROJO (blindaje 97%, efectividad hist. 30.4%); horizonte típico de maduración 3.0d (3d 00h)."
     },
