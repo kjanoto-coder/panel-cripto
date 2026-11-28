@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 289,
-  "ultima_actualizacion": "2026-11-28 09:11 ART",
+  "version_ciclo": 290,
+  "ultima_actualizacion": "2026-11-28 09:21 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.9,
     "min_ob_ratio": 1.26,
@@ -203,6 +203,13 @@
       "precio_veto": 0.02487,
       "paso_fallido": "A4-Empresa",
       "detalle": "A4 VETA: Vol 1h 0.63x < 1.25x"
+    },
+    {
+      "symbol": "CFGUSDT",
+      "ts_unix": 1795867869,
+      "precio_veto": 0.0595,
+      "paso_fallido": "A4-Empresa",
+      "detalle": "A4 VETA: Vol 1h 0.22x < 1.25x"
     },
     {
       "symbol": "CFGUSDT",
@@ -518,20 +525,6 @@
       "precio_veto": 0.14634,
       "paso_fallido": "A4-Empresa",
       "detalle": "A4 VETA: Vol 1h 0.66x < 1.25x"
-    },
-    {
-      "symbol": "KAVAUSDT",
-      "ts_unix": 1795781482,
-      "precio_veto": 0.02689,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Aplastada bajo MA7/MA25 diaria"
-    },
-    {
-      "symbol": "CFGUSDT",
-      "ts_unix": 1795867869,
-      "precio_veto": 0.0595,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 0.22x < 1.25x"
     }
   ],
   "metricas_globales": {
@@ -542,6 +535,6 @@
     "stops_salvadores": 1,
     "vetos_acertados": 82,
     "oportunidades_perdidas_20": 14,
-    "ajustes_autocritica_ciclo": 133
+    "ajustes_autocritica_ciclo": 134
   }
 }
