@@ -871,7 +871,6 @@ def _upsert_evento_unificado(eventos, ev):
 
 def _hidratar_desde_excels_y_json(historial, ganadoras, eventos):
     """Rescata todo el historial previo desde AUDITORIA_PRE_EXPLOSION.xlsx, HISTORICO_CAZADOR_TACTICO.xlsx y JSONs."""
-    # 1. Leer AUDITORIA_PRE_EXPLOSION.xlsx previo (formato nuevo de 5 hojas o formato anterior)
     if os.path.exists(EXCEL_PRE_EXPLOSION_FILE):
         try:
             wb_prev = openpyxl.load_workbook(EXCEL_PRE_EXPLOSION_FILE, data_only=True)
@@ -940,7 +939,6 @@ def _hidratar_desde_excels_y_json(historial, ganadoras, eventos):
         except Exception as e:
             print(f"⚠️ Error leyendo {EXCEL_PRE_EXPLOSION_FILE} previo: {e}")
 
-    # 2. Leer señales históricas desde HISTORICO_CAZADOR_TACTICO.xlsx que pasaron a Pre-Exp / Ganadoras
     if os.path.exists(EXCEL_CAZADOR_FILE):
         try:
             wb_caz = openpyxl.load_workbook(EXCEL_CAZADOR_FILE, data_only=True)
@@ -982,18 +980,13 @@ def _hidratar_desde_excels_y_json(historial, ganadoras, eventos):
         except Exception as e:
             print(f"⚠️ Error leyendo {EXCEL_CAZADOR_FILE}: {e}")
 
-    # 3. Migrar apariciones_por_dia y registro_cronologico desde historial_perlas.json
     for f_str, bucket in (historial.get("apariciones_por_dia") or {}).items():
         if not isinstance(bucket, dict):
             continue
         for sym, info in bucket.items():
             if not isinstance(info, dict):
                 continue
-            col = "VERDE"
-            if info.get("es_oro"):
-                col = "🏆 TOP ORO"
-            else:
-                col = info.get("color", "VERDE")
+            col = "🏆 TOP ORO" if info.get("es_oro") else info.get("color", "VERDE")
             _upsert_evento_unificado(eventos, {
                 "Fecha": f_str,
                 "Hora": info.get("hora", "S/H"),
@@ -1167,7 +1160,7 @@ def ejecutar_asistente_ia_pre_explosion(eventos, bloques):
 
 
 # ==============================================================================
-# GENERADOR EXCEL EJECUTIVO DE 5 PESTAÑAS (ESTRUCTURA MAESTRA UNIFICADA)
+# GENERADOR EXCEL EJECUTIVO DE 5 PESTAÑAS (ESTRUCTURA MAESTRA UNIFICADA V11)
 # ==============================================================================
 def _generar_excel_pre_explosion(eventos, mapa_tickers, reporte_ia):
     wb = openpyxl.Workbook()
@@ -1194,8 +1187,7 @@ def _generar_excel_pre_explosion(eventos, mapa_tickers, reporte_ia):
     }
 
     filas_ord = sorted(eventos.values(), key=lambda x: (x.get("Fecha", ""), x.get("Hora", ""), x.get("Moneda", "")))
-    N_ROWS = max(1, len(filas_ord))
-    END_ROW = 4 + len(filas_ord)
+    END_ROW = 4 + max(1, len(filas_ord))
 
     fechas_ord = sorted({r["Fecha"] for r in filas_ord if r.get("Fecha")})
     periodos_ord = sorted({r["Fecha"][:7] for r in filas_ord if len(r.get("Fecha", "")) >= 7})
@@ -1210,7 +1202,6 @@ def _generar_excel_pre_explosion(eventos, mapa_tickers, reporte_ia):
         f_ini_fmt = fechas_ord[0] if fechas_ord else "-"
         f_fin_fmt = fechas_ord[-1] if fechas_ord else "-"
 
-    # Estadística por moneda única para 4_RANKING_MONEDAS
     coin_agg = {}
     for r in filas_ord:
         m = r["Moneda"]
@@ -1356,15 +1347,16 @@ def _generar_excel_pre_explosion(eventos, mapa_tickers, reporte_ia):
             elif ci == 8:
                 cell.number_format = "0.00"
 
+    # Fila 15: Totales y promedios ponderados reales incluyendo TOP ORO (fila 14)
     ws1.row_dimensions[15].height = 22
     ws1.cell(15, 1, "TOTAL PERÍODO").font = Font(name="Arial", size=9.5, bold=True)
     ws1.cell(15, 2, "=SUM(B11:B14)").number_format = "#,##0"
     ws1.cell(15, 3, "=SUM(C11:C14)").number_format = "#,##0"
     ws1.cell(15, 4, "=SUM(D11:D14)").number_format = "#,##0"
     ws1.cell(15, 5, "=IF(B15>0,C15/B15,0)").number_format = "0.0%"
-    ws1.cell(15, 6, "=AVERAGE(F11:F13)").number_format = "+0.0%;-0.0%;0.0%"
-    ws1.cell(15, 7, "=AVERAGE(G11:G13)").number_format = "+0.0%;-0.0%;0.0%"
-    ws1.cell(15, 8, "=AVERAGE(H11:H13)").number_format = "0.00"
+    ws1.cell(15, 6, "=IFERROR(SUMPRODUCT(B11:B14,F11:F14)/B15,0)").number_format = "+0.0%;-0.0%;0.0%"
+    ws1.cell(15, 7, "=IFERROR(SUMPRODUCT(C11:C14,G11:G14)/C15,0)").number_format = "+0.0%;-0.0%;0.0%"
+    ws1.cell(15, 8, "=IFERROR(SUMPRODUCT(C11:C14,H11:H14)/C15,0)").number_format = "0.00"
     for ci in range(1, 9):
         c = ws1.cell(15, ci)
         c.font = Font(name="Arial", size=9.5, bold=True)
@@ -1425,9 +1417,9 @@ def _generar_excel_pre_explosion(eventos, mapa_tickers, reporte_ia):
     ws1.cell(r_tot_m, 3, f"=SUM(C19:C{r_tot_m - 1})").number_format = "#,##0"
     ws1.cell(r_tot_m, 4, f"=SUM(D19:D{r_tot_m - 1})").number_format = "#,##0"
     ws1.cell(r_tot_m, 5, f"=IF(C{r_tot_m}>0,D{r_tot_m}/C{r_tot_m},0)").number_format = "0.0%"
-    ws1.cell(r_tot_m, 6, f"=AVERAGE(F19:F{r_tot_m - 1})").number_format = "+0.0%;-0.0%;0.0%"
+    ws1.cell(r_tot_m, 6, f"=IFERROR(SUMPRODUCT(C19:C{r_tot_m - 1},F19:F{r_tot_m - 1})/C{r_tot_m},0)").number_format = "+0.0%;-0.0%;0.0%"
     ws1.cell(r_tot_m, 7, f"=SUM(G19:G{r_tot_m - 1})").number_format = "#,##0"
-    ws1.cell(r_tot_m, 8, f"=AVERAGE(H19:H{r_tot_m - 1})").number_format = "0.00"
+    ws1.cell(r_tot_m, 8, f"=IFERROR(SUMPRODUCT(D19:D{r_tot_m - 1},H19:H{r_tot_m - 1})/D{r_tot_m},0)").number_format = "0.00"
     for ci in range(1, 9):
         c = ws1.cell(r_tot_m, ci)
         c.font = Font(name="Arial", size=9.5, bold=True)
@@ -1497,674 +1489,4 @@ def _generar_excel_pre_explosion(eventos, mapa_tickers, reporte_ia):
             round(float(a.get("blindaje_pct", 0)) / 100.0, 4),
             float(a.get("precio_actual", 0.0)),
             round(float(a.get("tasa_conversion_hist_pct", 0)) / 100.0, 4),
-            f"{a['horizonte_maduracion_dias']}d ({_formatear_demora(a['horizonte_maduracion_horas'])})",
-            a.get("fib_etiqueta", "N/D"),
-            f"{a.get('ratio_bids_asks', 1.0)}x",
-            a.get("accion_matriz", ""),
-            a.get("dictamen_ia", "")
-        ]
-        for ci, val in enumerate(vals, start=1):
-            c = ws2.cell(rn, ci, val)
-            c.border = borde
-            c.font = Font(name="Arial", size=9.5, bold=is_cert)
-            c.alignment = Alignment(horizontal="left" if ci in (10, 11) else "center", vertical="center")
-            if ci in (4, 6):
-                c.number_format = "0.0%"
-            c.fill = fill_green if is_cert else fill_amber
-
-    widths_ws2 = [12, 14, 15, 12, 14, 17, 21, 22, 12, 30, 58]
-    for i, w in enumerate(widths_ws2, start=1):
-        ws2.column_dimensions[get_column_letter(i)].width = w
-
-    # --------------------------------------------------------------------------
-    # PESTAÑA 3: 3_REGISTRO_MAESTRO
-    # --------------------------------------------------------------------------
-    ws3 = wb.create_sheet("3_REGISTRO_MAESTRO")
-    ws3.views.sheetView[0].showGridLines = True
-
-    ws3["A1"] = "PRE-EXPLOSIÓN • REGISTRO MAESTRO UNIFICADO (HISTÓRICO CAZADOR + BOT PRE-EXPLOSIÓN + GANADORAS)"
-    ws3["A1"].font = Font(name="Arial", size=12, bold=True, color="FFFFFF")
-    ws3["A1"].fill = fill_navy
-    ws3.merge_cells("A1:Y1")
-    ws3.row_dimensions[1].height = 28
-
-    ws3["A2"] = (
-        f"Base única consolidada y deduplicada ({f_ini_fmt} al {f_fin_fmt} • {len(filas_ord):,} registros • {N_COINS} monedas únicas). "
-        "Ordenada cronológicamente desde el inicio con fórmulas dinámicas."
-    ).replace(",", ".")
-    ws3["A2"].font = Font(name="Arial", size=9.5, italic=True, color="334155")
-    ws3["A2"].fill = fill_subhdr
-    ws3.merge_cells("A2:Y2")
-    ws3.row_dimensions[2].height = 20
-
-    headers_ws3 = [
-        "ID", "Fecha", "Período (AAAA-MM)", "Nombre Mes", "Hora", "Moneda",
-        "Semáforo Inicial", "Semáforo Máx", "Escalada Semáforo", "Veces Vista",
-        "IA Máx %", "Fib Zona", "Bids/Asks", "$ Entrada", "$ Pico Máx",
-        "Subida Pico %", "Estado", "Fecha Ganadora", "$ Ganadora / Actual",
-        "Var. Real %", "Tiempo hasta Ganadora", "Días Dec.", "Fib 1.618",
-        "Confluencia Cazador", "Origen Dato"
-    ]
-    ws3.row_dimensions[4].height = 28
-    for ci, h in enumerate(headers_ws3, start=1):
-        c = ws3.cell(4, ci, h)
-        c.font = Font(name="Arial", size=9, bold=True, color="FFFFFF")
-        c.fill = fill_slate_hdr
-        c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-        c.border = borde
-
-    for idx, row in enumerate(filas_ord):
-        rn = 5 + idx
-        ws3.row_dimensions[rn].height = 20
-        is_win = (row.get("Estado") == "🏆 GANADORA")
-        sym = _normalizar_symbol(row["Moneda"])
-        p_live = float(mapa_tickers.get(sym, {}).get("lastPrice", 0) or 0.0)
-        p_ent = float(row.get("Precio_Entrada") or 0.0)
-        p_pico = max(float(row.get("Precio_Pico") or 0.0), p_ent, p_live)
-        p_fin = float(row.get("Precio_Final") or 0.0) if is_win else (p_live if p_live > 0 else float(row.get("Precio_Final") or p_ent))
-
-        vals = [
-            idx + 1,
-            row["Fecha"],
-            f"=LEFT(B{rn},7)",
-            f'=C{rn}&" • "&CHOOSE(VALUE(RIGHT(C{rn},2)),"Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre")',
-            row.get("Hora", "S/H"),
-            row["Moneda"],
-            row.get("Semaforo_Ini", "🟢 VERDE"),
-            row.get("Semaforo_Max", "🟢 VERDE"),
-            row.get("Escalada", "-"),
-            f"=COUNTIF($F$5:$F${END_ROW},F{rn})",
-            row["IA_Pct"] if isinstance(row.get("IA_Pct"), (int, float)) else "-",
-            row["Fib_Zona"] if isinstance(row.get("Fib_Zona"), (int, float)) else "-",
-            row["Bids_Asks"] if isinstance(row.get("Bids_Asks"), (int, float)) else "-",
-            p_ent,
-            p_pico,
-            f"=IF(AND(N{rn}>0,O{rn}>0),(O{rn}-N{rn})/N{rn},0)",
-            row.get("Estado", "⏳ EN SEGUIMIENTO"),
-            row.get("Fecha_Ganadora", "-"),
-            p_fin,
-            f"=IF(AND(N{rn}>0,S{rn}>0),(S{rn}-N{rn})/N{rn},0)",
-            row.get("Tiempo_Ganadora_Txt", "En seguimiento"),
-            float(row["Dias_Dec"]) if isinstance(row.get("Dias_Dec"), (int, float)) else "-",
-            row.get("Fib_1618", "-"),
-            row.get("Confluencia", "Solo Pre-Explosión"),
-            row.get("Origen", "Bot Pre-Explosión")
-        ]
-
-        for ci, val in enumerate(vals, start=1):
-            c = ws3.cell(rn, ci, val)
-            c.border = borde
-            c.font = Font(name="Arial", size=9, bold=(is_win or ci == 6))
-            c.alignment = Alignment(
-                horizontal="left" if ci in (4, 24, 25) else ("right" if ci in (14, 15, 19) else "center"),
-                vertical="center"
-            )
-            if ci == 11 and isinstance(val, (int, float)):
-                c.number_format = "0%"
-            elif ci == 12 and isinstance(val, (int, float)):
-                c.number_format = "0.00"
-            elif ci == 13 and isinstance(val, (int, float)):
-                c.number_format = '0.00"x"'
-            elif ci in (16, 20):
-                c.number_format = "+0.00%;-0.00%;0.00%"
-            elif ci == 22 and isinstance(val, (int, float)):
-                c.number_format = "0.00"
-
-            if ci in (7, 8):
-                c.fill = sem_fills.get(str(val), fill_green)
-            elif is_win:
-                c.fill = fill_blue
-            elif idx % 2 == 1:
-                c.fill = fill_zebra
-
-    ws3.freeze_panes = "A5"
-    ws3.auto_filter.ref = f"A4:Y{END_ROW}"
-
-    widths_ws3 = [7, 13, 16, 20, 9, 12, 16, 16, 16, 12, 10, 10, 11, 13, 13, 14, 18, 17, 16, 13, 21, 11, 10, 22, 23]
-    for i, w in enumerate(widths_ws3, start=1):
-        ws3.column_dimensions[get_column_letter(i)].width = w
-
-    # --------------------------------------------------------------------------
-    # PESTAÑA 4: 4_RANKING_MONEDAS
-    # --------------------------------------------------------------------------
-    ws4 = wb.create_sheet("4_RANKING_MONEDAS")
-    ws4.views.sheetView[0].showGridLines = True
-
-    ws4["A1"] = f"PRE-EXPLOSIÓN • RANKING MAESTRO DE MONEDAS ÚNICAS ({f_ini_fmt} AL {f_fin_fmt})"
-    ws4["A1"].font = Font(name="Arial", size=12, bold=True, color="FFFFFF")
-    ws4["A1"].fill = fill_navy
-    ws4.merge_cells("A1:P1")
-    ws4.row_dimensions[1].height = 28
-
-    ws4["A2"] = (
-        f"Métricas 100% dinámicas vinculadas a '3_REGISTRO_MAESTRO' ({N_COINS} monedas únicas). "
-        "Ordenadas por recurrencia histórica y ganadoras confirmadas para identificar los mejores runners."
-    )
-    ws4["A2"].font = Font(name="Arial", size=9.5, italic=True, color="334155")
-    ws4["A2"].fill = fill_subhdr
-    ws4.merge_cells("A2:P2")
-    ws4.row_dimensions[2].height = 20
-
-    hdrs_ws4 = [
-        "N°", "Moneda", "Rep. Históricas", "Rep. Mes Anterior", "Rep. Mes Actual",
-        "Veces ROJA", "Veces AMARILLA", "Veces VERDE", "Veces Ganadora",
-        "Tasa Conversión %", "1ª Aparición", "Última Aparición",
-        "Mejor Subida Pico %", "Tiempo Prom. Ganadora (d)", "Semáforo Dominante",
-        "Diagnóstico / Prioridad"
-    ]
-    ws4.row_dimensions[4].height = 28
-    for ci, h in enumerate(hdrs_ws4, start=1):
-        c = ws4.cell(4, ci, h)
-        c.font = Font(name="Arial", size=9, bold=True, color="FFFFFF")
-        c.fill = fill_slate_hdr
-        c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-        c.border = borde
-
-    per_prev = periodos_ord[-2] if len(periodos_ord) >= 2 else periodos_ord[-1]
-    per_curr = periodos_ord[-1]
-
-    for idx_c, (mon, _) in enumerate(coin_stats):
-        rn = 5 + idx_c
-        ws4.row_dimensions[rn].height = 20
-        vals = [
-            idx_c + 1,
-            mon,
-            f"=COUNTIF('3_REGISTRO_MAESTRO'!$F$5:$F${END_ROW},B{rn})",
-            f"=COUNTIFS('3_REGISTRO_MAESTRO'!$F$5:$F${END_ROW},B{rn},'3_REGISTRO_MAESTRO'!$C$5:$C${END_ROW},\"{per_prev}\")",
-            f"=COUNTIFS('3_REGISTRO_MAESTRO'!$F$5:$F${END_ROW},B{rn},'3_REGISTRO_MAESTRO'!$C$5:$C${END_ROW},\"{per_curr}\")",
-            f"=COUNTIFS('3_REGISTRO_MAESTRO'!$F$5:$F${END_ROW},B{rn},'3_REGISTRO_MAESTRO'!$G$5:$G${END_ROW},\"🔴 ROJO\")",
-            f"=COUNTIFS('3_REGISTRO_MAESTRO'!$F$5:$F${END_ROW},B{rn},'3_REGISTRO_MAESTRO'!$G$5:$G${END_ROW},\"🟡 AMARILLO\")",
-            f"=COUNTIFS('3_REGISTRO_MAESTRO'!$F$5:$F${END_ROW},B{rn},'3_REGISTRO_MAESTRO'!$G$5:$G${END_ROW},\"🟢 VERDE\")+COUNTIFS('3_REGISTRO_MAESTRO'!$F$5:$F${END_ROW},B{rn},'3_REGISTRO_MAESTRO'!$G$5:$G${END_ROW},\"🏆 TOP ORO\")",
-            f"=COUNTIFS('3_REGISTRO_MAESTRO'!$F$5:$F${END_ROW},B{rn},'3_REGISTRO_MAESTRO'!$Q$5:$Q${END_ROW},\"🏆 GANADORA\")",
-            f"=IF(C{rn}>0,I{rn}/C{rn},0)",
-            f"=MINIFS('3_REGISTRO_MAESTRO'!$B$5:$B${END_ROW},'3_REGISTRO_MAESTRO'!$F$5:$F${END_ROW},B{rn})",
-            f"=MAXIFS('3_REGISTRO_MAESTRO'!$B$5:$B${END_ROW},'3_REGISTRO_MAESTRO'!$F$5:$F${END_ROW},B{rn})",
-            f"=IFERROR(MAXIFS('3_REGISTRO_MAESTRO'!$P$5:$P${END_ROW},'3_REGISTRO_MAESTRO'!$F$5:$F${END_ROW},B{rn}),0)",
-            f"=IFERROR(AVERAGEIFS('3_REGISTRO_MAESTRO'!$V$5:$V${END_ROW},'3_REGISTRO_MAESTRO'!$F$5:$F${END_ROW},B{rn},'3_REGISTRO_MAESTRO'!$Q$5:$Q${END_ROW},\"🏆 GANADORA\"),0)",
-            f'=IF(AND(F{rn}>=G{rn},F{rn}>=H{rn}),"🔴 ROJO",IF(G{rn}>=H{rn},"🟡 AMARILLO","🟢 VERDE"))',
-            f'=IF(AND(I{rn}>=2,M{rn}>=0.15),"🔥 RUNNER TOP (ALTA CONVERSIÓN)",IF(I{rn}>=1,"✅ GANADORA VALIDADA",IF(C{rn}>=4,"⏳ ALTA RECURRENCIA","⚪ EN OBSERVACIÓN")))'
-        ]
-        for ci, val in enumerate(vals, start=1):
-            c = ws4.cell(rn, ci, val)
-            c.border = borde
-            c.font = Font(name="Arial", size=9, bold=(ci in (2, 9, 16)))
-            c.alignment = Alignment(horizontal="left" if ci == 16 else "center", vertical="center")
-            if ci in (3, 4, 5, 6, 7, 8, 9):
-                c.number_format = "#,##0"
-            elif ci in (10, 13):
-                c.number_format = "0.0%"
-            elif ci == 14:
-                c.number_format = "0.00"
-            if idx_c % 2 == 1:
-                c.fill = fill_zebra
-
-    ws4.freeze_panes = "A5"
-    ws4.auto_filter.ref = f"A4:P{END_COIN_ROW}"
-
-    widths_ws4 = [7, 12, 15, 16, 15, 12, 15, 13, 15, 17, 14, 15, 18, 22, 19, 32]
-    for i, w in enumerate(widths_ws4, start=1):
-        ws4.column_dimensions[get_column_letter(i)].width = w
-
-    # --------------------------------------------------------------------------
-    # PESTAÑA 5: 5_AUDITORIA_SETUPS
-    # --------------------------------------------------------------------------
-    ws5 = wb.create_sheet("5_AUDITORIA_SETUPS")
-    ws5.views.sheetView[0].showGridLines = True
-
-    ws5["A1"] = "AUDITORÍA ESTADÍSTICA POR SEMÁFORO, CONFLUENCIA Y RESULTADO REAL • PRE-EXPLOSIÓN"
-    ws5["A1"].font = Font(name="Arial", size=12, bold=True, color="FFFFFF")
-    ws5["A1"].fill = fill_navy
-    ws5.merge_cells("A1:G1")
-    ws5.row_dimensions[1].height = 28
-
-    ws5["A2"] = (
-        f"Conteo dinámico en vivo sobre las {len(filas_ord):,} señales unificadas de '3_REGISTRO_MAESTRO' ({f_ini_fmt} al {f_fin_fmt})."
-    ).replace(",", ".")
-    ws5["A2"].font = Font(name="Arial", size=9.5, italic=True, color="334155")
-    ws5["A2"].fill = fill_subhdr
-    ws5.merge_cells("A2:G2")
-    ws5.row_dimensions[2].height = 20
-
-    def escribir_tabla_auditoria(start_row, titulo, filas_def):
-        ws5.cell(start_row, 1, titulo).font = Font(name="Arial", size=10, bold=True, color="0F172A")
-        ws5.cell(start_row, 1).fill = fill_sec_hdr
-        ws5.merge_cells(start_row=start_row, start_column=1, end_row=start_row, end_column=7)
-        ws5.row_dimensions[start_row].height = 22
-
-        hdrs = ["Segmento / Setup", "Señales Totales", "Ganadoras", "Efectividad %", "Subida Pico Prom %", "Var. Real Cierre %", "Tiempo Prom. (d)"]
-        hr = start_row + 1
-        ws5.row_dimensions[hr].height = 24
-        for ci, h in enumerate(hdrs, start=1):
-            c = ws5.cell(hr, ci, h)
-            c.font = Font(name="Arial", size=9, bold=True, color="FFFFFF")
-            c.fill = fill_slate_hdr
-            c.alignment = Alignment(horizontal="center", vertical="center")
-            c.border = borde
-
-        for idx_f, (lbl, crit_col, crit_val) in enumerate(filas_def):
-            rn = hr + 1 + idx_f
-            ws5.row_dimensions[rn].height = 21
-            ws5.cell(rn, 1, lbl)
-            ws5.cell(rn, 2, f'=COUNTIF(\'3_REGISTRO_MAESTRO\'!${crit_col}$5:${crit_col}${END_ROW},"{crit_val}")')
-            ws5.cell(rn, 3, f'=COUNTIFS(\'3_REGISTRO_MAESTRO\'!${crit_col}$5:${crit_col}${END_ROW},"{crit_val}",\'3_REGISTRO_MAESTRO\'!$Q$5:$Q${END_ROW},"🏆 GANADORA")')
-            ws5.cell(rn, 4, f'=IF(B{rn}>0,C{rn}/B{rn},0)')
-            ws5.cell(rn, 5, f'=IFERROR(AVERAGEIFS(\'3_REGISTRO_MAESTRO\'!$P$5:$P${END_ROW},\'3_REGISTRO_MAESTRO\'!${crit_col}$5:${crit_col}${END_ROW},"{crit_val}",\'3_REGISTRO_MAESTRO\'!$P$5:$P${END_ROW},">0"),0)')
-            ws5.cell(rn, 6, f'=IFERROR(AVERAGEIFS(\'3_REGISTRO_MAESTRO\'!$T$5:$T${END_ROW},\'3_REGISTRO_MAESTRO\'!${crit_col}$5:${crit_col}${END_ROW},"{crit_val}",\'3_REGISTRO_MAESTRO\'!$Q$5:$Q${END_ROW},"🏆 GANADORA"),0)')
-            ws5.cell(rn, 7, f'=IFERROR(AVERAGEIFS(\'3_REGISTRO_MAESTRO\'!$V$5:$V${END_ROW},\'3_REGISTRO_MAESTRO\'!${crit_col}$5:${crit_col}${END_ROW},"{crit_val}",\'3_REGISTRO_MAESTRO\'!$Q$5:$Q${END_ROW},"🏆 GANADORA"),0)')
-
-            for ci in range(1, 8):
-                c = ws5.cell(rn, ci)
-                c.border = borde
-                c.font = Font(name="Arial", size=9.5, bold=(ci == 1))
-                c.alignment = Alignment(horizontal="left" if ci == 1 else "center", vertical="center")
-                if ci in (2, 3):
-                    c.number_format = "#,##0"
-                elif ci == 4:
-                    c.number_format = "0.0%"
-                elif ci in (5, 6):
-                    c.number_format = "+0.0%;-0.0%;0.0%"
-                elif ci == 7:
-                    c.number_format = "0.00"
-                if idx_f % 2 == 1:
-                    c.fill = fill_zebra
-        return hr + 1 + len(filas_def) + 1
-
-    r_next = escribir_tabla_auditoria(4, "1. AUDITORÍA POR SEMÁFORO DE DETECCIÓN INICIAL", [
-        ("🔴 ROJO (Explosión Inminente)", "G", "🔴 ROJO"),
-        ("🟡 AMARILLO (Confirmación Táctica)", "G", "🟡 AMARILLO"),
-        ("🟢 VERDE (Compra Temprana)", "G", "🟢 VERDE"),
-        ("🏆 TOP ORO (Verde Prioritario)", "G", "🏆 TOP ORO"),
-    ])
-
-    r_next = escribir_tabla_auditoria(r_next, "2. AUDITORÍA POR CONFLUENCIA CAZADOR TÁCTICO + PRE-EXPLOSIÓN", [
-        ("🛡️ Confluencia Cazador + Pre-Explosión", "X", "SÍ (Cazador + Pre-Exp)"),
-        ("📡 Señal Exclusiva Pre-Explosión", "X", "Solo Pre-Explosión"),
-    ])
-
-    escribir_tabla_auditoria(r_next, "3. AUDITORÍA POR NIVEL DE BLINDAJE IA", [
-        ("IA >= 90% (Alta Convicción)", "K", ">=0.90"),
-        ("IA 75% – 89% (Validada)", "K", ">=0.75"),
-        ("IA < 75% (Observación)", "K", "<0.75"),
-    ])
-
-    widths_ws5 = [38, 17, 14, 16, 20, 20, 18]
-    for i, w in enumerate(widths_ws5, start=1):
-        ws5.column_dimensions[get_column_letter(i)].width = w
-
-    wb.save(EXCEL_PRE_EXPLOSION_FILE)
-
-    ganadas_tot = sum(1 for r in filas_ord if r.get("Estado") == "🏆 GANADORA")
-    tasa_pct = round((ganadas_tot / len(filas_ord)) * 100, 1) if filas_ord else 0.0
-    return {
-        "total": len(filas_ord),
-        "monedas_unicas": N_COINS,
-        "dias_hist": len(fechas_ord),
-        "ganadas": ganadas_tot,
-        "tasa_pct": tasa_pct,
-        "prom_txt": _formatear_demora(reporte_ia.get("demora_mediana_horas"))
-    }
-
-
-def enviar_telegram_documento(doc_path, caption_text):
-    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID or not os.path.exists(doc_path):
-        return False
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendDocument"
-    payload = {"chat_id": TELEGRAM_CHAT_ID, "caption": caption_text[:1020], "parse_mode": "HTML"}
-    if TELEGRAM_TOPIC_ID.isdigit():
-        payload["message_thread_id"] = int(TELEGRAM_TOPIC_ID)
-    try:
-        with open(doc_path, "rb") as doc:
-            res = requests.post(url, data=payload, files={"document": doc}, timeout=45).json()
-            if not res.get("ok") and "thread not found" in str(res.get("description", "")).lower():
-                payload.pop("message_thread_id", None)
-                doc.seek(0)
-                res = requests.post(url, data=payload, files={"document": doc}, timeout=45).json()
-            return bool(res.get("ok"))
-    except Exception as e:
-        print(f"❌ Error enviando Excel Pre-Explosión: {e}")
-        return False
-
-
-def ejecutar_auditoria_y_excel_pre_explosion(historial, bloques, mapa_tickers):
-    """Consolida todo el historial desde el inicio, cruza Ganadoras, corre Asistente IA y genera Excel de 5 pestañas."""
-    ahora = ahora_art()
-    hoy_str = ahora.strftime("%Y-%m-%d")
-    ayer_str = (ahora - timedelta(days=1)).strftime("%Y-%m-%d")
-    hora_now_str = ahora.strftime("%H:%M")
-
-    ganadoras = {"dias": {}, "registro_verdes": {}}
-    if os.path.exists(HISTORIAL_GANADORAS_FILE):
-        try:
-            with open(HISTORIAL_GANADORAS_FILE, "r", encoding="utf-8") as f:
-                data_g = json.load(f)
-            if isinstance(data_g, dict):
-                ganadoras = data_g
-        except Exception as e:
-            print(f"⚠️ Error leyendo {HISTORIAL_GANADORAS_FILE}: {e}")
-
-    eventos = historial.setdefault("eventos_unificados", {})
-    _hidratar_desde_excels_y_json(historial, ganadoras, eventos)
-
-    # Registrar las señales activas de esta corrida
-    for cat_key in ("ROJO", "AMARILLO", "VERDE"):
-        for it in (bloques.get(cat_key) or []):
-            fib = it.get("fib_info") or {}
-            sem_lbl = "🏆 TOP ORO" if (cat_key == "VERDE" and it.get("es_oro")) else _norm_semaforo_etiqueta(cat_key)
-            coincide = bool(it.get("desde_posta") or it.get("en_cazador_tactico"))
-            _upsert_evento_unificado(eventos, {
-                "Fecha": hoy_str,
-                "Hora": hora_now_str,
-                "Moneda": it["ticker"],
-                "Semaforo_Ini": sem_lbl,
-                "Semaforo_Max": sem_lbl,
-                "Escalada": "Directo 🔴" if cat_key == "ROJO" else "-",
-                "IA_Pct": round(float(it.get("blindaje_pct", 0)) / 100.0, 4),
-                "Fib_Zona": round(float(fib.get("ratio", 0.0)), 2) if fib.get("ok") else None,
-                "Bids_Asks": float(it.get("ratio_bids_asks", 0.0)) if it.get("ratio_bids_asks") else None,
-                "Precio_Entrada": float(it.get("precio_f", 0.0)),
-                "Precio_Pico": float(it.get("precio_f", 0.0)),
-                "Confluencia": "SÍ (Cazador + Pre-Exp)" if coincide else "Solo Pre-Explosión",
-                "Origen": "Cazador + Pre-Explosión" if coincide else "Bot Pre-Explosión"
-            })
-
-    # Cruzar con historial_ganadoras.json para marcar cierres ganadores y demora real
-    dias_win = ganadoras.get("dias", {})
-    fechas_win_ord = sorted(dias_win.keys())
-    ts_cierre_win_default = str(ganadoras.get("ultima_actualizacion", ""))[:16]
-
-    precios_hist_win = {}
-    for f_w, lista_w in dias_win.items():
-        items_w = lista_w if isinstance(lista_w, list) else (list(lista_w.values()) if isinstance(lista_w, dict) else [])
-        for g in items_w:
-            if not isinstance(g, dict):
-                continue
-            sym_g = _normalizar_symbol(g.get("symbol") or g.get("ticker"))
-            if sym_g:
-                precios_hist_win.setdefault(sym_g, {})[f_w] = g
-
-    for key, rec in eventos.items():
-        f_ini = rec.get("Fecha", "")
-        sym = _normalizar_symbol(rec.get("Moneda"))
-        if not f_ini or not sym:
-            continue
-
-        p_ini = float(rec.get("Precio_Entrada") or 0.0)
-        p_live = float(mapa_tickers.get(sym, {}).get("lastPrice", 0) or 0.0)
-        p_pico = max(float(rec.get("Precio_Pico") or 0.0), p_ini, p_live)
-
-        for f_w, g_info in precios_hist_win.get(sym, {}).items():
-            if f_w >= f_ini:
-                p_pico = max(p_pico, float(g_info.get("high") or g_info.get("precio") or 0.0))
-        rec["Precio_Pico"] = p_pico
-
-        for f_win in fechas_win_ord:
-            if f_win < f_ini:
-                continue
-            match = precios_hist_win.get(sym, {}).get(f_win)
-            if match:
-                p_win = float(match.get("precio") or p_pico or p_ini)
-                hora_ini = rec.get("Hora", "S/H")
-                if f_win == f_ini and hora_ini in ("", "S/H", "00:00"):
-                    horas_diff = 0.0
-                    dias_diff = 0.0
-                    tiempo_txt = "Mismo día"
-                else:
-                    try:
-                        h_str = hora_ini if len(hora_ini) == 5 else "00:00"
-                        dt_ini = datetime.strptime(f"{f_ini} {h_str}", "%Y-%m-%d %H:%M")
-                    except Exception:
-                        dt_ini = datetime.strptime(f_ini[:10], "%Y-%m-%d")
-
-                    ts_w_str = ts_cierre_win_default if ts_cierre_win_default.startswith(f_win) else f"{f_win} 23:45"
-                    try:
-                        dt_win = datetime.strptime(ts_w_str, "%Y-%m-%d %H:%M")
-                    except Exception:
-                        dt_win = datetime.strptime(f_win[:10], "%Y-%m-%d") + timedelta(hours=23, minutes=45)
-
-                    if dt_win <= dt_ini and f_win == f_ini:
-                        horas_diff = 0.0
-                        dias_diff = 0.0
-                        tiempo_txt = "Mismo día (0h)"
-                    else:
-                        horas_diff = max(0.0, round((dt_win - dt_ini).total_seconds() / 3600.0, 1))
-                        dias_diff = round(horas_diff / 24.0, 2)
-                        tiempo_txt = _formatear_demora(horas_diff)
-
-                ts_w_final = ts_cierre_win_default if ts_cierre_win_default.startswith(f_win) else f"{f_win} 23:45"
-                rec["Estado"] = "🏆 GANADORA"
-                rec["Fecha_Ganadora"] = ts_w_final
-                rec["Precio_Final"] = p_win
-                rec["Tiempo_Ganadora_Txt"] = tiempo_txt
-                rec["Dias_Dec"] = dias_diff
-                break
-
-    reporte_ia = ejecutar_asistente_ia_pre_explosion(eventos, bloques)
-    stats = _generar_excel_pre_explosion(eventos, mapa_tickers, reporte_ia)
-
-    ultimo_envio = historial.get("ultimo_envio_excel_pre", "")
-    es_cierre = (ahora.hour == 23 and ahora.minute >= 30 and ultimo_envio != hoy_str)
-    es_recupero = (ahora.hour <= 2 and ultimo_envio != ayer_str)
-    es_manual = (os.getenv("GITHUB_EVENT_NAME") == "workflow_dispatch")
-
-    if es_cierre or es_recupero or es_manual:
-        fecha_lbl = ayer_str if (es_recupero and not es_cierre) else hoy_str
-        caption = (
-            f"📊 <b>Excel Maestro Pre-Explosión + IA ({fecha_lbl})</b>\n"
-            f"• Universo unificado: <b>{stats['total']} señales</b> ({stats['monedas_unicas']} monedas en <b>{stats['dias_hist']} días</b>)\n"
-            f"• Convertidas en Ganadoras: <b>{stats['ganadas']}</b> ({stats['tasa_pct']}%)\n"
-            f"• ⏱️ Tiempo medio hasta Ganadora: <code>{stats['prom_txt']}</code>"
-        )
-        time.sleep(1.5)
-        if enviar_telegram_documento(EXCEL_PRE_EXPLOSION_FILE, caption):
-            if not es_manual:
-                historial["ultimo_envio_excel_pre"] = fecha_lbl
-
-    guardar_historial(historial)
-
-
-def generar_grafico_color(lista_items, titulo_graf, subtitulo_graf, filename):
-    if not lista_items:
-        return None
-    simbolos = [
-        f"{'🛡️' if item.get('certificada_ia') else ('🏆' if item.get('es_oro') else '')}{item['ticker']}"
-        for item in lista_items
-    ]
-    posiciones = [item['pos_liquidez_pct'] for item in lista_items]
-    colores = [item['color_hex'] for item in lista_items]
-
-    fig, ax = plt.subplots(figsize=(8.5, 4.2), facecolor='#0b132b')
-    ax.set_facecolor('#0b132b')
-
-    bars = ax.bar(simbolos, posiciones, color=colores, width=0.48, zorder=3)
-    ax.grid(True, color='#1e293b', linestyle='-', linewidth=0.8, zorder=1)
-    ax.set_axisbelow(True)
-
-    ax.set_ylim(0, 118)
-    for spine in ['top', 'right', 'left', 'bottom']:
-        ax.spines[spine].set_visible(False)
-
-    ax.tick_params(left=False, labelleft=False, bottom=False)
-    ax.tick_params(axis='x', colors='white', labelsize=9)
-
-    for bar, item, pos, color in zip(bars, lista_items, posiciones, colores):
-        yval = bar.get_height()
-        xval = bar.get_x() + bar.get_width() / 2.0
-        sim = item['ticker']
-        if item.get('certificada_ia') or item.get('es_oro'):
-            bar.set_edgecolor('#00e676' if item.get('certificada_ia') else '#ffd700')
-            bar.set_linewidth(2.2)
-
-        ax.text(xval, yval + 2.5, f"{pos:.0f}%", ha='center', va='bottom', color=color, fontweight='bold', fontsize=8.5)
-        ax.plot(xval, max(yval / 2.0, 13), marker='o', markersize=15, markerfacecolor='#0f172a', markeredgecolor=color, markeredgewidth=1.8, zorder=4)
-        ax.text(xval, max(yval / 2.0, 13), sim[:5], ha='center', va='center', color='white', fontsize=6.5, fontweight='bold', zorder=5)
-
-    plt.title(titulo_graf, loc='left', color='#ffab00', fontsize=10.5, fontweight='bold', pad=12)
-    ax.text(0.0, 1.02, subtitulo_graf, transform=ax.transAxes, color='#94a3b8', fontsize=8)
-
-    plt.tight_layout()
-    plt.savefig(filename, dpi=300, facecolor=fig.get_facecolor(), edgecolor='none')
-    plt.close()
-    return filename
-
-
-def generar_dictamen_color(cat_key, lista_items):
-    if not lista_items:
-        return ""
-    if not GEMINI_API_KEY:
-        return f"Lectura {cat_key}: foco en confluencia Cazador+PreExplosión, libro de órdenes y Fibonacci."
-
-    client = genai.Client(api_key=GEMINI_API_KEY)
-    lista_texto = "\n".join([
-        f"- {i['ticker']} ({'CERTIFICADA_IA ' + str(i['blindaje_pct']) + '%' if i.get('certificada_ia') else 'OBSERVACIÓN'}): "
-        f"1h {i['cambio_1h']:+.2f}%, 24h {i['cambio_f']:+.2f}%, Vol1H {i['vol_1h_rel']:.1f}x, {i.get('motivo_certificacion', '')}"
-        for i in lista_items
-    ])
-    prompt = (
-        f"Analista Spot Binance. Dá un dictamen breve (máximo 2 líneas) para el bloque {cat_key} de Pre-Explosión "
-        f"destacando las monedas que recibieron el sello CERTIFICADA_IA para cartera semanal:\n{lista_texto}"
-    )
-    for mod in MODELOS_GEMINI_PRE:
-        try:
-            response = client.models.generate_content(model=mod, contents=prompt)
-            if response and response.text:
-                return response.text.strip()
-        except Exception:
-            continue
-    return f"Lectura {cat_key}: foco en confluencia Cazador+PreExplosión, libro de órdenes y Fibonacci."
-
-
-def enviar_telegram_foto(image_path, caption_text):
-    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        return
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
-    payload = {"chat_id": TELEGRAM_CHAT_ID, "caption": caption_text[:1020], "parse_mode": "HTML"}
-    if TELEGRAM_TOPIC_ID.isdigit():
-        payload["message_thread_id"] = int(TELEGRAM_TOPIC_ID)
-
-    try:
-        with open(image_path, 'rb') as photo:
-            res = requests.post(url, data=payload, files={"photo": photo}, timeout=45).json()
-            if not res.get("ok") and "thread not found" in str(res.get("description", "")).lower():
-                payload.pop("message_thread_id", None)
-                photo.seek(0)
-                requests.post(url, data=payload, files={"photo": photo}, timeout=45)
-    except Exception as e:
-        print(f"❌ Error enviando foto a Telegram: {e}")
-
-
-def enviar_texto_telegram(texto):
-    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        return
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    tid = int(TELEGRAM_TOPIC_ID) if TELEGRAM_TOPIC_ID.isdigit() else None
-    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": texto.strip(), "parse_mode": "HTML", "disable_web_page_preview": True}
-    if tid:
-        payload["message_thread_id"] = tid
-    try:
-        res = requests.post(url, json=payload, timeout=30).json()
-        if not res.get("ok") and "thread not found" in str(res.get("description", "")).lower():
-            payload.pop("message_thread_id", None)
-            requests.post(url, json=payload, timeout=30)
-    except Exception as e:
-        print(f"⚠️ Error enviando texto: {e}")
-
-
-def enviar_mensaje_por_color(num_msg, cat_key, titulo_color, items, total_analizadas):
-    fecha_str = ahora_art().strftime('%Y-%m-%d %H:%M ART')
-    if not items:
-        enviar_texto_telegram(
-            f"🔥 <b>PRE-EXPLOSIÓN ({num_msg}/3)</b>\n{titulo_color}\n📅 <code>{fecha_str}</code>\n\n"
-            f"⏳ <i>Sin monedas en este bloque en este ciclo.</i>"
-        )
-        return
-
-    fname = f"pre_explosion_{cat_key.lower()}.png"
-    generar_grafico_color(
-        items,
-        f"PRE-EXPLOSION ({num_msg}/3) - {cat_key}",
-        f"Fecha: {fecha_str} | Analizadas: {total_analizadas} Spot | 🛡️ = Certificada IA | 🏆 = Oro",
-        fname
-    )
-    dictamen = generar_dictamen_color(cat_key, items)
-
-    caption = (
-        f"🔥 <b>PRE-EXPLOSIÓN ({num_msg}/3)</b>\n"
-        f"{titulo_color}\n"
-        f"📅 <code>{fecha_str}</code>"
-    )
-    enviar_telegram_foto(fname, caption)
-    time.sleep(1)
-
-    cuerpo = f"💡 <i>{html.escape(dictamen)}</i>\n\n"
-    for item in items:
-        sim = item['ticker']
-        precio_str = formatear_precio(item['precio_f'])
-        unique_id = int(time.time() * 1000) + random.randint(1, 9999)
-        url_ia = f"{BASE_URL_NETLIFY}/?coin={sim}&price={item['precio_f']}&change={item['cambio_f']}&high={item['high_f']}&low={item['low_f']}&v={sim}_{unique_id}"
-        url_trade = f"https://www.binance.com/es/trade/{sim}_USDT"
-
-        etiqueta_extra = ""
-        if item.get("es_oro"):
-            etiqueta_extra = f" 🏆 <b>[COMPRA AQUÍ • ORO | Rango: {item['pos_liquidez_pct']:.0f}% | Vol1H: {item['vol_1h_rel']:.1f}x]</b>"
-        elif item.get("desde_posta"):
-            if item.get("var_desde_grad") is not None:
-                etiqueta_extra = f" ⭐⭐⭐ [Posta {item.get('fecha_grad')}: <b>{item['var_desde_grad']:+.2f}%</b>]"
-            else:
-                etiqueta_extra = " ⭐⭐⭐ [Posta Roja]"
-
-        sello_cert = (
-            f"🛡️ <b>CERTIFICADA IA ({item['blindaje_pct']}%)</b>"
-            if item.get("certificada_ia")
-            else f"⏳ <i>En observación IA ({item['blindaje_pct']}%)</i>"
-        )
-        motivo_c = html.escape(item.get("motivo_certificacion", ""))
-
-        fib = item.get("fib_info", {})
-        linea_fib = ""
-        if fib.get("ok"):
-            linea_fib = f"  • <i>{html.escape(fib['etiqueta_fib'])}</i> | Ext 1.618: <code>{formatear_precio(fib['ext_1618'])}</code>\n"
-
-        cuerpo += (
-            f"• <b>{sim}</b>{etiqueta_extra} (1h: {item['cambio_1h']:+.1f}% | 4h: {item['cambio_4h']:+.1f}% | 24h: {item['cambio_f']:+.1f}%) | <code>{precio_str}</code>\n"
-            f"  • {sello_cert} — <i>{motivo_c}</i>\n"
-            f"{linea_fib}"
-            f"  └ <a href=\"{html.escape(url_ia)}\">📊 Resumen IA</a> | <a href=\"{html.escape(url_trade)}\">🔶 Tradear</a>\n\n"
-        )
-
-    enviar_texto_telegram(cuerpo)
-
-
-if __name__ == "__main__":
-    print(f"🔥 EJECUTANDO PRE-EXPLOSIÓN V10 + EXCEL MAESTRO 5 PESTAÑAS ({ahora_art().strftime('%Y-%m-%d %H:%M:%S')} ART)...")
-    session = crear_sesion_binance()
-    simbolos_activos = obtener_simbolos_spot_activos(session)
-    datos = obtener_datos_binance(session)
-
-    if datos and simbolos_activos:
-        historial = cargar_historial()
-        bloques, total_analizadas, historial, mapa_tickers = motor_ia_seleccion_tactica(datos, simbolos_activos, session, historial)
-
-        enviar_mensaje_por_color(1, "ROJO", "🔴 <b>1. EXPLOSIÓN INMINENTE (ROJO)</b>", bloques["ROJO"], total_analizadas)
-        time.sleep(2)
-        enviar_mensaje_por_color(2, "AMARILLO", "🟡 <b>2. CONFIRMACIÓN TÁCTICA (AMARILLO)</b>", bloques["AMARILLO"], total_analizadas)
-        time.sleep(2)
-        enviar_mensaje_por_color(3, "VERDE", "🟢 <b>3. COMPRA TEMPRANA • TOP ORO (VERDE)</b>", bloques["VERDE"], total_analizadas)
-
-        hora_actual = ahora_art().hour
-        if hora_actual >= 21 and not historial.get("resumen_enviado_hoy", False):
-            monedas_dia = [s[:-4] if s.endswith('USDT') else s for s in historial.get("resumen_dia", [])]
-            monedas_oro = [s[:-4] if s.endswith('USDT') else s for s in historial.get("oro_hoy", [])]
-            if monedas_dia:
-                resumen_texto = (
-                    f"📋 <b>RESUMEN DIARIO PRE-EXPLOSIÓN (21:00 ART)</b>\n"
-                    f"📅 <i>Fecha: {ahora_art().strftime('%Y-%m-%d')}</i>\n\n"
-                    f"🏆 <b>Opciones de Oro detectadas hoy:</b>\n<code>{', '.join(monedas_oro) if monedas_oro else 'Ninguna en rango estricto'}</code>\n\n"
-                    f"Todas las monedas del radar hoy:\n<code>{', '.join(monedas_dia)}</code>"
-                )
-                enviar_texto_telegram(resumen_texto)
-                historial["resumen_enviado_hoy"] = True
-                guardar_historial(historial)
-
-        ejecutar_auditoria_y_excel_pre_explosion(historial, bloques, mapa_tickers)
-    else:
-        print("❌ ERROR: Sin datos o sin símbolos activos de Binance.")
+            f"{a['horiz
