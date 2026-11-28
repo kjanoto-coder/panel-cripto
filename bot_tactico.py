@@ -768,9 +768,97 @@ def _evaluar_evolucion_historica_binance(session, sym, fecha_iso, p_inicio, p_ac
     return None
 
 
+def _cargar_filas_excel_en_historial(hist_comp):
+    """Carga todas las filas existentes de `3_REGISTRO_MAESTRO` en `hist_comp` sin perder ningún dato."""
+    base_source = None
+    for candidate in [EXCEL_TACTICO_FILE, MAESTRO_BASE_FILE]:
+        if candidate and os.path.exists(candidate):
+            base_source = candidate
+            break
+    if not base_source:
+        return
+
+    try:
+        wb = openpyxl.load_workbook(base_source, data_only=True)
+        if "3_REGISTRO_MAESTRO" not in wb.sheetnames:
+            return
+        ws = wb["3_REGISTRO_MAESTRO"]
+        for r in range(5, ws.max_row + 1):
+            fec = ws.cell(r, 2).value
+            mon = ws.cell(r, 6).value
+            if not fec or not mon:
+                continue
+            fecha = str(fec)[:10].strip()
+            moneda = str(mon).strip().upper()
+            if not fecha or not moneda:
+                continue
+            sym = f"{moneda}USDT"
+            key = f"{sym}_{fecha}"
+
+            cat = str(ws.cell(r, 7).value or "VERDE").strip().upper()
+            etapa_lbl = str(ws.cell(r, 8).value or "").strip()
+            if "ROJ" in cat or "3⭐⭐⭐" in etapa_lbl:
+                etapa_max = 3
+                etiqueta_etapa = etapa_lbl or "3⭐⭐⭐ ROJO CERTIFICADO"
+            elif "AMAR" in cat or "2⭐⭐" in etapa_lbl:
+                etapa_max = 2
+                etiqueta_etapa = etapa_lbl or "2⭐⭐ AMARILLO"
+            else:
+                etapa_max = 1
+                etiqueta_etapa = etapa_lbl or "1⭐ VERDE"
+
+            p_ini = float(ws.cell(r, 9).value or 0.0)
+            p_max = float(ws.cell(r, 14).value or 0.0)
+            max_gain_raw = ws.cell(r, 15).value
+            max_dd_raw = ws.cell(r, 16).value
+            ret_24h_raw = ws.cell(r, 19).value
+            ret_48h_raw = ws.cell(r, 20).value
+            est_1d = str(ws.cell(r, 21).value or "").strip()
+            fib_tag = str(ws.cell(r, 22).value or "").strip()
+            rsi_1h = ws.cell(r, 23).value
+            res_aud = str(ws.cell(r, 24).value or "").strip()
+            paso_pre = str(ws.cell(r, 25).value or "").strip()
+            operada = str(ws.cell(r, 26).value or "").strip()
+            origen = str(ws.cell(r, 27).value or "").strip()
+
+            max_gain_pct = round(float(max_gain_raw) * 100.0, 2) if isinstance(max_gain_raw, (int, float)) else (
+                round(((p_max - p_ini) / p_ini) * 100.0, 2) if (p_ini > 0 and p_max > 0) else 0.0
+            )
+            max_dd_pct = round(float(max_dd_raw) * 100.0, 2) if isinstance(max_dd_raw, (int, float)) else 0.0
+
+            entry = hist_comp.get(key, {})
+            entry.update({
+                "id": key,
+                "symbol": sym,
+                "ticker": moneda,
+                "fecha_deteccion": fecha,
+                "etapa_max": max(int(entry.get("etapa_max", 1)), etapa_max),
+                "etiqueta_etapa": etiqueta_etapa,
+                "precio_inicio": p_ini if p_ini > 0 else float(entry.get("precio_inicio") or 0.0),
+                "precio_actual": float(entry.get("precio_actual") or p_max or p_ini or 0.0),
+                "precio_max": max(float(entry.get("precio_max") or 0.0), p_max, p_ini),
+                "max_gain_pct": max(float(entry.get("max_gain_pct") or 0.0), max_gain_pct),
+                "max_dd_pct": max_dd_pct,
+                "ret_24h_pct": round(float(ret_24h_raw) * 100.0, 2) if isinstance(ret_24h_raw, (int, float)) else entry.get("ret_24h_pct"),
+                "ret_48h_pct": round(float(ret_48h_raw) * 100.0, 2) if isinstance(ret_48h_raw, (int, float)) else entry.get("ret_48h_pct"),
+                "estructura_1d": est_1d or entry.get("estructura_1d") or "1d",
+                "fib_tag": fib_tag or entry.get("fib_tag") or "",
+                "rsi_1h": float(rsi_1h) if isinstance(rsi_1h, (int, float)) else entry.get("rsi_1h", 50.0),
+                "resultado_real": res_aud or entry.get("resultado_real") or "EN_MADURACION (<=3d)",
+                "paso_pre_exp": paso_pre or entry.get("paso_pre_exp") or ("SÍ (Pre-Exp)" if etapa_max == 3 else "NO"),
+                "operada_trader": operada or entry.get("operada_trader") or "NO",
+                "origen_dato": origen or entry.get("origen_dato") or "Bot Cazador Táctico",
+            })
+            hist_comp[key] = entry
+    except Exception as e:
+        print(f"⚠️ Error cargando filas históricas desde Excel: {e}")
+
+
 def actualizar_historial_completo_tactico(session, historial, mapa_mkt):
     """Consolida todas las alertas históricas sin borrarlas jamás y audita su resultado real."""
     hist_comp = historial.setdefault("historial_completo", {})
+    _cargar_filas_excel_en_historial(hist_comp)
+
     hoy_iso = ahora_art().strftime('%Y-%m-%d')
     hoy_dt = ahora_art().date()
 
@@ -858,7 +946,8 @@ def actualizar_historial_completo_tactico(session, historial, mapa_mkt):
             if etapa >= int(reg.get("etapa_max", 1)):
                 reg["etapa_max"] = etapa
                 reg["etiqueta_etapa"] = etiqueta
-            reg["precio_actual"] = p_act
+            if p_act > 0:
+                reg["precio_actual"] = p_act
             reg["probabilidad"] = max(int(reg.get("probabilidad", 50)), int(info.get("blindaje_etapa1", info.get("prob_actual", 50))))
             if info.get("motivo"):
                 reg["motivo"] = info["motivo"]
@@ -899,16 +988,17 @@ def actualizar_historial_completo_tactico(session, historial, mapa_mkt):
         reg["max_gain_pct"] = max_g
         reg["max_dd_pct"] = max_dd
 
-        if max_g >= 8.0:
-            reg["resultado_real"] = "REBOTE_EXITOSO (>=+8%)"
-        elif max_g >= 4.0:
-            reg["resultado_real"] = "AVANCE_MODERADO (+4% a +8%)"
-        elif dias_trans <= 3:
-            reg["resultado_real"] = "EN_MADURACION (<=3d)"
-        elif max_dd <= -7.0:
-            reg["resultado_real"] = "INVALIDADA (<-7%)"
-        else:
-            reg["resultado_real"] = "LATERAL_SIN_IMPULSO"
+        if not reg.get("resultado_real"):
+            if max_g >= 8.0:
+                reg["resultado_real"] = "REBOTE_EXITOSO (>=+8%)"
+            elif max_g >= 4.0:
+                reg["resultado_real"] = "AVANCE_MODERADO (+4% a +8%)"
+            elif dias_trans <= 3:
+                reg["resultado_real"] = "EN_MADURACION (<=3d)"
+            elif max_dd <= -7.0:
+                reg["resultado_real"] = "INVALIDADA (<-7%)"
+            else:
+                reg["resultado_real"] = "LATERAL_SIN_IMPULSO"
 
     guardar_historial(historial)
     return hist_comp
@@ -1077,9 +1167,8 @@ def _map_etapa_a_cat(etiqueta_etapa: str) -> str:
 def generar_excel_tactico(hist_comp, reporte_ia):
     """
     Actualiza el libro unificado de 5 hojas (`1_RESUMEN_MENSUAL_IA`, `2_RADAR_ACTIVO_IA`,
-    `3_REGISTRO_MAESTRO`, `4_RANKING_MONEDAS`, `5_AUDITORIA_SETUPS`) partiendo de
-    `CAZADOR_TACTICO_MAESTRO_UNIFICADO.xlsx` o `HISTORICO_CAZADOR_TACTICO.xlsx` sin
-    duplicar registros ni romper fórmulas.
+    `3_REGISTRO_MAESTRO`, `4_RANKING_MONEDAS`, `5_AUDITORIA_SETUPS`) preservando todos
+    los datos existentes sin borrar ni pisar valores no nulos.
     """
     base_source = None
     for candidate in [EXCEL_TACTICO_FILE, MAESTRO_BASE_FILE]:
@@ -1133,7 +1222,7 @@ def generar_excel_tactico(hist_comp, reporte_ia):
             for c_i in range(1, 12):
                 ws_rad.cell(r, c_i).value = None
 
-    # 2. Deduplicar e insertar/actualizar señales en `3_REGISTRO_MAESTRO`
+    # 2. Deduplicar e insertar/actualizar señales en `3_REGISTRO_MAESTRO` sin perder datos
     existing_by_key = {}
     last_used_row = 4
     for r in range(5, ws_reg.max_row + 1):
@@ -1172,23 +1261,31 @@ def generar_excel_tactico(hist_comp, reporte_ia):
 
         if key in existing_by_key:
             r = existing_by_key[key]
+            if p_ini > 0 and ws_reg.cell(r, 9).value is None:
+                ws_reg.cell(r, 9).value = p_ini
             prev_pmax = ws_reg.cell(r, 14).value
-            if prev_pmax is None or float(prev_pmax) < p_max:
+            if p_max > 0 and (prev_pmax is None or float(prev_pmax) < p_max):
                 ws_reg.cell(r, 14).value = p_max
-            ws_reg.cell(r, 7).value = cat
-            ws_reg.cell(r, 8).value = etapa_lbl
-            ws_reg.cell(r, 16).value = max_dd
-            if ret_24h is not None:
+            if cat == "ROJA" or ws_reg.cell(r, 7).value is None:
+                ws_reg.cell(r, 7).value = cat
+            if etapa_lbl and ws_reg.cell(r, 8).value is None:
+                ws_reg.cell(r, 8).value = etapa_lbl
+            if ws_reg.cell(r, 16).value is None and max_dd != 0:
+                ws_reg.cell(r, 16).value = max_dd
+            if ret_24h is not None and ws_reg.cell(r, 19).value is None:
                 ws_reg.cell(r, 19).value = ret_24h
-            if ret_48h is not None:
+            if ret_48h is not None and ws_reg.cell(r, 20).value is None:
                 ws_reg.cell(r, 20).value = ret_48h
-            if reg.get("estructura_1d"):
+            if reg.get("estructura_1d") and ws_reg.cell(r, 21).value is None:
                 ws_reg.cell(r, 21).value = reg.get("estructura_1d")
-            if reg.get("fib_tag"):
+            if reg.get("fib_tag") and ws_reg.cell(r, 22).value is None:
                 ws_reg.cell(r, 22).value = reg.get("fib_tag")
-            if reg.get("rsi_1h") is not None:
+            if reg.get("rsi_1h") is not None and ws_reg.cell(r, 23).value is None:
                 ws_reg.cell(r, 23).value = reg.get("rsi_1h")
-            ws_reg.cell(r, 24).value = res_aud
+            if res_aud and ws_reg.cell(r, 24).value is None:
+                ws_reg.cell(r, 24).value = res_aud
+            if cat == "ROJA":
+                ws_reg.cell(r, 25).value = "SÍ (Pre-Exp)"
         else:
             r = next_row
             next_row += 1
