@@ -1,14 +1,5 @@
 [
   [
-    "LISTAUSDT",
-    "JSTUSDT",
-    "DODOUSDT",
-    "SENTUSDT",
-    "YBUSDT",
-    "STXUSDT",
-    "SKYUSDT"
-  ],
-  [
     "LUNCUSDT",
     "OPGUSDT",
     "PARTIUSDT",
@@ -16,5 +7,14 @@
     "ATMUSDT",
     "KAVAUSDT",
     "ACTUSDT"
+  ],
+  [
+    "LISTAUSDT",
+    "DODOUSDT",
+    "LUNCUSDT",
+    "YBUSDT",
+    "STXUSDT",
+    "ZROUSDT",
+    "OPGUSDT"
   ]
 ]
