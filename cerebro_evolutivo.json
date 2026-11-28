@@ -1,6 +1,6 @@
 {
-  "version_ciclo": 227,
-  "ultima_actualizacion": "2026-11-27 22:51 ART",
+  "version_ciclo": 228,
+  "ultima_actualizacion": "2026-11-27 23:01 ART",
   "umbrales": {
     "min_ratio_vol_1h": 1.91,
     "min_ob_ratio": 1.27,
@@ -504,13 +504,6 @@
       "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
     },
     {
-      "symbol": "2ZUSDT",
-      "ts_unix": 1795744294,
-      "precio_veto": 0.01752,
-      "paso_fallido": "A3-Empresa",
-      "detalle": "A3 VETA: Sin escalera MA7>MA25>MA99 en 15m"
-    },
-    {
       "symbol": "BIGTIMEUSDT",
       "ts_unix": 1795745470,
       "precio_veto": 0.0067,
@@ -547,6 +540,6 @@
     "stops_salvadores": 1,
     "vetos_acertados": 67,
     "oportunidades_perdidas_20": 7,
-    "ajustes_autocritica_ciclo": 76
+    "ajustes_autocritica_ciclo": 77
   }
 }
