@@ -1,14 +1,14 @@
 {
-  "version_ciclo": 290,
-  "ultima_actualizacion": "2026-11-28 09:21 ART",
+  "version_ciclo": 291,
+  "ultima_actualizacion": "2026-11-28 09:31 ART",
   "umbrales": {
-    "min_ratio_vol_1h": 1.9,
+    "min_ratio_vol_1h": 1.85,
     "min_ob_ratio": 1.26,
     "max_concentracion_muro_pct": 35.0,
     "min_taker_buy_pct": 57.0,
     "min_whale_buy_pct": 56.0,
     "min_trades_por_min": 12.0,
-    "min_pista_libre_pct": 15.0,
+    "min_pista_libre_pct": 14.5,
     "max_distancia_ma7_15m_pct": 3.2,
     "stop_base_pct": -3.3,
     "tp1_pct": 6.5,
@@ -103,10 +103,10 @@
       "ajuste_score": 4.0
     },
     "ACEUSDT": {
-      "eventos": 1,
-      "positivos": 1,
+      "eventos": 2,
+      "positivos": 2,
       "negativos": 0,
-      "ajuste_score": 4.0
+      "ajuste_score": 8.0
     },
     "KAVAUSDT": {
       "eventos": 1,
@@ -134,13 +134,6 @@
     }
   },
   "pendientes_sombra_24h": [
-    {
-      "symbol": "ACEUSDT",
-      "ts_unix": 1795846866,
-      "precio_veto": 0.0753,
-      "paso_fallido": "A4-Empresa",
-      "detalle": "A4 VETA: Vol 1h 0.17x < 1.25x"
-    },
     {
       "symbol": "KAVAUSDT",
       "ts_unix": 1795848072,
@@ -534,7 +527,7 @@
     "stops_prematuros": 0,
     "stops_salvadores": 1,
     "vetos_acertados": 82,
-    "oportunidades_perdidas_20": 14,
-    "ajustes_autocritica_ciclo": 134
+    "oportunidades_perdidas_20": 15,
+    "ajustes_autocritica_ciclo": 135
   }
 }
