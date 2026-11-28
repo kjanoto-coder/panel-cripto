@@ -1,14 +1,5 @@
 [
   [
-    "SKYUSDT",
-    "GALAUSDT",
-    "RESOLVUSDT",
-    "SPKUSDT",
-    "KAVAUSDT",
-    "SSVUSDT",
-    "TFUELUSDT"
-  ],
-  [
     "JSTUSDT",
     "WIFUSDT",
     "GALAUSDT",
@@ -16,5 +7,14 @@
     "ACTUSDT",
     "OPGUSDT",
     "SPKUSDT"
+  ],
+  [
+    "JSTUSDT",
+    "SENTUSDT",
+    "WIFUSDT",
+    "GALAUSDT",
+    "AVAUSDT",
+    "SKYUSDT",
+    "ACTUSDT"
   ]
 ]
