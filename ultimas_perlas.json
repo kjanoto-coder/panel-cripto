@@ -2,19 +2,19 @@
   [
     "JSTUSDT",
     "NIGHTUSDT",
-    "RENDERUSDT",
-    "OPGUSDT",
-    "BANKUSDT",
-    "TLMUSDT",
-    "AVAUSDT"
-  ],
-  [
-    "JSTUSDT",
-    "NIGHTUSDT",
     "BANKUSDT",
     "RENDERUSDT",
     "OPGUSDT",
     "TLMUSDT",
     "WIFUSDT"
+  ],
+  [
+    "JSTUSDT",
+    "DODOUSDT",
+    "NIGHTUSDT",
+    "RENDERUSDT",
+    "OPGUSDT",
+    "SKYUSDT",
+    "TLMUSDT"
   ]
 ]
