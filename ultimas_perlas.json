@@ -4,17 +4,17 @@
     "SENTUSDT",
     "OPGUSDT",
     "DODOUSDT",
-    "YBUSDT",
     "SPKUSDT",
+    "YBUSDT",
     "ACTUSDT"
   ],
   [
-    "JSTUSDT",
-    "SENTUSDT",
-    "OPGUSDT",
     "DODOUSDT",
-    "SPKUSDT",
+    "SENTUSDT",
+    "JSTUSDT",
     "YBUSDT",
-    "ACTUSDT"
+    "SPKUSDT",
+    "ACTUSDT",
+    "CFGUSDT"
   ]
 ]
